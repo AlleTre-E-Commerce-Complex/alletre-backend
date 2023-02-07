@@ -10,3 +10,29 @@ datasource db {
   url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
+
+model User {
+  id                  Int        @id @default(autoincrement())
+  userName            String?
+  email               String?    @unique
+  password            String?
+  phone               String?    @unique
+  role                String?
+  createdAt           DateTime   @default(now())
+  imageLink           String?
+  imagePath           String?
+  isOAuth             Boolean    @default(false)
+  hasCompletedProfile Boolean    @default(false)
+  Location            Location[]
+}
+
+model Location {
+  id                    Int      @id @default(autoincrement())
+  userId                Int
+  country               String
+  city                  String
+  subAdministrativeArea String?
+  streetName            String?
+  createdAt             DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id])
+}
