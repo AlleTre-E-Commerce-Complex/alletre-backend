@@ -4,9 +4,10 @@ import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../user/user.module';
+import { FirebaseModule } from '../firebase/firebase.module';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), UserModule],
+  imports: [PassportModule, JwtModule.register({}), UserModule, FirebaseModule],
   providers: [AuthService],
   controllers: [AuthController],
 })
