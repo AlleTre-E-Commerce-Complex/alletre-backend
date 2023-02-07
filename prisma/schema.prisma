@@ -23,7 +23,7 @@ model User {
   imagePath           String?
   isOAuth             Boolean    @default(false)
   hasCompletedProfile Boolean    @default(false)
-  Location            Location[]
+  locations           Location[]
 }
 
 model Location {
