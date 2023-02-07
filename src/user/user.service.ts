@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UserService {
-  constructor() {
-    /* TODO document why this constructor is empty */
-  }
+  constructor(private prismaService: PrismaService) {}
+
+  async create() {}
+  async findUserById(id: number) {}
+  async findUserByEmail(email: string) {}
+  async findAll() {}
 }
