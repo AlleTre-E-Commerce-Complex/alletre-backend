@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
-import { Role } from 'src/auth/enums/role.enum';
 
 @Injectable()
 export class UserService {
@@ -44,7 +43,6 @@ export class UserService {
         phone: phone,
         isOAuth: true,
         isVerified: true,
-        role: Role.User,
       },
     });
   }
@@ -115,7 +113,6 @@ export class UserService {
         phone: phone,
         userName: userName,
         password: hashedPassword,
-        role: Role.User,
       },
     });
   }

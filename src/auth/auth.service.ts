@@ -5,6 +5,7 @@ import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
 import { OAuthDto, UserSignUpDTO, UserSignInDTO } from '../user/dtos';
+import { Role } from './enums/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -50,7 +51,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role,
+      roles: [Role.User],
     });
 
     return {
@@ -76,7 +77,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role,
+      roles: [Role.User],
     });
 
     return {
@@ -113,7 +114,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role,
+      roles: [Role.User],
     });
 
     return {
@@ -123,7 +124,7 @@ export class AuthService {
     };
   }
 
-  generateTokens(payload: { id: number; email: string; role: string }) {
+  generateTokens(payload: { id: number; email: string; roles: string[] }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '15m',
