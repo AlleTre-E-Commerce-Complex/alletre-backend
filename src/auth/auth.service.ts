@@ -58,6 +58,8 @@ export class AuthService {
 
     return {
       ...userWithoutPassword,
+      imageLink: undefined,
+      imagePath: undefined,
       accessToken,
       refreshToken,
     };
@@ -86,6 +88,8 @@ export class AuthService {
 
     return {
       ...userWithoutPassword,
+      imageLink: undefined,
+      imagePath: undefined,
       accessToken,
       refreshToken,
     };
@@ -125,6 +129,8 @@ export class AuthService {
 
     return {
       ...userWithoutPassword,
+      imageLink: undefined,
+      imagePath: undefined,
       accessToken,
       refreshToken,
     };
