@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
+import * as bcrypt from 'bcrypt';
+import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
+import { OAuthDto, UserSignUpDTO, UserSignInDTO } from '../user/dtos';
 
 @Injectable()
 export class AuthService {
@@ -19,18 +22,108 @@ export class AuthService {
    * @param password
    */
   async validateUser(email: string, password: string) {
-    console.log(email + ' - ' + password);
+    // Get user
+    const user = await this.userService.findUserByEmailOr404(email);
 
-    // TODO: Get user
+    const isEmailVerifed = await this.userService.checkEmailVerification(email);
+    if (!isEmailVerifed)
+      throw new MethodNotAllowedResponse({
+        ar: 'قم بالتحقق من بريدك الالكتروني',
+        en: 'Verify your account',
+      });
 
-    // TODO: Compare password with userPassword and return it if true else return null
+    //  Compare password with userPassword
+    const isPasswordMatches = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatches)
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في بيانات المستخدم',
+        en: 'Invalid user credentials',
+      });
+
+    return user;
   }
-  async login(email: string, password: string) {
-    // TODO: Validate user using validateUser(email,password)
-    // TODO: Generate Tokens for user and return
+  async signIn(email: string, password: string) {
+    // Validate user using validateUser(email,password)
+    const user = await this.validateUser(email, password);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      ...user,
+      accessToken,
+      refreshToken,
+    };
+  }
+  async signUp(userSignUpBody: UserSignUpDTO) {
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(
+      userSignUpBody.password,
+      parseInt(process.env.SALT),
+    );
+
+    // Create user
+    const user = await this.userService.register(
+      userSignUpBody,
+      hashedPassword,
+    );
+
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      ...user,
+      accessToken,
+      refreshToken,
+    };
+  }
+  async oAuth(data: OAuthDto) {
+    const { idToken, phone, email } = data;
+
+    const verificationStatus = await this.firebaseService.verifyIdToken(
+      idToken,
+    );
+    if (verificationStatus === 'ERROR')
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية التسجيل',
+        en: 'Invalid authentication',
+      });
+
+    if (!email)
+      throw new MethodNotAllowedResponse({
+        ar: 'قم بأختيار البريدالالكتروني',
+        en: `You have to provide email address`,
+      });
+
+    let user: any;
+
+    if (email) user = await this.userService.findUserByEmail(email);
+
+    if (!user) user = await this.userService.oAuth(email, phone);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      ...user,
+      accessToken,
+      refreshToken,
+    };
   }
 
-  generateTokens(payload: { id: number; emai: string; role: string }) {
+  generateTokens(payload: { id: number; email: string; role: string }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '15m',
