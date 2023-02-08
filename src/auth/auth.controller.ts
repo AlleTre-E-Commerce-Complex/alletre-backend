@@ -6,7 +6,7 @@ import { UserSignUpDTO, UserSignInDTO } from '../user/dtos';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Get('/sign-up')
+  @Post('/sign-up')
   async userSignUpController(@Body() userSignUpBody: UserSignUpDTO) {
     return {
       success: true,

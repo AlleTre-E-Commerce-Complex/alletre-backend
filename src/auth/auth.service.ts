@@ -54,8 +54,10 @@ export class AuthService {
       roles: [Role.User],
     });
 
+    const userWithoutPassword = this.userService.exclude(user, ['password']);
+
     return {
-      ...user,
+      ...userWithoutPassword,
       accessToken,
       refreshToken,
     };
@@ -80,8 +82,10 @@ export class AuthService {
       roles: [Role.User],
     });
 
+    const userWithoutPassword = this.userService.exclude(user, ['password']);
+
     return {
-      ...user,
+      ...userWithoutPassword,
       accessToken,
       refreshToken,
     };
@@ -117,8 +121,10 @@ export class AuthService {
       roles: [Role.User],
     });
 
+    const userWithoutPassword = this.userService.exclude(user, ['password']);
+
     return {
-      ...user,
+      ...userWithoutPassword,
       accessToken,
       refreshToken,
     };
