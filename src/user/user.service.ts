@@ -30,8 +30,6 @@ export class UserService {
     // Create User
     const user = await this._create(userName, email, hashedPassword, phone);
 
-    // TODO: Send email verificaiton to 'email'
-
     return user;
   }
 
@@ -99,6 +97,19 @@ export class UserService {
       });
 
     return user;
+  }
+
+  async verifyUserEmail(email: string) {
+    try {
+      await this.prismaService.user.update({
+        where: { email: email },
+        data: { isVerified: true },
+      });
+
+      return 'SUCCESS';
+    } catch (error) {
+      return 'FAILED';
+    }
   }
 
   private async _create(

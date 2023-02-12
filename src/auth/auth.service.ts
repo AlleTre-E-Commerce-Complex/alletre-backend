@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
@@ -8,6 +8,7 @@ import { OAuthDto, UserSignUpDTO, UserSignInDTO } from '../user/dtos';
 import { Role } from './enums/role.enum';
 import { ForbiddenResponse } from '../common/errors/ForbiddenResponse';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
+import { EmailSerivce } from '../emails/email.service';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +16,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly firebaseService: FirebaseService,
+    private readonly emailSerivce: EmailSerivce,
   ) {
     /* TODO document why this constructor is empty */
   }
@@ -83,6 +85,17 @@ export class AuthService {
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
 
+    const token = this.jwtService.sign(
+      { email: userSignUpBody.email },
+      {
+        secret: process.env.EMAIL_VERIFICATION_SECRET,
+        expiresIn: '7m',
+      },
+    );
+
+    // TODO: Send email verificaiton to 'email'
+    await this.emailSerivce.sendEmail(userSignUpBody.email, token);
+
     return {
       ...userWithoutPassword,
       imageLink: undefined,
@@ -132,6 +145,36 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async activateAccount(token: string) {
+    if (!token)
+      throw new ForbiddenResponse({
+        en: 'Forbidden Access',
+        ar: 'غير مصرح لك ',
+      });
+
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: process.env.EMAIL_VERIFICATION_SECRET,
+      });
+    } catch (error) {
+      throw new ForbiddenResponse({
+        en: 'Forbidden Access',
+        ar: 'غير مصرح لك ',
+      });
+    }
+
+    const verificationResult = await this.userService.verifyUserEmail(
+      payload.email,
+    );
+
+    if (verificationResult === 'SUCCESS')
+      return `<html> <h1 style="color:Burgundy;text-align=center;">Verified Successfuly </h1> 
+      </html>`;
+    else
+      return `<html> <h1 style="color:Burgundy;text-align=center;>Verification Failed </h1> </html>`;
   }
 
   generateTokens(payload: { id: number; email: string; roles: string[] }) {

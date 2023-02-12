@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserSignUpDTO, UserSignInDTO, OAuthDto } from '../user/dtos';
 
@@ -37,5 +37,9 @@ export class AuthController {
       success: true,
       data: await this.authService.refreshToken(refreshToken),
     };
+  }
+  @Get('/activate')
+  async activateEmailController(@Query('token') token: string) {
+    return await this.authService.activateAccount(token);
   }
 }
