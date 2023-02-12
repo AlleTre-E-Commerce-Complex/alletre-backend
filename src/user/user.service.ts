@@ -39,8 +39,8 @@ export class UserService {
     // Create User
     return await this.prismaService.user.create({
       data: {
-        email: email,
-        phone: phone,
+        ...(email ? { email: email } : {}),
+        ...(phone ? { phone: phone } : {}),
         isOAuth: true,
         isVerified: true,
       },

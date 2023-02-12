@@ -106,15 +106,16 @@ export class AuthService {
         en: 'Invalid authentication',
       });
 
-    if (!email)
+    if (!email && !phone)
       throw new MethodNotAllowedResponse({
-        ar: 'قم بأختيار البريدالالكتروني',
-        en: `You have to provide email address`,
+        ar: 'خطأ في التسجيل',
+        en: `You have to provide email address or phone number`,
       });
 
     let user: any;
 
     if (email) user = await this.userService.findUserByEmail(email);
+    else if (phone) user = await this.userService.findUserByPhone(phone);
 
     if (!user) user = await this.userService.oAuth(email, phone);
 
