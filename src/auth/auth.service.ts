@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
 import { OAuthDto, UserSignUpDTO, UserSignInDTO } from '../user/dtos';
 import { Role } from './enums/role.enum';
+import { ForbiddenResponse } from '../common/errors/ForbiddenResponse';
+import { NotFoundResponse } from '../common/errors/NotFoundResponse';
 
 @Injectable()
 export class AuthService {
@@ -17,11 +19,6 @@ export class AuthService {
     /* TODO document why this constructor is empty */
   }
 
-  /**
-   * --> user validation method, which retrieves the user and verifies the user’s password.
-   * @param email
-   * @param password
-   */
   async validateUser(email: string, password: string) {
     // Get user
     const user = await this.userService.findUserByEmailOr404(email);
@@ -145,9 +142,43 @@ export class AuthService {
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.REFRESH_TOKEN_SECRET,
-      expiresIn: '7m',
+      expiresIn: '7d',
     });
 
     return { accessToken, refreshToken };
+  }
+  async refreshToken(oldRefreshToken: string) {
+    if (!oldRefreshToken)
+      throw new NotFoundResponse({ ar: 'لا يوجد', en: 'not found' });
+
+    // decode refreshToken
+    const payload = this.decodeRefreshToken(oldRefreshToken);
+
+    // Check CLientUser Existence
+    const user = await this.getUserByRole(payload.id, payload.roles[0]);
+    // Generate Tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      roles: payload.roles,
+    });
+
+    return { accessToken, refreshToken };
+  }
+  private decodeRefreshToken(refreshToken: string) {
+    try {
+      return this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+    } catch {
+      throw new ForbiddenResponse({
+        en: 'Not Authenticated',
+        ar: 'غير مصدق للدخول',
+      });
+    }
+  }
+
+  private async getUserByRole(id: number, role: string) {
+    if (role == Role.User) return await this.userService.findUserByIdOr404(id);
   }
 }
