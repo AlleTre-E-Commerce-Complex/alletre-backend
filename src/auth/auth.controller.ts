@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UserSignUpDTO, UserSignInDTO } from '../user/dtos';
+import { UserSignUpDTO, UserSignInDTO, OAuthDto } from '../user/dtos';
 
 @Controller('auth')
 export class AuthController {
@@ -22,6 +22,20 @@ export class AuthController {
         UserSignInBody.email,
         UserSignInBody.password,
       ),
+    };
+  }
+  @Post('/oAuth')
+  async OAuthController(@Body() oAuthDto: OAuthDto) {
+    return {
+      success: true,
+      data: await this.authService.oAuth(oAuthDto),
+    };
+  }
+  @Post('/refresh-token')
+  async refreshTokenController(@Body('refreshToken') refreshToken: string) {
+    return {
+      success: true,
+      data: await this.authService.refreshToken(refreshToken),
     };
   }
 }

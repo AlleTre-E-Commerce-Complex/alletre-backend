@@ -15,7 +15,7 @@ export class OAuthDto {
   @IsPhoneNumber()
   phone: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
   email: string;
 }
