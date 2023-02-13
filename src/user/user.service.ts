@@ -113,11 +113,11 @@ export class UserService {
     }
   }
 
-  async updateUserCredentials(email: string, hasedPassword: string) {
+  async updateUserCredentials(email: string, hashedPassword: string) {
     try {
       await this.prismaService.user.update({
         where: { email: email },
-        data: { password: hasedPassword },
+        data: { password: hashedPassword },
       });
     } catch (error) {
       throw new MethodNotAllowedResponse({
