@@ -5,6 +5,7 @@ import {
   UserSignInDTO,
   OAuthDto,
   ResendVerificationDTO,
+  ResetCredentialsDTO,
 } from '../user/dtos';
 
 @Controller('auth')
@@ -51,6 +52,29 @@ export class AuthController {
       success: true,
       data: await this.authService.resendEmailVerification(
         resendVerificationDTO.email,
+      ),
+    };
+  }
+
+  @Post('/forget-password')
+  async forgetPasswordController(
+    @Body() resendVerificationDTO: ResendVerificationDTO,
+  ) {
+    return {
+      success: true,
+      data: await this.authService.forgetPassword(resendVerificationDTO.email),
+    };
+  }
+
+  @Post('/reset-credentials')
+  async resetCredentialsController(
+    @Body() resetCredentialsDTO: ResetCredentialsDTO,
+  ) {
+    return {
+      success: true,
+      data: await this.authService.resetPassword(
+        resetCredentialsDTO.token,
+        resetCredentialsDTO.newPassword,
       ),
     };
   }

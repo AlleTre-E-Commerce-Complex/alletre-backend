@@ -113,6 +113,20 @@ export class UserService {
     }
   }
 
+  async updateUserCredentials(email: string, hasedPassword: string) {
+    try {
+      await this.prismaService.user.update({
+        where: { email: email },
+        data: { password: hasedPassword },
+      });
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في تعديل بياناتك',
+        en: 'Failed while updating your info',
+      });
+    }
+  }
+
   private async _create(
     userName: string,
     email: string,

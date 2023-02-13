@@ -9,6 +9,7 @@ import { Role } from './enums/role.enum';
 import { ForbiddenResponse } from '../common/errors/ForbiddenResponse';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
 import { EmailSerivce } from '../emails/email.service';
+import { EmailsType } from './enums/emails-type.enum';
 
 @Injectable()
 export class AuthService {
@@ -94,7 +95,11 @@ export class AuthService {
     );
 
     // Send email verificaiton to 'email'
-    await this.emailSerivce.sendEmail(userSignUpBody.email, token);
+    await this.emailSerivce.sendEmail(
+      userSignUpBody.email,
+      token,
+      EmailsType.VERIFICATION,
+    );
 
     return {
       ...userWithoutPassword,
@@ -157,9 +162,42 @@ export class AuthService {
     );
 
     // Send email verificaiton to 'email'
-    await this.emailSerivce.sendEmail(email, token);
+    await this.emailSerivce.sendEmail(email, token, EmailsType.VERIFICATION);
   }
 
+  async forgetPassword(email: string) {
+    const token = this.jwtService.sign(
+      { email: email },
+      {
+        secret: process.env.RESET_PASSWORD_SECRET,
+        expiresIn: '15m',
+      },
+    );
+
+    // Send reset-password to 'email'
+    await this.emailSerivce.sendEmail(email, token, EmailsType.RESET_PASSWORD);
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: process.env.RESET_PASSWORD_SECRET,
+      });
+    } catch (error) {
+      throw new ForbiddenResponse({
+        en: 'Forbidden Access',
+        ar: 'غير مصرح لك ',
+      });
+    }
+
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      parseInt(process.env.SALT),
+    );
+    await this.userService.updateUserCredentials(payload.email, hashedPassword);
+  }
   async activateAccount(token: string) {
     if (!token)
       throw new ForbiddenResponse({
