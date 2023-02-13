@@ -171,10 +171,10 @@ export class AuthService {
     );
 
     if (verificationResult === 'SUCCESS')
-      return `<html> <h1 style="color:Burgundy;text-align=center;">Verified Successfuly </h1> 
+      return `<html> <h1 style={color:Burgundy;text-align=center;}>Verified Successfuly </h1> 
       </html>`;
     else
-      return `<html> <h1 style="color:Burgundy;text-align=center;>Verification Failed </h1> </html>`;
+      return `<html> <h1 style="color:Burgundy;text-align=center;> Verification Failed </h1> </html>`;
   }
 
   generateTokens(payload: { id: number; email: string; roles: string[] }) {
