@@ -18,4 +18,8 @@ export class OAuthDto {
   @IsOptional()
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  userName: string;
 }

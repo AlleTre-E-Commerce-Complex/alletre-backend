@@ -19,7 +19,10 @@ export class EmailSerivce {
 
   async sendEmail(email: string, token: string) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: {
+        name: 'Allatre Team',
+        address: process.env.EMAIL_FROM,
+      },
       to: email,
       subject: `Allatre Email Verification`,
       html: `<h1>Please use the activation link to activate your account </h1>

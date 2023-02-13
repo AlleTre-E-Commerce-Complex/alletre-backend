@@ -33,12 +33,13 @@ export class UserService {
     return user;
   }
 
-  async oAuth(email: string, phone: string) {
+  async oAuth(email: string, phone: string, userName: string) {
     // Create User
     return await this.prismaService.user.create({
       data: {
         ...(email ? { email: email } : {}),
         ...(phone ? { phone: phone } : {}),
+        ...(userName ? { userName: userName } : {}),
         isOAuth: true,
         isVerified: true,
       },

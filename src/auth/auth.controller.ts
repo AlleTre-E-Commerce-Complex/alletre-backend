@@ -1,6 +1,11 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UserSignUpDTO, UserSignInDTO, OAuthDto } from '../user/dtos';
+import {
+  UserSignUpDTO,
+  UserSignInDTO,
+  OAuthDto,
+  ResendVerificationDTO,
+} from '../user/dtos';
 
 @Controller('auth')
 export class AuthController {
@@ -36,6 +41,17 @@ export class AuthController {
     return {
       success: true,
       data: await this.authService.refreshToken(refreshToken),
+    };
+  }
+  @Post('/resend-verification')
+  async resendVerificationController(
+    @Body() resendVerificationDTO: ResendVerificationDTO,
+  ) {
+    return {
+      success: true,
+      data: await this.authService.resendEmailVerification(
+        resendVerificationDTO.email,
+      ),
     };
   }
   @Get('/activate')

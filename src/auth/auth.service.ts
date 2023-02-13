@@ -1,10 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
-import { OAuthDto, UserSignUpDTO, UserSignInDTO } from '../user/dtos';
+import { OAuthDto, UserSignUpDTO } from '../user/dtos';
 import { Role } from './enums/role.enum';
 import { ForbiddenResponse } from '../common/errors/ForbiddenResponse';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
@@ -93,7 +93,7 @@ export class AuthService {
       },
     );
 
-    // TODO: Send email verificaiton to 'email'
+    // Send email verificaiton to 'email'
     await this.emailSerivce.sendEmail(userSignUpBody.email, token);
 
     return {
@@ -105,7 +105,7 @@ export class AuthService {
     };
   }
   async oAuth(data: OAuthDto) {
-    const { idToken, phone, email } = data;
+    const { idToken, phone, email, userName } = data;
 
     const verificationStatus = await this.firebaseService.verifyIdToken(
       idToken,
@@ -127,7 +127,7 @@ export class AuthService {
     if (email) user = await this.userService.findUserByEmail(email);
     else if (phone) user = await this.userService.findUserByPhone(phone);
 
-    if (!user) user = await this.userService.oAuth(email, phone);
+    if (!user) user = await this.userService.oAuth(email, phone, userName);
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
@@ -145,6 +145,19 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async resendEmailVerification(email: string) {
+    const token = this.jwtService.sign(
+      { email: email },
+      {
+        secret: process.env.EMAIL_VERIFICATION_SECRET,
+        expiresIn: '7m',
+      },
+    );
+
+    // Send email verificaiton to 'email'
+    await this.emailSerivce.sendEmail(email, token);
   }
 
   async activateAccount(token: string) {
