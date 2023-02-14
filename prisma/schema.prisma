@@ -12,18 +12,21 @@ datasource db {
 }
 
 model User {
-  id                  Int        @id @default(autoincrement())
+  id                  Int         @id @default(autoincrement())
   userName            String?
-  email               String?    @unique
+  email               String?     @unique
   password            String?
-  phone               String?    @unique
-  createdAt           DateTime   @default(now())
+  phone               String?     @unique
+  createdAt           DateTime    @default(now())
   imageLink           String?
   imagePath           String?
-  isOAuth             Boolean    @default(false)
-  hasCompletedProfile Boolean    @default(false)
-  isVerified          Boolean    @default(false)
+  isOAuth             Boolean     @default(false)
+  hasCompletedProfile Boolean     @default(false)
+  isVerified          Boolean     @default(false)
   locations           Location[]
+  products            Product[]
+  auctions            Auction[]
+  watchLists          WatchList[]
 }
 
 model Location {
@@ -35,4 +38,103 @@ model Location {
   streetName            String?
   createdAt             DateTime @default(now())
   user                  User     @relation(fields: [userId], references: [id])
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String
+  createdAt     DateTime      @default(now())
+  subCategories SubCategory[]
+  products      Product[]
+}
+
+model SubCategory {
+  id         Int       @id @default(autoincrement())
+  name       String
+  categoryId Int
+  createdAt  DateTime  @default(now())
+  category   Category  @relation(fields: [categoryId], references: [id])
+  products   Product[]
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  categoryId    Int
+  subCategoryId Int
+  quantity      Int         @default(1)
+  title         String
+  brand         String
+  model         String
+  usageStatus   UsageStatus
+  price         Int
+  description   Int
+  color         String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+  category      Category    @relation(fields: [categoryId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+  images        Image[]
+  auctions      Auction[]
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  imagePath String?
+  imageLink String?
+  isMain    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Auction {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  productId       Int
+  status          AuctionStatus
+  type            AuctionType
+  durationInDays  Int?
+  durationInHours Int?
+  startBidAmount  Int
+  isBuyNowAllowed Boolean       @default(false)
+  acceptedAmount  Int?
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime
+  user            User          @relation(fields: [userId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+  watchLists      WatchList[]
+}
+
+model WatchList {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  auctionId Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+}
+
+enum UsageStatus {
+  NEW
+  USED
+  OPEN_BOX
+}
+
+enum AuctionStatus {
+  DRAFTED
+  PENDING_OWNER_DEPOIST
+  ON_SCHEDULING
+  PUBLISHED
+  DELETED
+  ARCHIVED
+  SOLD
+  EXPIRED
+}
+
+enum AuctionType {
+  QUICK
+  DAILY
+  SCHEDULED_QUICK
+  SCHEDULED_DAILY
 }
