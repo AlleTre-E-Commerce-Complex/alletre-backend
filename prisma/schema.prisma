@@ -27,6 +27,7 @@ model User {
   products            Product[]
   auctions            Auction[]
   watchLists          WatchList[]
+  bides               Bides[]
 }
 
 model Location {
@@ -104,6 +105,17 @@ model Auction {
   user            User          @relation(fields: [userId], references: [id])
   product         Product       @relation(fields: [productId], references: [id])
   watchLists      WatchList[]
+  bides           Bides[]
+}
+
+model Bides {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  auctionId Int
+  bidAmount Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  auction   Auction  @relation(fields: [auctionId], references: [id])
 }
 
 model WatchList {
