@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,11 +20,10 @@ model User {
   isOAuth             Boolean     @default(false)
   hasCompletedProfile Boolean     @default(false)
   isVerified          Boolean     @default(false)
+  auctions            Auction[]
   locations           Location[]
   products            Product[]
-  auctions            Auction[]
   watchLists          WatchList[]
-  bides               Bides[]
 }
 
 model Location {
@@ -45,8 +41,8 @@ model Category {
   id            Int           @id @default(autoincrement())
   name          String
   createdAt     DateTime      @default(now())
-  subCategories SubCategory[]
   products      Product[]
+  subCategories SubCategory[]
 }
 
 model SubCategory {
@@ -54,8 +50,8 @@ model SubCategory {
   name       String
   categoryId Int
   createdAt  DateTime  @default(now())
-  category   Category  @relation(fields: [categoryId], references: [id])
   products   Product[]
+  category   Category  @relation(fields: [categoryId], references: [id])
 }
 
 model Product {
@@ -71,11 +67,11 @@ model Product {
   price         Int
   description   Int
   color         String
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
-  category      Category    @relation(fields: [categoryId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
-  images        Image[]
   auctions      Auction[]
+  images        Image[]
+  category      Category    @relation(fields: [categoryId], references: [id])
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
 }
 
 model Image {
@@ -102,20 +98,9 @@ model Auction {
   startDate       DateTime?
   endDate         DateTime?
   createdAt       DateTime
-  user            User          @relation(fields: [userId], references: [id])
   product         Product       @relation(fields: [productId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
   watchLists      WatchList[]
-  bides           Bides[]
-}
-
-model Bides {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  auctionId Int
-  bidAmount Int
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  auction   Auction  @relation(fields: [auctionId], references: [id])
 }
 
 model WatchList {
@@ -123,8 +108,8 @@ model WatchList {
   userId    Int
   auctionId Int
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
   auction   Auction  @relation(fields: [auctionId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 enum UsageStatus {
