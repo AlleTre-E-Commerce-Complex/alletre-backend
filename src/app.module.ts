@@ -5,10 +5,17 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmailModule } from './emails/email.module';
 import { AuctionModule } from './auction/auction.module';
-import { AuctionService } from './auction.service';
+import { CategoryModule } from './category/category.module';
 
 @Module({
-  imports: [AuthModule, UserModule, FirebaseModule, PrismaModule, EmailModule, AuctionModule],
-  providers: [AuctionService],
+  imports: [
+    AuthModule,
+    UserModule,
+    FirebaseModule,
+    PrismaModule,
+    EmailModule,
+    AuctionModule,
+    CategoryModule,
+  ],
 })
 export class AppModule {}

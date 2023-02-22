@@ -48,7 +48,7 @@ export class UserService {
 
   async findUserByEmail(email: string) {
     return await this.prismaService.user.findFirst({
-      where: { email: email },
+      where: { email: email.toLocaleLowerCase() },
     });
   }
   async findUserByPhone(phone: string) {
@@ -66,7 +66,7 @@ export class UserService {
 
   async findUserByEmailOr404(email: string) {
     const user = await this.prismaService.user.findFirst({
-      where: { email: email },
+      where: { email: email.toLocaleLowerCase() },
     });
     if (!user)
       throw new NotFoundResponse({
@@ -120,6 +120,8 @@ export class UserService {
         data: { password: hashedPassword },
       });
     } catch (error) {
+      console.log(error);
+
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في تعديل بياناتك',
         en: 'Failed while updating your info',
@@ -135,7 +137,7 @@ export class UserService {
   ) {
     return await this.prismaService.user.create({
       data: {
-        email: email,
+        email: email.toLocaleLowerCase(),
         phone: phone,
         userName: userName,
         password: hashedPassword,

@@ -89,4 +89,12 @@ export class AuctionsController {
   @Put('/user/:auctionId/update-details')
   @UseGuards(AuthGuard, OwnerGuard)
   async updateAuctionDetails() {}
+
+  @Post('/user/:auctionId/make-bid')
+  @UseGuards(AuthGuard)
+  async makeBidByUser() {}
+
+  @Get('/user/:auctionId/view-bides')
+  @UseGuards(AuthGuard)
+  async viewAuctionBides() {}
 }

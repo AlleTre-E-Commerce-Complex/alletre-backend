@@ -75,4 +75,8 @@ export class UserAuctionsService {
     });
   }
   async updateAuctionById(userId: number, auctionId: number) {}
+
+  async makeBidByUser(auctionId: number, userId: number, bidAmount: number) {}
+
+  async viewAuctionBides(auctionId: number) {}
 }
