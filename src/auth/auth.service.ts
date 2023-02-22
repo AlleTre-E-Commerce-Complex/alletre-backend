@@ -153,6 +153,8 @@ export class AuthService {
   }
 
   async resendEmailVerification(email: string) {
+    const user = await this.userService.findUserByEmailOr404(email);
+
     const token = this.jwtService.sign(
       { email: email },
       {
@@ -166,6 +168,8 @@ export class AuthService {
   }
 
   async forgetPassword(email: string) {
+    const user = await this.userService.findUserByEmailOr404(email);
+
     const token = this.jwtService.sign(
       { email: email },
       {
@@ -179,15 +183,15 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    let payload: any;
+    let payload: { email: string };
     try {
       payload = this.jwtService.verify(token, {
         secret: process.env.RESET_PASSWORD_SECRET,
       });
     } catch (error) {
       throw new ForbiddenResponse({
-        en: 'Forbidden Access',
-        ar: 'غير مصرح لك ',
+        en: 'Your session for update your credentials has expired,Please try again',
+        ar: 'انتهي الوقت المسموح لتعديل بيانات السرية ',
       });
     }
 
@@ -205,7 +209,7 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
 
-    let payload: any;
+    let payload: { email: string };
     try {
       payload = this.jwtService.verify(token, {
         secret: process.env.EMAIL_VERIFICATION_SECRET,
