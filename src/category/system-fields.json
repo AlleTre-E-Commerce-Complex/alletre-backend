@@ -1,0 +1,130 @@
+{
+  "0": {
+    "key": "color",
+    "type": "array",
+    "labelAr": "اللون",
+    "labelEn": "Color",
+    "placeHolderAr": "select color",
+    "placeHolderEn": "أختار اللون"
+  },
+  "1": {
+    "key": "screenSize",
+    "type": "array",
+    "labelAr": "حجم الشاشة",
+    "labelEn": "Screen Size",
+    "placeHolderAr": "16 inch",
+    "placeHolderEn": "16 بوصة"
+  },
+  "2": {
+    "key": "operatingSystem",
+    "type": "text",
+    "labelAr": "نظام التشغيل",
+    "labelEn": "Operatin System",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "3": {
+    "key": "releaseYear",
+    "type": "text",
+    "labelAr": "سنة الاصدار",
+    "labelEn": "Release Year",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "4": {
+    "key": "regionOfManufacture",
+    "type": "array",
+    "labelAr": "منظقة المنشأ",
+    "labelEn": "Region Of Manufacture",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "5": {
+    "key": "ramSize",
+    "type": "number",
+    "labelAr": "حجم الرامات",
+    "labelEn": "Region Of Manufacture",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "6": {
+    "key": "cameraType",
+    "type": "array",
+    "labelAr": "نوع الكاميرا",
+    "labelEn": "Camera Type",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "7": {
+    "key": "material",
+    "type": "array",
+    "labelAr": "نوع المادة",
+    "labelEn": "Material",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "8": {
+    "key": "age",
+    "type": "array",
+    "labelAr": "العمر",
+    "labelEn": "Age",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "9": {
+    "key": "totalArea",
+    "type": "number",
+    "labelAr": "المساحة الكلية",
+    "labelEn": "Total Area",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "10": {
+    "key": "numberOfRooms",
+    "type": "number",
+    "labelAr": "عدد الغرف",
+    "labelEn": "Number Of Rooms",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "11": {
+    "key": "numberOfFloors",
+    "type": "number",
+    "labelAr": "عدد الطوابق",
+    "labelEn": "Number Of Floors",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "12": {
+    "key": "landType",
+    "type": "array",
+    "labelAr": "نوع الأرض",
+    "labelEn": "Land Type",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "13": {
+    "key": "countryId",
+    "type": "array",
+    "labelAr": "الدولة",
+    "labelEn": "Country",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "14": {
+    "key": "cityId",
+    "type": "array",
+    "labelAr": "المدينة",
+    "labelEn": "City",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  },
+  "15": {
+    "key": "usageStatus",
+    "type": "array",
+    "labelAr": "حالة الاستخدام",
+    "labelEn": "Usage Condition",
+    "placeHolderAr": "",
+    "placeHolderEn": ""
+  }
+}

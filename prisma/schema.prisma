@@ -11,9 +11,9 @@ datasource db {
 model User {
   id                  Int         @id @default(autoincrement())
   userName            String?
-  email               String?     @unique
-  password            String?
-  phone               String?     @unique
+  email               String      @unique
+  password            String
+  phone               String      @unique
   createdAt           DateTime    @default(now())
   imageLink           String?
   imagePath           String?
@@ -22,30 +22,82 @@ model User {
   isVerified          Boolean     @default(false)
   auctions            Auction[]
   locations           Location[]
-  products            Product[]
   watchLists          WatchList[]
+  products            Product[]
+}
+
+model Country {
+  id        Int        @id @default(autoincrement())
+  nameAr    String
+  nameEn    String
+  createdAt DateTime   @default(now())
+  cities    City[]
+  locations Location[]
+  Product   Product[]
+}
+
+model City {
+  id        Int        @id @default(autoincrement())
+  nameAr    String
+  nameEn    String
+  createdAt DateTime   @default(now())
+  countryId Int
+  country   Country    @relation(fields: [countryId], references: [id])
+  locations Location[]
+  Product   Product[]
 }
 
 model Location {
-  id                    Int      @id @default(autoincrement())
-  userId                Int
-  country               String
-  city                  String
-  subAdministrativeArea String?
-  streetName            String?
-  createdAt             DateTime @default(now())
-  user                  User     @relation(fields: [userId], references: [id])
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  countryId Int
+  cityId    Int
+  address   String
+  zipCode   String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  city      City      @relation(fields: [cityId], references: [id])
+  country   Country   @relation(fields: [countryId], references: [id])
+  auctions  Auction[]
 }
 
 model Category {
-  id            Int           @id @default(autoincrement())
-  name          String
-  createdAt     DateTime      @default(now())
+  id            Int            @id @default(autoincrement())
+  nameEn        String
+  nameAr        String
+  createdAt     DateTime       @default(now())
   products      Product[]
   subCategories SubCategory[]
+  brands        Brand[]
+  CustomFields  CustomFields[]
 }
 
 model SubCategory {
+  id           Int            @id @default(autoincrement())
+  nameAr       String
+  nameEn       String
+  categoryId   Int
+  createdAt    DateTime       @default(now())
+  products     Product[]
+  category     Category       @relation(fields: [categoryId], references: [id])
+  customFields CustomFields[]
+}
+
+model CustomFields {
+  id            Int         @id @default(autoincrement())
+  subCategoryId Int
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+  categoryId    Int?
+  category      Category?   @relation(fields: [categoryId], references: [id])
+  key           String
+  type          String
+  labelAr       String
+  labelEn       String
+  placeHolderAr String?
+  placeHolderEn String?
+}
+
+model Brand {
   id         Int       @id @default(autoincrement())
   name       String
   categoryId Int
@@ -55,30 +107,48 @@ model SubCategory {
 }
 
 model Product {
-  id            Int         @id @default(autoincrement())
-  userId        Int
-  categoryId    Int
-  subCategoryId Int
-  quantity      Int         @default(1)
-  title         String
-  brand         String
-  model         String
-  usageStatus   UsageStatus
-  price         Int
-  description   Int
-  color         String
-  auctions      Auction[]
-  images        Image[]
-  category      Category    @relation(fields: [categoryId], references: [id])
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
+  id                  Int          @id @default(autoincrement())
+  categoryId          Int
+  subCategoryId       Int
+  brandId             Int
+  userId              Int
+  quantity            Int          @default(1)
+  title               String
+  model               String
+  usageStatus         UsageStatus?
+  price               Float
+  description         String
+  color               String?
+  screenSize          Int?
+  processor           String?
+  operatingSystem     String?
+  releaseYear         String?
+  regionOfManufacture String?
+  ramSize             Int?
+  cameraType          String?
+  material            String?
+  age                 String?
+  totalArea           Int?
+  numberOfRooms       Int?
+  numberOfFloors      Int?
+  landType            String?
+  countryId           Int?
+  cityId              Int?
+  auction             Auction?
+  images              Image[]
+  category            Category     @relation(fields: [categoryId], references: [id])
+  subCategory         SubCategory  @relation(fields: [subCategoryId], references: [id])
+  brand               Brand        @relation(fields: [brandId], references: [id])
+  user                User         @relation(fields: [userId], references: [id])
+  city                City?        @relation(fields: [cityId], references: [id])
+  country             Country?     @relation(fields: [countryId], references: [id])
 }
 
 model Image {
   id        Int      @id @default(autoincrement())
   productId Int
-  imagePath String?
-  imageLink String?
+  imagePath String
+  imageLink String
   isMain    Boolean  @default(false)
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id])
@@ -87,20 +157,23 @@ model Image {
 model Auction {
   id              Int           @id @default(autoincrement())
   userId          Int
-  productId       Int
+  productId       Int           @unique
+  locationId      Int
   status          AuctionStatus
   type            AuctionType
+  durationUnit    DurationUnits
   durationInDays  Int?
   durationInHours Int?
   startBidAmount  Int
   isBuyNowAllowed Boolean       @default(false)
   acceptedAmount  Int?
-  startDate       DateTime?
-  endDate         DateTime?
+  startDate       DateTime
+  expiryDate      DateTime?
   createdAt       DateTime
   product         Product       @relation(fields: [productId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
   watchLists      WatchList[]
+  location        Location      @relation(fields: [locationId], references: [id])
 }
 
 model WatchList {
@@ -130,8 +203,11 @@ enum AuctionStatus {
 }
 
 enum AuctionType {
-  QUICK
-  DAILY
-  SCHEDULED_QUICK
-  SCHEDULED_DAILY
+  ON_TIME
+  SCHEDULED
+}
+
+enum DurationUnits {
+  DAYS
+  HOURS
 }
