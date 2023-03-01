@@ -9,7 +9,7 @@ export class EmailSerivce {
   }
 
   private transporter = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
+    host: 'smtp.gmail.com',
     secure: true,
     port: 465,
     auth: {
