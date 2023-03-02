@@ -126,7 +126,7 @@ model Product {
   ramSize             Int?
   cameraType          String?
   material            String?
-  age                 String?
+  age                 Int?
   totalArea           Int?
   numberOfRooms       Int?
   numberOfFloors      Int?
