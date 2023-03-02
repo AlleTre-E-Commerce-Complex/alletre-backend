@@ -62,14 +62,15 @@ model Location {
 }
 
 model Category {
-  id            Int            @id @default(autoincrement())
-  nameEn        String
-  nameAr        String
-  createdAt     DateTime       @default(now())
-  products      Product[]
-  subCategories SubCategory[]
-  brands        Brand[]
-  CustomFields  CustomFields[]
+  id                Int            @id @default(autoincrement())
+  nameEn            String
+  nameAr            String
+  createdAt         DateTime       @default(now())
+  hasUsageCondition Boolean        @default(true)
+  products          Product[]
+  subCategories     SubCategory[]
+  brands            Brand[]
+  CustomFields      CustomFields[]
 }
 
 model SubCategory {
@@ -93,8 +94,6 @@ model CustomFields {
   type          String
   labelAr       String
   labelEn       String
-  placeHolderAr String?
-  placeHolderEn String?
 }
 
 model Brand {
