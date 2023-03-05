@@ -130,6 +130,7 @@ model Product {
   landType            String?
   countryId           Int?
   cityId              Int?
+  carType             String?
   auction             Auction?
   images              Image[]
   category            Category     @relation(fields: [categoryId], references: [id])

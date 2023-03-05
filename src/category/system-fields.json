@@ -90,9 +90,15 @@
     "labelEn": "City"
   },
   "15": {
-    "key": "type",
+    "key": "carType",
     "type": "array",
-    "labelAr": "النوع",
-    "labelEn": "Type"
+    "labelAr": "نوع العربية",
+    "labelEn": "Car Type"
+  },
+  "16": {
+    "key": "processor",
+    "type": "text",
+    "labelAr": "بروسيسور",
+    "labelEn": "Processor"
   }
 }
