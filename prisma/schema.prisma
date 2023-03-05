@@ -65,11 +65,11 @@ model Category {
   nameEn            String
   nameAr            String
   createdAt         DateTime       @default(now())
-  hasUsageCondition Boolean        @default(true)
+  hasUsageCondition Boolean        @default(false)
   products          Product[]
   subCategories     SubCategory[]
   brands            Brand[]
-  CustomFields      CustomFields[]
+  customFields      CustomFields[]
 }
 
 model SubCategory {
@@ -84,11 +84,11 @@ model SubCategory {
 }
 
 model CustomFields {
-  id            Int         @id @default(autoincrement())
-  subCategoryId Int
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+  id            Int          @id @default(autoincrement())
+  subCategoryId Int?
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
   categoryId    Int?
-  category      Category?   @relation(fields: [categoryId], references: [id])
+  category      Category?    @relation(fields: [categoryId], references: [id])
   key           String
   type          String
   labelAr       String
