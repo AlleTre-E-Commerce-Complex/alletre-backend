@@ -1,124 +1,61 @@
-import { UsageStatus } from '@prisma/client';
+import { AuctionStatus, AuctionType, DurationUnits } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
+  IsDate,
   IsIn,
   IsNotEmpty,
+  IsNotEmptyObject,
   IsNumber,
   IsOptional,
-  IsString,
-  Min,
+  MinDate,
 } from 'class-validator';
+import { ProductDTO } from './productCreation.dto';
 
 export class AuctionCreationDTO {
   @IsNotEmpty()
-  @IsString()
-  @Min(3)
-  title: string;
+  @IsIn(Object.keys(AuctionType))
+  type: AuctionType;
 
   @IsNotEmpty()
-  @IsString()
-  model: string;
+  @IsIn(Object.keys(DurationUnits))
+  durationUnit: DurationUnits;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  durationInDays: number;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  durationInHours: number;
 
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  categoryId: number;
+  startBidAmount: number;
+
+  @IsOptional()
+  isBuyNowAllowed: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  acceptedAmount: number;
+
+  @IsOptional()
+  @IsDate()
+  @Transform(({ value }): Date => new Date(value))
+  @MinDate(new Date(), {
+    message: `Can't Create Auction Before today`,
+  })
+  startDate: Date;
+
+  @IsNotEmptyObject()
+  product: ProductDTO;
 
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  brandId: number;
-
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  price: number;
-
-  @IsNotEmpty()
-  @IsString()
-  description: string;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  subCategoryId: number;
-
-  @IsOptional()
-  @IsIn(Object.keys(UsageStatus))
-  usageStatus: UsageStatus;
-
-  @IsOptional()
-  @IsString()
-  color: string;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  screenSize: number;
-
-  @IsOptional()
-  @IsString()
-  processor: string;
-
-  @IsOptional()
-  @IsString()
-  operatingSystem: string;
-
-  @IsOptional()
-  @IsString()
-  releaseYear: string;
-
-  @IsOptional()
-  @IsString()
-  regionOfManufacture: string;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  ramSize: number;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(['digital', 'compact', 'mirror', 'less interchangeable lens'])
-  cameraType: string;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(['digital', 'compact', 'mirror', 'less interchangeable lens'])
-  material: string;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  age: number;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  totalArea: number;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  numberOfRooms: number;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  numberOfFloors: number;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(['industrial', 'agricultural', 'residential'])
-  landType: string;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  countryId: number;
-
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  cityId: number;
+  locationId: number;
 }

@@ -6,9 +6,25 @@ import { PrismaModule } from './prisma/prisma.module';
 import { EmailModule } from './emails/email.module';
 import { AuctionModule } from './auction/auction.module';
 import { CategoryModule } from './category/category.module';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        customProps: (req, res) => {
+          return {
+            req: {
+              ...req,
+              headers: undefined,
+            },
+          };
+        },
+        transport: {
+          target: 'pino-pretty',
+        },
+      },
+    }),
     AuthModule,
     UserModule,
     FirebaseModule,

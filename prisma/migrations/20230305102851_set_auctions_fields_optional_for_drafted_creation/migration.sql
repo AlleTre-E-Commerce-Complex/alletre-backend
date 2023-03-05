@@ -1,0 +1,13 @@
+-- DropForeignKey
+ALTER TABLE "Auction" DROP CONSTRAINT "Auction_locationId_fkey";
+
+-- AlterTable
+ALTER TABLE "Auction" ALTER COLUMN "status" SET DEFAULT 'PENDING_OWNER_DEPOIST',
+ALTER COLUMN "type" DROP NOT NULL,
+ALTER COLUMN "startBidAmount" DROP NOT NULL,
+ALTER COLUMN "startDate" DROP NOT NULL,
+ALTER COLUMN "durationUnit" DROP NOT NULL,
+ALTER COLUMN "locationId" DROP NOT NULL;
+
+-- AddForeignKey
+ALTER TABLE "Auction" ADD CONSTRAINT "Auction_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
