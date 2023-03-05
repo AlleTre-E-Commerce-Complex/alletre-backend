@@ -7,20 +7,18 @@ async function main() {
       nameEn: 'Electronic Devices',
       hasUsageCondition: true,
       subCategories: {
-        createMany: {
-          data: [
-            {
-              nameAr: 'أجهزة الكمبيوتر والأجهزة اللوحية',
-              nameEn: 'Computers & tablets',
-            },
-            { nameAr: 'الكاميرات والصور', nameEn: 'Cameras & photos' },
-            { nameAr: 'التلفزيونات والصوتيات', nameEn: 'TVs & Audios' },
-            {
-              nameAr: 'الهواتف المحمولة وملحقاتها',
-              nameEn: 'Cell phones & Accessors',
-            },
-          ],
-        },
+        create: [
+          {
+            nameAr: 'أجهزة الكمبيوتر والأجهزة اللوحية',
+            nameEn: 'Computers & tablets',
+          },
+          { nameAr: 'الكاميرات والصور', nameEn: 'Cameras & photos' },
+          { nameAr: 'التلفزيونات والصوتيات', nameEn: 'TVs & Audios' },
+          {
+            nameAr: 'الهواتف المحمولة وملحقاتها',
+            nameEn: 'Cell phones & Accessors',
+          },
+        ],
       },
     },
   });
@@ -31,16 +29,14 @@ async function main() {
       nameEn: 'Jewelry',
       hasUsageCondition: true,
       subCategories: {
-        createMany: {
-          data: [
-            {
-              nameAr: 'ذهب',
-              nameEn: 'Gold',
-            },
-            { nameAr: 'الماس', nameEn: 'Diamond' },
-            { nameAr: 'فضة', nameEn: 'Silver' },
-          ],
-        },
+        create: [
+          {
+            nameAr: 'ذهب',
+            nameEn: 'Gold',
+          },
+          { nameAr: 'الماس', nameEn: 'Diamond' },
+          { nameAr: 'فضة', nameEn: 'Silver' },
+        ],
       },
     },
   });
@@ -50,19 +46,17 @@ async function main() {
       nameAr: 'ملكيات',
       nameEn: 'Properties',
       subCategories: {
-        createMany: {
-          data: [
-            {
-              nameAr: 'منزل',
-              nameEn: 'House',
-            },
-            { nameAr: 'تاون هاوس', nameEn: 'Townhouse' },
-            { nameAr: 'وحدة', nameEn: 'Unit' },
-            { nameAr: 'فيلا', nameEn: 'Villa' },
-            { nameAr: 'أرض', nameEn: 'Land' },
-            { nameAr: 'مكتب', nameEn: 'Office' },
-          ],
-        },
+        create: [
+          {
+            nameAr: 'منزل',
+            nameEn: 'House',
+          },
+          { nameAr: 'تاون هاوس', nameEn: 'Townhouse' },
+          { nameAr: 'وحدة', nameEn: 'Unit' },
+          { nameAr: 'فيلا', nameEn: 'Villa' },
+          { nameAr: 'أرض', nameEn: 'Land' },
+          { nameAr: 'مكتب', nameEn: 'Office' },
+        ],
       },
     },
   });
@@ -73,22 +67,20 @@ async function main() {
       nameEn: 'Cars',
       hasUsageCondition: true,
       customFields: {
-        createMany: {
-          data: [
-            {
-              key: 'color',
-              type: 'array',
-              labelAr: 'اللون',
-              labelEn: 'Color',
-            },
-            {
-              key: 'type',
-              type: 'array',
-              labelAr: 'النوع',
-              labelEn: 'Type',
-            },
-          ],
-        },
+        create: [
+          {
+            key: 'color',
+            type: 'array',
+            labelAr: 'اللون',
+            labelEn: 'Color',
+          },
+          {
+            key: 'type',
+            type: 'array',
+            labelAr: 'النوع',
+            labelEn: 'Type',
+          },
+        ],
       },
     },
   });
