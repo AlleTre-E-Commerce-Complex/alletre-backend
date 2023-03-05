@@ -88,5 +88,11 @@
     "type": "array",
     "labelAr": "المدينة",
     "labelEn": "City"
+  },
+  "15": {
+    "key": "type",
+    "type": "array",
+    "labelAr": "النوع",
+    "labelEn": "Type"
   }
 }

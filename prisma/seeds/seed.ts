@@ -72,6 +72,24 @@ async function main() {
       nameAr: 'سيارات',
       nameEn: 'Cars',
       hasUsageCondition: true,
+      customFields: {
+        createMany: {
+          data: [
+            {
+              key: 'color',
+              type: 'array',
+              labelAr: 'اللون',
+              labelEn: 'Color',
+            },
+            {
+              key: 'type',
+              type: 'array',
+              labelAr: 'النوع',
+              labelEn: 'Type',
+            },
+          ],
+        },
+      },
     },
   });
 }
