@@ -28,13 +28,19 @@ export class CategoryService {
       },
     );
 
+    console.log(categoryCustomFields);
+
     const customFieldsResponse = {
       arrayCustomFields: categoryCustomFields.filter((customField) => {
-        return customField.type === 'array';
+        if (customField.type === 'array') return customField;
       }),
       regularCustomFields: categoryCustomFields.filter((customField) => {
-        return customField.type === 'text' || customField.type === 'number';
+        if (customField.type !== 'array')
+          if (customField.key !== 'model') return customField;
       }),
+      model: categoryCustomFields.filter((customField) => {
+        if (customField.key === 'model') return customField;
+      })[0],
     };
 
     return customFieldsResponse;
