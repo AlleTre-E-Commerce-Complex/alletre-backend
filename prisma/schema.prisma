@@ -47,17 +47,18 @@ model City {
 }
 
 model Location {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  countryId Int
-  cityId    Int
-  address   String
-  zipCode   String?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id])
-  city      City      @relation(fields: [cityId], references: [id])
-  country   Country   @relation(fields: [countryId], references: [id])
-  auctions  Auction[]
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  countryId   Int
+  cityId      Int
+  address     String
+  zipCode     String?
+  addresLabel String?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  city        City      @relation(fields: [cityId], references: [id])
+  country     Country   @relation(fields: [countryId], references: [id])
+  auctions    Auction[]
 }
 
 model Category {
