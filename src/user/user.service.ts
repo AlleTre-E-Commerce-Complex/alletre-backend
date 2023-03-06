@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
+import { LocationDTO } from './dtos';
 
 @Injectable()
 export class UserService {
@@ -127,6 +128,25 @@ export class UserService {
         en: 'Failed while updating your info',
       });
     }
+  }
+
+  async addNewLocation(userId: number, locationDTO: LocationDTO) {
+    const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
+
+    return await this.prismaService.location.create({
+      data: {
+        userId: userId,
+        address,
+        cityId,
+        countryId,
+        ...(zipCode ? { zipCode } : {}),
+        addressLabel,
+      },
+    });
+  }
+
+  async getAllUserLocations(userId: number) {
+    return await this.prismaService.location.findMany({ where: { userId } });
   }
 
   private async _create(

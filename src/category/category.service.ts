@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
+import * as fsPomises from 'fs/promises';
+import { MethodNotAllowedResponse } from 'src/common/errors';
 @Injectable()
 export class CategoryService {
   constructor(private prismaService: PrismaService) {}
 
   async getAllCategories() {
-    return await this.prismaService.category.findMany({
-      include: { subCategories: true },
-    });
+    return await this.prismaService.category.findMany({});
   }
 
   async getAllSubCategories(categoryId?: number) {
@@ -23,8 +22,38 @@ export class CategoryService {
       ? { categoryId: Number(categoryId) }
       : { subCategoryId: Number(subCategoryId) };
 
-    return await this.prismaService.customFields.findMany({
-      where: { ...customFieldsFilter },
-    });
+    const categoryCustomFields = await this.prismaService.customFields.findMany(
+      {
+        where: { ...customFieldsFilter },
+      },
+    );
+
+    const customFieldsResponse = {
+      arrayCustomFields: categoryCustomFields.filter((customField) => {
+        return customField.type === 'array';
+      }),
+      regularCustomFields: categoryCustomFields.filter((customField) => {
+        return customField.type === 'text' || customField.type === 'number';
+      }),
+    };
+
+    return customFieldsResponse;
+  }
+
+  async getSystemCustomFields() {
+    let customFields: string;
+    try {
+      customFields = await fsPomises.readFile(
+        `${process.cwd()}/src/category/system-fields.json`,
+        'utf-8',
+      );
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في قراءة الملف',
+        en: 'Error While Reading File',
+      });
+    }
+    return JSON.parse(customFields);
   }
 }

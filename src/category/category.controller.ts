@@ -34,4 +34,12 @@ export class CategoryController {
       ),
     };
   }
+
+  @Get('system-fields')
+  async getSystemFieldsController() {
+    return {
+      success: true,
+      data: await this.categoryService.getSystemCustomFields(),
+    };
+  }
 }

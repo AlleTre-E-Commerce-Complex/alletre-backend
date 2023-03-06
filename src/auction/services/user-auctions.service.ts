@@ -9,6 +9,7 @@ import {
   AuctionType,
   DurationUnits,
 } from '@prisma/client';
+import { MethodNotAllowedResponse } from 'src/common/errors';
 
 @Injectable()
 export class UserAuctionsService {
@@ -67,6 +68,7 @@ export class UserAuctionsService {
     images: Express.Multer.File[],
   ) {
     // Check user can create auction (hasCompleteProfile)
+    await this.userHasCompleteProfile(userId);
 
     // Create Product
     const productId = await this.createProduct(productDTO, images);
@@ -151,7 +153,69 @@ export class UserAuctionsService {
 
   async viewAuctionBides(auctionId: number) {}
 
-  private async createOnTimeDailyAuction(userId: number) {}
+  private async createOnTimeDailyAuction(
+    userId: number,
+    productId: number,
+    auctionDto: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInDays,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+    } = auctionDto;
+
+    const auction = await this.prismaService.auction.create({
+      data: {
+        userId,
+        productId,
+        type,
+        durationUnit,
+        durationInDays,
+        startBidAmount,
+        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(acceptedAmount ? { acceptedAmount } : {}),
+        locationId,
+      },
+    });
+
+    // TODO: Create Payment Service and set startDate & expiryDate when payment proceed
+  }
+
+  private async createOnTimeHoursAuction(
+    userId: number,
+    productId: number,
+    auctionDto: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInHours,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+    } = auctionDto;
+
+    const auction = await this.prismaService.auction.create({
+      data: {
+        userId,
+        productId,
+        type,
+        durationUnit,
+        durationInHours,
+        startBidAmount,
+        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(acceptedAmount ? { acceptedAmount } : {}),
+        locationId,
+      },
+    });
+
+    // TODO: Create Payment Service and set startDate & expiryDate when payment proceed
+  }
 
   private async createProduct(
     productBody: ProductDTO,
@@ -241,5 +305,17 @@ export class UserAuctionsService {
     });
 
     return uploadedFiles;
+  }
+
+  private async userHasCompleteProfile(userId: number) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: Number(userId) },
+    });
+
+    if (!user.hasCompletedProfile)
+      throw new MethodNotAllowedResponse({
+        ar: 'اكمل بياناتك',
+        en: 'Complete your profile',
+      });
   }
 }
