@@ -138,7 +138,7 @@ async function main() {
               create: [
                 {
                   key: 'screenSize',
-                  type: 'array',
+                  type: 'number',
                   labelAr: 'حجم الشاشة',
                   labelEn: 'Screen Size',
                 },

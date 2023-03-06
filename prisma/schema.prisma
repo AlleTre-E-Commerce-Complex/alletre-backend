@@ -116,7 +116,7 @@ model Product {
   usageStatus         UsageStatus?
   description         String
   color               String?
-  screenSize          Int?
+  screenSize          Float?
   processor           String?
   operatingSystem     String?
   releaseYear         String?
@@ -125,7 +125,7 @@ model Product {
   cameraType          String?
   material            String?
   age                 Int?
-  totalArea           Int?
+  totalArea           Float?
   numberOfRooms       Int?
   numberOfFloors      Int?
   landType            String?
