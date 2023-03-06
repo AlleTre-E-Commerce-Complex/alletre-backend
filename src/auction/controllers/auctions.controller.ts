@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -6,20 +7,47 @@ import {
   Post,
   Put,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/guards/auth.guard';
 import { OwnerGuard } from '../../auth/guards/owner.guard';
 import { Account } from 'src/auth/decorators/account.decorator';
 import { UserAuctionsService } from '../services/user-auctions.service';
+import { AuctionCreationDTO, ProductDTO } from '../dtos';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('auctions')
 export class AuctionsController {
   constructor(private userAuctionsService: UserAuctionsService) {}
 
-  @Post()
+  @Post('save-draft')
   @UseGuards(AuthGuard)
-  async createAuctionController() {}
+  @UseInterceptors(FilesInterceptor('images'))
+  async saveAuctionAsDraftController(
+    @Account() account: any,
+    @Body() productDTO: ProductDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.createDraftAuction(
+        account.id,
+        productDTO,
+        images,
+      ),
+    };
+  }
+
+  @Post('publish')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FilesInterceptor('images'))
+  async publishAuctionController(
+    @Account() account: any,
+    @Body() auctionCreationDTO: AuctionCreationDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+  ) {}
 
   @Get('/user')
   @UseGuards(AuthGuard)

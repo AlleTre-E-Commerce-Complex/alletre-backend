@@ -5,13 +5,26 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CategoryService {
   constructor(private prismaService: PrismaService) {}
 
-  async findAllCategories() {
-    return await this.prismaService.category.findMany();
+  async getAllCategories() {
+    return await this.prismaService.category.findMany({
+      include: { subCategories: true },
+    });
   }
 
-  async findAllSubCategories(categoryId?: number) {
+  async getAllSubCategories(categoryId?: number) {
     return await this.prismaService.subCategory.findMany({
       where: { ...(categoryId ? { categoryId: categoryId } : {}) },
+      include: { customFields: true },
+    });
+  }
+
+  async getCustomFields(categoryId?: number, subCategoryId?: number) {
+    const customFieldsFilter = categoryId
+      ? { categoryId: Number(categoryId) }
+      : { subCategoryId: Number(subCategoryId) };
+
+    return await this.prismaService.customFields.findMany({
+      where: { ...customFieldsFilter },
     });
   }
 }

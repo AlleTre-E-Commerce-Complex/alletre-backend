@@ -9,7 +9,7 @@ export class CategoryController {
   async findCategories() {
     return {
       success: true,
-      data: await this.categoryService.findAllCategories(),
+      data: await this.categoryService.getAllCategories(),
     };
   }
   @Get('/sub-categories')
@@ -18,7 +18,20 @@ export class CategoryController {
   ) {
     return {
       success: true,
-      data: await this.categoryService.findAllSubCategories(categoryId),
+      data: await this.categoryService.getAllSubCategories(categoryId),
+    };
+  }
+  @Get('custom-fields')
+  async getCustomFieldsController(
+    @Query('categoryId') categoryId: number,
+    @Query('subCategoryId') subCategoryId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.categoryService.getCustomFields(
+        categoryId,
+        subCategoryId,
+      ),
     };
   }
 }

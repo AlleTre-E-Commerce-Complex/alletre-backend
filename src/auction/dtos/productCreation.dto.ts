@@ -15,7 +15,7 @@ export class ProductDTO {
   @Min(3)
   title: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   model: string;
 
@@ -24,7 +24,7 @@ export class ProductDTO {
   @IsNumber()
   categoryId: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   brandId: number;

@@ -63,15 +63,13 @@ export class UserAuctionsService {
   }
   async createDraftAuction(
     userId: number,
-    auctionCreationBody: AuctionCreationDTO,
+    productDTO: ProductDTO,
     images: Express.Multer.File[],
   ) {
-    const { product } = auctionCreationBody;
-
     // Check user can create auction (hasCompleteProfile)
 
     // Create Product
-    const productId = await this.createProduct(product, images);
+    const productId = await this.createProduct(productDTO, images);
 
     // Create Auction
 
@@ -187,9 +185,7 @@ export class UserAuctionsService {
 
     const mandatoryProductProperties = {
       title,
-      model,
       categoryId,
-      brandId,
       description,
     };
     const optinalProductProperties = {
@@ -211,6 +207,8 @@ export class UserAuctionsService {
       countryId,
       cityId,
       subCategoryId,
+      model,
+      brandId,
     };
 
     const uploadedImages = await this.uploadProductImages(images);
