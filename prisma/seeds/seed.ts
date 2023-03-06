@@ -6,6 +6,23 @@ async function main() {
       nameAr: 'الأجهزة الكهربائية',
       nameEn: 'Electronic Devices',
       hasUsageCondition: true,
+      brands: {
+        create: [
+          { name: 'Sony' },
+          { name: 'Toshiba' },
+          { name: 'Panasonic' },
+          { name: 'Samsung' },
+          { name: 'LG' },
+          { name: 'Microsoft' },
+          { name: 'Apple' },
+          { name: 'Intel' },
+          { name: 'Acer' },
+          { name: 'Alcatel' },
+          { name: 'Amazon' },
+          { name: 'Asus' },
+          { name: 'Cannon' },
+        ],
+      },
       subCategories: {
         create: [
           {
@@ -55,6 +72,18 @@ async function main() {
                   labelAr: 'بروسيسور',
                   labelEn: 'Processor',
                 },
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
               ],
             },
           },
@@ -87,6 +116,18 @@ async function main() {
                   labelAr: 'نوع الكاميرا',
                   labelEn: 'Camera Type',
                 },
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
               ],
             },
           },
@@ -118,6 +159,18 @@ async function main() {
                   type: 'text',
                   labelAr: 'منظقة المنشأ',
                   labelEn: 'Region Of Manufacture',
+                },
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
                 },
               ],
             },
@@ -163,6 +216,18 @@ async function main() {
                   labelAr: 'نوع المادة',
                   labelEn: 'Material',
                 },
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
               ],
             },
           },
@@ -176,14 +241,81 @@ async function main() {
       nameAr: 'مجوهرات',
       nameEn: 'Jewelry',
       hasUsageCondition: true,
+      brands: {
+        create: [
+          { name: 'Mejuri' },
+          { name: 'Khiry' },
+          { name: 'Almasika' },
+          { name: 'Bea Bongiasca' },
+          { name: 'Swarovski' },
+          { name: 'Sophie Bille Brahe' },
+          { name: 'Selim Mouzannar' },
+          { name: 'Sophia Beirut' },
+          { name: 'Noor Fares' },
+        ],
+      },
       subCategories: {
         create: [
           {
             nameAr: 'ذهب',
             nameEn: 'Gold',
+            customFields: {
+              create: [
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
+              ],
+            },
           },
-          { nameAr: 'الماس', nameEn: 'Diamond' },
-          { nameAr: 'فضة', nameEn: 'Silver' },
+          {
+            nameAr: 'الماس',
+            nameEn: 'Diamond',
+            customFields: {
+              create: [
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
+              ],
+            },
+          },
+          {
+            nameAr: 'فضة',
+            nameEn: 'Silver',
+            customFields: {
+              create: [
+                {
+                  key: 'brandId',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
+              ],
+            },
+          },
         ],
       },
     },
@@ -445,6 +577,19 @@ async function main() {
       nameAr: 'سيارات',
       nameEn: 'Cars',
       hasUsageCondition: true,
+      brands: {
+        create: [
+          { name: 'Alfa Romeo' },
+          { name: 'Audi' },
+          { name: 'BMW' },
+          { name: 'Bentley' },
+          { name: 'Cadillac' },
+          { name: 'Chevrolet' },
+          { name: 'Chrysler' },
+          { name: 'Fiat' },
+          { name: 'Hyundai' },
+        ],
+      },
       customFields: {
         create: [
           {
@@ -458,6 +603,18 @@ async function main() {
             type: 'array',
             labelAr: 'نوع العربية',
             labelEn: 'Car Type',
+          },
+          {
+            key: 'brandId',
+            type: 'array',
+            labelAr: 'ماركة',
+            labelEn: 'Brand',
+          },
+          {
+            key: 'model',
+            type: 'text',
+            labelAr: 'موديل',
+            labelEn: 'Model',
           },
         ],
       },

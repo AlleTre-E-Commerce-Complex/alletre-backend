@@ -100,5 +100,17 @@
     "type": "text",
     "labelAr": "بروسيسور",
     "labelEn": "Processor"
+  },
+  "17": {
+    "key": "brandId",
+    "type": "array",
+    "labelAr": "ماركة",
+    "labelEn": "Brand"
+  },
+  "18": {
+    "key": "model",
+    "type": "text",
+    "labelAr": "موديل",
+    "labelEn": "Model"
   }
 }

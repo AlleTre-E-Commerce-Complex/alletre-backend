@@ -108,10 +108,10 @@ model Product {
   id                  Int          @id @default(autoincrement())
   categoryId          Int
   subCategoryId       Int?
-  brandId             Int
+  brandId             Int?
   quantity            Int          @default(1)
   title               String
-  model               String
+  model               String?
   usageStatus         UsageStatus?
   description         String
   color               String?
@@ -135,7 +135,7 @@ model Product {
   images              Image[]
   category            Category     @relation(fields: [categoryId], references: [id])
   subCategory         SubCategory? @relation(fields: [subCategoryId], references: [id])
-  brand               Brand        @relation(fields: [brandId], references: [id])
+  brand               Brand?       @relation(fields: [brandId], references: [id])
   city                City?        @relation(fields: [cityId], references: [id])
   country             Country?     @relation(fields: [countryId], references: [id])
 }
