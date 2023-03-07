@@ -7,6 +7,7 @@ import { EmailModule } from './emails/email.module';
 import { AuctionModule } from './auction/auction.module';
 import { CategoryModule } from './category/category.module';
 import { LoggerModule } from 'nestjs-pino';
+import { RegionsModule } from './regions/regions.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { LoggerModule } from 'nestjs-pino';
     EmailModule,
     AuctionModule,
     CategoryModule,
+    RegionsModule,
   ],
 })
 export class AppModule {}
