@@ -12,7 +12,6 @@ import {
 export class ProductDTO {
   @IsNotEmpty()
   @IsString()
-  @Min(3)
   title: string;
 
   @IsOptional()

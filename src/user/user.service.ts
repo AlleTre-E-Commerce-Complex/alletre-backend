@@ -133,16 +133,23 @@ export class UserService {
   async addNewLocation(userId: number, locationDTO: LocationDTO) {
     const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
 
-    return await this.prismaService.location.create({
-      data: {
-        userId: userId,
-        address,
-        cityId,
-        countryId,
-        ...(zipCode ? { zipCode } : {}),
-        addressLabel,
-      },
-    });
+    await this.prismaService.$transaction([
+      this.prismaService.location.create({
+        data: {
+          userId: userId,
+          address,
+          cityId,
+          countryId,
+          ...(zipCode ? { zipCode } : {}),
+          addressLabel,
+        },
+      }),
+
+      this.prismaService.user.update({
+        where: { id: userId },
+        data: { hasCompletedProfile: true },
+      }),
+    ]);
   }
 
   async getAllUserLocations(userId: number) {

@@ -24,7 +24,11 @@ export class AuctionsController {
 
   @Post('save-draft')
   @UseGuards(AuthGuard)
-  @UseInterceptors(FilesInterceptor('images'))
+  @UseInterceptors(
+    FilesInterceptor('images', 5, {
+      dest: 'uploads/',
+    }),
+  )
   async saveAuctionAsDraftController(
     @Account() account: any,
     @Body() productDTO: ProductDTO,

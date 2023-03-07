@@ -38,6 +38,7 @@ export class UserAuctionsService {
     } = auctionCreationBody;
 
     // Check user can create auction (hasCompleteProfile)
+    await this.userHasCompleteProfile(userId);
 
     // Create Product
     const productId = await this.createProduct(product, images);
@@ -74,7 +75,6 @@ export class UserAuctionsService {
     const productId = await this.createProduct(productDTO, images);
 
     // Create Auction
-
     return await this.prismaService.auction.create({
       data: {
         userId,
@@ -275,36 +275,31 @@ export class UserAuctionsService {
       brandId,
     };
 
-    const uploadedImages = await this.uploadProductImages(images);
-    const productImages = uploadedImages.map((image: any) => {
-      return {
-        productId: createdProduct.id,
-        imageLink: image.fileLink,
-        imagePath: image.filePath,
-      };
-    });
+    const imagesHolder = [];
 
-    console.log('Uploaded Images', productImages);
+    for (const image of images) {
+      const uploadedImage = await this.firebaseService.uploadImage(image);
+      imagesHolder.push(uploadedImage);
+    }
 
     const createdProduct = await this.prismaService.product.create({
       data: {
         ...mandatoryProductProperties,
         ...optinalProductProperties,
-        images: {
-          create: productImages,
-        },
       },
     });
 
-    return createdProduct.id;
-  }
-
-  private async uploadProductImages(images: Express.Multer.File[]) {
-    const uploadedFiles = images.map(async (image: Express.Multer.File) => {
-      return await this.firebaseService.uploadImage(image);
+    imagesHolder.forEach(async (image) => {
+      await this.prismaService.image.create({
+        data: {
+          productId: createdProduct.id,
+          imageLink: image.fileLink,
+          imagePath: image.filePath,
+        },
+      });
     });
 
-    return uploadedFiles;
+    return createdProduct.id;
   }
 
   private async userHasCompleteProfile(userId: number) {
