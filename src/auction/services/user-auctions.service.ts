@@ -25,6 +25,7 @@ export class UserAuctionsService {
     private firebaseService: FirebaseService,
   ) {}
 
+  // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
   async createPendingAuction(
     userId: number,
     auctionCreationBody: AuctionCreationDTO,
@@ -300,7 +301,7 @@ export class UserAuctionsService {
         durationUnit,
         durationInDays,
         startBidAmount,
-        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
         ...(acceptedAmount ? { acceptedAmount } : {}),
         locationId,
       },
@@ -333,7 +334,7 @@ export class UserAuctionsService {
         durationUnit,
         durationInHours,
         startBidAmount,
-        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
         ...(acceptedAmount ? { acceptedAmount } : {}),
         locationId,
       },
@@ -368,7 +369,7 @@ export class UserAuctionsService {
         durationUnit,
         durationInDays,
         startBidAmount,
-        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
         ...(acceptedAmount ? { acceptedAmount } : {}),
         locationId,
         startDate,
@@ -403,7 +404,7 @@ export class UserAuctionsService {
         durationUnit,
         durationInHours,
         startBidAmount,
-        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
         ...(acceptedAmount ? { acceptedAmount } : {}),
         locationId,
         startDate,
@@ -445,32 +446,17 @@ export class UserAuctionsService {
       cityId,
     } = productBody;
 
-    const mandatoryProductProperties = {
-      title,
-      categoryId,
-      description,
-    };
-    const optinalProductProperties = {
+    const nonNumericOptionalFields = {
       usageStatus,
       color,
-      screenSize,
       processor,
       operatingSystem,
       releaseYear,
       regionOfManufacture,
-      ramSize,
       cameraType,
       material,
-      age,
-      totalArea,
-      numberOfRooms,
-      numberOfFloors,
       landType,
-      countryId,
-      cityId,
-      subCategoryId,
       model,
-      brandId,
     };
 
     const imagesHolder = [];
@@ -482,8 +468,20 @@ export class UserAuctionsService {
 
     const createdProduct = await this.prismaService.product.create({
       data: {
-        ...mandatoryProductProperties,
-        ...optinalProductProperties,
+        title,
+        categoryId: Number(categoryId),
+        description,
+        ...(age ? { age: Number(age) } : {}),
+        ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
+        ...(brandId ? { brandId: Number(brandId) } : {}),
+        ...(screenSize ? { screenSize: Number(screenSize) } : {}),
+        ...(ramSize ? { ramSize: Number(ramSize) } : {}),
+        ...(totalArea ? { totalArea: Number(totalArea) } : {}),
+        ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
+        ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
+        ...(countryId ? { countryId: Number(countryId) } : {}),
+        ...(cityId ? { cityId: Number(cityId) } : {}),
+        ...nonNumericOptionalFields,
       },
     });
 

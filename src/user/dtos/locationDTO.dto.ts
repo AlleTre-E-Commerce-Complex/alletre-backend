@@ -3,12 +3,12 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class LocationDTO {
   @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   countryId: number;
 
   @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   cityId: number;
 

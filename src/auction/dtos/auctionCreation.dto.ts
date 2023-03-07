@@ -10,6 +10,7 @@ import {
   MinDate,
 } from 'class-validator';
 import { ProductDTO } from './productCreation.dto';
+import { IsString } from '@nestjs/class-validator';
 
 export class AuctionCreationDTO {
   @IsNotEmpty()
@@ -21,25 +22,27 @@ export class AuctionCreationDTO {
   durationUnit: DurationUnits;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   durationInDays: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   durationInHours: number;
 
   @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseFloat(value))
   @IsNumber()
   startBidAmount: number;
 
   @IsOptional()
-  isBuyNowAllowed: boolean;
+  @IsString()
+  @IsIn(['YES'])
+  isBuyNowAllowed: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseFloat(value))
   @IsNumber()
   acceptedAmount: number;
 
@@ -55,7 +58,7 @@ export class AuctionCreationDTO {
   product: ProductDTO;
 
   @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   locationId: number;
 }

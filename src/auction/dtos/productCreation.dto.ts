@@ -2,6 +2,7 @@ import { UsageStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -19,12 +20,12 @@ export class ProductDTO {
   model: string;
 
   @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
+  @Transform(({ value }): number => parseInt(value))
+  @IsInt()
   categoryId: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   brandId: number;
 
@@ -33,7 +34,7 @@ export class ProductDTO {
   description: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   subCategoryId: number;
 
@@ -46,7 +47,7 @@ export class ProductDTO {
   color: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   screenSize: number;
 
@@ -67,7 +68,7 @@ export class ProductDTO {
   regionOfManufacture: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   ramSize: number;
 
@@ -81,22 +82,22 @@ export class ProductDTO {
   material: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   age: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   totalArea: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   numberOfRooms: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   numberOfFloors: number;
 
@@ -106,12 +107,12 @@ export class ProductDTO {
   landType: string;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   countryId: number;
 
   @IsOptional()
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   cityId: number;
 }
