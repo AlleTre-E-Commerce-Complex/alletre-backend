@@ -620,6 +620,62 @@ async function main() {
       },
     },
   });
+
+  // Inject Country with Cities
+  await prisma.country.create({
+    data: {
+      nameAr: 'مصر',
+      nameEn: 'Egypt',
+      cities: {
+        create: [
+          { nameAr: 'القاهرة', nameEn: 'Cairo' },
+          { nameAr: 'الاسكندرية', nameEn: 'Alexandria' },
+          { nameAr: 'الجيزة', nameEn: 'Giza' },
+          { nameAr: 'القليوبية', nameEn: 'Qalyubia' },
+          { nameAr: 'بور سعيد', nameEn: 'Port Said' },
+          { nameAr: 'السويس', nameEn: 'Suez' },
+          { nameAr: 'الغربية', nameEn: 'Gharbia' },
+          { nameAr: 'الاقصر', nameEn: 'Luxor' },
+          { nameAr: 'الدقهلية', nameEn: 'Dakahlia' },
+          { nameAr: 'اسيوط', nameEn: 'Asyut	' },
+          { nameAr: 'الاسماعيلية', nameEn: 'Ismailia' },
+          { nameAr: 'الفيوم', nameEn: 'Faiyum' },
+          { nameAr: 'الشرقية', nameEn: 'Sharqia' },
+          { nameAr: 'دمياط', nameEn: 'Damietta' },
+          { nameAr: 'اسوان', nameEn: 'Aswan' },
+          { nameAr: 'المنيا', nameEn: 'Minya' },
+          { nameAr: 'البحيرة', nameEn: 'Beheira' },
+          { nameAr: 'بنى سويف', nameEn: 'Beni Suef' },
+          { nameAr: 'الغردقة', nameEn: 'Red Sea' },
+          { nameAr: 'شرم الشيخ', nameEn: 'Sharm El-Sheikh' },
+          { nameAr: 'كفر الشيخ ', nameEn: 'Kafr El-Sheikh' },
+          { nameAr: 'قنا', nameEn: 'Qena' },
+          { nameAr: 'سوهاج', nameEn: 'Sohag' },
+          { nameAr: 'المنوفية', nameEn: 'Monufia' },
+          { nameAr: 'شمال سيناء', nameEn: 'North Sinai' },
+          { nameAr: 'جنوب سيناء', nameEn: 'South Sinai' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'الإمارات العربية المتحدة',
+      nameEn: 'United Arab Emirates',
+      cities: {
+        create: [
+          { nameAr: 'دبي', nameEn: 'Dubai' },
+          { nameAr: 'ابوظبي', nameEn: 'Abu Dhabi' },
+          { nameAr: 'الشارقة', nameEn: 'Sharjah' },
+          { nameAr: 'عجمان', nameEn: 'Ajman' },
+          { nameAr: 'رأس الخيمة', nameEn: 'Ras Al Khaimah' },
+          { nameAr: 'الفجيرة', nameEn: 'Fujairah' },
+          { nameAr: ' أم القيوين', nameEn: 'Umm Al-Quwain' },
+        ],
+      },
+    },
+  });
 }
 
 main()

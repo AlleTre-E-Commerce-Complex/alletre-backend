@@ -146,7 +146,10 @@ export class UserService {
   }
 
   async getAllUserLocations(userId: number) {
-    return await this.prismaService.location.findMany({ where: { userId } });
+    return await this.prismaService.location.findMany({
+      where: { userId },
+      include: { country: true, city: true },
+    });
   }
 
   private async _create(

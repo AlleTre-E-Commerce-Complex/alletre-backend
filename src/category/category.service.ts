@@ -28,8 +28,6 @@ export class CategoryService {
       },
     );
 
-    console.log(categoryCustomFields);
-
     const customFieldsResponse = {
       arrayCustomFields: categoryCustomFields.filter((customField) => {
         if (customField.type === 'array') return customField;
