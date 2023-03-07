@@ -86,7 +86,6 @@ export class AuctionsController {
   }
 
   @Get('/guest')
-  @UseGuards(AuthGuard)
   async getAuctionsForGuest(@Query() getAuctionsDTO: GetAuctionsDTO) {
     const auctionsPaginated =
       await this.userAuctionsService.findAuctionsForGuest(getAuctionsDTO);
