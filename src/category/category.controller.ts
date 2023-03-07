@@ -42,4 +42,12 @@ export class CategoryController {
       data: await this.categoryService.getSystemCustomFields(),
     };
   }
+
+  @Get('brands')
+  async getAllBrands(@Query('categoryId') categoryId: number) {
+    return {
+      success: true,
+      data: await this.categoryService.getAllBrands(categoryId),
+    };
+  }
 }

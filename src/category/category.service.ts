@@ -60,4 +60,10 @@ export class CategoryService {
     }
     return JSON.parse(customFields);
   }
+
+  async getAllBrands(categoryId?: number) {
+    return await this.prismaService.brand.findMany({
+      where: { ...(categoryId ? { categoryId: Number(categoryId) } : {}) },
+    });
+  }
 }
