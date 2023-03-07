@@ -9,7 +9,8 @@ import {
   AuctionType,
   DurationUnits,
 } from '@prisma/client';
-import { MethodNotAllowedResponse } from 'src/common/errors';
+import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
+import { ForbiddenResponse } from 'src/common/errors/ForbiddenResponse';
 
 @Injectable()
 export class UserAuctionsService {
@@ -24,18 +25,13 @@ export class UserAuctionsService {
     auctionCreationBody: AuctionCreationDTO,
     images: Express.Multer.File[],
   ) {
-    const {
-      type,
-      durationUnit,
-      durationInDays,
-      durationInHours,
-      startBidAmount,
-      isBuyNowAllowed,
-      acceptedAmount,
-      startDate,
-      locationId,
-      product,
-    } = auctionCreationBody;
+    if (images.length < 3)
+      throw new MethodNotAllowedResponse({
+        ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
+        en: 'Please Upload From 3 To 5 Photos',
+      });
+
+    const { type, durationUnit, startDate, product } = auctionCreationBody;
 
     // Check user can create auction (hasCompleteProfile)
     await this.userHasCompleteProfile(userId);
@@ -44,21 +40,40 @@ export class UserAuctionsService {
     const productId = await this.createProduct(product, images);
 
     // Create Auction
-    let auction: Auction;
     switch (durationUnit) {
       case DurationUnits.DAYS:
         if (type === AuctionType.ON_TIME && !startDate) {
           // Create ON_TIME Daily auction
+          return await this.createOnTimeDailyAuction(
+            userId,
+            productId,
+            auctionCreationBody,
+          );
         } else if (type === AuctionType.SCHEDULED && startDate) {
           // Create Schedule Daily auction
+          return await this.createScheduleDailyAuction(
+            userId,
+            productId,
+            auctionCreationBody,
+          );
         }
         break;
 
       case DurationUnits.HOURS:
         if (type === AuctionType.ON_TIME && !startDate) {
           // Create ON_TIME hours auction
+          return await this.createOnTimeHoursAuction(
+            userId,
+            productId,
+            auctionCreationBody,
+          );
         } else if (type === AuctionType.SCHEDULED && startDate) {
           // Create Schedule hours auction
+          return await this.createScheduleHoursAuction(
+            userId,
+            productId,
+            auctionCreationBody,
+          );
         }
         break;
     }
@@ -68,6 +83,12 @@ export class UserAuctionsService {
     productDTO: ProductDTO,
     images: Express.Multer.File[],
   ) {
+    if (images.length < 3)
+      throw new MethodNotAllowedResponse({
+        ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
+        en: 'Please Upload From 3 To 5 Photos',
+      });
+
     // Check user can create auction (hasCompleteProfile)
     await this.userHasCompleteProfile(userId);
 
@@ -83,7 +104,39 @@ export class UserAuctionsService {
       },
     });
   }
-  async findUserOwnesAuctions(userId: number, page: number, perPage: number) {
+
+  async deleteDraftedAuction(userId: number, auctionId: number) {
+    const auction = await this.checkAuctionExistance(auctionId);
+
+    await this.isAuctionOwner(userId, auctionId);
+    await this.auctionCanBeDeletedByOwner(auctionId);
+
+    const deletedImages = this.prismaService.image.deleteMany({
+      where: { productId: auction.productId },
+    });
+
+    const deletedProduct = this.prismaService.product.delete({
+      where: { id: auction.productId },
+    });
+
+    const deletedAuction = this.prismaService.auction.delete({
+      where: { id: auctionId },
+    });
+
+    await this.prismaService.$transaction([
+      deletedImages,
+      deletedAuction,
+      deletedProduct,
+    ]);
+  }
+
+  // TODO: Add status as a filter for ownes auctions
+  async findUserOwnesAuctions(
+    userId: number,
+    page: number,
+    perPage: number,
+    status: AuctionStatus,
+  ) {
     const skip = Number(page) || 1;
     const limit = Number(perPage) || 10;
 
@@ -142,10 +195,44 @@ export class UserAuctionsService {
 
     return { auctions, auctionsCount, totalPages };
   }
-  async findAuctionById(auctionId: number) {
-    return await this.prismaService.auction.findUnique({
+  async findAuctionByIdOr404(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+      },
+    });
+
+    if (!auction)
+      throw new NotFoundResponse({
+        ar: 'لا يوجد هذا الاعلان',
+        en: 'Auction Not Found',
+      });
+
+    return auction;
+  }
+
+  async checkAuctionExistance(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
+
+    if (!auction)
+      throw new NotFoundResponse({
+        ar: 'لا يوجد هذا الاعلان',
+        en: 'Auction Not Found',
+      });
+
+    return auction;
   }
   async updateAuctionById(userId: number, auctionId: number) {}
 
@@ -182,7 +269,8 @@ export class UserAuctionsService {
       },
     });
 
-    // TODO: Create Payment Service and set startDate & expiryDate when payment proceed
+    // TODO: Create Payment Service and set startDate(cuurentDate) & expiryDate=(Date()+durationInDays) & status=PUBLISHED when payment proceed
+    return auction;
   }
 
   private async createOnTimeHoursAuction(
@@ -214,7 +302,80 @@ export class UserAuctionsService {
       },
     });
 
-    // TODO: Create Payment Service and set startDate & expiryDate when payment proceed
+    // TODO: Create Payment Service and set startDate(currentDate) & expriyDate=(Date()+durationInHours) & status=PUBLISHED when payment proceed
+
+    return auction;
+  }
+
+  private async createScheduleDailyAuction(
+    userId: number,
+    productId: number,
+    auctionDto: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInDays,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+      startDate,
+    } = auctionDto;
+
+    const auction = await this.prismaService.auction.create({
+      data: {
+        userId,
+        productId,
+        type,
+        durationUnit,
+        durationInDays,
+        startBidAmount,
+        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(acceptedAmount ? { acceptedAmount } : {}),
+        locationId,
+        startDate,
+      },
+    });
+
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=PUBLISHED when payment proceed
+    return auction;
+  }
+
+  private async createScheduleHoursAuction(
+    userId: number,
+    productId: number,
+    auctionDto: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInHours,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+      startDate,
+    } = auctionDto;
+
+    const auction = await this.prismaService.auction.create({
+      data: {
+        userId,
+        productId,
+        type,
+        durationUnit,
+        durationInHours,
+        startBidAmount,
+        ...(isBuyNowAllowed ? { isBuyNowAllowed } : {}),
+        ...(acceptedAmount ? { acceptedAmount } : {}),
+        locationId,
+        startDate,
+      },
+    });
+
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=PUBLISHED when payment proceed
+
+    return auction;
   }
 
   private async createProduct(
@@ -311,6 +472,30 @@ export class UserAuctionsService {
       throw new MethodNotAllowedResponse({
         ar: 'اكمل بياناتك',
         en: 'Complete your profile',
+      });
+  }
+
+  private async isAuctionOwner(userId: number, auctionId: number) {
+    const auction = await this.prismaService.auction.findFirst({
+      where: { id: Number(auctionId), userId: Number(userId) },
+    });
+
+    if (!auction)
+      throw new ForbiddenResponse({
+        ar: 'ليس لديك صلاحيات لهذا الاعلان',
+        en: 'You have no authorization for accessing this resource',
+      });
+  }
+
+  private async auctionCanBeDeletedByOwner(auctionId: number) {
+    const auction = await this.prismaService.auction.findFirst({
+      where: { id: auctionId },
+    });
+
+    if (auction.status !== AuctionStatus.DRAFTED)
+      throw new ForbiddenResponse({
+        ar: 'لا يمكنك حذف الاعلان',
+        en: 'Auction Can Not Be Deleted',
       });
   }
 }

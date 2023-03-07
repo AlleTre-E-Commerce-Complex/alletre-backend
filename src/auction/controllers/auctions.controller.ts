@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -21,6 +22,28 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 @Controller('auctions')
 export class AuctionsController {
   constructor(private userAuctionsService: UserAuctionsService) {}
+
+  @Post('')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('images', 5, {
+      dest: 'uploads/',
+    }),
+  )
+  async publishAuctionController(
+    @Account() account: any,
+    @Body() auctionCreationDTO: AuctionCreationDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.createPendingAuction(
+        account.id,
+        auctionCreationDTO,
+        images,
+      ),
+    };
+  }
 
   @Post('save-draft')
   @UseGuards(AuthGuard)
@@ -43,15 +66,6 @@ export class AuctionsController {
       ),
     };
   }
-
-  @Post('publish')
-  @UseGuards(AuthGuard)
-  @UseInterceptors(FilesInterceptor('images'))
-  async publishAuctionController(
-    @Account() account: any,
-    @Body() auctionCreationDTO: AuctionCreationDTO,
-    @UploadedFiles() images: Array<Express.Multer.File>,
-  ) {}
 
   @Get('/user')
   @UseGuards(AuthGuard)
@@ -99,6 +113,7 @@ export class AuctionsController {
         account.id,
         page,
         perPage,
+        'DRAFTED',
       );
 
     return {
@@ -114,7 +129,22 @@ export class AuctionsController {
   async getAuctionById(@Param('auctionId', ParseIntPipe) auctionId: number) {
     return {
       success: true,
-      data: await this.userAuctionsService.findAuctionById(auctionId),
+      data: await this.userAuctionsService.findAuctionByIdOr404(auctionId),
+    };
+  }
+
+  @Delete('/user/:auctionId')
+  @UseGuards(AuthGuard)
+  async deleteAuctionByOwnerController(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.deleteDraftedAuction(
+        Number(account.id),
+        auctionId,
+      ),
     };
   }
 
