@@ -16,7 +16,12 @@ import { AuthGuard } from '../../auth/guards/auth.guard';
 import { OwnerGuard } from '../../auth/guards/owner.guard';
 import { Account } from 'src/auth/decorators/account.decorator';
 import { UserAuctionsService } from '../services/user-auctions.service';
-import { AuctionCreationDTO, ProductDTO } from '../dtos';
+import {
+  AuctionCreationDTO,
+  GetAuctionsByOwnerDTO,
+  GetAuctionsDTO,
+  ProductDTO,
+} from '../dtos';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('auctions')
@@ -69,57 +74,45 @@ export class AuctionsController {
 
   @Get('/user')
   @UseGuards(AuthGuard)
-  async getAuctions(
-    @Query('page') page: number,
-    @Query('perPage') perPage: number,
-  ) {
+  async getAuctions(@Query() getAuctionsDTO: GetAuctionsDTO) {
     const auctionsPaginated =
-      await this.userAuctionsService.findAuctionsForUser(page, perPage);
+      await this.userAuctionsService.findAuctionsForUser(getAuctionsDTO);
 
     return {
       success: true,
-      totalItems: auctionsPaginated.auctionsCount,
-      totalPages: auctionsPaginated.totalPages,
+      pagination: auctionsPaginated.pagination,
       data: auctionsPaginated.auctions,
     };
   }
 
   @Get('/guest')
   @UseGuards(AuthGuard)
-  async getAuctionsForGuest(
-    @Query('page') page: number,
-    @Query('perPage') perPage: number,
-  ) {
+  async getAuctionsForGuest(@Query() getAuctionsDTO: GetAuctionsDTO) {
     const auctionsPaginated =
-      await this.userAuctionsService.findAuctionsForGuest(page, perPage);
+      await this.userAuctionsService.findAuctionsForGuest(getAuctionsDTO);
 
     return {
       success: true,
-      totalItems: auctionsPaginated.auctionsCount,
-      totalPages: auctionsPaginated.totalPages,
+      pagination: auctionsPaginated.pagination,
       data: auctionsPaginated.auctions,
     };
   }
 
   @Get('/user/ownes')
   @UseGuards(AuthGuard)
-  async getSellerAuctions(
+  async getAuctionsByOwner(
     @Account() account: any,
-    @Query('page') page: number,
-    @Query('perPage') perPage: number,
+    @Query() getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
     const userAuctionsPaginated =
       await this.userAuctionsService.findUserOwnesAuctions(
         account.id,
-        page,
-        perPage,
-        'DRAFTED',
+        getAuctionsByOwnerDTO,
       );
 
     return {
       success: true,
-      totalItems: userAuctionsPaginated.userOwensAuctionsCount,
-      totalPages: userAuctionsPaginated.totalPages,
+      pagination: userAuctionsPaginated.pagination,
       data: userAuctionsPaginated.userAuctions,
     };
   }

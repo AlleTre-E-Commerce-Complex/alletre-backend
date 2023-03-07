@@ -12,7 +12,12 @@ export class PaginationService {
     return { skip: Number(skip), limit: Number(limit) };
   }
 
-  getTotalPages(documentsCount: number, limit: number) {
-    return Math.ceil(documentsCount / limit);
+  getPagination(documentsCount: number, page: number, perPage: number) {
+    return {
+      totalPages: Math.ceil(documentsCount / perPage) || 0,
+      totalItems: documentsCount,
+      page,
+      perPage,
+    };
   }
 }

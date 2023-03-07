@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
-import { AuctionCreationDTO, ProductDTO } from '../dtos';
+import {
+  AuctionCreationDTO,
+  GetAuctionsByOwnerDTO,
+  GetAuctionsDTO,
+  ProductDTO,
+} from '../dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import {
   Auction,
@@ -31,10 +36,10 @@ export class UserAuctionsService {
         en: 'Please Upload From 3 To 5 Photos',
       });
 
-    const { type, durationUnit, startDate, product } = auctionCreationBody;
-
     // Check user can create auction (hasCompleteProfile)
     await this.userHasCompleteProfile(userId);
+
+    const { type, durationUnit, startDate, product } = auctionCreationBody;
 
     // Create Product
     const productId = await this.createProduct(product, images);
@@ -42,14 +47,14 @@ export class UserAuctionsService {
     // Create Auction
     switch (durationUnit) {
       case DurationUnits.DAYS:
-        if (type === AuctionType.ON_TIME && !startDate) {
+        if (type === AuctionType.ON_TIME || !startDate) {
           // Create ON_TIME Daily auction
           return await this.createOnTimeDailyAuction(
             userId,
             productId,
             auctionCreationBody,
           );
-        } else if (type === AuctionType.SCHEDULED && startDate) {
+        } else if (type === AuctionType.SCHEDULED || startDate) {
           // Create Schedule Daily auction
           return await this.createScheduleDailyAuction(
             userId,
@@ -60,14 +65,14 @@ export class UserAuctionsService {
         break;
 
       case DurationUnits.HOURS:
-        if (type === AuctionType.ON_TIME && !startDate) {
+        if (type === AuctionType.ON_TIME || !startDate) {
           // Create ON_TIME hours auction
           return await this.createOnTimeHoursAuction(
             userId,
             productId,
             auctionCreationBody,
           );
-        } else if (type === AuctionType.SCHEDULED && startDate) {
+        } else if (type === AuctionType.SCHEDULED || startDate) {
           // Create Schedule hours auction
           return await this.createScheduleHoursAuction(
             userId,
@@ -133,67 +138,99 @@ export class UserAuctionsService {
   // TODO: Add status as a filter for ownes auctions
   async findUserOwnesAuctions(
     userId: number,
-    page: number,
-    perPage: number,
-    status: AuctionStatus,
+    getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
-    const skip = Number(page) || 1;
-    const limit = Number(perPage) || 10;
+    const { page = 1, perPage = 10, status } = getAuctionsByOwnerDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
 
     const userAuctions = await this.prismaService.auction.findMany({
-      where: {
-        userId: userId,
-      },
       skip: skip,
       take: limit,
+      where: {
+        userId: userId,
+        ...(status ? { status: { in: status } } : {}),
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+      },
     });
 
     const userOwensAuctionsCount = await this.prismaService.auction.count({
-      where: { userId: userId },
+      where: { userId: userId, ...(status ? { status: { in: status } } : {}) },
     });
 
-    const totalPages = this.paginationService.getTotalPages(
+    const pagination = this.paginationService.getPagination(
       userOwensAuctionsCount,
-      limit,
+      page,
+      perPage,
     );
 
-    return { userAuctions, userOwensAuctionsCount, totalPages };
+    return { userAuctions, pagination };
   }
-  async findAuctionsForUser(page: number, perPage: number) {
-    const skip = Number(page) || 1;
-    const limit = Number(perPage) || 10;
+  async findAuctionsForUser(getAuctionsDTO: GetAuctionsDTO) {
+    const { page = 1, perPage = 10 } = getAuctionsDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
 
     const auctions = await this.prismaService.auction.findMany({
+      where: { status: AuctionStatus.PUBLISHED },
       skip: skip,
       take: limit,
     });
 
-    const auctionsCount = await this.prismaService.auction.count();
+    const auctionsCount = await this.prismaService.auction.count({
+      where: { status: AuctionStatus.PUBLISHED },
+    });
 
-    const totalPages = this.paginationService.getTotalPages(
+    const pagination = this.paginationService.getPagination(
       auctionsCount,
-      limit,
+      page,
+      perPage,
     );
 
-    return { auctions, auctionsCount, totalPages };
+    return { auctions, pagination };
   }
-  async findAuctionsForGuest(page: number, perPage: number) {
-    const skip = Number(page) || 1;
-    const limit = Number(perPage) || 10;
+  async findAuctionsForGuest(getAuctionsDTO: GetAuctionsDTO) {
+    const { page = 1, perPage = 10 } = getAuctionsDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
 
     const auctions = await this.prismaService.auction.findMany({
+      where: { status: AuctionStatus.PUBLISHED },
       skip: skip,
       take: limit,
     });
 
-    const auctionsCount = await this.prismaService.auction.count();
+    const auctionsCount = await this.prismaService.auction.count({
+      where: { status: AuctionStatus.PUBLISHED },
+    });
 
-    const totalPages = this.paginationService.getTotalPages(
+    const pagination = this.paginationService.getPagination(
       auctionsCount,
-      limit,
+      page,
+      perPage,
     );
 
-    return { auctions, auctionsCount, totalPages };
+    return { auctions, pagination };
   }
   async findAuctionByIdOr404(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({

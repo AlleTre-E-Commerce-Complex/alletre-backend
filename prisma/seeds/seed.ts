@@ -64,7 +64,7 @@ async function main() {
                   key: 'ramSize',
                   type: 'number',
                   labelAr: 'حجم الرامات',
-                  labelEn: 'Region Of Manufacture',
+                  labelEn: 'Ram Size',
                 },
                 {
                   key: 'processor',
