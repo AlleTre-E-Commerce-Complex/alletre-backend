@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 //Import firebase classes
 import { FirebaseApp, FirebaseBucket } from './firebase.config';
 import { MethodNotAllowedResponse } from 'src/common/errors';
-import { unlink } from 'fs';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class FirebaseService {
@@ -36,7 +36,11 @@ export class FirebaseService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    unlink(`${process.cwd()}/uploads/${image.filename}`, () => {});
+    await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
+      (error) => {
+        console.log(error);
+      },
+    );
 
     return {
       fileName: image.originalname,

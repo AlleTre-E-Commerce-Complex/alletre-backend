@@ -227,6 +227,8 @@ export class UserAuctionsService {
 
     return { auctions, pagination };
   }
+
+  // TODO: May return user public info.
   async findAuctionByIdOr404(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
@@ -240,6 +242,9 @@ export class UserAuctionsService {
             country: true,
             images: true,
           },
+        },
+        location: {
+          include: { city: true, country: true },
         },
       },
     });
