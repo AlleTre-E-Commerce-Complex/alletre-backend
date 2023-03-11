@@ -15,5 +15,5 @@ export class GetAuctionsByOwnerDTO {
 
   @IsNotEmpty()
   @IsIn(Object.keys(AuctionStatus))
-  status: AuctionStatus[];
+  status: AuctionStatus;
 }

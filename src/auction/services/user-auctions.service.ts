@@ -147,7 +147,7 @@ export class UserAuctionsService {
       take: limit,
       where: {
         userId: userId,
-        ...(status ? { status: { in: status } } : {}),
+        ...(status ? { status: status } : {}),
       },
       include: {
         product: {
@@ -164,7 +164,7 @@ export class UserAuctionsService {
     });
 
     const userOwensAuctionsCount = await this.prismaService.auction.count({
-      where: { userId: userId, ...(status ? { status: { in: status } } : {}) },
+      where: { userId: userId, ...(status ? { status: status } : {}) },
     });
 
     const pagination = this.paginationService.getPagination(
