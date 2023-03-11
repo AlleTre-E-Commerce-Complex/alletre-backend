@@ -89,12 +89,6 @@ export class UserAuctionsService {
     productDTO: ProductDTO,
     images: Express.Multer.File[],
   ) {
-    if (images.length < 3)
-      throw new MethodNotAllowedResponse({
-        ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
-        en: 'Please Upload From 3 To 5 Photos',
-      });
-
     // Check user can create auction (hasCompleteProfile)
     await this.userHasCompleteProfile(userId);
 
@@ -418,7 +412,7 @@ export class UserAuctionsService {
 
   private async createProduct(
     productBody: ProductDTO,
-    images: Express.Multer.File[],
+    images?: Express.Multer.File[],
   ) {
     const {
       title,
@@ -461,9 +455,11 @@ export class UserAuctionsService {
 
     const imagesHolder = [];
 
-    for (const image of images) {
-      const uploadedImage = await this.firebaseService.uploadImage(image);
-      imagesHolder.push(uploadedImage);
+    if (images?.length) {
+      for (const image of images) {
+        const uploadedImage = await this.firebaseService.uploadImage(image);
+        imagesHolder.push(uploadedImage);
+      }
     }
 
     const createdProduct = await this.prismaService.product.create({
@@ -485,15 +481,17 @@ export class UserAuctionsService {
       },
     });
 
-    imagesHolder.forEach(async (image) => {
-      await this.prismaService.image.create({
-        data: {
-          productId: createdProduct.id,
-          imageLink: image.fileLink,
-          imagePath: image.filePath,
-        },
+    if (imagesHolder?.length) {
+      imagesHolder.forEach(async (image) => {
+        await this.prismaService.image.create({
+          data: {
+            productId: createdProduct.id,
+            imageLink: image.fileLink,
+            imagePath: image.filePath,
+          },
+        });
       });
-    });
+    }
 
     return createdProduct.id;
   }
