@@ -106,7 +106,7 @@ export class UserAuctionsService {
   }
 
   async deleteDraftedAuction(userId: number, auctionId: number) {
-    const auction = await this.checkAuctionExistance(auctionId);
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     await this.isAuctionOwner(userId, auctionId);
     await this.auctionCanBeDeletedByOwner(auctionId);
@@ -258,7 +258,7 @@ export class UserAuctionsService {
     return auction;
   }
 
-  async checkAuctionExistance(auctionId: number) {
+  async checkAuctionExistanceAndReturn(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
