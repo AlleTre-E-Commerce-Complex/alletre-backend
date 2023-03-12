@@ -1,6 +1,12 @@
-import { AuctionStatus } from '@prisma/client';
+import { AuctionStatus, AuctionType } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsIn, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 
 export class GetAuctionsByOwnerDTO {
   @IsOptional()
@@ -16,4 +22,8 @@ export class GetAuctionsByOwnerDTO {
   @IsNotEmpty()
   @IsIn(Object.keys(AuctionStatus))
   status: AuctionStatus;
+
+  @IsOptional()
+  @IsIn(Object.keys(AuctionType))
+  type: AuctionType;
 }

@@ -135,7 +135,7 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
-    const { page = 1, perPage = 10, status } = getAuctionsByOwnerDTO;
+    const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
       Number(page),
@@ -148,6 +148,7 @@ export class UserAuctionsService {
       where: {
         userId: userId,
         ...(status ? { status: status } : {}),
+        ...(type ? { type } : {}),
       },
       include: {
         product: {
@@ -164,7 +165,11 @@ export class UserAuctionsService {
     });
 
     const userOwensAuctionsCount = await this.prismaService.auction.count({
-      where: { userId: userId, ...(status ? { status: status } : {}) },
+      where: {
+        userId: userId,
+        ...(status ? { status: status } : {}),
+        ...(type ? { type } : {}),
+      },
     });
 
     const pagination = this.paginationService.getPagination(
