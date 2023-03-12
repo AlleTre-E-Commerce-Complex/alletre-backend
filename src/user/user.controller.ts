@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseIntPipe,
   Post,
   Put,
   UploadedFile,
@@ -63,6 +65,22 @@ export class UserController {
         Number(account.id),
         updatePersonalInfoDTO,
         image,
+      ),
+    };
+  }
+  @Put('locations/:locationId')
+  @UseGuards(AuthGuard)
+  async updateUserLocation(
+    @Account() account: any,
+    @Body() locationDTO: LocationDTO,
+    @Param('locationId', ParseIntPipe) locationId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userService.updateUserLocation(
+        Number(account.id),
+        locationId,
+        locationDTO,
       ),
     };
   }

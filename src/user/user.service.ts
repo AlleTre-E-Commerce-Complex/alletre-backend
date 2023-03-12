@@ -176,6 +176,28 @@ export class UserService {
     });
   }
 
+  async updateUserLocation(
+    userId: number,
+    locationId: number,
+    locationDTO: LocationDTO,
+  ) {
+    const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
+
+    await this._isMyLocation(userId, locationId);
+    await this._isLocationRelatedToAuction(locationId);
+
+    return await this.prismaService.location.update({
+      where: { id: locationId },
+      data: {
+        address,
+        cityId,
+        countryId,
+        ...(zipCode ? { zipCode } : {}),
+        addressLabel,
+      },
+    });
+  }
+
   async updatePersonalInfo(
     userId: number,
     updatePersonalInfoDTO: UpdatePersonalInfoDTO,
@@ -219,6 +241,35 @@ export class UserService {
         password: hashedPassword,
       },
     });
+  }
+
+  private async _isMyLocation(userId: number, locationId: number) {
+    const location = await this.prismaService.location.findUnique({
+      where: { id: Number(locationId) },
+    });
+    if (!location)
+      throw new NotFoundResponse({
+        ar: 'هذا العنوان غير مسجل من قبل',
+        en: 'Location Is NotFound',
+      });
+
+    if (location.userId !== Number(userId))
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا العنوان غير مصرح لك',
+        en: 'You Are Not Authorized Access To Location',
+      });
+  }
+
+  private async _isLocationRelatedToAuction(locationId: number) {
+    const isLocationRelatedToAuction =
+      await this.prismaService.auction.findFirst({
+        where: { locationId: locationId },
+      });
+    if (isLocationRelatedToAuction)
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا العنوان تم تعينه مع إعلان من الافضل إضافته كعنوان جديد',
+        en: 'This Location Is Related To Auction, Add New One Is Better',
+      });
   }
 
   // Exclude keys from user
