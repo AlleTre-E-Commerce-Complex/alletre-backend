@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { Account } from '../auth/decorators/account.decorator';
-import { LocationDTO } from './dtos';
+import { LocationDTO, UpdatePersonalInfoDTO } from './dtos';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UserController {
@@ -13,7 +23,7 @@ export class UserController {
   async getUserProfileController(@Account() account: any) {
     return {
       success: true,
-      data: await this.userService.findUserByIdOr404(account.id),
+      data: await this.userService.findUserProfileByIdOr404(account.id),
     };
   }
 
@@ -35,6 +45,25 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.addNewLocation(account.id, locationDTO),
+    };
+  }
+
+  @Put('personal-info')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('image', { dest: 'uploads/' }))
+  async updatePersonalInfo(
+    @Account() account: any,
+    @Body() updatePersonalInfoDTO: UpdatePersonalInfoDTO,
+    @UploadedFile()
+    image?: Express.Multer.File,
+  ) {
+    return {
+      success: true,
+      data: await this.userService.updatePersonalInfo(
+        Number(account.id),
+        updatePersonalInfoDTO,
+        image,
+      ),
     };
   }
 }

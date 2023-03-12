@@ -3,11 +3,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse } from '../common/errors/NotFoundResponse';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
-import { LocationDTO } from './dtos';
+import { LocationDTO, UpdatePersonalInfoDTO } from './dtos';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class UserService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private firebaseService: FirebaseService,
+  ) {}
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
     const { userName, email, phone } = UserSignData;
@@ -88,6 +92,19 @@ export class UserService {
       });
   }
 
+  async findUserProfileByIdOr404(id: number) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: id },
+    });
+    if (!user)
+      throw new NotFoundResponse({
+        ar: 'لا يوجد هذا المستخدم',
+        en: 'User not found',
+      });
+
+    return this.exclude(user, ['password']);
+  }
+
   async findUserByIdOr404(id: number) {
     const user = await this.prismaService.user.findUnique({
       where: { id: id },
@@ -159,6 +176,35 @@ export class UserService {
     });
   }
 
+  async updatePersonalInfo(
+    userId: number,
+    updatePersonalInfoDTO: UpdatePersonalInfoDTO,
+    image?: Express.Multer.File,
+  ) {
+    const { userName } = updatePersonalInfoDTO;
+    const user = await this.findUserByIdOr404(userId);
+
+    let uploadedImage: any;
+    if (image) {
+      // Delete saved Image from firebase
+      if (user.imagePath)
+        await this.firebaseService.deleteFileFromStorage(user.imagePath);
+
+      // Upload new one
+      uploadedImage = await this.firebaseService.uploadImage(image);
+    }
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: Number(userId) },
+      data: {
+        ...(uploadedImage ? { imageLink: uploadedImage.fileLink } : {}),
+        ...(uploadedImage ? { imagePath: uploadedImage.filePath } : {}),
+        userName,
+      },
+    });
+
+    return this.exclude(updatedUser, ['password']);
+  }
   private async _create(
     userName: string,
     email: string,
