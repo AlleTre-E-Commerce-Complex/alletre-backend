@@ -6,8 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
 import { OAuthDto, UserSignUpDTO } from '../user/dtos';
 import { Role } from './enums/role.enum';
-import { ForbiddenResponse } from '../common/errors/ForbiddenResponse';
-import { NotFoundResponse } from '../common/errors/NotFoundResponse';
+import { ForbiddenResponse, NotFoundResponse } from '../common/errors';
 import { EmailSerivce } from '../emails/email.service';
 import { EmailsType } from './enums/emails-type.enum';
 

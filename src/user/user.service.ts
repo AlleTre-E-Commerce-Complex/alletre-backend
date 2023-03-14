@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
-import { NotFoundResponse } from '../common/errors/NotFoundResponse';
-import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
+import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
 import { LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 

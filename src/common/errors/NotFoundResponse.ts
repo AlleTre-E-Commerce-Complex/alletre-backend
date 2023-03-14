@@ -2,6 +2,6 @@
 import { NotFoundException } from '@nestjs/common';
 export class NotFoundResponse extends NotFoundException {
   constructor(message: { ar: string; en: string }) {
-    super({ success: false, message: message });
+    super({ success: false, message: message, error: 'NotFound' });
   }
 }

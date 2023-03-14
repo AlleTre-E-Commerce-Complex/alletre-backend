@@ -2,6 +2,10 @@
 import { MethodNotAllowedException } from '@nestjs/common';
 export class MethodNotAllowedResponse extends MethodNotAllowedException {
   constructor(message: { ar: string; en: string }) {
-    super({ success: false, message: message });
+    super({
+      success: false,
+      message: message,
+      error: 'Method Not Allowed',
+    });
   }
 }

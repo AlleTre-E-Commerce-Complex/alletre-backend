@@ -8,14 +8,12 @@ import {
   ProductDTO,
 } from '../dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { AuctionStatus, AuctionType, DurationUnits } from '@prisma/client';
 import {
-  Auction,
-  AuctionStatus,
-  AuctionType,
-  DurationUnits,
-} from '@prisma/client';
-import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
-import { ForbiddenResponse } from 'src/common/errors/ForbiddenResponse';
+  MethodNotAllowedResponse,
+  NotFoundResponse,
+  ForbiddenResponse,
+} from 'src/common/errors';
 
 @Injectable()
 export class UserAuctionsService {
