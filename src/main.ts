@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ForbiddenExceptionFilter } from './common/filters/forbiddenException.filter';
 import { UnauthorizedExceptionFilter } from './common/filters/unauthorizedException.filter';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
+import { BadRequestExceptionFilter } from './common/filters/badrequestException.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -15,6 +16,7 @@ async function bootstrap() {
 
   app.useGlobalFilters(new ForbiddenExceptionFilter());
   app.useGlobalFilters(new UnauthorizedExceptionFilter());
+  app.useGlobalFilters(new BadRequestExceptionFilter());
 
   app.setGlobalPrefix('api/');
   app.useLogger(app.get(Logger));
