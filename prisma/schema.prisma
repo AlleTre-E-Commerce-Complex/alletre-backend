@@ -20,6 +20,7 @@ model User {
   isOAuth             Boolean     @default(false)
   hasCompletedProfile Boolean     @default(false)
   isVerified          Boolean     @default(false)
+  oAuthType           OAuthType?
   auctions            Auction[]
   locations           Location[]
   watchLists          WatchList[]
@@ -191,7 +192,8 @@ enum UsageStatus {
 enum AuctionStatus {
   DRAFTED
   PENDING_OWNER_DEPOIST
-  PUBLISHED
+  ACTIVE
+  IN_SCHEDULED
   ARCHIVED
   SOLD
   EXPIRED
@@ -205,4 +207,10 @@ enum AuctionType {
 enum DurationUnits {
   DAYS
   HOURS
+}
+
+enum OAuthType {
+  GOOGLE
+  FACEBOOK
+  APPLE
 }

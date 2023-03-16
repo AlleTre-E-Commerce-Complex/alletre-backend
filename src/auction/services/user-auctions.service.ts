@@ -378,7 +378,7 @@ export class UserAuctionsService {
       },
     });
 
-    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=PUBLISHED when payment proceed
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
     return auction;
   }
 
@@ -413,7 +413,7 @@ export class UserAuctionsService {
       },
     });
 
-    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=PUBLISHED when payment proceed
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
 
     return auction;
   }
