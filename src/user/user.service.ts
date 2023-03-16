@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
-import { LocationDTO, UpdatePersonalInfoDTO } from './dtos';
+import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -202,7 +203,7 @@ export class UserService {
     updatePersonalInfoDTO: UpdatePersonalInfoDTO,
     image?: Express.Multer.File,
   ) {
-    const { userName } = updatePersonalInfoDTO;
+    const { userName, phone } = updatePersonalInfoDTO;
     const user = await this.findUserByIdOr404(userId);
 
     let uploadedImage: any;
@@ -214,13 +215,54 @@ export class UserService {
       // Upload new one
       uploadedImage = await this.firebaseService.uploadImage(image);
     }
-
+    // Check phone
+    const userWithSamePhone = await this.findUserByPhone(phone);
+    if (userWithSamePhone && userWithSamePhone.id !== userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'الهاتف مسجل من قبل',
+        en: 'Phone is already exist',
+      });
     const updatedUser = await this.prismaService.user.update({
       where: { id: Number(userId) },
       data: {
         ...(uploadedImage ? { imageLink: uploadedImage.fileLink } : {}),
         ...(uploadedImage ? { imagePath: uploadedImage.filePath } : {}),
-        userName,
+        ...(userName ? { userName } : {}),
+        ...(phone ? { phone } : {}),
+      },
+    });
+
+    return this.exclude(updatedUser, ['password']);
+  }
+
+  async changePassword(userId: number, changePasswordDTO: ChangePasswordDTO) {
+    const { newPassword, oldPassword } = changePasswordDTO;
+    const user = await this.findUserByIdOr404(userId);
+
+    if (!user.password)
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في بيانات المستخدم',
+        en: 'You Have No Saved Password',
+      });
+
+    //  Compare oldPassword with userPassword
+    const isPasswordMatches = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordMatches)
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في بيانات المستخدم',
+        en: 'Invalid Old Password',
+      });
+
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      parseInt(process.env.SALT),
+    );
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: Number(userId) },
+      data: {
+        password: hashedPassword,
       },
     });
 

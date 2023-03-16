@@ -5,3 +5,4 @@ export * from './resend-verification.dto';
 export * from './reset-credentials.dto';
 export * from './locationDTO.dto';
 export * from './updatePersonalInfo.dto';
+export * from './changePassword.dto';

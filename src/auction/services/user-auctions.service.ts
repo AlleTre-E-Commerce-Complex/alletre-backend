@@ -187,13 +187,13 @@ export class UserAuctionsService {
     );
 
     const auctions = await this.prismaService.auction.findMany({
-      where: { status: AuctionStatus.PUBLISHED },
+      where: { status: AuctionStatus.ACTIVE },
       skip: skip,
       take: limit,
     });
 
     const auctionsCount = await this.prismaService.auction.count({
-      where: { status: AuctionStatus.PUBLISHED },
+      where: { status: AuctionStatus.ACTIVE },
     });
 
     const pagination = this.paginationService.getPagination(
@@ -213,13 +213,13 @@ export class UserAuctionsService {
     );
 
     const auctions = await this.prismaService.auction.findMany({
-      where: { status: AuctionStatus.PUBLISHED },
+      where: { status: AuctionStatus.ACTIVE },
       skip: skip,
       take: limit,
     });
 
     const auctionsCount = await this.prismaService.auction.count({
-      where: { status: AuctionStatus.PUBLISHED },
+      where: { status: AuctionStatus.ACTIVE },
     });
 
     const pagination = this.paginationService.getPagination(

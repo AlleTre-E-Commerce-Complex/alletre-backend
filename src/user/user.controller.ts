@@ -13,7 +13,7 @@ import {
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { Account } from '../auth/decorators/account.decorator';
-import { LocationDTO, UpdatePersonalInfoDTO } from './dtos';
+import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
@@ -65,6 +65,20 @@ export class UserController {
         Number(account.id),
         updatePersonalInfoDTO,
         image,
+      ),
+    };
+  }
+  @Put('credentials-info')
+  @UseGuards(AuthGuard)
+  async updatePassword(
+    @Account() account: any,
+    @Body() changePasswordDTO: ChangePasswordDTO,
+  ) {
+    return {
+      success: true,
+      data: await this.userService.changePassword(
+        Number(account.id),
+        changePasswordDTO,
       ),
     };
   }
