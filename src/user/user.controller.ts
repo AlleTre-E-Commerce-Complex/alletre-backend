@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   UploadedFile,
@@ -96,6 +97,20 @@ export class UserController {
         locationId,
         locationDTO,
       ),
+    };
+  }
+  @Patch('locations/:locationId/set-main')
+  @UseGuards(AuthGuard)
+  async setLocationAsMainLocation(
+    @Account() account: any,
+    @Param('locationId', ParseIntPipe) locationId: number,
+  ) {
+    await this.userService.setLocationAsMainLocation(
+      Number(account.id),
+      locationId,
+    );
+    return {
+      success: true,
     };
   }
 }

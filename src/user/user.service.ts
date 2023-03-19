@@ -268,6 +268,33 @@ export class UserService {
 
     return this.exclude(updatedUser, ['password']);
   }
+
+  async setLocationAsMainLocation(userId: number, locationId: number) {
+    // Check location authorization
+    await this._isMyLocation(userId, locationId);
+
+    // Update all locations to false and set location to main
+    try {
+      await this.prismaService.$transaction([
+        this.prismaService.location.updateMany({
+          where: { userId: userId, isMain: true },
+          data: { isMain: false },
+        }),
+
+        this.prismaService.location.update({
+          where: { id: locationId },
+          data: { isMain: true },
+        }),
+      ]);
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ طارئ خلال تعديل عنوانك',
+        en: 'Failed while trying to update your location',
+      });
+    }
+  }
+
   private async _create(
     userName: string,
     email: string,
