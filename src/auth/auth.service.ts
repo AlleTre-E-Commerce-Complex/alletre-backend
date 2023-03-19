@@ -33,12 +33,19 @@ export class AuthService {
       });
 
     //  Compare password with userPassword
-    const isPasswordMatches = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatches)
+    try {
+      const isPasswordMatches = await bcrypt.compare(password, user.password);
+      if (!isPasswordMatches)
+        throw new MethodNotAllowedResponse({
+          ar: 'خطأ في بيانات المستخدم',
+          en: 'Invalid user credentials',
+        });
+    } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في بيانات المستخدم',
         en: 'Invalid user credentials',
       });
+    }
 
     return user;
   }
@@ -128,8 +135,10 @@ export class AuthService {
 
     let user: any;
 
-    if (email) user = await this.userService.findUserByEmail(email);
-    else if (phone) user = await this.userService.findUserByPhone(phone);
+    if (email) {
+      user = await this.userService.findUserByEmail(email);
+      if (user) await this.userService.verifyUserEmail(email);
+    } else if (phone) user = await this.userService.findUserByPhone(phone);
 
     if (!user)
       user = await this.userService.oAuth(email, phone, userName, oAuthType);
