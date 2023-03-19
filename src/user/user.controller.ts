@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -96,6 +97,21 @@ export class UserController {
         Number(account.id),
         locationId,
         locationDTO,
+      ),
+    };
+  }
+
+  @Delete('locations/:locationId')
+  @UseGuards(AuthGuard)
+  async deleteLocationById(
+    @Account() account: any,
+    @Param('locationId', ParseIntPipe) locationId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userService.deleteLocationById(
+        Number(account.id),
+        locationId,
       ),
     };
   }

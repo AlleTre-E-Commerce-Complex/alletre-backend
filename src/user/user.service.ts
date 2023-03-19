@@ -295,6 +295,13 @@ export class UserService {
     }
   }
 
+  async deleteLocationById(userId: number, locationId: number) {
+    await this._isMyLocation(userId, locationId);
+    await this._isLocationRelatedToAuction(locationId);
+
+    await this.prismaService.location.delete({ where: { id: locationId } });
+  }
+
   private async _create(
     userName: string,
     email: string,
@@ -335,8 +342,8 @@ export class UserService {
       });
     if (isLocationRelatedToAuction)
       throw new MethodNotAllowedResponse({
-        ar: 'هذا العنوان تم تعينه مع إعلان من الافضل إضافته كعنوان جديد',
-        en: 'This Location Is Related To Auction, Add New One Is Better',
+        ar: 'هذا العنوان تم تعينه مع إعلان من قبل',
+        en: 'This Location Is Already Related To Auction',
       });
   }
 
