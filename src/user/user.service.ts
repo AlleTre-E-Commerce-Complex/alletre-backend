@@ -5,6 +5,7 @@ import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
 import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import * as bcrypt from 'bcrypt';
+import { OAuthType } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -38,7 +39,12 @@ export class UserService {
     return user;
   }
 
-  async oAuth(email: string, phone: string, userName: string) {
+  async oAuth(
+    email: string,
+    phone: string,
+    userName: string,
+    oAuthType: OAuthType,
+  ) {
     // Create User
     return await this.prismaService.user.create({
       data: {
@@ -47,6 +53,7 @@ export class UserService {
         ...(userName ? { userName: userName } : {}),
         isOAuth: true,
         isVerified: true,
+        oAuthType,
       },
     });
   }

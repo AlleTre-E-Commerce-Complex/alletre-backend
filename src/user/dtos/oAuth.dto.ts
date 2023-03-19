@@ -5,6 +5,8 @@ import {
   IsPhoneNumber,
   IsString,
 } from '@nestjs/class-validator';
+import { OAuthType } from '@prisma/client';
+import { IsIn } from 'class-validator';
 
 export class OAuthDto {
   @IsNotEmpty()
@@ -22,4 +24,8 @@ export class OAuthDto {
   @IsOptional()
   @IsString()
   userName: string;
+
+  @IsNotEmpty()
+  @IsIn(Object.keys(OAuthType))
+  oAuthType: OAuthType;
 }

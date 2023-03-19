@@ -109,7 +109,7 @@ export class AuthService {
     };
   }
   async oAuth(data: OAuthDto) {
-    const { idToken, phone, email, userName } = data;
+    const { idToken, phone, email, userName, oAuthType } = data;
 
     const verificationStatus = await this.firebaseService.verifyIdToken(
       idToken,
@@ -131,7 +131,8 @@ export class AuthService {
     if (email) user = await this.userService.findUserByEmail(email);
     else if (phone) user = await this.userService.findUserByPhone(phone);
 
-    if (!user) user = await this.userService.oAuth(email, phone, userName);
+    if (!user)
+      user = await this.userService.oAuth(email, phone, userName, oAuthType);
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
