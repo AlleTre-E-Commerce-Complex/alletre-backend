@@ -223,12 +223,16 @@ export class UserService {
       uploadedImage = await this.firebaseService.uploadImage(image);
     }
     // Check phone
-    const userWithSamePhone = await this.findUserByPhone(phone);
-    if (userWithSamePhone && userWithSamePhone.id !== userId)
-      throw new MethodNotAllowedResponse({
-        ar: 'الهاتف مسجل من قبل',
-        en: 'Phone is already exist',
-      });
+    if (phone) {
+      const userWithSamePhone = await this.findUserByPhone(phone);
+      if (userWithSamePhone && userWithSamePhone.id !== userId)
+        throw new MethodNotAllowedResponse({
+          ar: 'الهاتف مسجل من قبل',
+          en: 'Phone is already exist',
+        });
+    }
+
+    // Update profile
     const updatedUser = await this.prismaService.user.update({
       where: { id: Number(userId) },
       data: {
