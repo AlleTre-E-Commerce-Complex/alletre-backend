@@ -116,6 +116,19 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/ownes/analytics')
+  @UseGuards(AuthGuard)
+  async getAuctionsAnalytics(@Account() account: any) {
+    const auctionsAnalytics =
+      await this.userAuctionsService.findAuctionsAnalyticsForOwner(account.id);
+
+    return {
+      success: true,
+      totalItems: auctionsAnalytics.count,
+      data: auctionsAnalytics.auctionsGrouping,
+    };
+  }
+
   @Get('/user/:auctionId')
   @UseGuards(AuthGuard)
   async getAuctionById(@Param('auctionId', ParseIntPipe) auctionId: number) {

@@ -1,13 +1,15 @@
 import { AuctionStatus, AuctionType, DurationUnits } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
+  IsDefined,
   IsIn,
   IsNotEmpty,
   IsNotEmptyObject,
   IsNumber,
   IsOptional,
   MinDate,
+  ValidateNested,
 } from 'class-validator';
 import { ProductDTO } from './productCreation.dto';
 import { IsString } from '@nestjs/class-validator';
@@ -54,7 +56,10 @@ export class AuctionCreationDTO {
   })
   startDate: Date;
 
+  @IsDefined()
   @IsNotEmptyObject()
+  @ValidateNested()
+  @Type(() => ProductDTO)
   product: ProductDTO;
 
   @IsNotEmpty()

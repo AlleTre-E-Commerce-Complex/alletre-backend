@@ -178,6 +178,28 @@ export class UserAuctionsService {
 
     return { userAuctions, pagination };
   }
+
+  async findAuctionsAnalyticsForOwner(userId: number) {
+    const count = await this.prismaService.auction.count({ where: { userId } });
+    const auctionsGrouping = await this.prismaService.auction.groupBy({
+      by: ['status'],
+      where: { userId },
+      _count: { status: true },
+    });
+
+    return {
+      count,
+      auctionsGrouping: auctionsGrouping?.length
+        ? auctionsGrouping.map((item) => {
+            return {
+              count: item['_count']?.status,
+              status: item.status,
+            };
+          })
+        : [],
+    };
+  }
+
   async findAuctionsForUser(getAuctionsDTO: GetAuctionsDTO) {
     const { page = 1, perPage = 10 } = getAuctionsDTO;
 
@@ -204,6 +226,7 @@ export class UserAuctionsService {
 
     return { auctions, pagination };
   }
+
   async findAuctionsForGuest(getAuctionsDTO: GetAuctionsDTO) {
     const { page = 1, perPage = 10 } = getAuctionsDTO;
 
@@ -461,47 +484,54 @@ export class UserAuctionsService {
       model,
     };
 
-    const imagesHolder = [];
+    try {
+      const createdProduct = await this.prismaService.product.create({
+        data: {
+          title,
+          categoryId: Number(categoryId),
+          description,
+          ...(age ? { age: Number(age) } : {}),
+          ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
+          ...(brandId ? { brandId: Number(brandId) } : {}),
+          ...(screenSize ? { screenSize: Number(screenSize) } : {}),
+          ...(ramSize ? { ramSize: Number(ramSize) } : {}),
+          ...(totalArea ? { totalArea: Number(totalArea) } : {}),
+          ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
+          ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
+          ...(countryId ? { countryId: Number(countryId) } : {}),
+          ...(cityId ? { cityId: Number(cityId) } : {}),
+          ...nonNumericOptionalFields,
+        },
+      });
 
-    if (images?.length) {
-      for (const image of images) {
-        const uploadedImage = await this.firebaseService.uploadImage(image);
-        imagesHolder.push(uploadedImage);
+      const imagesHolder = [];
+
+      if (images?.length) {
+        for (const image of images) {
+          const uploadedImage = await this.firebaseService.uploadImage(image);
+          imagesHolder.push(uploadedImage);
+        }
       }
-    }
 
-    const createdProduct = await this.prismaService.product.create({
-      data: {
-        title,
-        categoryId: Number(categoryId),
-        description,
-        ...(age ? { age: Number(age) } : {}),
-        ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
-        ...(brandId ? { brandId: Number(brandId) } : {}),
-        ...(screenSize ? { screenSize: Number(screenSize) } : {}),
-        ...(ramSize ? { ramSize: Number(ramSize) } : {}),
-        ...(totalArea ? { totalArea: Number(totalArea) } : {}),
-        ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
-        ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
-        ...(countryId ? { countryId: Number(countryId) } : {}),
-        ...(cityId ? { cityId: Number(cityId) } : {}),
-        ...nonNumericOptionalFields,
-      },
-    });
-
-    if (imagesHolder?.length) {
-      imagesHolder.forEach(async (image) => {
-        await this.prismaService.image.create({
-          data: {
-            productId: createdProduct.id,
-            imageLink: image.fileLink,
-            imagePath: image.filePath,
-          },
+      if (imagesHolder?.length) {
+        imagesHolder.forEach(async (image) => {
+          await this.prismaService.image.create({
+            data: {
+              productId: createdProduct.id,
+              imageLink: image.fileLink,
+              imagePath: image.filePath,
+            },
+          });
         });
+      }
+
+      return createdProduct.id;
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية إضافة العنصر',
+        en: 'Something Went Wrong While Adding Your Product',
       });
     }
-
-    return createdProduct.id;
   }
 
   private async userHasCompleteProfile(userId: number) {

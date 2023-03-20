@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class ProductDTO {
@@ -21,7 +22,7 @@ export class ProductDTO {
 
   @IsNotEmpty()
   @Transform(({ value }): number => parseInt(value))
-  @IsInt()
+  @IsNumber()
   categoryId: number;
 
   @IsOptional()

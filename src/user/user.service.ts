@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
@@ -157,23 +157,30 @@ export class UserService {
   async addNewLocation(userId: number, locationDTO: LocationDTO) {
     const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
 
-    await this.prismaService.$transaction([
-      this.prismaService.location.create({
-        data: {
-          userId: userId,
-          address,
-          cityId,
-          countryId,
-          ...(zipCode ? { zipCode } : {}),
-          addressLabel,
-        },
-      }),
+    try {
+      await this.prismaService.$transaction([
+        this.prismaService.location.create({
+          data: {
+            userId: userId,
+            address,
+            cityId,
+            countryId,
+            ...(zipCode ? { zipCode } : {}),
+            addressLabel,
+          },
+        }),
 
-      this.prismaService.user.update({
-        where: { id: userId },
-        data: { hasCompletedProfile: true },
-      }),
-    ]);
+        this.prismaService.user.update({
+          where: { id: userId },
+          data: { hasCompletedProfile: true },
+        }),
+      ]);
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في إضافة العنوان الخاص بك',
+        en: 'Something went wrong while adding your location',
+      });
+    }
   }
 
   async getAllUserLocations(userId: number) {
