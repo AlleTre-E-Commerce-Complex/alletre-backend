@@ -8,7 +8,12 @@ import {
   ProductDTO,
 } from '../dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
-import { AuctionStatus, AuctionType, DurationUnits } from '@prisma/client';
+import {
+  Auction,
+  AuctionStatus,
+  AuctionType,
+  DurationUnits,
+} from '@prisma/client';
 import {
   MethodNotAllowedResponse,
   NotFoundResponse,
@@ -281,7 +286,7 @@ export class UserAuctionsService {
         en: 'Auction Not Found',
       });
 
-    return auction;
+    return this.execludeNullFields(auction);
   }
 
   async checkAuctionExistanceAndReturn(auctionId: number) {
@@ -568,5 +573,13 @@ export class UserAuctionsService {
         ar: 'لا يمكنك حذف الاعلان',
         en: 'Auction Can Not Be Deleted',
       });
+  }
+
+  private execludeNullFields(auction: Auction) {
+    for (const field in auction['product']) {
+      if (auction['product'][field] === null) delete auction['product'][field];
+    }
+
+    return auction;
   }
 }
