@@ -11,13 +11,11 @@ export class ForbiddenExceptionFilter implements ExceptionFilter {
   catch(exception: ForbiddenException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const message = exception.getResponse()['message'];
 
     response.status(403).json({
       success: false,
-      message: {
-        ar: 'غير مصرح لك الدخول',
-        en: 'You are not authenticated',
-      },
+      message,
     });
   }
 }

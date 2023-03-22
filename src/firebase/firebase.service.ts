@@ -35,7 +35,6 @@ export class FirebaseService {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
       (error) => {
         console.log(error);

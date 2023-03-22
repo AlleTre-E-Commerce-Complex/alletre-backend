@@ -130,16 +130,18 @@ export class AuctionsController {
   }
 
   @Get('/user/:auctionId')
-  @UseGuards(AuthGuard)
-  async getAuctionById(@Param('auctionId', ParseIntPipe) auctionId: number) {
+  @UseGuards(AuthGuard, OwnerGuard)
+  async getOwnesAuctionById(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
     return {
       success: true,
-      data: await this.userAuctionsService.findAuctionByIdOr404(auctionId),
+      data: await this.userAuctionsService.findOwnerAuctionByIdOr404(auctionId),
     };
   }
 
   @Delete('/user/:auctionId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, OwnerGuard)
   async deleteAuctionByOwnerController(
     @Account() account: any,
     @Param('auctionId', ParseIntPipe) auctionId: number,
@@ -153,9 +155,13 @@ export class AuctionsController {
     };
   }
 
-  @Put('/user/:auctionId/update-details')
+  @Put('/user/:auctionId/details')
   @UseGuards(AuthGuard, OwnerGuard)
   async updateAuctionDetails() {}
+
+  @Get('/user/:auctionId/details')
+  @UseGuards(AuthGuard)
+  async getAuctionById(@Param('auctionId', ParseIntPipe) auctionId: number) {}
 
   @Post('/user/:auctionId/make-bid')
   @UseGuards(AuthGuard)

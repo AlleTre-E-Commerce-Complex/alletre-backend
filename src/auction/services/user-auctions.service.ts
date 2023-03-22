@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
@@ -13,6 +13,7 @@ import {
   AuctionStatus,
   AuctionType,
   DurationUnits,
+  Product,
 } from '@prisma/client';
 import {
   MethodNotAllowedResponse,
@@ -41,26 +42,26 @@ export class UserAuctionsService {
       });
 
     // Check user can create auction (hasCompleteProfile)
-    await this.userHasCompleteProfile(userId);
+    await this._userHasCompleteProfile(userId);
 
     const { type, durationUnit, startDate, product } = auctionCreationBody;
 
     // Create Product
-    const productId = await this.createProduct(product, images);
+    const productId = await this._createProduct(product, images);
 
     // Create Auction
     switch (durationUnit) {
       case DurationUnits.DAYS:
         if (type === AuctionType.ON_TIME || !startDate) {
           // Create ON_TIME Daily auction
-          return await this.createOnTimeDailyAuction(
+          return await this._createOnTimeDailyAuction(
             userId,
             productId,
             auctionCreationBody,
           );
         } else if (type === AuctionType.SCHEDULED || startDate) {
           // Create Schedule Daily auction
-          return await this.createScheduleDailyAuction(
+          return await this._createScheduleDailyAuction(
             userId,
             productId,
             auctionCreationBody,
@@ -71,14 +72,14 @@ export class UserAuctionsService {
       case DurationUnits.HOURS:
         if (type === AuctionType.ON_TIME || !startDate) {
           // Create ON_TIME hours auction
-          return await this.createOnTimeHoursAuction(
+          return await this._createOnTimeHoursAuction(
             userId,
             productId,
             auctionCreationBody,
           );
         } else if (type === AuctionType.SCHEDULED || startDate) {
           // Create Schedule hours auction
-          return await this.createScheduleHoursAuction(
+          return await this._createScheduleHoursAuction(
             userId,
             productId,
             auctionCreationBody,
@@ -93,10 +94,10 @@ export class UserAuctionsService {
     images: Express.Multer.File[],
   ) {
     // Check user can create auction (hasCompleteProfile)
-    await this.userHasCompleteProfile(userId);
+    await this._userHasCompleteProfile(userId);
 
     // Create Product
-    const productId = await this.createProduct(productDTO, images);
+    const productId = await this._createProduct(productDTO, images);
 
     // Create Auction
     return await this.prismaService.auction.create({
@@ -111,8 +112,7 @@ export class UserAuctionsService {
   async deleteDraftedAuction(userId: number, auctionId: number) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    await this.isAuctionOwner(userId, auctionId);
-    await this.auctionCanBeDeletedByOwner(auctionId);
+    await this._auctionCanBeDeletedByOwner(auctionId);
 
     const deletedImages = this.prismaService.image.deleteMany({
       where: { productId: auction.productId },
@@ -259,8 +259,7 @@ export class UserAuctionsService {
     return { auctions, pagination };
   }
 
-  // TODO: May return user public info.
-  async findAuctionByIdOr404(auctionId: number) {
+  async findOwnerAuctionByIdOr404(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
       include: {
@@ -286,7 +285,7 @@ export class UserAuctionsService {
         en: 'Auction Not Found',
       });
 
-    return this.execludeNullFields(auction);
+    return this._execludeNullFields(auction);
   }
 
   async checkAuctionExistanceAndReturn(auctionId: number) {
@@ -308,7 +307,7 @@ export class UserAuctionsService {
 
   async viewAuctionBides(auctionId: number) {}
 
-  private async createOnTimeDailyAuction(
+  private async _createOnTimeDailyAuction(
     userId: number,
     productId: number,
     auctionDto: AuctionCreationDTO,
@@ -323,25 +322,34 @@ export class UserAuctionsService {
       locationId,
     } = auctionDto;
 
-    const auction = await this.prismaService.auction.create({
-      data: {
-        userId,
-        productId,
-        type,
-        durationUnit,
-        durationInDays,
-        startBidAmount,
-        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
-        ...(acceptedAmount ? { acceptedAmount } : {}),
-        locationId,
-      },
-    });
+    let auction: Auction;
+    try {
+      auction = await this.prismaService.auction.create({
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInDays,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
 
     // TODO: Create Payment Service and set startDate(cuurentDate) & expiryDate=(Date()+durationInDays) & status=PUBLISHED when payment proceed
     return auction;
   }
 
-  private async createOnTimeHoursAuction(
+  private async _createOnTimeHoursAuction(
     userId: number,
     productId: number,
     auctionDto: AuctionCreationDTO,
@@ -356,26 +364,36 @@ export class UserAuctionsService {
       locationId,
     } = auctionDto;
 
-    const auction = await this.prismaService.auction.create({
-      data: {
-        userId,
-        productId,
-        type,
-        durationUnit,
-        durationInHours,
-        startBidAmount,
-        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
-        ...(acceptedAmount ? { acceptedAmount } : {}),
-        locationId,
-      },
-    });
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.create({
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInHours,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
 
     // TODO: Create Payment Service and set startDate(currentDate) & expriyDate=(Date()+durationInHours) & status=PUBLISHED when payment proceed
 
     return auction;
   }
 
-  private async createScheduleDailyAuction(
+  private async _createScheduleDailyAuction(
     userId: number,
     productId: number,
     auctionDto: AuctionCreationDTO,
@@ -391,26 +409,36 @@ export class UserAuctionsService {
       startDate,
     } = auctionDto;
 
-    const auction = await this.prismaService.auction.create({
-      data: {
-        userId,
-        productId,
-        type,
-        durationUnit,
-        durationInDays,
-        startBidAmount,
-        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
-        ...(acceptedAmount ? { acceptedAmount } : {}),
-        locationId,
-        startDate,
-      },
-    });
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.create({
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInDays,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          startDate,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
 
     // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
     return auction;
   }
 
-  private async createScheduleHoursAuction(
+  private async _createScheduleHoursAuction(
     userId: number,
     productId: number,
     auctionDto: AuctionCreationDTO,
@@ -426,27 +454,37 @@ export class UserAuctionsService {
       startDate,
     } = auctionDto;
 
-    const auction = await this.prismaService.auction.create({
-      data: {
-        userId,
-        productId,
-        type,
-        durationUnit,
-        durationInHours,
-        startBidAmount,
-        ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
-        ...(acceptedAmount ? { acceptedAmount } : {}),
-        locationId,
-        startDate,
-      },
-    });
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.create({
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInHours,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          startDate,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
 
     // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
 
     return auction;
   }
 
-  private async createProduct(
+  private async _createProduct(
     productBody: ProductDTO,
     images?: Express.Multer.File[],
   ) {
@@ -489,8 +527,9 @@ export class UserAuctionsService {
       model,
     };
 
+    let createdProduct: Product;
     try {
-      const createdProduct = await this.prismaService.product.create({
+      createdProduct = await this.prismaService.product.create({
         data: {
           title,
           categoryId: Number(categoryId),
@@ -508,7 +547,16 @@ export class UserAuctionsService {
           ...nonNumericOptionalFields,
         },
       });
+    } catch (error) {
+      console.log(error);
 
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية إضافة المنتج',
+        en: 'Something Went Wrong While Adding Your Product',
+      });
+    }
+
+    try {
       const imagesHolder = [];
 
       if (images?.length) {
@@ -529,17 +577,19 @@ export class UserAuctionsService {
           });
         });
       }
-
-      return createdProduct.id;
     } catch (error) {
+      console.log(error);
+
       throw new MethodNotAllowedResponse({
-        ar: 'خطأ في عملية إضافة العنصر',
+        ar: 'خطأ في عملية إضافة المنتج',
         en: 'Something Went Wrong While Adding Your Product',
       });
     }
+
+    return createdProduct.id;
   }
 
-  private async userHasCompleteProfile(userId: number) {
+  private async _userHasCompleteProfile(userId: number) {
     const user = await this.prismaService.user.findUnique({
       where: { id: Number(userId) },
     });
@@ -551,7 +601,7 @@ export class UserAuctionsService {
       });
   }
 
-  private async isAuctionOwner(userId: number, auctionId: number) {
+  private async _isAuctionOwner(userId: number, auctionId: number) {
     const auction = await this.prismaService.auction.findFirst({
       where: { id: Number(auctionId), userId: Number(userId) },
     });
@@ -563,7 +613,7 @@ export class UserAuctionsService {
       });
   }
 
-  private async auctionCanBeDeletedByOwner(auctionId: number) {
+  private async _auctionCanBeDeletedByOwner(auctionId: number) {
     const auction = await this.prismaService.auction.findFirst({
       where: { id: auctionId },
     });
@@ -575,7 +625,7 @@ export class UserAuctionsService {
       });
   }
 
-  private execludeNullFields(auction: Auction) {
+  private _execludeNullFields(auction: Auction) {
     for (const field in auction['product']) {
       if (auction['product'][field] === null) delete auction['product'][field];
     }
