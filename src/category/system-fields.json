@@ -1,114 +1,133 @@
 [
   {
     "key": "color",
+    "resKey": "color",
     "type": "array",
     "labelAr": "اللون",
     "labelEn": "Color"
   },
   {
     "key": "screenSize",
+    "resKey": "screenSize",
     "type": "number",
     "labelAr": "حجم الشاشة",
     "labelEn": "Screen Size"
   },
   {
     "key": "operatingSystem",
+    "resKey": "operatingSystem",
     "type": "text",
     "labelAr": "نظام التشغيل",
     "labelEn": "Operating System"
   },
   {
     "key": "releaseYear",
+    "resKey": "releaseYear",
     "type": "text",
     "labelAr": "سنة الاصدار",
     "labelEn": "Release Year"
   },
   {
     "key": "regionOfManufacture",
+    "resKey": "regionOfManufacture",
     "type": "text",
     "labelAr": "منظقة المنشأ",
     "labelEn": "Region Of Manufacture"
   },
   {
     "key": "ramSize",
+    "resKey": "ramSize",
     "type": "number",
     "labelAr": "حجم الرامات",
     "labelEn": "Region Of Manufacture"
   },
   {
     "key": "cameraType",
+    "resKey": "cameraType",
     "type": "array",
     "labelAr": "نوع الكاميرا",
     "labelEn": "Camera Type"
   },
   {
     "key": "material",
+    "resKey": "material",
     "type": "array",
     "labelAr": "نوع المادة",
     "labelEn": "Material"
   },
   {
     "key": "age",
+    "resKey": "age",
     "type": "number",
     "labelAr": "العمر",
     "labelEn": "Age"
   },
   {
     "key": "totalArea",
+    "resKey": "totalArea",
     "type": "number",
     "labelAr": "المساحة الكلية",
     "labelEn": "Total Area"
   },
   {
     "key": "numberOfRooms",
+    "resKey": "numberOfRooms",
     "type": "number",
     "labelAr": "عدد الغرف",
     "labelEn": "Number Of Rooms"
   },
   {
     "key": "numberOfFloors",
+    "resKey": "numberOfFloors",
     "type": "number",
     "labelAr": "عدد الطوابق",
     "labelEn": "Number Of Floors"
   },
   {
     "key": "landType",
+    "resKey": "landType",
     "type": "array",
     "labelAr": "نوع الأرض",
     "labelEn": "Land Type"
   },
   {
     "key": "countryId",
+    "resKey": "country",
     "type": "array",
     "labelAr": "الدولة",
     "labelEn": "Country"
   },
   {
     "key": "cityId",
+    "resKey": "city",
     "type": "array",
     "labelAr": "المدينة",
     "labelEn": "City"
   },
   {
     "key": "carType",
+    "resKey": "carType",
     "type": "array",
     "labelAr": "نوع العربية",
     "labelEn": "Car Type"
   },
   {
     "key": "processor",
+    "resKey": "processor",
     "type": "text",
     "labelAr": "بروسيسور",
     "labelEn": "Processor"
   },
   {
     "key": "brandId",
+    "resKey": "brand",
     "type": "array",
     "labelAr": "ماركة",
     "labelEn": "Brand"
   },
   {
     "key": "model",
+    "resKey": "model",
     "type": "text",
     "labelAr": "موديل",
     "labelEn": "Model"

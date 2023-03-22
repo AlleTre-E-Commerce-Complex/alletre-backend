@@ -93,6 +93,7 @@ model CustomFields {
   categoryId    Int?
   category      Category?    @relation(fields: [categoryId], references: [id])
   key           String
+  resKey        String       @default("")
   type          String
   labelAr       String
   labelEn       String
