@@ -265,7 +265,7 @@ export class UserAuctionsService {
       include: {
         product: {
           include: {
-            category: true,
+            category: { select: { nameEn: true } },
             brand: true,
             subCategory: true,
             city: true,
@@ -273,6 +273,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
+        user: { select: { lang: true } },
         location: {
           include: { city: true, country: true },
         },
@@ -285,7 +286,7 @@ export class UserAuctionsService {
         en: 'Auction Not Found',
       });
 
-    return this._execludeNullFields(auction);
+    return this._reformatAuctionObject(auction.user.lang, auction);
   }
 
   async checkAuctionExistanceAndReturn(auctionId: number) {
@@ -631,5 +632,32 @@ export class UserAuctionsService {
     }
 
     return auction;
+  }
+
+  private _reformatAuctionObject(userLang: string, auction: Auction) {
+    if (auction['product']['brand']) {
+      const brandName = auction['product']['brand']['name'];
+      delete auction['product']['brand'];
+      auction['product']['brand'] = brandName;
+    }
+    if (auction['product']['city']) {
+      const cityName =
+        userLang === 'en'
+          ? auction['product']['city']['nameEn']
+          : auction['product']['city']['nameAr'];
+      delete auction['product']['city'];
+      auction['product']['city'] = cityName;
+    }
+    if (auction['product']['country']) {
+      const countryName =
+        userLang === 'en'
+          ? auction['product']['country']['nameEn']
+          : auction['product']['country']['nameAr'];
+      delete auction['product']['country'];
+      auction['product']['country'] = countryName;
+    }
+    delete auction['user'];
+
+    return this._execludeNullFields(auction);
   }
 }

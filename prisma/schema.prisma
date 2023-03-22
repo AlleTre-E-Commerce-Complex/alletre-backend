@@ -20,6 +20,7 @@ model User {
   isOAuth             Boolean     @default(false)
   hasCompletedProfile Boolean     @default(false)
   isVerified          Boolean     @default(false)
+  lang                String      @default("en")
   oAuthType           OAuthType?
   auctions            Auction[]
   locations           Location[]
