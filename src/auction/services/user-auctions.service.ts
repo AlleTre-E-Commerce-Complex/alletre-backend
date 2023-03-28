@@ -20,6 +20,7 @@ import {
   NotFoundResponse,
   ForbiddenResponse,
 } from 'src/common/errors';
+import { Role } from 'src/auth/enums/role.enum';
 
 @Injectable()
 export class UserAuctionsService {
@@ -205,22 +206,85 @@ export class UserAuctionsService {
     };
   }
 
-  async findAuctionsForUser(getAuctionsDTO: GetAuctionsDTO) {
-    const { page = 1, perPage = 10 } = getAuctionsDTO;
+  async findAuctionsForUser(
+    roles: Role[],
+    getAuctionsDTO: GetAuctionsDTO,
+    userId?: number,
+  ) {
+    const {
+      page = 1,
+      perPage = 10,
+      brands,
+      categories,
+      countries,
+      priceFrom,
+      priceTo,
+      sellingType,
+      usageStatus,
+      title,
+    } = getAuctionsDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
       Number(page),
       Number(perPage),
     );
 
+    const productFilter = this._productFilterApplied({
+      brands,
+      categories,
+      usageStatus,
+      title,
+    });
+
+    const auctionFilter = this._auctionFilterApplied({
+      priceFrom,
+      priceTo,
+      countries,
+      sellingType,
+    });
     const auctions = await this.prismaService.auction.findMany({
-      where: { status: AuctionStatus.ACTIVE },
+      where: {
+        status: { in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED] },
+        ...auctionFilter,
+        product: { ...productFilter },
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+      },
       skip: skip,
       take: limit,
     });
 
     const auctionsCount = await this.prismaService.auction.count({
-      where: { status: AuctionStatus.ACTIVE },
+      where: {
+        status: { in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED] },
+        ...auctionFilter,
+        product: { ...productFilter },
+      },
     });
 
     const pagination = this.paginationService.getPagination(
@@ -229,34 +293,16 @@ export class UserAuctionsService {
       perPage,
     );
 
-    return { auctions, pagination };
-  }
+    if (roles.includes(Role.User))
+      return {
+        auctions: this._injectIsMyAuctionKey(userId, auctions),
+        pagination,
+      };
 
-  async findAuctionsForGuest(getAuctionsDTO: GetAuctionsDTO) {
-    const { page = 1, perPage = 10 } = getAuctionsDTO;
-
-    const { limit, skip } = this.paginationService.getSkipAndLimit(
-      Number(page),
-      Number(perPage),
-    );
-
-    const auctions = await this.prismaService.auction.findMany({
-      where: { status: AuctionStatus.ACTIVE },
-      skip: skip,
-      take: limit,
-    });
-
-    const auctionsCount = await this.prismaService.auction.count({
-      where: { status: AuctionStatus.ACTIVE },
-    });
-
-    const pagination = this.paginationService.getPagination(
-      auctionsCount,
-      page,
-      perPage,
-    );
-
-    return { auctions, pagination };
+    return {
+      auctions,
+      pagination,
+    };
   }
 
   async findOwnerAuctionByIdOr404(auctionId: number) {
@@ -287,6 +333,52 @@ export class UserAuctionsService {
       });
 
     return this._reformatAuctionObject(auction.user.lang, auction);
+  }
+
+  async findAuctionByIdOr404(
+    auctionId: number,
+    roles: Role[],
+    userId?: number,
+  ) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: {
+        product: {
+          include: {
+            category: { select: { nameEn: true } },
+            brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+        user: { select: { lang: true } },
+        location: {
+          include: { city: true, country: true },
+        },
+      },
+    });
+
+    if (!auction)
+      throw new NotFoundResponse({
+        ar: 'لا يوجد هذا الاعلان',
+        en: 'Auction Not Found',
+      });
+
+    const formatedAuction = this._reformatAuctionObject(
+      auction.user.lang,
+      auction,
+    );
+
+    if (roles.includes(Role.User)) {
+      if (Number(formatedAuction.userId) === Number(userId)) {
+        formatedAuction['isMyAuction'] = true;
+      } else {
+        formatedAuction['isMyAuction'] = false;
+      }
+    }
+    return formatedAuction;
   }
 
   async checkAuctionExistanceAndReturn(auctionId: number) {
@@ -602,6 +694,88 @@ export class UserAuctionsService {
       });
   }
 
+  private _productFilterApplied({ brands, categories, usageStatus, title }) {
+    let productFilterOrSearch = {};
+
+    if (title && title.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ title: { contains: title } },
+      };
+    }
+    if (categories?.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ categoryId: { in: categories } },
+      };
+    }
+    if (brands?.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ brandId: { in: brands } },
+      };
+    }
+    if (usageStatus?.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ usageStatus: { in: usageStatus } },
+      };
+    }
+
+    return productFilterOrSearch;
+  }
+
+  private _injectIsMyAuctionKey(userId: number, auctions: Auction[]) {
+    const formatedAuction = auctions.map((auction) => {
+      if (Number(auction.userId) === Number(userId)) {
+        auction['isMyAuction'] = true;
+      } else {
+        auction['isMyAuction'] = false;
+      }
+
+      return auction;
+    });
+
+    return formatedAuction;
+  }
+  private _auctionFilterApplied({
+    priceFrom,
+    priceTo,
+    countries,
+    sellingType,
+  }) {
+    let auctionFilterOrSearch = {};
+
+    if (priceFrom && priceTo) {
+      auctionFilterOrSearch = {
+        ...auctionFilterOrSearch,
+        AND: [
+          { startBidAmount: { gte: priceFrom } },
+          { startBidAmount: { lte: priceTo } },
+        ],
+      };
+    }
+
+    if (countries?.length) {
+      auctionFilterOrSearch = {
+        ...auctionFilterOrSearch,
+        ...{ location: { countryId: { in: countries } } },
+      };
+    }
+    if (sellingType && sellingType.length) {
+      if (sellingType === 'Auction')
+        auctionFilterOrSearch = {
+          ...auctionFilterOrSearch,
+          ...{ isBuyNowAllowed: false },
+        };
+      if (sellingType === 'Buy_Now')
+        auctionFilterOrSearch = {
+          ...auctionFilterOrSearch,
+          ...{ isBuyNowAllowed: true },
+        };
+    }
+    return auctionFilterOrSearch;
+  }
   private async _isAuctionOwner(userId: number, auctionId: number) {
     const auction = await this.prismaService.auction.findFirst({
       where: { id: Number(auctionId), userId: Number(userId) },

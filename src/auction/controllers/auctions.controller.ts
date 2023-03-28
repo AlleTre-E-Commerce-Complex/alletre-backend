@@ -23,6 +23,8 @@ import {
   ProductDTO,
 } from '../dtos';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
+import { Role } from 'src/auth/enums/role.enum';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -73,22 +75,17 @@ export class AuctionsController {
   }
 
   @Get('/user')
-  @UseGuards(AuthGuard)
-  async getAuctions(@Query() getAuctionsDTO: GetAuctionsDTO) {
+  @UseGuards(AuthOrGuestGuard)
+  async getAuctions(
+    @Account() account: any,
+    @Query() getAuctionsDTO: GetAuctionsDTO,
+  ) {
     const auctionsPaginated =
-      await this.userAuctionsService.findAuctionsForUser(getAuctionsDTO);
-
-    return {
-      success: true,
-      pagination: auctionsPaginated.pagination,
-      data: auctionsPaginated.auctions,
-    };
-  }
-
-  @Get('/guest')
-  async getAuctionsForGuest(@Query() getAuctionsDTO: GetAuctionsDTO) {
-    const auctionsPaginated =
-      await this.userAuctionsService.findAuctionsForGuest(getAuctionsDTO);
+      await this.userAuctionsService.findAuctionsForUser(
+        account.roles,
+        getAuctionsDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
 
     return {
       success: true,
@@ -155,13 +152,25 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/:auctionId/details')
+  @UseGuards(AuthOrGuestGuard)
+  async getAuctionById(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.findAuctionByIdOr404(
+        auctionId,
+        account.roles,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      ),
+    };
+  }
+
   @Put('/user/:auctionId/details')
   @UseGuards(AuthGuard, OwnerGuard)
   async updateAuctionDetails() {}
-
-  @Get('/user/:auctionId/details')
-  @UseGuards(AuthGuard)
-  async getAuctionById(@Param('auctionId', ParseIntPipe) auctionId: number) {}
 
   @Post('/user/:auctionId/make-bid')
   @UseGuards(AuthGuard)
