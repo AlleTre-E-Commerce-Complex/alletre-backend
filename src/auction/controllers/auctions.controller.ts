@@ -20,6 +20,7 @@ import {
   AuctionCreationDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
+  PaginationDTO,
   ProductDTO,
 } from '../dtos';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -74,9 +75,9 @@ export class AuctionsController {
     };
   }
 
-  @Get('/user')
+  @Get('/user/main')
   @UseGuards(AuthOrGuestGuard)
-  async getAuctions(
+  async getMainAuctions(
     @Account() account: any,
     @Query() getAuctionsDTO: GetAuctionsDTO,
   ) {
@@ -84,6 +85,46 @@ export class AuctionsController {
       await this.userAuctionsService.findAuctionsForUser(
         account.roles,
         getAuctionsDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      pagination: auctionsPaginated.pagination,
+      data: auctionsPaginated.auctions,
+    };
+  }
+
+  @Get('/user/live')
+  @UseGuards(AuthOrGuestGuard)
+  async getLiveAuctions(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const auctionsPaginated =
+      await this.userAuctionsService.findLiveAuctionsForUser(
+        account.roles,
+        paginationDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      pagination: auctionsPaginated.pagination,
+      data: auctionsPaginated.auctions,
+    };
+  }
+
+  @Get('/user/buy-now')
+  @UseGuards(AuthOrGuestGuard)
+  async getBuyNowAuctions(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const auctionsPaginated =
+      await this.userAuctionsService.findBuyNowAuctionsForUser(
+        account.roles,
+        paginationDTO,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       );
 

@@ -5,6 +5,7 @@ import {
   AuctionCreationDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
+  PaginationDTO,
   ProductDTO,
 } from '../dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
@@ -286,6 +287,168 @@ export class UserAuctionsService {
         status: { in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED] },
         ...auctionFilter,
         product: { ...productFilter },
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      auctionsCount,
+      page,
+      perPage,
+    );
+
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          auctions,
+        );
+      return {
+        auctions: this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+          userId,
+          savedAuctions,
+        ),
+        pagination,
+      };
+    }
+
+    return {
+      auctions,
+      pagination,
+    };
+  }
+
+  async findLiveAuctionsForUser(
+    roles: Role[],
+    paginationDTO: PaginationDTO,
+    userId?: number,
+  ) {
+    const { page = 1, perPage = 4 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+      },
+      skip: skip,
+      take: limit,
+    });
+
+    const auctionsCount = await this.prismaService.auction.count({
+      where: {
+        status: AuctionStatus.ACTIVE,
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      auctionsCount,
+      page,
+      perPage,
+    );
+
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          auctions,
+        );
+      return {
+        auctions: this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+          userId,
+          savedAuctions,
+        ),
+        pagination,
+      };
+    }
+
+    return {
+      auctions,
+      pagination,
+    };
+  }
+
+  async findBuyNowAuctionsForUser(
+    roles: Role[],
+    paginationDTO: PaginationDTO,
+    userId?: number,
+  ) {
+    const { page = 1, perPage = 4 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.ACTIVE,
+        isBuyNowAllowed: true,
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+      },
+      skip: skip,
+      take: limit,
+    });
+
+    const auctionsCount = await this.prismaService.auction.count({
+      where: {
+        status: AuctionStatus.ACTIVE,
+        isBuyNowAllowed: true,
       },
     });
 
