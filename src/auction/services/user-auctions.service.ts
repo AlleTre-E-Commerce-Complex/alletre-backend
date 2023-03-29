@@ -21,6 +21,7 @@ import {
   ForbiddenResponse,
 } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
+import { AuctionsHelper } from '../helpers/auctions-helper';
 
 @Injectable()
 export class UserAuctionsService {
@@ -28,6 +29,7 @@ export class UserAuctionsService {
     private prismaService: PrismaService,
     private paginationService: PaginationService,
     private firebaseService: FirebaseService,
+    private auctionsHelper: AuctionsHelper,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -43,7 +45,7 @@ export class UserAuctionsService {
       });
 
     // Check user can create auction (hasCompleteProfile)
-    await this._userHasCompleteProfile(userId);
+    await this.auctionsHelper._userHasCompleteProfile(userId);
 
     const { type, durationUnit, startDate, product } = auctionCreationBody;
 
@@ -95,7 +97,7 @@ export class UserAuctionsService {
     images: Express.Multer.File[],
   ) {
     // Check user can create auction (hasCompleteProfile)
-    await this._userHasCompleteProfile(userId);
+    await this.auctionsHelper._userHasCompleteProfile(userId);
 
     // Create Product
     const productId = await this._createProduct(productDTO, images);
@@ -113,7 +115,7 @@ export class UserAuctionsService {
   async deleteDraftedAuction(userId: number, auctionId: number) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    await this._auctionCanBeDeletedByOwner(auctionId);
+    await this.auctionsHelper._auctionCanBeDeletedByOwner(auctionId);
 
     const deletedImages = this.prismaService.image.deleteMany({
       where: { productId: auction.productId },
@@ -229,14 +231,14 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
-    const productFilter = this._productFilterApplied({
+    const productFilter = this.auctionsHelper._productFilterApplied({
       brands,
       categories,
       usageStatus,
       title,
     });
 
-    const auctionFilter = this._auctionFilterApplied({
+    const auctionFilter = this.auctionsHelper._auctionFilterApplied({
       priceFrom,
       priceTo,
       countries,
@@ -293,11 +295,20 @@ export class UserAuctionsService {
       perPage,
     );
 
-    if (roles.includes(Role.User))
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          auctions,
+        );
       return {
-        auctions: this._injectIsMyAuctionKey(userId, auctions),
+        auctions: this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+          userId,
+          savedAuctions,
+        ),
         pagination,
       };
+    }
 
     return {
       auctions,
@@ -332,7 +343,15 @@ export class UserAuctionsService {
         en: 'Auction Not Found',
       });
 
-    return this._reformatAuctionObject(auction.user.lang, auction);
+    const formatedAuction = this.auctionsHelper._reformatAuctionObject(
+      auction.user.lang,
+      auction,
+    );
+
+    return await this.auctionsHelper._injectIsSavedKeyToAuction(
+      auction.userId,
+      formatedAuction,
+    );
   }
 
   async findAuctionByIdOr404(
@@ -366,7 +385,7 @@ export class UserAuctionsService {
         en: 'Auction Not Found',
       });
 
-    const formatedAuction = this._reformatAuctionObject(
+    const formatedAuction = this.auctionsHelper._reformatAuctionObject(
       auction.user.lang,
       auction,
     );
@@ -377,6 +396,13 @@ export class UserAuctionsService {
       } else {
         formatedAuction['isMyAuction'] = false;
       }
+
+      const savedAuction = await this.auctionsHelper._injectIsSavedKeyToAuction(
+        userId,
+        formatedAuction,
+      );
+
+      return savedAuction;
     }
     return formatedAuction;
   }
@@ -680,158 +706,5 @@ export class UserAuctionsService {
     }
 
     return createdProduct.id;
-  }
-
-  private async _userHasCompleteProfile(userId: number) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: Number(userId) },
-    });
-
-    if (!user.hasCompletedProfile)
-      throw new MethodNotAllowedResponse({
-        ar: 'اكمل بياناتك',
-        en: 'Complete your profile',
-      });
-  }
-
-  private _productFilterApplied({ brands, categories, usageStatus, title }) {
-    let productFilterOrSearch = {};
-
-    if (title && title.length) {
-      productFilterOrSearch = {
-        ...productFilterOrSearch,
-        ...{ title: { contains: title } },
-      };
-    }
-    if (categories?.length) {
-      productFilterOrSearch = {
-        ...productFilterOrSearch,
-        ...{ categoryId: { in: categories } },
-      };
-    }
-    if (brands?.length) {
-      productFilterOrSearch = {
-        ...productFilterOrSearch,
-        ...{ brandId: { in: brands } },
-      };
-    }
-    if (usageStatus?.length) {
-      productFilterOrSearch = {
-        ...productFilterOrSearch,
-        ...{ usageStatus: { in: usageStatus } },
-      };
-    }
-
-    return productFilterOrSearch;
-  }
-
-  private _injectIsMyAuctionKey(userId: number, auctions: Auction[]) {
-    const formatedAuction = auctions.map((auction) => {
-      if (Number(auction.userId) === Number(userId)) {
-        auction['isMyAuction'] = true;
-      } else {
-        auction['isMyAuction'] = false;
-      }
-
-      return auction;
-    });
-
-    return formatedAuction;
-  }
-  private _auctionFilterApplied({
-    priceFrom,
-    priceTo,
-    countries,
-    sellingType,
-  }) {
-    let auctionFilterOrSearch = {};
-
-    if (priceFrom && priceTo) {
-      auctionFilterOrSearch = {
-        ...auctionFilterOrSearch,
-        AND: [
-          { startBidAmount: { gte: priceFrom } },
-          { startBidAmount: { lte: priceTo } },
-        ],
-      };
-    }
-
-    if (countries?.length) {
-      auctionFilterOrSearch = {
-        ...auctionFilterOrSearch,
-        ...{ location: { countryId: { in: countries } } },
-      };
-    }
-    if (sellingType && sellingType.length) {
-      if (sellingType === 'Auction')
-        auctionFilterOrSearch = {
-          ...auctionFilterOrSearch,
-          ...{ isBuyNowAllowed: false },
-        };
-      if (sellingType === 'Buy_Now')
-        auctionFilterOrSearch = {
-          ...auctionFilterOrSearch,
-          ...{ isBuyNowAllowed: true },
-        };
-    }
-    return auctionFilterOrSearch;
-  }
-  private async _isAuctionOwner(userId: number, auctionId: number) {
-    const auction = await this.prismaService.auction.findFirst({
-      where: { id: Number(auctionId), userId: Number(userId) },
-    });
-
-    if (!auction)
-      throw new ForbiddenResponse({
-        ar: 'ليس لديك صلاحيات لهذا الاعلان',
-        en: 'You have no authorization for accessing this resource',
-      });
-  }
-
-  private async _auctionCanBeDeletedByOwner(auctionId: number) {
-    const auction = await this.prismaService.auction.findFirst({
-      where: { id: auctionId },
-    });
-
-    if (auction.status !== AuctionStatus.DRAFTED)
-      throw new ForbiddenResponse({
-        ar: 'لا يمكنك حذف الاعلان',
-        en: 'Auction Can Not Be Deleted',
-      });
-  }
-
-  private _execludeNullFields(auction: Auction) {
-    for (const field in auction['product']) {
-      if (auction['product'][field] === null) delete auction['product'][field];
-    }
-
-    return auction;
-  }
-
-  private _reformatAuctionObject(userLang: string, auction: Auction) {
-    if (auction['product']['brand']) {
-      const brandName = auction['product']['brand']['name'];
-      delete auction['product']['brand'];
-      auction['product']['brand'] = brandName;
-    }
-    if (auction['product']['city']) {
-      const cityName =
-        userLang === 'en'
-          ? auction['product']['city']['nameEn']
-          : auction['product']['city']['nameAr'];
-      delete auction['product']['city'];
-      auction['product']['city'] = cityName;
-    }
-    if (auction['product']['country']) {
-      const countryName =
-        userLang === 'en'
-          ? auction['product']['country']['nameEn']
-          : auction['product']['country']['nameAr'];
-      delete auction['product']['country'];
-      auction['product']['country'] = countryName;
-    }
-    delete auction['user'];
-
-    return this._execludeNullFields(auction);
   }
 }
