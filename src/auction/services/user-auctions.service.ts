@@ -263,6 +263,7 @@ export class UserAuctionsService {
         durationInHours: true,
         durationUnit: true,
         expiryDate: true,
+        endDate: true,
         isBuyNowAllowed: true,
         startBidAmount: true,
         startDate: true,
@@ -346,6 +347,7 @@ export class UserAuctionsService {
         durationInHours: true,
         durationUnit: true,
         expiryDate: true,
+        endDate: true,
         isBuyNowAllowed: true,
         startBidAmount: true,
         startDate: true,
@@ -428,6 +430,7 @@ export class UserAuctionsService {
         durationInHours: true,
         durationUnit: true,
         expiryDate: true,
+        endDate: true,
         isBuyNowAllowed: true,
         startBidAmount: true,
         startDate: true,
@@ -500,6 +503,7 @@ export class UserAuctionsService {
         durationInHours: true,
         durationUnit: true,
         expiryDate: true,
+        endDate: true,
         isBuyNowAllowed: true,
         startBidAmount: true,
         startDate: true,
@@ -535,7 +539,7 @@ export class UserAuctionsService {
       include: {
         product: {
           include: {
-            category: { select: { nameEn: true } },
+            category: true,
             brand: true,
             subCategory: true,
             city: true,
@@ -577,7 +581,7 @@ export class UserAuctionsService {
       include: {
         product: {
           include: {
-            category: { select: { nameEn: true } },
+            category: true,
             brand: true,
             subCategory: true,
             city: true,
