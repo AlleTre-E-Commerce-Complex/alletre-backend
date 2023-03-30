@@ -135,6 +135,20 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/sponsored')
+  @UseGuards(AuthOrGuestGuard)
+  async getSponseredAuctions(@Account() account: any) {
+    const auctions = await this.userAuctionsService.findSponseredAuctions(
+      account.roles,
+      account.roles.includes(Role.User) ? Number(account.id) : undefined,
+    );
+    return {
+      status: true,
+      totalItems: auctions?.length,
+      data: auctions,
+    };
+  }
+
   @Get('/user/ownes')
   @UseGuards(AuthGuard)
   async getAuctionsByOwner(

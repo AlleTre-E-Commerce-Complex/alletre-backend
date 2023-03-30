@@ -271,6 +271,7 @@ export class UserAuctionsService {
           select: {
             id: true,
             title: true,
+            description: true,
             categoryId: true,
             subCategoryId: true,
             brandId: true,
@@ -353,6 +354,7 @@ export class UserAuctionsService {
           select: {
             id: true,
             title: true,
+            description: true,
             categoryId: true,
             subCategoryId: true,
             brandId: true,
@@ -434,6 +436,7 @@ export class UserAuctionsService {
           select: {
             id: true,
             title: true,
+            description: true,
             categoryId: true,
             subCategoryId: true,
             brandId: true,
@@ -477,6 +480,53 @@ export class UserAuctionsService {
       auctions,
       pagination,
     };
+  }
+
+  async findSponseredAuctions(roles: Role[], userId?: number) {
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.ACTIVE,
+        isBuyNowAllowed: true,
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+      },
+      orderBy: { startBidAmount: 'desc' },
+      take: 4,
+    });
+    if (roles.includes(Role.User)) {
+      return this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+        userId,
+        auctions,
+      );
+    }
+
+    return auctions;
   }
 
   async findOwnerAuctionByIdOr404(auctionId: number) {
