@@ -1,4 +1,4 @@
-import { AuctionType, UsageStatus } from '@prisma/client';
+import { AuctionStatus, AuctionType, UsageStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -65,4 +65,8 @@ export class GetAuctionsDTO {
   @IsOptional()
   @IsString()
   title: string;
+
+  @IsOptional()
+  @IsIn(Object.keys(AuctionStatus))
+  auctionStatus: AuctionStatus;
 }
