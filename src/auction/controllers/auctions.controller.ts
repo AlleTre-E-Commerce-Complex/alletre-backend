@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -165,6 +166,17 @@ export class AuctionsController {
       success: true,
       pagination: userAuctionsPaginated.pagination,
       data: userAuctionsPaginated.userAuctions,
+    };
+  }
+  @Patch('/user/pay')
+  @UseGuards(AuthGuard)
+  async payForAuction(
+    @Account() account: any,
+    @Body('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.payForAuction(account.id, auctionId),
     };
   }
 
