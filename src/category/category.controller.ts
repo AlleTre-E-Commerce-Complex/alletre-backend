@@ -1,11 +1,19 @@
-import { Controller, Get, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CategoryService } from './category.service';
+import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
 
 @Controller('categories')
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
 
   @Get('all')
+  @UseGuards(AuthOrGuestGuard)
   async findCategories() {
     return {
       success: true,
@@ -13,6 +21,7 @@ export class CategoryController {
     };
   }
   @Get('/sub-categories')
+  @UseGuards(AuthOrGuestGuard)
   async findSubCategories(
     @Query('categoryId', ParseIntPipe) categoryId: number,
   ) {
@@ -22,6 +31,7 @@ export class CategoryController {
     };
   }
   @Get('custom-fields')
+  @UseGuards(AuthOrGuestGuard)
   async getCustomFieldsController(
     @Query('categoryId') categoryId: number,
     @Query('subCategoryId') subCategoryId: number,
@@ -36,6 +46,7 @@ export class CategoryController {
   }
 
   @Get('system-fields')
+  @UseGuards(AuthOrGuestGuard)
   async getSystemFieldsController() {
     return {
       success: true,
@@ -44,6 +55,7 @@ export class CategoryController {
   }
 
   @Get('brands')
+  @UseGuards(AuthOrGuestGuard)
   async getAllBrands(@Query('categoryId') categoryId: number) {
     return {
       success: true,
