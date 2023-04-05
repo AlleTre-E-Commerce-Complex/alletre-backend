@@ -45,8 +45,8 @@ export class GetAuctionsDTO {
   countries: number[];
 
   @IsOptional()
-  @IsString({ each: true })
-  sellingType: string[];
+  @IsString()
+  sellingType: string;
 
   @IsOptional()
   @IsArray()
