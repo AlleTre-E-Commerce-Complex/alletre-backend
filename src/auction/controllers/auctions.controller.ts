@@ -136,6 +136,26 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/up-comming')
+  @UseGuards(AuthOrGuestGuard)
+  async getUpCommingAuctions(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const auctionsPaginated =
+      await this.userAuctionsService.findUpCommingAuctionsForUser(
+        account.roles,
+        paginationDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      pagination: auctionsPaginated.pagination,
+      data: auctionsPaginated.auctions,
+    };
+  }
+
   @Get('/user/sponsored')
   @UseGuards(AuthOrGuestGuard)
   async getSponseredAuctions(@Account() account: any) {

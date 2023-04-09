@@ -545,6 +545,89 @@ export class UserAuctionsService {
       pagination,
     };
   }
+  async findUpCommingAuctionsForUser(
+    roles: Role[],
+    paginationDTO: PaginationDTO,
+    userId?: number,
+  ) {
+    const { page = 1, perPage = 4 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.IN_SCHEDULED,
+        startDate: { gte: new Date() },
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        endDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+      },
+      skip: skip,
+      take: limit,
+    });
+
+    const auctionsCount = await this.prismaService.auction.count({
+      where: {
+        status: AuctionStatus.IN_SCHEDULED,
+        startDate: { gte: new Date() },
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      auctionsCount,
+      page,
+      perPage,
+    );
+
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          auctions,
+        );
+      return {
+        auctions: this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+          userId,
+          savedAuctions,
+        ),
+        pagination,
+      };
+    }
+
+    return {
+      auctions,
+      pagination,
+    };
+  }
 
   async findSponseredAuctions(roles: Role[], userId?: number) {
     const auctions = await this.prismaService.auction.findMany({
