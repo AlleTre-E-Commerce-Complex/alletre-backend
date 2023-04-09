@@ -23,6 +23,7 @@ import {
 } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
+import { log } from 'console';
 
 @Injectable()
 export class UserAuctionsService {
@@ -374,15 +375,22 @@ export class UserAuctionsService {
       today.getFullYear(),
       today.getMonth(),
       today.getDate(),
+      0,
+      0,
+      0,
+      0,
     );
     const endOfToday = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate() + 1,
-      0,
-      0,
-      -1,
+      today.getDate(),
+      23,
+      59,
+      59,
+      999,
     );
+
+    console.log(endOfToday);
 
     const auctions = await this.prismaService.auction.findMany({
       where: {
@@ -557,10 +565,24 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
+    const today = new Date();
+
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    console.log(startOfToday);
+
     const auctions = await this.prismaService.auction.findMany({
       where: {
         status: AuctionStatus.IN_SCHEDULED,
-        startDate: { gte: new Date() },
+        startDate: { gte: startOfToday },
       },
       select: {
         id: true,
