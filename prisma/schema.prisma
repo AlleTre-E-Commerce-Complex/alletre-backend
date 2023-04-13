@@ -25,6 +25,7 @@ model User {
   auctions            Auction[]
   locations           Location[]
   watchLists          WatchList[]
+  bids                Bids[]
 }
 
 model Country {
@@ -176,12 +177,23 @@ model Auction {
   user            User           @relation(fields: [userId], references: [id])
   watchLists      WatchList[]
   location        Location?      @relation(fields: [locationId], references: [id])
+  bids            Bids[]
 }
 
 model WatchList {
   id        Int      @id @default(autoincrement())
   userId    Int
   auctionId Int
+  createdAt DateTime @default(now())
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Bids {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  auctionId Int
+  amount    Decimal
   createdAt DateTime @default(now())
   auction   Auction  @relation(fields: [auctionId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
