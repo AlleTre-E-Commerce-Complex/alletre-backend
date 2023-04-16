@@ -957,6 +957,24 @@ export class UserAuctionsService {
       new Prisma.Decimal(bidAmount),
     );
   }
+  // SUM( CAST("B"."amount" AS DECIMAL) ) AS "totalAmount" COUNT(*) AS "totalBids"
+
+  async findAllAuctionBidders(auctionId: number) {
+    return await this.prismaService.$queryRawUnsafe(`
+    SELECT "U"."id", "U"."userName", MAX(CAST("B"."amount" AS DECIMAL)) AS "lastBidAmount", MAX("B"."createdAt") AS "lastBidTime", "C"."totalBids"
+    FROM "User" AS "U"
+    LEFT JOIN "Bids" AS "B"
+    ON "U"."id" = "B"."userId" AND "B"."auctionId" = ${auctionId}
+    INNER JOIN (
+    SELECT "Bids"."userId",  CAST(COUNT(*) AS INTEGER) AS "totalBids"
+    FROM "Bids"
+    WHERE "Bids"."auctionId" = ${auctionId}
+    GROUP BY "Bids"."userId"
+    ) AS "C"
+    ON "U"."id" = "C"."userId"
+    GROUP BY "U"."id", "U"."userName", "C"."totalBids"
+    `);
+  }
 
   private async _createOnTimeDailyAuction(
     userId: number,
@@ -1269,15 +1287,5 @@ export class UserAuctionsService {
     console.log(latestBid[0].amount);
 
     return latestBid[0].amount;
-  }
-
-  async findAllAuctionBidders(auctionId: number) {
-    const auctionBidders = await this.prismaService.bids.groupBy({
-      by: ['userId'],
-      where: { auctionId },
-      _count: { _all: true },
-    });
-
-    console.log(auctionBidders);
   }
 }

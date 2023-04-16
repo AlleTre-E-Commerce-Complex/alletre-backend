@@ -265,10 +265,11 @@ export class AuctionsController {
   async submitBidByUser(
     @Account() account: any,
     @Body() submitBidDTO: SubmitBidDTO,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
     await this.userAuctionsService.submitBidForAuction(
       Number(account.id),
-      Number(submitBidDTO.auctionId),
+      auctionId,
       Number(submitBidDTO.bidAmount),
     );
     return {
@@ -276,7 +277,12 @@ export class AuctionsController {
     };
   }
 
-  @Get('/user/:auctionId/view-bides')
+  @Get('/user/:auctionId/total-bids')
   @UseGuards(AuthGuard)
-  async viewAuctionBides() {}
+  async viewAuctionBides(@Param('auctionId', ParseIntPipe) auctionId: number) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.findAllAuctionBidders(auctionId),
+    };
+  }
 }
