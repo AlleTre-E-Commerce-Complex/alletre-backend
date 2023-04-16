@@ -14,6 +14,7 @@ import {
   AuctionStatus,
   AuctionType,
   DurationUnits,
+  Prisma,
   Product,
 } from '@prisma/client';
 import {
@@ -24,6 +25,8 @@ import {
 import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
 import { log } from 'console';
+import { Decimal } from '@prisma/client/runtime';
+import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 
 @Injectable()
 export class UserAuctionsService {
@@ -32,6 +35,7 @@ export class UserAuctionsService {
     private paginationService: PaginationService,
     private firebaseService: FirebaseService,
     private auctionsHelper: AuctionsHelper,
+    private bidsWebSocketGateway: BidsWebSocketGateway,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -731,10 +735,19 @@ export class UserAuctionsService {
       auction,
     );
 
-    return await this.auctionsHelper._injectIsSavedKeyToAuction(
+    const resultAuction = await this.auctionsHelper._injectIsSavedKeyToAuction(
       auction.userId,
       formatedAuction,
     );
+    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+
+    return {
+      ...resultAuction,
+      hasBids: isAuctionHasBidders,
+      latestBidAmount: isAuctionHasBidders
+        ? await this._findLatestBidForAuction(auctionId)
+        : undefined,
+    };
   }
 
   async findAuctionByIdOr404(
@@ -787,7 +800,16 @@ export class UserAuctionsService {
 
       return savedAuction;
     }
-    return formatedAuction;
+
+    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+
+    return {
+      ...formatedAuction,
+      hasBids: isAuctionHasBidders,
+      latestBidAmount: isAuctionHasBidders
+        ? await this._findLatestBidForAuction(auctionId)
+        : undefined,
+    };
   }
 
   async checkAuctionExistanceAndReturn(auctionId: number) {
@@ -888,6 +910,52 @@ export class UserAuctionsService {
     const currentDate = date;
     const newDate = new Date(currentDate.setDate(currentDate.getDate() + days));
     return newDate;
+  }
+
+  async submitBidForAuction(
+    userId: number,
+    auctionId: number,
+    bidAmount: number,
+  ) {
+    // Validate auction expiration
+    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+
+    // Check authorization
+    if (auction.userId === userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'غير مصرح لك',
+        en: 'Not Authorized',
+      });
+
+    // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
+    let latestBidAmount: Decimal;
+    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+    if (isAuctionHasBidders) {
+      latestBidAmount = await this._findLatestBidForAuction(auctionId);
+      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+        throw new MethodNotAllowedResponse({
+          ar: 'قم برفع السعر',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
+        });
+    } else {
+      latestBidAmount = auction.startBidAmount;
+      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+        throw new MethodNotAllowedResponse({
+          ar: 'قم برفع السعر',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
+        });
+    }
+
+    // Create new bid
+    await this.prismaService.bids.create({
+      data: { userId, auctionId, amount: bidAmount },
+    });
+
+    // emit to all biders using socket instance
+    await this.bidsWebSocketGateway.userSubmitBidEventHandler(
+      auctionId,
+      new Prisma.Decimal(bidAmount),
+    );
   }
 
   private async _createOnTimeDailyAuction(
@@ -1170,5 +1238,46 @@ export class UserAuctionsService {
     }
 
     return createdProduct.id;
+  }
+
+  async _checkAuctionExpiredOrReturn(auctionId: number) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+    if (auction.status === AuctionStatus.EXPIRED)
+      throw new MethodNotAllowedResponse({
+        en: 'Auction has been Expired',
+        ar: 'تم غلق الاعلان',
+      });
+
+    return auction;
+  }
+
+  async _isAuctionHasBidders(auctionId: number) {
+    const hasBidders = await this.prismaService.bids.findFirst({
+      where: { auctionId },
+    });
+    if (!hasBidders) return false;
+
+    return true;
+  }
+
+  async _findLatestBidForAuction(auctionId: number) {
+    const latestBid = await this.prismaService.bids.findMany({
+      where: { auctionId },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+    });
+    console.log(latestBid[0].amount);
+
+    return latestBid[0].amount;
+  }
+
+  async findAllAuctionBidders(auctionId: number) {
+    const auctionBidders = await this.prismaService.bids.groupBy({
+      by: ['userId'],
+      where: { auctionId },
+      _count: { _all: true },
+    });
+
+    console.log(auctionBidders);
   }
 }

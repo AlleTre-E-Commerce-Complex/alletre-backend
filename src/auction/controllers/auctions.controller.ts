@@ -23,6 +23,7 @@ import {
   GetAuctionsDTO,
   PaginationDTO,
   ProductDTO,
+  SubmitBidDTO,
 } from '../dtos';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
@@ -259,9 +260,21 @@ export class AuctionsController {
   @UseGuards(AuthGuard, OwnerGuard)
   async updateAuctionDetails() {}
 
-  @Post('/user/:auctionId/make-bid')
+  @Post('/user/:auctionId/submit-bid')
   @UseGuards(AuthGuard)
-  async makeBidByUser() {}
+  async submitBidByUser(
+    @Account() account: any,
+    @Body() submitBidDTO: SubmitBidDTO,
+  ) {
+    await this.userAuctionsService.submitBidForAuction(
+      Number(account.id),
+      Number(submitBidDTO.auctionId),
+      Number(submitBidDTO.bidAmount),
+    );
+    return {
+      success: true,
+    };
+  }
 
   @Get('/user/:auctionId/view-bides')
   @UseGuards(AuthGuard)

@@ -9,6 +9,7 @@ import { Role } from './enums/role.enum';
 import { ForbiddenResponse, NotFoundResponse } from '../common/errors';
 import { EmailSerivce } from '../emails/email.service';
 import { EmailsType } from './enums/emails-type.enum';
+import { Socket } from 'socket.io';
 
 @Injectable()
 export class AuthService {
@@ -285,7 +286,24 @@ export class AuthService {
     }
   }
 
-  private async getUserByRole(id: number, role: string) {
+  authenticateSocketUser(socket: Socket) {
+    if (!socket.handshake.headers['authorization'].split(' ')[1])
+      throw new ForbiddenResponse({
+        en: 'Not Authenticated',
+        ar: 'غير مصدق للدخول',
+      });
+    try {
+      const token = socket.handshake.headers['authorization'].split(' ')[1];
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.ACCESS_TOKEN_SECRET,
+      });
+      return { id: payload.id, roles: payload.roles };
+    } catch {
+      socket.disconnect();
+    }
+  }
+
+  async getUserByRole(id: number, role: string) {
     if (role == Role.User) return await this.userService.findUserByIdOr404(id);
   }
 }
