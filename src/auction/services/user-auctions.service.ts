@@ -923,8 +923,8 @@ export class UserAuctionsService {
     // Check authorization
     if (auction.userId === userId)
       throw new MethodNotAllowedResponse({
-        ar: 'غير مصرح لك',
-        en: 'Not Authorized',
+        ar: 'هذا الاعلان من احد إعلاناتك',
+        en: 'This auction is one of your created auctions',
       });
 
     // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
@@ -957,7 +957,6 @@ export class UserAuctionsService {
       new Prisma.Decimal(bidAmount),
     );
   }
-  // SUM( CAST("B"."amount" AS DECIMAL) ) AS "totalAmount" COUNT(*) AS "totalBids"
 
   async findAllAuctionBidders(auctionId: number) {
     return await this.prismaService.$queryRawUnsafe(`
@@ -1284,7 +1283,6 @@ export class UserAuctionsService {
       orderBy: { createdAt: 'desc' },
       take: 1,
     });
-    console.log(latestBid[0].amount);
 
     return latestBid[0].amount;
   }
