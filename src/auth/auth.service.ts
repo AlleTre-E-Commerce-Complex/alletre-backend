@@ -287,11 +287,6 @@ export class AuthService {
   }
 
   authenticateSocketUser(socket: Socket) {
-    if (!socket.handshake.headers['authorization'].split(' ')[1])
-      throw new ForbiddenResponse({
-        en: 'Not Authenticated',
-        ar: 'غير مصدق للدخول',
-      });
     try {
       const token = socket.handshake.headers['authorization'].split(' ')[1];
       const payload = this.jwtService.verify(token, {

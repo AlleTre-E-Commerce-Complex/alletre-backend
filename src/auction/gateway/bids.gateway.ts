@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-@WebSocketGateway()
+@WebSocketGateway({ cors: true })
 export class BidsWebSocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
@@ -36,23 +36,25 @@ export class BidsWebSocketGateway
     const { auctionId } = socket.handshake.query;
     socket.join(String(auctionId));
 
-    const userPayload = this.authService.authenticateSocketUser(socket);
-    if (!userPayload?.id) return;
+    if (socket.handshake.headers['authorization']) {
+      const userPayload = this.authService.authenticateSocketUser(socket);
+      if (!userPayload?.id) return;
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userPayload.id },
-    });
-
-    if (user) {
-      // Inject user into socket
-      socket.data.user = user;
-      // Update SocketId
-      await this.prismaService.user.update({
+      const user = await this.prismaService.user.findUnique({
         where: { id: userPayload.id },
-        data: { socketId: socket.id },
       });
-    } else {
-      this.disconnect(socket);
+
+      if (user) {
+        // Inject user into socket
+        socket.data.user = user;
+        // Update SocketId
+        await this.prismaService.user.update({
+          where: { id: userPayload.id },
+          data: { socketId: socket.id },
+        });
+      } else {
+        this.disconnect(socket);
+      }
     }
   }
 
