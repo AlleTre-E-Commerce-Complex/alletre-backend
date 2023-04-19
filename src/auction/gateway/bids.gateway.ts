@@ -58,8 +58,14 @@ export class BidsWebSocketGateway
     }
   }
 
-  async userSubmitBidEventHandler(auctionId: number, bidAmount: Decimal) {
+  async userSubmitBidEventHandler(
+    auctionId: number,
+    bidAmount: Decimal,
+    totalBids: number,
+  ) {
     // Send submitted bid to all listener sockets (bidders)
-    this.server.to(String(auctionId)).emit('bid:submitted', { bidAmount });
+    this.server
+      .to(String(auctionId))
+      .emit('bid:submitted', { bidAmount, totalBids });
   }
 }

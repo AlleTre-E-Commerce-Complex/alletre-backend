@@ -961,10 +961,16 @@ export class UserAuctionsService {
       data: { userId, auctionId, amount: bidAmount },
     });
 
+    // Get totalBids after my bid
+    const totalBids = await this.prismaService.bids.count({
+      where: { auctionId },
+    });
+
     // emit to all biders using socket instance
     await this.bidsWebSocketGateway.userSubmitBidEventHandler(
       auctionId,
       new Prisma.Decimal(bidAmount),
+      totalBids,
     );
   }
 
