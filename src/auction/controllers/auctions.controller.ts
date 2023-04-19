@@ -278,7 +278,7 @@ export class AuctionsController {
   }
 
   @Get('/user/:auctionId/total-bids')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthOrGuestGuard)
   async viewAuctionBides(@Param('auctionId', ParseIntPipe) auctionId: number) {
     return {
       success: true,
