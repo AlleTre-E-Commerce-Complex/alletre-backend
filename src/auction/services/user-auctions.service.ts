@@ -797,8 +797,15 @@ export class UserAuctionsService {
         userId,
         formatedAuction,
       );
+      const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
 
-      return savedAuction;
+      return {
+        ...savedAuction,
+        hasBids: isAuctionHasBidders,
+        latestBidAmount: isAuctionHasBidders
+          ? await this._findLatestBidForAuction(auctionId)
+          : undefined,
+      };
     }
 
     const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
