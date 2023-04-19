@@ -173,6 +173,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
+        _count: { select: { bids: true } },
       },
     });
 
