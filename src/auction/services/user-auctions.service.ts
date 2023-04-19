@@ -721,6 +721,7 @@ export class UserAuctionsService {
         location: {
           include: { city: true, country: true },
         },
+        _count: { select: { bids: true } },
       },
     });
 
@@ -772,6 +773,7 @@ export class UserAuctionsService {
         location: {
           include: { city: true, country: true },
         },
+        _count: { select: { bids: true } },
       },
     });
 
