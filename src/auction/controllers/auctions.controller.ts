@@ -285,4 +285,19 @@ export class AuctionsController {
       data: await this.userAuctionsService.findAllAuctionBidders(auctionId),
     };
   }
+
+  @Get('/user/:auctionId/bids-history')
+  @UseGuards(AuthOrGuestGuard)
+  async viewBidsHistoryForUser(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Query('userId', ParseIntPipe) userId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.findAuctionBidsHistoryForUser(
+        auctionId,
+        userId,
+      ),
+    };
+  }
 }

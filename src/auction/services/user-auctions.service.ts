@@ -1038,6 +1038,13 @@ export class UserAuctionsService {
     return auction;
   }
 
+  async findAuctionBidsHistoryForUser(auctionId: number, userId: number) {
+    return await this.prismaService.bids.findMany({
+      where: { auctionId, userId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   private async _createOnTimeHoursAuction(
     userId: number,
     productId: number,
