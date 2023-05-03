@@ -1039,10 +1039,20 @@ export class UserAuctionsService {
   }
 
   async findAuctionBidsHistoryForUser(auctionId: number, userId: number) {
-    return await this.prismaService.bids.findMany({
-      where: { auctionId, userId },
-      orderBy: { createdAt: 'asc' },
+    const bidderInfo = await this.prismaService.user.findUnique({
+      where: { id: userId },
     });
+    return {
+      biderInfo: {
+        imageLink: bidderInfo.imageLink,
+        imagePath: bidderInfo.imagePath,
+        userName: bidderInfo.userName,
+      },
+      bidsHistory: await this.prismaService.bids.findMany({
+        where: { auctionId, userId },
+        orderBy: { createdAt: 'asc' },
+      }),
+    };
   }
 
   private async _createOnTimeHoursAuction(
