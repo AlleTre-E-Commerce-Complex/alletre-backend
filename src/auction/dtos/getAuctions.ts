@@ -1,5 +1,5 @@
 import { AuctionStatus, AuctionType, UsageStatus } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
