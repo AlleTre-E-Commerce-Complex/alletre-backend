@@ -1099,6 +1099,14 @@ export class UserAuctionsService {
     return auction;
   }
 
+  async deleteAuctionImage(auctionId: number, imageId: number) {
+    await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
+    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+    try {
+      await this.prismaService.image.delete({ where: { id: imageId } });
+    } catch (error) {}
+  }
+
   private async _createScheduleDailyAuction(
     userId: number,
     productId: number,

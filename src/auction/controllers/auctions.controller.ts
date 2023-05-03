@@ -262,6 +262,22 @@ export class AuctionsController {
   @UseGuards(AuthGuard, OwnerGuard)
   async updateAuctionDetails() {}
 
+  @Delete('/user/:auctionId/remove-image')
+  @UseGuards(AuthGuard, OwnerGuard)
+  async deleteAuctionPhoto(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Query('imageId', ParseIntPipe) imageId: number,
+  ) {
+    await this.userAuctionsService.deleteAuctionImage(auctionId, imageId);
+    return {
+      success: true,
+    };
+  }
+
+  @Patch('/user/:auctionId/add-image')
+  @UseGuards(AuthGuard, OwnerGuard)
+  async addAuctionPhoto() {}
+
   @Post('/user/:auctionId/submit-bid')
   @UseGuards(AuthGuard)
   async submitBidByUser(

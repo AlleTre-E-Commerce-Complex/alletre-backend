@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Auction, AuctionStatus } from '@prisma/client';
-import { ForbiddenResponse, MethodNotAllowedResponse } from 'src/common/errors';
+import {
+  ForbiddenResponse,
+  MethodNotAllowedResponse,
+  NotFoundResponse,
+} from 'src/common/errors';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -185,5 +189,42 @@ export class AuctionsHelper {
     delete auction['user'];
 
     return this._execludeNullFields(auction);
+  }
+
+  async _isImageRelatedToAuction(auctionId: number, imageId: number) {
+    const image = await this.prismaService.image.findUnique({
+      where: { id: imageId },
+    });
+    if (!image)
+      throw new NotFoundResponse({
+        ar: 'هذه الصورة غير مسجلة',
+        en: 'Image Not Found',
+      });
+
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: { product: { include: { images: true } } },
+    });
+
+    const auctionImagesIds = auction.product.images.map((image) => {
+      return image.id;
+    });
+
+    if (!auctionImagesIds.includes(imageId))
+      throw new MethodNotAllowedResponse({
+        ar: 'هذه الصورة غير تابعة لهذا الاعلان',
+        en: 'Image is not related to Auction',
+      });
+  }
+
+  async _isAuctionValidForUpdate(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+    });
+    if (auction.status != AuctionStatus.DRAFTED)
+      throw new MethodNotAllowedResponse({
+        ar: 'لا يمكنك حذف الصورة',
+        en: 'You Can Not Delete Image',
+      });
   }
 }
