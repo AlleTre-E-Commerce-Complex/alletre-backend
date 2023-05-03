@@ -1100,11 +1100,54 @@ export class UserAuctionsService {
   }
 
   async deleteAuctionImage(auctionId: number, imageId: number) {
-    await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
     await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+
+    await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
     try {
       await this.prismaService.image.delete({ where: { id: imageId } });
-    } catch (error) {}
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية حذف الصورة',
+        en: 'Something went wrong while deleting your image',
+      });
+    }
+  }
+
+  async uploadImageForAuction(auctionId: number, image: Express.Multer.File) {
+    // Check auction validation for update
+    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: { product: { include: { images: true } } },
+    });
+
+    // Check auction images validation
+    if (auction.product.images.length >= 5)
+      throw new MethodNotAllowedResponse({
+        ar: 'لا يمكنك إضافة الصورة',
+        en: 'You Can Not Upload Image, You have been uploaded 5 images',
+      });
+
+    try {
+      // Upload Image to firebase
+      const { filePath, fileLink } = await this.firebaseService.uploadImage(
+        image,
+      );
+      // Upload new image
+      await this.prismaService.image.create({
+        data: {
+          imageLink: fileLink,
+          imagePath: filePath,
+          productId: auction.productId,
+        },
+      });
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية رفع الصورة',
+        en: 'Something went wrong while uploading your image',
+      });
+    }
   }
 
   private async _createScheduleDailyAuction(

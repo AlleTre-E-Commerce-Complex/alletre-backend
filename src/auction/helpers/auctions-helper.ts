@@ -223,8 +223,8 @@ export class AuctionsHelper {
     });
     if (auction.status != AuctionStatus.DRAFTED)
       throw new MethodNotAllowedResponse({
-        ar: 'لا يمكنك حذف الصورة',
-        en: 'You Can Not Delete Image',
+        ar: 'لا يمكنك إجراء تعديل علي هذا الاعلان',
+        en: 'You Can Not Update Auction',
       });
   }
 }

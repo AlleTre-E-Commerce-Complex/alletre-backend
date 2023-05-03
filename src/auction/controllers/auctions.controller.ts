@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -27,7 +28,7 @@ import {
   ProductDTO,
   SubmitBidDTO,
 } from '../dtos';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
 import { Role } from 'src/auth/enums/role.enum';
 
@@ -274,9 +275,22 @@ export class AuctionsController {
     };
   }
 
-  @Patch('/user/:auctionId/add-image')
+  @Patch('/user/:auctionId/upload-image')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      dest: 'uploads/',
+    }),
+  )
   @UseGuards(AuthGuard, OwnerGuard)
-  async addAuctionPhoto() {}
+  async addAuctionImage(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    await this.userAuctionsService.uploadImageForAuction(auctionId, image);
+    return {
+      success: true,
+    };
+  }
 
   @Post('/user/:auctionId/submit-bid')
   @UseGuards(AuthGuard)
