@@ -12,11 +12,12 @@ async function bootstrap() {
   app.enableCors({ origin: '*' });
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  // app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   app.useGlobalFilters(new ForbiddenExceptionFilter());
   app.useGlobalFilters(new UnauthorizedExceptionFilter());
   app.useGlobalFilters(new BadRequestExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   app.setGlobalPrefix('api/');
   app.useLogger(app.get(Logger));

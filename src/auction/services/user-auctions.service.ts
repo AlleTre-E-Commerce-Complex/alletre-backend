@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
@@ -17,14 +17,9 @@ import {
   Prisma,
   Product,
 } from '@prisma/client';
-import {
-  MethodNotAllowedResponse,
-  NotFoundResponse,
-  ForbiddenResponse,
-} from 'src/common/errors';
+import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
-import { log } from 'console';
 import { Decimal } from '@prisma/client/runtime';
 import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 
@@ -116,6 +111,73 @@ export class UserAuctionsService {
         status: AuctionStatus.DRAFTED,
       },
     });
+  }
+
+  async updateDraftAuction(auctionId: number, productDTO: ProductDTO) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+
+    await this._updateProduct(auction.productId, productDTO);
+
+    return auction;
+  }
+
+  async updateAuction(
+    auctionId: number,
+    auctionCreationDTO: AuctionCreationDTO,
+    userId: number,
+  ) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+
+    const { type, durationUnit, startDate, product } = auctionCreationDTO;
+
+    const productId = await this._updateProduct(auction.productId, product);
+
+    // Update Auction
+    switch (durationUnit) {
+      case DurationUnits.DAYS:
+        if (type === AuctionType.ON_TIME || !startDate) {
+          // Update ON_TIME Daily auction
+          return await this._updateOnTimeDailyAuction(
+            auctionId,
+            userId,
+            productId,
+            auctionCreationDTO,
+          );
+        } else if (type === AuctionType.SCHEDULED || startDate) {
+          // Update Schedule Daily auction
+          return await this._updateScheduleDailyAuction(
+            auctionId,
+            userId,
+            productId,
+            auctionCreationDTO,
+          );
+        }
+        break;
+
+      case DurationUnits.HOURS:
+        if (type === AuctionType.ON_TIME || !startDate) {
+          // Update ON_TIME hours auction
+          return await this._updateOnTimeHoursAuction(
+            auctionId,
+            userId,
+            productId,
+            auctionCreationDTO,
+          );
+        } else if (type === AuctionType.SCHEDULED || startDate) {
+          // Update Schedule hours auction
+          return await this._updateScheduleHoursAuction(
+            auctionId,
+            userId,
+            productId,
+            auctionCreationDTO,
+          );
+        }
+        break;
+    }
   }
 
   async deleteDraftedAuction(userId: number, auctionId: number) {
@@ -840,9 +902,6 @@ export class UserAuctionsService {
 
     return auction;
   }
-  async updateAuctionById(userId: number, auctionId: number) {}
-
-  async makeBidByUser(auctionId: number, userId: number, bidAmount: number) {}
 
   async viewAuctionBides(auctionId: number) {}
 
@@ -1037,6 +1096,50 @@ export class UserAuctionsService {
     // TODO: Create Payment Service and set startDate(cuurentDate) & expiryDate=(Date()+durationInDays) & status=PUBLISHED when payment proceed
     return auction;
   }
+  private async _updateOnTimeDailyAuction(
+    auctionId: number,
+    userId: number,
+    productId: number,
+    auctionCreationDTO: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInDays,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+    } = auctionCreationDTO;
+
+    let auction: Auction;
+    try {
+      auction = await this.prismaService.auction.update({
+        where: { id: auctionId },
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInDays,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          status: AuctionStatus.PENDING_OWNER_DEPOIST,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
+
+    // TODO: Create Payment Service and set startDate(cuurentDate) & expiryDate=(Date()+durationInDays) & status=PUBLISHED when payment proceed
+    return auction;
+  }
 
   async findAuctionBidsHistoryForUser(auctionId: number, userId: number) {
     const bidderInfo = await this.prismaService.user.findUnique({
@@ -1084,6 +1187,53 @@ export class UserAuctionsService {
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
+
+    // TODO: Create Payment Service and set startDate(currentDate) & expriyDate=(Date()+durationInHours) & status=PUBLISHED when payment proceed
+
+    return auction;
+  }
+
+  private async _updateOnTimeHoursAuction(
+    auctionId: number,
+    userId: number,
+    productId: number,
+    auctionCreationDTO: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInHours,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+    } = auctionCreationDTO;
+
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.update({
+        where: { id: auctionId },
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInHours,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          status: AuctionStatus.PENDING_OWNER_DEPOIST,
         },
       });
     } catch (error) {
@@ -1195,6 +1345,54 @@ export class UserAuctionsService {
     return auction;
   }
 
+  private async _updateScheduleDailyAuction(
+    auctionId: number,
+    userId: number,
+    productId: number,
+    auctionCreationDTO: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInDays,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+      startDate,
+    } = auctionCreationDTO;
+
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.update({
+        where: { id: auctionId },
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInDays,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          startDate,
+          status: AuctionStatus.PENDING_OWNER_DEPOIST,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
+
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
+    return auction;
+  }
+
   private async _createScheduleHoursAuction(
     userId: number,
     productId: number,
@@ -1226,6 +1424,55 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
           startDate,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
+        en: 'Something Went Wrong While Adding Your Auction',
+      });
+    }
+
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
+
+    return auction;
+  }
+
+  private async _updateScheduleHoursAuction(
+    auctionId: number,
+    userId: number,
+    productId: number,
+    auctionCreationDTO: AuctionCreationDTO,
+  ) {
+    const {
+      type,
+      durationUnit,
+      durationInHours,
+      startBidAmount,
+      isBuyNowAllowed,
+      acceptedAmount,
+      locationId,
+      startDate,
+    } = auctionCreationDTO;
+
+    let auction: Auction;
+
+    try {
+      auction = await this.prismaService.auction.update({
+        where: { id: auctionId },
+        data: {
+          userId,
+          productId,
+          type,
+          durationUnit,
+          durationInHours,
+          startBidAmount,
+          ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
+          ...(acceptedAmount ? { acceptedAmount } : {}),
+          locationId,
+          startDate,
+          status: AuctionStatus.PENDING_OWNER_DEPOIST,
         },
       });
     } catch (error) {
@@ -1344,6 +1591,79 @@ export class UserAuctionsService {
     }
 
     return createdProduct.id;
+  }
+
+  private async _updateProduct(productId: number, productBody: ProductDTO) {
+    const {
+      title,
+      model,
+      categoryId,
+      subCategoryId,
+      brandId,
+      description,
+      usageStatus,
+      color,
+      screenSize,
+      processor,
+      operatingSystem,
+      releaseYear,
+      regionOfManufacture,
+      ramSize,
+      cameraType,
+      material,
+      age,
+      totalArea,
+      numberOfRooms,
+      numberOfFloors,
+      landType,
+      countryId,
+      cityId,
+    } = productBody;
+
+    const nonNumericOptionalFields = {
+      usageStatus,
+      color,
+      processor,
+      operatingSystem,
+      releaseYear,
+      regionOfManufacture,
+      cameraType,
+      material,
+      landType,
+      model,
+    };
+
+    let updatedProduct: Product;
+    try {
+      updatedProduct = await this.prismaService.product.update({
+        where: { id: productId },
+        data: {
+          title,
+          categoryId: Number(categoryId),
+          description,
+          ...(age ? { age: Number(age) } : {}),
+          ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
+          ...(brandId ? { brandId: Number(brandId) } : {}),
+          ...(screenSize ? { screenSize: Number(screenSize) } : {}),
+          ...(ramSize ? { ramSize: Number(ramSize) } : {}),
+          ...(totalArea ? { totalArea: Number(totalArea) } : {}),
+          ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
+          ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
+          ...(countryId ? { countryId: Number(countryId) } : {}),
+          ...(cityId ? { cityId: Number(cityId) } : {}),
+          ...nonNumericOptionalFields,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في عملية إضافة المنتج',
+        en: 'Something Went Wrong While Adding Your Product',
+      });
+    }
+
+    return updatedProduct.id;
   }
 
   async _checkAuctionExpiredOrReturn(auctionId: number) {

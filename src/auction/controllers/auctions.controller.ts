@@ -28,7 +28,11 @@ import {
   ProductDTO,
   SubmitBidDTO,
 } from '../dtos';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import {
+  FileInterceptor,
+  FilesInterceptor,
+  AnyFilesInterceptor,
+} from '@nestjs/platform-express';
 import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
 import { Role } from 'src/auth/enums/role.enum';
 
@@ -261,7 +265,37 @@ export class AuctionsController {
 
   @Put('/user/:auctionId/details')
   @UseGuards(AuthGuard, OwnerGuard)
-  async updateAuctionDetails() {}
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateAuctionDetails(
+    @Account() account: any,
+    @Body() auctionCreationDTO: AuctionCreationDTO,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.updateAuction(
+        auctionId,
+        auctionCreationDTO,
+        account.id,
+      ),
+    };
+  }
+
+  @Put('/user/:auctionId/draft-details')
+  @UseGuards(AuthGuard, OwnerGuard)
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateAuctionDetailsAsDraft(
+    @Body() productDTO: ProductDTO,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.updateDraftAuction(
+        auctionId,
+        productDTO,
+      ),
+    };
+  }
 
   @Delete('/user/:auctionId/remove-image')
   @UseGuards(AuthGuard, OwnerGuard)
