@@ -9,6 +9,8 @@ import { CategoryModule } from './category/category.module';
 import { LoggerModule } from 'nestjs-pino';
 import { RegionsModule } from './regions/regions.module';
 import { WatchListModule } from './watch-list/watch-list.module';
+import { TasksModule } from './tasks/tasks.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { WatchListModule } from './watch-list/watch-list.module';
         },
       },
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UserModule,
     FirebaseModule,
@@ -36,6 +39,7 @@ import { WatchListModule } from './watch-list/watch-list.module';
     CategoryModule,
     RegionsModule,
     WatchListModule,
+    TasksModule,
   ],
 })
 export class AppModule {}

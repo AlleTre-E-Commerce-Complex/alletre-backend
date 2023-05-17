@@ -209,6 +209,9 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
+    const startDate = new Date('2023-05-08T09:42:15.697Z');
+    const expiryDate = new Date('2023-05-12T09:42:15.697Z');
+
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -1296,6 +1299,31 @@ export class UserAuctionsService {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في عملية رفع الصورة',
         en: 'Something went wrong while uploading your image',
+      });
+    }
+  }
+
+  async markExpiredAuctions() {
+    const expiredAuctions = await this.prismaService.auction.findMany({
+      where: {
+        expiryDate: {
+          lte: new Date(), // Filter auctions where expiryDate is less than or equal to the current date and time
+        },
+        status: {
+          not: AuctionStatus.EXPIRED, // Exclude auctions that are already marked as expired
+        },
+      },
+    });
+
+    for (const auction of expiredAuctions) {
+      await this.prismaService.auction.update({
+        where: {
+          id: auction.id,
+        },
+        data: {
+          status: AuctionStatus.EXPIRED, // Update the status of the auction to 'EXPIRED'
+          endDate: new Date(), // Set the endDate to the current date and time
+        },
       });
     }
   }

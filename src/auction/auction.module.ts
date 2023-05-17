@@ -17,5 +17,6 @@ import { AuthModule } from 'src/auth/auth.module';
     BidsWebSocketGateway,
   ],
   controllers: [AuctionsController],
+  exports: [UserAuctionsService],
 })
 export class AuctionModule {}
