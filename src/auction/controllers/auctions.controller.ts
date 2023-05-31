@@ -196,7 +196,7 @@ export class AuctionsController {
       data: userAuctionsPaginated.userAuctions,
     };
   }
-  @Patch('/user/pay')
+  @Post('/user/pay')
   @UseGuards(AuthGuard)
   async payForAuction(
     @Account() account: any,
@@ -204,7 +204,7 @@ export class AuctionsController {
   ) {
     return {
       success: true,
-      data: await this.userAuctionsService.payForAuction(account.id, auctionId),
+      data: await this.userAuctionsService.payToPublish(account.id, auctionId),
     };
   }
 

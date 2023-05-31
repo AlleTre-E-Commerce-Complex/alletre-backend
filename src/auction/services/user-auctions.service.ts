@@ -22,6 +22,7 @@ import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
 import { Decimal } from '@prisma/client/runtime';
 import { BidsWebSocketGateway } from '../gateway/bids.gateway';
+import { PaymentsService } from 'src/payments/services/payments.service';
 
 @Injectable()
 export class UserAuctionsService {
@@ -31,6 +32,7 @@ export class UserAuctionsService {
     private firebaseService: FirebaseService,
     private auctionsHelper: AuctionsHelper,
     private bidsWebSocketGateway: BidsWebSocketGateway,
+    private paymentService: PaymentsService,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -907,6 +909,23 @@ export class UserAuctionsService {
   }
 
   async viewAuctionBides(auctionId: number) {}
+
+  async payToPublish(userId: number, auctionId: number) {
+    await this.auctionsHelper._isAuctionOwner(userId, auctionId);
+    await this.auctionsHelper._checkAuctionExistanceOr404(auctionId);
+    const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+      auctionId,
+    );
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+    return await this.paymentService.payDepositBySeller(
+      user,
+      auctionId,
+      'AED',
+      auctionCategory.sellerDepositFixedAmount.toNumber(),
+    );
+  }
 
   async payForAuction(userId: number, auctionId: number) {
     await this.auctionsHelper._isAuctionOwner(userId, auctionId);

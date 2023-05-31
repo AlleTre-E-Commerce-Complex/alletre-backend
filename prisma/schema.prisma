@@ -23,6 +23,7 @@ model User {
   lang                String      @default("en")
   oAuthType           OAuthType?
   socketId            String?
+  stripeId            String?
   auctions            Auction[]
   locations           Location[]
   watchLists          WatchList[]
@@ -67,15 +68,17 @@ model Location {
 }
 
 model Category {
-  id                Int            @id @default(autoincrement())
-  nameEn            String
-  nameAr            String
-  createdAt         DateTime       @default(now())
-  hasUsageCondition Boolean        @default(false)
-  products          Product[]
-  subCategories     SubCategory[]
-  brands            Brand[]
-  customFields      CustomFields[]
+  id                       Int            @id @default(autoincrement())
+  nameEn                   String
+  nameAr                   String
+  createdAt                DateTime       @default(now())
+  hasUsageCondition        Boolean        @default(false)
+  sellerDepositFixedAmount Decimal?
+  bidderDepositFixedAmount Decimal?
+  products                 Product[]
+  subCategories            SubCategory[]
+  brands                   Brand[]
+  customFields             CustomFields[]
 }
 
 model SubCategory {

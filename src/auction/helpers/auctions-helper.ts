@@ -132,6 +132,31 @@ export class AuctionsHelper {
     }
     return auctionFilterOrSearch;
   }
+
+  async _checkAuctionExistanceOr404(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+    });
+
+    if (!auction)
+      throw new NotFoundResponse({
+        ar: 'لا يوجد هذا الاعلان',
+        en: 'Auction Not Found',
+      });
+  }
+
+  async _getAuctionCategory(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: {
+        product: {
+          include: { category: true },
+        },
+      },
+    });
+    return auction?.product?.category;
+  }
+
   async _isAuctionOwner(userId: number, auctionId: number) {
     const auction = await this.prismaService.auction.findFirst({
       where: { id: Number(auctionId), userId: Number(userId) },

@@ -7,9 +7,10 @@ import { AuctionsController } from './controllers/auctions.controller';
 import { AuctionsHelper } from './helpers/auctions-helper';
 import { BidsWebSocketGateway } from './gateway/bids.gateway';
 import { AuthModule } from 'src/auth/auth.module';
+import { PaymentsModule } from 'src/payments/payments.module';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, AuthModule],
+  imports: [PrismaModule, FirebaseModule, AuthModule, PaymentsModule],
   providers: [
     UserAuctionsService,
     PaginationService,
