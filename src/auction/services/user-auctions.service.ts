@@ -1106,6 +1106,9 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
         },
+        include: {
+          product: { include: { category: true } },
+        },
       });
     } catch (error) {
       console.log(error);
@@ -1209,6 +1212,9 @@ export class UserAuctionsService {
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
+        },
+        include: {
+          product: { include: { category: true } },
         },
       });
     } catch (error) {
@@ -1379,6 +1385,9 @@ export class UserAuctionsService {
           locationId,
           startDate,
         },
+        include: {
+          product: { include: { category: true } },
+        },
       });
     } catch (error) {
       console.log(error);
@@ -1471,6 +1480,9 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
           startDate,
+        },
+        include: {
+          product: { include: { category: true } },
         },
       });
     } catch (error) {
