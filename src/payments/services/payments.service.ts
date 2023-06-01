@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, MethodNotAllowedException } from '@nestjs/common';
 import { PaymentStatus, User } from '@prisma/client';
 import { StripeService } from 'src/common/services/stripe.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -16,7 +16,7 @@ export class PaymentsService {
     currency: string,
     amount: number,
   ) {
-    // Create tSripeCustomer if has no account
+    // Create SripeCustomer if has no account
     let stripeCustomerId: string;
     if (!user?.stripeId) {
       stripeCustomerId = await this.stripeService.createCustomer(
@@ -31,23 +31,44 @@ export class PaymentsService {
       });
     }
 
-    // Create PaymentIntent
-    const paymentIntentResult = await this.stripeService.createPaymentIntent(
-      stripeCustomerId,
-      amount,
-      currency,
+    // Check if user has already pay for auction
+    const userPaymentForAuction = await this.getUserAuctionPayment(
+      user.id,
+      auctionId,
     );
+    if (userPaymentForAuction) {
+      // Retrieve PaymentIntent and clientSecret for clientSide
+      const paymentIntent = await this.stripeService.retrievePaymentIntent(
+        userPaymentForAuction.paymentIntentId,
+      );
 
-    //TODO: Create payment record with (userId,paymentIntentId,auctionId) ** add currency in payment model
+      if (paymentIntent.status === 'succeeded')
+        throw new MethodNotAllowedException('already paid');
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      };
+    }
+
+    // Create PaymentIntent
+    const { clientSecret, paymentIntentId } =
+      await this.stripeService.createPaymentIntent(
+        stripeCustomerId,
+        amount,
+        currency,
+      );
+
+    //TODO:  Add currency in payment model
     await this.prismaService.payment.create({
       data: {
         userId: user.id,
         auctionId: auctionId,
         amount: amount,
-        paymentIntentId: paymentIntentResult.paymentIntentId,
+        paymentIntentId: paymentIntentId,
       },
     });
-    return paymentIntentResult;
+    return { clientSecret, paymentIntentId };
   }
 
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
@@ -68,5 +89,14 @@ export class PaymentsService {
       default:
         break;
     }
+  }
+
+  async getUserAuctionPayment(userId: number, auctionId: number) {
+    return await this.prismaService.payment.findFirst({
+      where: {
+        userId,
+        auctionId,
+      },
+    });
   }
 }

@@ -41,6 +41,10 @@ export class StripeService {
     };
   }
 
+  async retrievePaymentIntent(paymentIntentId: string) {
+    return await this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
+
   async createConfirmedPaymentIntent(
     stripeCustomerId: string,
     amount: number,
