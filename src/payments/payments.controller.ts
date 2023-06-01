@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Headers,
+  HttpCode,
   Post,
   RawBodyRequest,
   Req,
@@ -12,6 +13,7 @@ import { PaymentsService } from './services/payments.service';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @HttpCode(200)
   @Post('/webhook-listener')
   async webHookEventListener(
     @Req() req: RawBodyRequest<Request>,
