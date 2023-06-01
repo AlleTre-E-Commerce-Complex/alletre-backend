@@ -1,5 +1,11 @@
 import { Injectable, MethodNotAllowedException } from '@nestjs/common';
-import { PaymentStatus, User } from '@prisma/client';
+import {
+  AuctionStatus,
+  AuctionType,
+  DurationUnits,
+  PaymentStatus,
+  User,
+} from '@prisma/client';
 import { StripeService } from 'src/common/services/stripe.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -79,14 +85,18 @@ export class PaymentsService {
 
     switch (webHookResult.status) {
       case PaymentStatus.SUCCESS:
-        // TODO: Update payment & Auction
+        const auctionPayment = await this.prismaService.payment.findUnique({
+          where: { paymentIntentId: webHookResult.paymentIntentId },
+        });
+
+        // Update Auction
+        await this.publishAuction(auctionPayment.auctionId);
+
+        // Update Payment
         await this.prismaService.payment.update({
           where: { paymentIntentId: webHookResult.paymentIntentId },
           data: { status: PaymentStatus.SUCCESS },
         });
-        break;
-
-      default:
         break;
     }
   }
@@ -98,5 +108,86 @@ export class PaymentsService {
         auctionId,
       },
     });
+  }
+  async publishAuction(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+    });
+
+    switch (auction.durationUnit) {
+      case DurationUnits.DAYS:
+        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
+          // Set ON_TIME Daily auction ACTIVE
+          const today = new Date();
+          const expiryDate = this.addDays(new Date(), auction.durationInDays);
+
+          await this.prismaService.auction.update({
+            where: { id: auctionId },
+            data: {
+              status: AuctionStatus.ACTIVE,
+              startDate: today,
+              expiryDate: expiryDate,
+            },
+          });
+        } else if (
+          auction.type === AuctionType.SCHEDULED ||
+          auction.startDate
+        ) {
+          // Set Schedule Daily auction ACTIVE
+          const startDate = auction.startDate;
+          const expiryDate = this.addDays(startDate, auction.durationInDays);
+
+          await this.prismaService.auction.update({
+            where: { id: auctionId },
+            data: {
+              status: AuctionStatus.ACTIVE,
+              expiryDate: expiryDate,
+            },
+          });
+        }
+        break;
+
+      case DurationUnits.HOURS:
+        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
+          // Set ON_TIME hours auction ACTIVE
+          const today = new Date();
+          const expiryDate = this.addHours(new Date(), auction.durationInHours);
+
+          await this.prismaService.auction.update({
+            where: { id: auctionId },
+            data: {
+              status: AuctionStatus.ACTIVE,
+              startDate: today,
+              expiryDate: expiryDate,
+            },
+          });
+        } else if (
+          auction.type === AuctionType.SCHEDULED ||
+          auction.startDate
+        ) {
+          // Set Schedule hours auction ACTIVE
+          const startDate = auction.startDate;
+          const expiryDate = this.addHours(startDate, auction.durationInHours);
+
+          await this.prismaService.auction.update({
+            where: { id: auctionId },
+            data: {
+              status: AuctionStatus.ACTIVE,
+              expiryDate: expiryDate,
+            },
+          });
+        }
+    }
+  }
+
+  addHours(date: Date, hours: number) {
+    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    return newDate;
+  }
+
+  addDays(date: Date, days: number) {
+    const currentDate = date;
+    const newDate = new Date(currentDate.setDate(currentDate.getDate() + days));
+    return newDate;
   }
 }

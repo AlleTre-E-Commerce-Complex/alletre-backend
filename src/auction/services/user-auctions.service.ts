@@ -908,8 +908,6 @@ export class UserAuctionsService {
     return auction;
   }
 
-  async viewAuctionBides(auctionId: number) {}
-
   async payToPublish(userId: number, auctionId: number) {
     await this.auctionsHelper._isAuctionOwner(userId, auctionId);
     await this.auctionsHelper._checkAuctionExistanceOr404(auctionId);
@@ -925,87 +923,6 @@ export class UserAuctionsService {
       'AED',
       auctionCategory.sellerDepositFixedAmount.toNumber(),
     );
-  }
-
-  async payForAuction(userId: number, auctionId: number) {
-    await this.auctionsHelper._isAuctionOwner(userId, auctionId);
-
-    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
-    switch (auction.durationUnit) {
-      case DurationUnits.DAYS:
-        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
-          // Set ON_TIME Daily auction ACTIVE
-          const today = new Date();
-          const expiryDate = this.addDays(new Date(), auction.durationInDays);
-
-          await this.prismaService.auction.update({
-            where: { id: auctionId },
-            data: {
-              status: AuctionStatus.ACTIVE,
-              startDate: today,
-              expiryDate: expiryDate,
-            },
-          });
-        } else if (
-          auction.type === AuctionType.SCHEDULED ||
-          auction.startDate
-        ) {
-          // Set Schedule Daily auction ACTIVE
-          const startDate = auction.startDate;
-          const expiryDate = this.addDays(startDate, auction.durationInDays);
-
-          await this.prismaService.auction.update({
-            where: { id: auctionId },
-            data: {
-              status: AuctionStatus.ACTIVE,
-              expiryDate: expiryDate,
-            },
-          });
-        }
-        break;
-
-      case DurationUnits.HOURS:
-        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
-          // Set ON_TIME hours auction ACTIVE
-          const today = new Date();
-          const expiryDate = this.addHours(new Date(), auction.durationInHours);
-
-          await this.prismaService.auction.update({
-            where: { id: auctionId },
-            data: {
-              status: AuctionStatus.ACTIVE,
-              startDate: today,
-              expiryDate: expiryDate,
-            },
-          });
-        } else if (
-          auction.type === AuctionType.SCHEDULED ||
-          auction.startDate
-        ) {
-          // Set Schedule hours auction ACTIVE
-          const startDate = auction.startDate;
-          const expiryDate = this.addHours(startDate, auction.durationInHours);
-
-          await this.prismaService.auction.update({
-            where: { id: auctionId },
-            data: {
-              status: AuctionStatus.ACTIVE,
-              expiryDate: expiryDate,
-            },
-          });
-        }
-    }
-  }
-
-  addHours(date: Date, hours: number) {
-    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    return newDate;
-  }
-
-  addDays(date: Date, days: number) {
-    const currentDate = date;
-    const newDate = new Date(currentDate.setDate(currentDate.getDate() + days));
-    return newDate;
   }
 
   async submitBidForAuction(
