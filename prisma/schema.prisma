@@ -28,6 +28,7 @@ model User {
   locations           Location[]
   watchLists          WatchList[]
   bids                Bids[]
+  Payment             Payment[]
 }
 
 model Country {
@@ -182,6 +183,7 @@ model Auction {
   watchLists      WatchList[]
   location        Location?      @relation(fields: [locationId], references: [id])
   bids            Bids[]
+  Payment         Payment[]
 }
 
 model WatchList {
@@ -203,10 +205,27 @@ model Bids {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+model Payment {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  auctionId       Int
+  paymentIntentId String        @unique
+  amount          Decimal
+  createdAt       DateTime      @default(now())
+  status          PaymentStatus @default(PENDING)
+  auction         Auction       @relation(fields: [auctionId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+}
+
 enum UsageStatus {
   NEW
   USED
   OPEN_BOX
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
 }
 
 enum AuctionStatus {

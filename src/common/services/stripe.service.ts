@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, MethodNotAllowedException } from '@nestjs/common';
+import { PaymentStatus } from '@prisma/client';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -56,5 +57,35 @@ export class StripeService {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     };
+  }
+
+  async webHookHandler(payload: any, stripeSignature: any) {
+    let event: any;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        payload,
+        stripeSignature,
+        process.env.WEBHOOK_SECRETS,
+      );
+    } catch (err) {
+      throw new MethodNotAllowedException(`Webhook error ${err.message}`);
+    }
+
+    // Handle the event
+    console.log(`Unhandled event type ${event.type}`);
+
+    // Handle the event
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        console.log(
+          `PaymentIntent for ${paymentIntent.amount} was successful!`,
+        );
+        return { status: PaymentStatus.SUCCESS, paymentIntent };
+      default:
+        // Unexpected event type
+        console.log(`Unhandled event type ${event.type}.`);
+    }
   }
 }

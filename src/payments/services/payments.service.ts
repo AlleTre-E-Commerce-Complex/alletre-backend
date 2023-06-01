@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { PaymentStatus, User } from '@prisma/client';
 import { StripeService } from 'src/common/services/stripe.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -38,8 +38,34 @@ export class PaymentsService {
       currency,
     );
 
-    //TODO: Create payment record with (userId,paymentIntentId,auctionId)
-
+    //TODO: Create payment record with (userId,paymentIntentId,auctionId) ** add currency in payment model
+    await this.prismaService.payment.create({
+      data: {
+        userId: user.id,
+        auctionId: auctionId,
+        amount: amount,
+        paymentIntentId: paymentIntentResult.paymentIntentId,
+      },
+    });
     return paymentIntentResult;
+  }
+
+  async webHookEventHandler(payload: any, headers: any) {
+    const webHookResult = await this.stripeService.webHookHandler(
+      payload,
+      headers,
+    );
+
+    switch (webHookResult.status) {
+      case PaymentStatus.SUCCESS:
+        await this.prismaService.payment.update({
+          where: { paymentIntentId: webHookResult.paymentIntent },
+          data: { status: PaymentStatus.SUCCESS },
+        });
+        break;
+
+      default:
+        break;
+    }
   }
 }
