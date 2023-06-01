@@ -50,17 +50,17 @@ export class PaymentsService {
     return paymentIntentResult;
   }
 
-  async webHookEventHandler(payload: Buffer, headers: string) {
+  async webHookEventHandler(payload: Buffer, stripeSignature: string) {
     const webHookResult = await this.stripeService.webHookHandler(
       payload,
-      headers,
+      stripeSignature,
     );
 
     switch (webHookResult.status) {
       case PaymentStatus.SUCCESS:
         // TODO: Update payment & Auction
         await this.prismaService.payment.update({
-          where: { paymentIntentId: webHookResult.paymentIntent },
+          where: { paymentIntentId: webHookResult.paymentIntentId },
           data: { status: PaymentStatus.SUCCESS },
         });
         break;

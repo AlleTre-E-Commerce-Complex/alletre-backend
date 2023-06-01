@@ -59,8 +59,8 @@ export class StripeService {
     };
   }
 
-  async webHookHandler(payload: Buffer, stripeSignature: string) {
-    let event: any;
+  async webHookHandler(payload: any, stripeSignature: string) {
+    let event = payload;
 
     try {
       event = this.stripe.webhooks.constructEvent(
@@ -82,7 +82,10 @@ export class StripeService {
         console.log(
           `PaymentIntent for ${paymentIntent.amount} was successful!`,
         );
-        return { status: PaymentStatus.SUCCESS, paymentIntent };
+        return {
+          status: PaymentStatus.SUCCESS,
+          paymentIntentId: paymentIntent.id,
+        };
       default:
         // Unexpected event type
         console.log(`Unhandled event type ${event.type}.`);
