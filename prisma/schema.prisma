@@ -226,6 +226,7 @@ enum UsageStatus {
 enum PaymentStatus {
   PENDING
   SUCCESS
+  FAILED
 }
 
 enum AuctionStatus {
