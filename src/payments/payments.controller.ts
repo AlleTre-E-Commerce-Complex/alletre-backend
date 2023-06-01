@@ -1,4 +1,11 @@
-import { Body, Controller, Headers, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  Post,
+  RawBodyRequest,
+  Req,
+} from '@nestjs/common';
 import { PaymentsService } from './services/payments.service';
 
 @Controller('payments')
@@ -7,10 +14,13 @@ export class PaymentsController {
 
   @Post('/webhook-listener')
   async webHookEventListener(
-    @Body() body: any,
+    @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') stripeSignature: string,
   ) {
-    await this.paymentsService.webHookEventHandler(body, stripeSignature);
+    await this.paymentsService.webHookEventHandler(
+      req.rawBody,
+      stripeSignature,
+    );
     return {
       success: true,
     };

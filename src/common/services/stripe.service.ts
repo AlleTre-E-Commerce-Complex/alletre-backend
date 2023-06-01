@@ -59,7 +59,7 @@ export class StripeService {
     };
   }
 
-  async webHookHandler(payload: any, stripeSignature: any) {
+  async webHookHandler(payload: Buffer, stripeSignature: string) {
     let event: any;
 
     try {

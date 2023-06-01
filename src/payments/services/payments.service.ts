@@ -50,7 +50,7 @@ export class PaymentsService {
     return paymentIntentResult;
   }
 
-  async webHookEventHandler(payload: any, headers: any) {
+  async webHookEventHandler(payload: Buffer, headers: string) {
     const webHookResult = await this.stripeService.webHookHandler(
       payload,
       headers,

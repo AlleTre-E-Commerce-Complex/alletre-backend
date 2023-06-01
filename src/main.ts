@@ -8,7 +8,10 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { BadRequestExceptionFilter } from './common/filters/badrequestException.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   app.enableCors({ origin: '*' });
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
