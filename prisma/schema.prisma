@@ -9,18 +9,18 @@ datasource db {
 }
 
 model User {
-  id                  Int         @id @default(autoincrement())
+  id                  Int             @id @default(autoincrement())
   userName            String?
-  email               String?     @unique
+  email               String?         @unique
   password            String?
-  phone               String?     @unique
-  createdAt           DateTime    @default(now())
+  phone               String?         @unique
+  createdAt           DateTime        @default(now())
   imageLink           String?
   imagePath           String?
-  isOAuth             Boolean     @default(false)
-  hasCompletedProfile Boolean     @default(false)
-  isVerified          Boolean     @default(false)
-  lang                String      @default("en")
+  isOAuth             Boolean         @default(false)
+  hasCompletedProfile Boolean         @default(false)
+  isVerified          Boolean         @default(false)
+  lang                String          @default("en")
   oAuthType           OAuthType?
   socketId            String?
   stripeId            String?
@@ -29,6 +29,7 @@ model User {
   watchLists          WatchList[]
   bids                Bids[]
   Payment             Payment[]
+  JoinedAuction       JoinedAuction[]
 }
 
 model Country {
@@ -162,28 +163,29 @@ model Image {
 }
 
 model Auction {
-  id              Int            @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   userId          Int
-  productId       Int            @unique
+  productId       Int             @unique
   locationId      Int?
-  status          AuctionStatus  @default(PENDING_OWNER_DEPOIST)
+  status          AuctionStatus   @default(PENDING_OWNER_DEPOIST)
   type            AuctionType?
   durationUnit    DurationUnits?
   durationInDays  Int?
   durationInHours Int?
   startBidAmount  Decimal?
-  isBuyNowAllowed Boolean        @default(false)
+  isBuyNowAllowed Boolean         @default(false)
   acceptedAmount  Decimal?
   startDate       DateTime?
   expiryDate      DateTime?
   endDate         DateTime?
-  createdAt       DateTime       @default(now())
-  product         Product        @relation(fields: [productId], references: [id])
-  user            User           @relation(fields: [userId], references: [id])
+  createdAt       DateTime        @default(now())
+  product         Product         @relation(fields: [productId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
   watchLists      WatchList[]
-  location        Location?      @relation(fields: [locationId], references: [id])
+  location        Location?       @relation(fields: [locationId], references: [id])
   bids            Bids[]
   Payment         Payment[]
+  JoinedAuction   JoinedAuction[]
 }
 
 model WatchList {
@@ -212,9 +214,20 @@ model Payment {
   paymentIntentId String        @unique
   amount          Decimal
   createdAt       DateTime      @default(now())
+  type            PaymentType?
   status          PaymentStatus @default(PENDING)
   auction         Auction       @relation(fields: [auctionId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
+}
+
+model JoinedAuction {
+  id        Int                 @id @default(autoincrement())
+  userId    Int
+  auctionId Int
+  createdAt DateTime            @default(now())
+  status    JoinedAuctionStatus @default(IN_PROGRESS)
+  auction   Auction             @relation(fields: [auctionId], references: [id])
+  user      User                @relation(fields: [userId], references: [id])
 }
 
 enum UsageStatus {
@@ -253,4 +266,18 @@ enum OAuthType {
   GOOGLE
   FACEBOOK
   APPLE
+}
+
+enum JoinedAuctionStatus {
+  IN_PROGRESS
+  PENDING_PAYMENT
+  WAITING_FOR_DELIVERY
+  PAYMENT_EXPIRED
+  LOST
+  COMPLETED
+}
+
+enum PaymentType {
+  SELLER_DEPOSIT
+  BIDDER_DEPOSIT
 }
