@@ -5,6 +5,7 @@ import {
   AuctionCreationDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
+  GetJoinAuctionsDTO,
   PaginationDTO,
   ProductDTO,
 } from '../dtos';
@@ -14,6 +15,7 @@ import {
   AuctionStatus,
   AuctionType,
   DurationUnits,
+  JoinedAuctionStatus,
   PaymentStatus,
   PaymentType,
   Prisma,
@@ -1037,6 +1039,89 @@ export class UserAuctionsService {
       new Prisma.Decimal(bidAmount),
       totalBids,
     );
+  }
+
+  async getBidderJoindAuctions(
+    userId: number,
+    joinAuctionsDTO: GetJoinAuctionsDTO,
+  ) {
+    const { page = 1, perPage = 10, status } = joinAuctionsDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const joinedAuctions = await this.prismaService.joinedAuction.findMany({
+      where: {
+        userId,
+        ...(status == JoinedAuctionStatus.PAYMENT_EXPIRED
+          ? {
+              status: {
+                in: [
+                  JoinedAuctionStatus.LOST,
+                  JoinedAuctionStatus.PAYMENT_EXPIRED,
+                ],
+              },
+            }
+          : { status }),
+      },
+    });
+
+    const joinedAuctionsIds = joinedAuctions.map((joinedAuction) => {
+      return joinedAuction.auctionId;
+    });
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: { id: { in: joinedAuctionsIds } },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+      },
+      take: limit,
+      skip: skip,
+    });
+
+    const count = await this.prismaService.auction.count({
+      where: { id: { in: joinedAuctionsIds } },
+    });
+
+    return {
+      pagination: this.paginationService.getPagination(count, page, perPage),
+      auctions,
+    };
+  }
+
+  async findJoinedAuctionsAnalytics(userId: number) {
+    const count = await this.prismaService.joinedAuction.count({
+      where: { userId },
+    });
+    const auctionsGrouping = await this.prismaService.joinedAuction.groupBy({
+      by: ['status'],
+      where: { userId },
+      _count: { status: true },
+    });
+
+    return {
+      count,
+      auctionsGrouping: auctionsGrouping?.length
+        ? auctionsGrouping.map((item) => {
+            return {
+              count: item['_count']?.status,
+              status: item.status,
+            };
+          })
+        : [],
+    };
   }
 
   async findAllAuctionBidders(auctionId: number) {

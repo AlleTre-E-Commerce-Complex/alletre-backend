@@ -24,6 +24,7 @@ import {
   AuctionCreationDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
+  GetJoinAuctionsDTO,
   PaginationDTO,
   ProductDTO,
   SubmitBidDTO,
@@ -196,6 +197,25 @@ export class AuctionsController {
       data: userAuctionsPaginated.userAuctions,
     };
   }
+
+  @Get('/user/joined-auctions')
+  @UseGuards(AuthGuard)
+  async getJoinedAuctions(
+    @Account() account: any,
+    @Query() getJoinAuctionsDTO: GetJoinAuctionsDTO,
+  ) {
+    const userAuctionsPaginated =
+      await this.userAuctionsService.getBidderJoindAuctions(
+        account.id,
+        getJoinAuctionsDTO,
+      );
+
+    return {
+      success: true,
+      pagination: userAuctionsPaginated.pagination,
+      data: userAuctionsPaginated.auctions,
+    };
+  }
   @Post('/user/pay')
   @UseGuards(AuthGuard)
   async payForAuction(
@@ -213,6 +233,18 @@ export class AuctionsController {
   async getAuctionsAnalytics(@Account() account: any) {
     const auctionsAnalytics =
       await this.userAuctionsService.findAuctionsAnalyticsForOwner(account.id);
+
+    return {
+      success: true,
+      totalItems: auctionsAnalytics.count,
+      data: auctionsAnalytics.auctionsGrouping,
+    };
+  }
+  @Get('/user/joined-auctions/analytics')
+  @UseGuards(AuthGuard)
+  async getJoinedAuctionsAnalytics(@Account() account: any) {
+    const auctionsAnalytics =
+      await this.userAuctionsService.findJoinedAuctionsAnalytics(account.id);
 
     return {
       success: true,
