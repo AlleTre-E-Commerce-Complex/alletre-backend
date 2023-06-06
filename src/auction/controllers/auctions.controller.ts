@@ -350,13 +350,13 @@ export class AuctionsController {
     @Body() submitBidDTO: SubmitBidDTO,
     @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
-    await this.userAuctionsService.payDepositByBidder(
-      Number(account.id),
-      auctionId,
-      Number(submitBidDTO.bidAmount),
-    );
     return {
       success: true,
+      data: await this.userAuctionsService.payDepositByBidder(
+        Number(account.id),
+        auctionId,
+        Number(submitBidDTO.bidAmount),
+      ),
     };
   }
 

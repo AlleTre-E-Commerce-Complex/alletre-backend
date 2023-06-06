@@ -127,7 +127,7 @@ export class PaymentsService {
         stripeCustomerId,
         amount,
         currency,
-        { bidAmount },
+        { bidAmount: Number(bidAmount) },
       );
 
     //TODO:  Add currency in payment model
