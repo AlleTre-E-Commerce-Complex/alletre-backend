@@ -14,6 +14,8 @@ import {
   AuctionStatus,
   AuctionType,
   DurationUnits,
+  PaymentStatus,
+  PaymentType,
   Prisma,
   Product,
 } from '@prisma/client';
@@ -861,11 +863,22 @@ export class UserAuctionsService {
       auction,
     );
 
+    // Add deposit flag for bidder
+    const isDepositPaid = await this.prismaService.payment.findFirst({
+      where: {
+        userId,
+        auctionId,
+        status: PaymentStatus.SUCCESS,
+        type: PaymentType.BIDDER_DEPOSIT,
+      },
+    });
+
     if (roles.includes(Role.User)) {
       if (Number(formatedAuction.userId) === Number(userId)) {
         formatedAuction['isMyAuction'] = true;
       } else {
         formatedAuction['isMyAuction'] = false;
+        auction['isDepositPaid'] = isDepositPaid ? true : false;
       }
 
       const savedAuction = await this.auctionsHelper._injectIsSavedKeyToAuction(

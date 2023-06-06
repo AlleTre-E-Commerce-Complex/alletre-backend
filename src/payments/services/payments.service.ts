@@ -203,7 +203,7 @@ export class PaymentsService {
       case PaymentStatus.FAILED:
         // Update Payment
         await this.prismaService.payment.update({
-          where: { paymentIntentId: webHookResult.paymentIntentId },
+          where: { paymentIntentId: paymentIntent.id },
           data: { status: PaymentStatus.FAILED },
         });
         break;
