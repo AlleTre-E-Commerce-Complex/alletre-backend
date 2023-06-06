@@ -25,6 +25,7 @@ export class StripeService {
     stripeCustomerId: string,
     amount: number,
     currency: string,
+    metadata?: any,
   ) {
     const paymentIntent = await this.stripe.paymentIntents.create({
       customer: stripeCustomerId,
@@ -34,6 +35,7 @@ export class StripeService {
       automatic_payment_methods: {
         enabled: true,
       },
+      metadata,
     });
     return {
       clientSecret: paymentIntent.client_secret,
@@ -88,7 +90,7 @@ export class StripeService {
         );
         return {
           status: PaymentStatus.SUCCESS,
-          paymentIntentId: paymentIntent.id,
+          paymentIntent,
         };
       case 'payment_intent.payment_failed':
         const failedPaymentIntent = event.data.object;
@@ -97,7 +99,7 @@ export class StripeService {
         );
         return {
           status: PaymentStatus.FAILED,
-          paymentIntentId: failedPaymentIntent.id,
+          paymentIntent,
         };
       default:
         // Unexpected event type

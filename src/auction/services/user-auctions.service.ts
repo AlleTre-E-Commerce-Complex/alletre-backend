@@ -925,6 +925,55 @@ export class UserAuctionsService {
     );
   }
 
+  async payDepositByBidder(
+    userId: number,
+    auctionId: number,
+    bidAmount: number,
+  ) {
+    // Validate auction expiration
+    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+
+    // Check authorization
+    if (auction.userId === userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا الاعلان من احد إعلاناتك',
+        en: 'This auction is one of your created auctions',
+      });
+
+    // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
+    let latestBidAmount: Decimal;
+    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+    if (isAuctionHasBidders) {
+      latestBidAmount = await this._findLatestBidForAuction(auctionId);
+      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+        throw new MethodNotAllowedResponse({
+          ar: 'قم برفع السعر',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
+        });
+    } else {
+      latestBidAmount = auction.startBidAmount;
+      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+        throw new MethodNotAllowedResponse({
+          ar: 'قم برفع السعر',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
+        });
+    }
+
+    const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+      auctionId,
+    );
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+    return await this.paymentService.payDepositByBidder(
+      user,
+      auctionId,
+      'AED',
+      auctionCategory.bidderDepositFixedAmount.toNumber(),
+      bidAmount,
+    );
+  }
+
   async submitBidForAuction(
     userId: number,
     auctionId: number,

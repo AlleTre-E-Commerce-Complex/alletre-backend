@@ -4,6 +4,7 @@ import {
   AuctionType,
   DurationUnits,
   PaymentStatus,
+  PaymentType,
   User,
 } from '@prisma/client';
 import { StripeService } from 'src/common/services/stripe.service';
@@ -37,8 +38,8 @@ export class PaymentsService {
       });
     }
 
-    // Check if user has already pay for auction
-    const userPaymentForAuction = await this.getUserAuctionPayment(
+    // Check if seller has already pay a depsit for auction
+    const userPaymentForAuction = await this.getSellerAuctionPayment(
       user.id,
       auctionId,
     );
@@ -72,31 +73,132 @@ export class PaymentsService {
         auctionId: auctionId,
         amount: amount,
         paymentIntentId: paymentIntentId,
+        type: PaymentType.SELLER_DEPOSIT,
+      },
+    });
+    return { clientSecret, paymentIntentId };
+  }
+
+  async payDepositByBidder(
+    user: User,
+    auctionId: number,
+    currency: string,
+    amount: number,
+    bidAmount: number,
+  ) {
+    // Create SripeCustomer if has no account
+    let stripeCustomerId: string;
+    if (!user?.stripeId) {
+      stripeCustomerId = await this.stripeService.createCustomer(
+        user.email,
+        user.userName,
+      );
+
+      // Add to user stripeCustomerId
+      await this.prismaService.user.update({
+        where: { id: user.id },
+        data: { stripeId: stripeCustomerId },
+      });
+    }
+
+    // Check if bidder has already pay deposit for auction
+    const bidderPaymentForAuction = await this.getBidderAuctionPayment(
+      user.id,
+      auctionId,
+    );
+    if (bidderPaymentForAuction) {
+      // Retrieve PaymentIntent and clientSecret for clientSide
+      const paymentIntent = await this.stripeService.retrievePaymentIntent(
+        bidderPaymentForAuction.paymentIntentId,
+      );
+
+      if (paymentIntent.status === 'succeeded')
+        throw new MethodNotAllowedException('already paid');
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      };
+    }
+
+    // Create PaymentIntent
+    const { clientSecret, paymentIntentId } =
+      await this.stripeService.createPaymentIntent(
+        stripeCustomerId,
+        amount,
+        currency,
+        { bidAmount },
+      );
+
+    //TODO:  Add currency in payment model
+    await this.prismaService.payment.create({
+      data: {
+        userId: user.id,
+        auctionId: auctionId,
+        amount: amount,
+        paymentIntentId: paymentIntentId,
+        type: PaymentType.BIDDER_DEPOSIT,
       },
     });
     return { clientSecret, paymentIntentId };
   }
 
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
-    const webHookResult = await this.stripeService.webHookHandler(
+    const { paymentIntent, status } = await this.stripeService.webHookHandler(
       payload,
       stripeSignature,
     );
 
-    switch (webHookResult.status) {
+    switch (status) {
       case PaymentStatus.SUCCESS:
         const auctionPayment = await this.prismaService.payment.findUnique({
-          where: { paymentIntentId: webHookResult.paymentIntentId },
+          where: { paymentIntentId: paymentIntent.id },
         });
 
-        // Update Auction
-        await this.publishAuction(auctionPayment.auctionId);
+        switch (auctionPayment.type) {
+          case PaymentType.BIDDER_DEPOSIT:
+            await this.prismaService.$transaction([
+              // Update payment transaction
+              this.prismaService.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.SUCCESS },
+              }),
 
-        // Update Payment
-        await this.prismaService.payment.update({
-          where: { paymentIntentId: webHookResult.paymentIntentId },
-          data: { status: PaymentStatus.SUCCESS },
-        });
+              // Join user to auction
+              this.prismaService.joinedAuction.create({
+                data: {
+                  userId: auctionPayment.userId,
+                  auctionId: auctionPayment.auctionId,
+                },
+              }),
+
+              // Create bid for user
+              this.prismaService.bids.create({
+                data: {
+                  userId: auctionPayment.userId,
+                  auctionId: auctionPayment.auctionId,
+                  amount: paymentIntent.metadata.bidAmount,
+                },
+              }),
+            ]);
+
+            break;
+
+          case PaymentType.SELLER_DEPOSIT:
+            // Update Auction
+            await this.publishAuction(auctionPayment.auctionId);
+
+            // Update payment transaction
+            await this.prismaService.payment.update({
+              where: { paymentIntentId: paymentIntent.id },
+              data: { status: PaymentStatus.SUCCESS },
+            });
+            break;
+
+          default:
+            break;
+        }
+
         break;
       case PaymentStatus.FAILED:
         // Update Payment
@@ -108,11 +210,22 @@ export class PaymentsService {
     }
   }
 
-  async getUserAuctionPayment(userId: number, auctionId: number) {
+  async getSellerAuctionPayment(userId: number, auctionId: number) {
     return await this.prismaService.payment.findFirst({
       where: {
         userId,
         auctionId,
+        type: PaymentType.SELLER_DEPOSIT,
+      },
+    });
+  }
+
+  async getBidderAuctionPayment(userId: number, auctionId: number) {
+    return await this.prismaService.payment.findFirst({
+      where: {
+        userId,
+        auctionId,
+        type: PaymentType.BIDDER_DEPOSIT,
       },
     });
   }

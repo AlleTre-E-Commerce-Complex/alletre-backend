@@ -343,6 +343,23 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/:auctionId/bidder-deposit')
+  @UseGuards(AuthGuard)
+  async bidderDeposit(
+    @Account() account: any,
+    @Body() submitBidDTO: SubmitBidDTO,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    await this.userAuctionsService.payDepositByBidder(
+      Number(account.id),
+      auctionId,
+      Number(submitBidDTO.bidAmount),
+    );
+    return {
+      success: true,
+    };
+  }
+
   @Get('/user/:auctionId/total-bids')
   @UseGuards(AuthOrGuestGuard)
   async viewAuctionBides(@Param('auctionId', ParseIntPipe) auctionId: number) {
