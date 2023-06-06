@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { AuctionModule } from 'src/auction/auction.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
-  imports: [AuctionModule],
+  imports: [PrismaModule],
   providers: [TasksService],
 })
 export class TasksModule {}
