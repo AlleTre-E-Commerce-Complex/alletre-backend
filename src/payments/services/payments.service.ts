@@ -360,7 +360,7 @@ export class PaymentsService {
             data: {
               ...(startDate === new Date()
                 ? { status: AuctionStatus.ACTIVE }
-                : {}),
+                : { status: AuctionStatus.IN_SCHEDULED }),
               expiryDate: expiryDate,
             },
           });
@@ -394,7 +394,7 @@ export class PaymentsService {
             data: {
               ...(startDate === new Date()
                 ? { status: AuctionStatus.ACTIVE }
-                : {}),
+                : { status: AuctionStatus.IN_SCHEDULED }),
               expiryDate: expiryDate,
             },
           });
