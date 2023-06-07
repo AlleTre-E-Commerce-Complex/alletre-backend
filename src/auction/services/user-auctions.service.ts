@@ -697,7 +697,7 @@ export class UserAuctionsService {
     const auctionsCount = await this.prismaService.auction.count({
       where: {
         status: AuctionStatus.IN_SCHEDULED,
-        startDate: { gte: new Date() },
+        startDate: { gte: startOfToday },
       },
     });
 
@@ -1444,7 +1444,7 @@ export class UserAuctionsService {
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
-          startDate,
+          startDate: new Date(startDate),
         },
         include: {
           product: { include: { category: true } },
@@ -1540,7 +1540,7 @@ export class UserAuctionsService {
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
           locationId,
-          startDate,
+          startDate: new Date(startDate),
         },
         include: {
           product: { include: { category: true } },
