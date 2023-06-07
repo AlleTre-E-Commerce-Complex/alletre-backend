@@ -321,46 +321,15 @@ export class UserAuctionsService {
       sellingType,
     });
 
-    let auctionsStatusFilter = {};
-    if (auctionStatus && auctionStatus.length) {
-      if (auctionStatus === AuctionStatus.IN_SCHEDULED) {
-        auctionsStatusFilter = {
-          ...auctionsStatusFilter,
-          status: AuctionStatus.IN_SCHEDULED,
-        };
-      } else if (auctionStatus === AuctionStatus.ACTIVE) {
-        const today = new Date();
-        const startOfToday = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-        );
-        const endOfToday = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + 1,
-          0,
-          0,
-          -1,
-        );
-        auctionsStatusFilter = {
-          ...auctionsStatusFilter,
-          status: AuctionStatus.ACTIVE,
-          expiryDate: {
-            lte: endOfToday,
-            gte: startOfToday,
-          },
-        };
-      }
-    } else {
-      auctionsStatusFilter = {
-        ...auctionsStatusFilter,
-        status: { in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED] },
-      };
-    }
     const auctions = await this.prismaService.auction.findMany({
       where: {
-        ...auctionsStatusFilter,
+        ...(auctionStatus
+          ? { status: auctionStatus }
+          : {
+              status: {
+                in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+              },
+            }),
         ...auctionFilter,
         product: { ...productFilter },
       },
@@ -400,7 +369,13 @@ export class UserAuctionsService {
 
     const auctionsCount = await this.prismaService.auction.count({
       where: {
-        ...auctionsStatusFilter,
+        ...(auctionStatus
+          ? { status: auctionStatus }
+          : {
+              status: {
+                in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+              },
+            }),
         ...auctionFilter,
         product: { ...productFilter },
       },
