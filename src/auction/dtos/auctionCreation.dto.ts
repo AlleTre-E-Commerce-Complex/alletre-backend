@@ -51,7 +51,7 @@ export class AuctionCreationDTO {
   @IsOptional()
   @IsDate()
   @Transform(({ value }): Date => new Date(value))
-  @MinDate(new Date(), {
+  @MinDate(new Date(new Date().setDate(new Date().getDate() - 1)), {
     message: `Can't Create Auction Before today`,
   })
   startDate: Date;
