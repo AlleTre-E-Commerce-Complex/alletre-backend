@@ -215,9 +215,6 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
-    const startDate = new Date('2023-05-08T09:42:15.697Z');
-    const expiryDate = new Date('2023-05-12T09:42:15.697Z');
-
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -1461,7 +1458,7 @@ export class UserAuctionsService {
       });
     }
 
-    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInDays)& status=IN_SCHEDULED if(current date < startDate) when payment proceed
     return auction;
   }
 
@@ -1557,7 +1554,7 @@ export class UserAuctionsService {
       });
     }
 
-    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=IN_SCHEDULED if(current date < startDate) when payment proceed else set PUBLISHED
+    // TODO: Create Payment Service and set expiryDate=(startDate+durationInHours) & status=IN_SCHEDULED if(current date < startDate) when payment proceed
 
     return auction;
   }

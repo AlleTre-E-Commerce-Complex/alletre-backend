@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
-import { AuctionStatus, JoinedAuctionStatus } from '@prisma/client';
+import { Cron, CronExpression, Interval } from '@nestjs/schedule';
+import {
+  AuctionStatus,
+  JoinedAuctionStatus,
+  PaymentStatus,
+  PaymentType,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -10,10 +15,64 @@ export class TasksService {
   constructor(private prismaService: PrismaService) {}
 
   /**
+   * Function will run every hour to get inschdeule and publish them if paid
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async publishAllInScheduleAuction() {
+    // Get InSchedule auctions
+    const inScheduleAuctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.IN_SCHEDULED,
+        Payment: {
+          every: {
+            type: PaymentType.SELLER_DEPOSIT,
+            status: PaymentStatus.SUCCESS,
+          },
+        },
+      },
+    });
+
+    for (const auction of inScheduleAuctions) {
+      // Set payment expired
+      await this.prismaService.auction.update({
+        where: { id: auction.id },
+        data: { status: AuctionStatus.ACTIVE },
+      });
+    }
+
+    //TODO: Notify all users
+  }
+
+  /**
+   * Function will run midnight to set all joined auction must be paid by bidder Expired_Payment
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async markPendingBidderPaymentAuctionsExpired() {
+    // Get pending payment auctions
+    const pendingPaymentAuction =
+      await this.prismaService.joinedAuction.findMany({
+        where: {
+          paymentExpiryDate: { lte: new Date() },
+          status: JoinedAuctionStatus.PENDING_PAYMENT,
+        },
+      });
+
+    for (const joinedAuction of pendingPaymentAuction) {
+      // Set payment expired
+      await this.prismaService.joinedAuction.update({
+        where: { id: joinedAuction.id },
+        data: { status: JoinedAuctionStatus.PAYMENT_EXPIRED },
+      });
+    }
+
+    //TODO: Notify all users
+  }
+
+  /**
    * Function will run every mintue to set all auction expired
    */
   @Interval(60000) // Run every minute (adjust the interval as per your requirements)
-  async handleCron() {
+  async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
 
@@ -59,9 +118,15 @@ export class TasksService {
         });
 
       // Update winner joinedAuction to winner and waiting for payment
+      const today = new Date();
+      const newDate = new Date(today.setDate(today.getDate() + 3));
+
       await this.prismaService.joinedAuction.update({
         where: { id: bidderJoinedAuction.id },
-        data: { status: JoinedAuctionStatus.PENDING_PAYMENT },
+        data: {
+          status: JoinedAuctionStatus.PENDING_PAYMENT,
+          paymentExpiryDate: newDate,
+        },
       });
 
       //TODO: Notify user

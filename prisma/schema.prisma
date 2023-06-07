@@ -221,13 +221,14 @@ model Payment {
 }
 
 model JoinedAuction {
-  id        Int                 @id @default(autoincrement())
-  userId    Int
-  auctionId Int
-  createdAt DateTime            @default(now())
-  status    JoinedAuctionStatus @default(IN_PROGRESS)
-  auction   Auction             @relation(fields: [auctionId], references: [id])
-  user      User                @relation(fields: [userId], references: [id])
+  id                Int                 @id @default(autoincrement())
+  userId            Int
+  auctionId         Int
+  createdAt         DateTime            @default(now())
+  status            JoinedAuctionStatus @default(IN_PROGRESS)
+  paymentExpiryDate DateTime?
+  auction           Auction             @relation(fields: [auctionId], references: [id])
+  user              User                @relation(fields: [userId], references: [id])
 }
 
 enum UsageStatus {
@@ -280,4 +281,6 @@ enum JoinedAuctionStatus {
 enum PaymentType {
   SELLER_DEPOSIT
   BIDDER_DEPOSIT
+  AUCTION_PURCHASE
+  BUY_NOW_PURCHASE
 }

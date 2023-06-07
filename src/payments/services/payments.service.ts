@@ -3,6 +3,7 @@ import {
   AuctionStatus,
   AuctionType,
   DurationUnits,
+  JoinedAuctionStatus,
   PaymentStatus,
   PaymentType,
   User,
@@ -39,11 +40,22 @@ export class PaymentsService {
     }
 
     // Check if seller has already pay a depsit for auction
-    const userPaymentForAuction = await this.getSellerAuctionPayment(
+    const userPaymentForAuction = await this.getAuctionPaymentTransaction(
       user.id,
       auctionId,
+      PaymentType.SELLER_DEPOSIT,
     );
     if (userPaymentForAuction) {
+      // Check startDate for auction
+      const auction = await this.prismaService.auction.findFirst({
+        where: { id: userPaymentForAuction.auctionId },
+      });
+      if (auction.startDate < new Date()) {
+        throw new MethodNotAllowedException(
+          'Auction Start Date Now Not Valid For Publishing.',
+        );
+      }
+
       // Retrieve PaymentIntent and clientSecret for clientSide
       const paymentIntent = await this.stripeService.retrievePaymentIntent(
         userPaymentForAuction.paymentIntentId,
@@ -102,9 +114,10 @@ export class PaymentsService {
     }
 
     // Check if bidder has already pay deposit for auction
-    const bidderPaymentForAuction = await this.getBidderAuctionPayment(
+    const bidderPaymentForAuction = await this.getAuctionPaymentTransaction(
       user.id,
       auctionId,
+      PaymentType.BIDDER_DEPOSIT,
     );
     if (bidderPaymentForAuction) {
       // Retrieve PaymentIntent and clientSecret for clientSide
@@ -143,6 +156,69 @@ export class PaymentsService {
     return { clientSecret, paymentIntentId };
   }
 
+  async payAuctionByBidder(
+    user: User,
+    auctionId: number,
+    currency: string,
+    amount: number,
+  ) {
+    // Create SripeCustomer if has no account
+    let stripeCustomerId: string;
+    if (!user?.stripeId) {
+      stripeCustomerId = await this.stripeService.createCustomer(
+        user.email,
+        user.userName,
+      );
+
+      // Add to user stripeCustomerId
+      await this.prismaService.user.update({
+        where: { id: user.id },
+        data: { stripeId: stripeCustomerId },
+      });
+    }
+
+    // Check if bidder has already has transaction for auction
+    const bidderPaymentTransaction = await this.getAuctionPaymentTransaction(
+      user.id,
+      auctionId,
+      PaymentType.AUCTION_PURCHASE,
+    );
+    if (bidderPaymentTransaction) {
+      // Retrieve PaymentIntent and clientSecret for clientSide
+      const paymentIntent = await this.stripeService.retrievePaymentIntent(
+        bidderPaymentTransaction.paymentIntentId,
+      );
+
+      if (paymentIntent.status === 'succeeded')
+        throw new MethodNotAllowedException('already paid');
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      };
+    }
+
+    // Create PaymentIntent
+    const { clientSecret, paymentIntentId } =
+      await this.stripeService.createPaymentIntent(
+        stripeCustomerId,
+        amount,
+        currency,
+      );
+
+    //TODO:  Add currency in payment model
+    await this.prismaService.payment.create({
+      data: {
+        userId: user.id,
+        auctionId: auctionId,
+        amount: amount,
+        paymentIntentId: paymentIntentId,
+        type: PaymentType.AUCTION_PURCHASE,
+      },
+    });
+    return { clientSecret, paymentIntentId };
+  }
+
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
     const { paymentIntent, status } = await this.stripeService.webHookHandler(
       payload,
@@ -151,11 +227,12 @@ export class PaymentsService {
 
     switch (status) {
       case PaymentStatus.SUCCESS:
-        const auctionPayment = await this.prismaService.payment.findUnique({
-          where: { paymentIntentId: paymentIntent.id },
-        });
+        const auctionPaymentTransaction =
+          await this.prismaService.payment.findUnique({
+            where: { paymentIntentId: paymentIntent.id },
+          });
 
-        switch (auctionPayment.type) {
+        switch (auctionPaymentTransaction.type) {
           case PaymentType.BIDDER_DEPOSIT:
             await this.prismaService.$transaction([
               // Update payment transaction
@@ -167,16 +244,16 @@ export class PaymentsService {
               // Join user to auction
               this.prismaService.joinedAuction.create({
                 data: {
-                  userId: auctionPayment.userId,
-                  auctionId: auctionPayment.auctionId,
+                  userId: auctionPaymentTransaction.userId,
+                  auctionId: auctionPaymentTransaction.auctionId,
                 },
               }),
 
               // Create bid for user
               this.prismaService.bids.create({
                 data: {
-                  userId: auctionPayment.userId,
-                  auctionId: auctionPayment.auctionId,
+                  userId: auctionPaymentTransaction.userId,
+                  auctionId: auctionPaymentTransaction.auctionId,
                   amount: paymentIntent.metadata.bidAmount,
                 },
               }),
@@ -186,13 +263,40 @@ export class PaymentsService {
 
           case PaymentType.SELLER_DEPOSIT:
             // Update Auction
-            await this.publishAuction(auctionPayment.auctionId);
+            await this.publishAuction(auctionPaymentTransaction.auctionId);
 
             // Update payment transaction
             await this.prismaService.payment.update({
               where: { paymentIntentId: paymentIntent.id },
               data: { status: PaymentStatus.SUCCESS },
             });
+            break;
+
+          case PaymentType.AUCTION_PURCHASE:
+            const joinedAuction =
+              await this.prismaService.joinedAuction.findFirst({
+                where: {
+                  userId: auctionPaymentTransaction.userId,
+                  auctionId: auctionPaymentTransaction.auctionId,
+                },
+              });
+
+            await this.prismaService.$transaction([
+              // Update payment transaction
+              this.prismaService.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.SUCCESS },
+              }),
+
+              // Update joinedAuction for bidder to WAITING_DELIVERY
+              this.prismaService.joinedAuction.update({
+                where: { id: joinedAuction.id },
+                data: {
+                  status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
+                },
+              }),
+            ]);
+
             break;
 
           default:
@@ -210,22 +314,16 @@ export class PaymentsService {
     }
   }
 
-  async getSellerAuctionPayment(userId: number, auctionId: number) {
+  async getAuctionPaymentTransaction(
+    userId: number,
+    auctionId: number,
+    type: PaymentType,
+  ) {
     return await this.prismaService.payment.findFirst({
       where: {
         userId,
         auctionId,
-        type: PaymentType.SELLER_DEPOSIT,
-      },
-    });
-  }
-
-  async getBidderAuctionPayment(userId: number, auctionId: number) {
-    return await this.prismaService.payment.findFirst({
-      where: {
-        userId,
-        auctionId,
-        type: PaymentType.BIDDER_DEPOSIT,
+        type: type,
       },
     });
   }
@@ -253,14 +351,16 @@ export class PaymentsService {
           auction.type === AuctionType.SCHEDULED ||
           auction.startDate
         ) {
-          // Set Schedule Daily auction ACTIVE
+          // Set Schedule Daily auction
           const startDate = auction.startDate;
           const expiryDate = this.addDays(startDate, auction.durationInDays);
 
           await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
-              status: AuctionStatus.ACTIVE,
+              ...(startDate === new Date()
+                ? { status: AuctionStatus.ACTIVE }
+                : {}),
               expiryDate: expiryDate,
             },
           });
@@ -285,14 +385,16 @@ export class PaymentsService {
           auction.type === AuctionType.SCHEDULED ||
           auction.startDate
         ) {
-          // Set Schedule hours auction ACTIVE
+          // Set Schedule hours auction
           const startDate = auction.startDate;
           const expiryDate = this.addHours(startDate, auction.durationInHours);
 
           await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
-              status: AuctionStatus.ACTIVE,
+              ...(startDate === new Date()
+                ? { status: AuctionStatus.ACTIVE }
+                : {}),
               expiryDate: expiryDate,
             },
           });
