@@ -71,7 +71,7 @@ export class TasksService {
   /**
    * Function will run every mintue to set all auction expired
    */
-  @Interval(60000) // Run every minute (adjust the interval as per your requirements)
+  @Cron(CronExpression.EVERY_HOUR)
   async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
