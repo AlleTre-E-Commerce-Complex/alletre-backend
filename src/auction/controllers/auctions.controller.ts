@@ -392,6 +392,21 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/:auctionId/bidder-purchase')
+  @UseGuards(AuthGuard)
+  async auctionPurchaseByBidder(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.payAuctionByBidder(
+        Number(account.id),
+        auctionId,
+      ),
+    };
+  }
+
   @Get('/user/:auctionId/total-bids')
   @UseGuards(AuthOrGuestGuard)
   async viewAuctionBides(@Param('auctionId', ParseIntPipe) auctionId: number) {

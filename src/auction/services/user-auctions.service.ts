@@ -1096,6 +1096,47 @@ export class UserAuctionsService {
     };
   }
 
+  async payAuctionByBidder(userId: number, auctionId: number) {
+    // Validate auction expiration
+    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+
+    // Check authorization
+    if (auction.userId === userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا الاعلان من احد إعلاناتك',
+        en: 'This auction is one of your created auctions',
+      });
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    // Check winner of auction
+    const auctionWinner = await this.prismaService.joinedAuction.findFirst({
+      where: {
+        auctionId: auctionId,
+        status: JoinedAuctionStatus.PENDING_PAYMENT,
+      },
+    });
+    if (auctionWinner.userId != userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'لايمكنك شراء المزاد',
+        en: 'You Can not Purchase the product',
+      });
+
+    // Get purchase amount of auction
+    const latestBidAmount = await this._findLatestBidForAuction(
+      auctionWinner.auctionId,
+    );
+
+    return await this.paymentService.payAuctionByBidder(
+      user,
+      auctionId,
+      'AED',
+      latestBidAmount.toNumber(),
+    );
+  }
+
   async findAllAuctionBidders(auctionId: number) {
     return await this.prismaService.$queryRawUnsafe(`
     SELECT "U"."id", "U"."userName", MAX(CAST("B"."amount" AS DECIMAL)) AS "lastBidAmount", MAX("B"."createdAt") AS "lastBidTime", "C"."totalBids"

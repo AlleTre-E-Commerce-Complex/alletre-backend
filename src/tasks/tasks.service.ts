@@ -17,7 +17,7 @@ export class TasksService {
   /**
    * Function will run every hour to get inschdeule and publish them if paid
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async publishAllInScheduleAuction() {
     // Get InSchedule auctions
     const inScheduleAuctions = await this.prismaService.auction.findMany({
@@ -71,7 +71,7 @@ export class TasksService {
   /**
    * Function will run every mintue to set all auction expired
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
