@@ -242,6 +242,7 @@ export class UserAuctionsService {
           },
         },
         _count: { select: { bids: true } },
+        bids: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
 
@@ -1107,7 +1108,9 @@ export class UserAuctionsService {
 
   async payAuctionByBidder(userId: number, auctionId: number) {
     // Validate auction expiration
-    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+    });
 
     // Check authorization
     if (auction.userId === userId)
