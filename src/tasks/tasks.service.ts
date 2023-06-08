@@ -32,6 +32,8 @@ export class TasksService {
       },
     });
 
+    console.log(inScheduleAuctions);
+
     for (const auction of inScheduleAuctions) {
       // Set payment expired
       await this.prismaService.auction.update({
