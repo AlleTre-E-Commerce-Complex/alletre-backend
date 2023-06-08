@@ -1024,7 +1024,7 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
-    const joinedAuctions = await this.prismaService.joinedAuction.findMany({
+    const auctions = await this.prismaService.joinedAuction.findMany({
       where: {
         userId,
         ...(status == JoinedAuctionStatus.PAYMENT_EXPIRED
@@ -1038,33 +1038,42 @@ export class UserAuctionsService {
             }
           : { status }),
       },
-    });
-
-    const joinedAuctionsIds = joinedAuctions.map((joinedAuction) => {
-      return joinedAuction.auctionId;
-    });
-
-    const auctions = await this.prismaService.auction.findMany({
-      where: { id: { in: joinedAuctionsIds } },
       include: {
-        product: {
+        auction: {
           include: {
-            category: true,
-            brand: true,
-            subCategory: true,
-            city: true,
-            country: true,
-            images: true,
+            product: {
+              include: {
+                category: true,
+                brand: true,
+                subCategory: true,
+                city: true,
+                country: true,
+                images: true,
+              },
+            },
+            _count: { select: { bids: true } },
+            bids: { orderBy: { createdAt: 'desc' }, take: 1 },
           },
         },
-        _count: { select: { bids: true } },
       },
       take: limit,
       skip: skip,
     });
 
-    const count = await this.prismaService.auction.count({
-      where: { id: { in: joinedAuctionsIds } },
+    const count = await this.prismaService.joinedAuction.count({
+      where: {
+        userId,
+        ...(status == JoinedAuctionStatus.PAYMENT_EXPIRED
+          ? {
+              status: {
+                in: [
+                  JoinedAuctionStatus.LOST,
+                  JoinedAuctionStatus.PAYMENT_EXPIRED,
+                ],
+              },
+            }
+          : { status }),
+      },
     });
 
     return {
