@@ -295,6 +295,12 @@ export class PaymentsService {
                   status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
                 },
               }),
+
+              // Update auction status to sold
+              this.prismaService.auction.update({
+                where: { id: auctionPaymentTransaction.auctionId },
+                data: { status: AuctionStatus.SOLD },
+              }),
             ]);
 
             break;
