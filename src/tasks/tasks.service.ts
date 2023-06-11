@@ -23,7 +23,7 @@ export class TasksService {
     const inScheduleAuctions = await this.prismaService.auction.findMany({
       where: {
         status: AuctionStatus.IN_SCHEDULED,
-        startDate: new Date(),
+        startDate: { lte: new Date() },
         Payment: {
           every: {
             type: PaymentType.SELLER_DEPOSIT,
