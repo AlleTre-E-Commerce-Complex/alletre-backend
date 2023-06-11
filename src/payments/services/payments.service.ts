@@ -340,7 +340,7 @@ export class PaymentsService {
 
     switch (auction.durationUnit) {
       case DurationUnits.DAYS:
-        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
+        if (auction.type === AuctionType.ON_TIME) {
           // Set ON_TIME Daily auction ACTIVE
           const today = new Date();
           const expiryDate = this.addDays(new Date(), auction.durationInDays);
@@ -353,10 +353,7 @@ export class PaymentsService {
               expiryDate: expiryDate,
             },
           });
-        } else if (
-          auction.type === AuctionType.SCHEDULED ||
-          auction.startDate
-        ) {
+        } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule Daily auction
           const startDate = auction.startDate;
           const expiryDate = this.addDays(startDate, auction.durationInDays);
@@ -364,9 +361,7 @@ export class PaymentsService {
           await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
-              ...(startDate === new Date()
-                ? { status: AuctionStatus.ACTIVE }
-                : { status: AuctionStatus.IN_SCHEDULED }),
+              status: AuctionStatus.IN_SCHEDULED,
               expiryDate: expiryDate,
             },
           });
@@ -374,7 +369,7 @@ export class PaymentsService {
         break;
 
       case DurationUnits.HOURS:
-        if (auction.type === AuctionType.ON_TIME || !auction.startDate) {
+        if (auction.type === AuctionType.ON_TIME) {
           // Set ON_TIME hours auction ACTIVE
           const today = new Date();
           const expiryDate = this.addHours(new Date(), auction.durationInHours);
@@ -387,10 +382,7 @@ export class PaymentsService {
               expiryDate: expiryDate,
             },
           });
-        } else if (
-          auction.type === AuctionType.SCHEDULED ||
-          auction.startDate
-        ) {
+        } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
           const startDate = auction.startDate;
           const expiryDate = this.addHours(startDate, auction.durationInHours);
@@ -398,9 +390,7 @@ export class PaymentsService {
           await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
-              ...(startDate === new Date()
-                ? { status: AuctionStatus.ACTIVE }
-                : { status: AuctionStatus.IN_SCHEDULED }),
+              status: AuctionStatus.IN_SCHEDULED,
               expiryDate: expiryDate,
             },
           });

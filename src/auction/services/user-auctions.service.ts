@@ -62,14 +62,14 @@ export class UserAuctionsService {
     // Create Auction
     switch (durationUnit) {
       case DurationUnits.DAYS:
-        if (type === AuctionType.ON_TIME || !startDate) {
+        if (type === AuctionType.ON_TIME) {
           // Create ON_TIME Daily auction
           return await this._createOnTimeDailyAuction(
             userId,
             productId,
             auctionCreationBody,
           );
-        } else if (type === AuctionType.SCHEDULED || startDate) {
+        } else if (type === AuctionType.SCHEDULED) {
           // Create Schedule Daily auction
           return await this._createScheduleDailyAuction(
             userId,
@@ -80,14 +80,14 @@ export class UserAuctionsService {
         break;
 
       case DurationUnits.HOURS:
-        if (type === AuctionType.ON_TIME || !startDate) {
+        if (type === AuctionType.ON_TIME) {
           // Create ON_TIME hours auction
           return await this._createOnTimeHoursAuction(
             userId,
             productId,
             auctionCreationBody,
           );
-        } else if (type === AuctionType.SCHEDULED || startDate) {
+        } else if (type === AuctionType.SCHEDULED) {
           // Create Schedule hours auction
           return await this._createScheduleHoursAuction(
             userId,
@@ -1107,6 +1107,7 @@ export class UserAuctionsService {
   }
 
   async payAuctionByBidder(userId: number, auctionId: number) {
+    // TODO: check auction is sold out
     // Validate auction expiration
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
@@ -1187,7 +1188,7 @@ export class UserAuctionsService {
         data: {
           userId,
           productId,
-          type,
+          type: AuctionType.ON_TIME,
           durationUnit,
           durationInDays,
           startBidAmount,
@@ -1294,7 +1295,7 @@ export class UserAuctionsService {
         data: {
           userId,
           productId,
-          type,
+          type: AuctionType.ON_TIME,
           durationUnit,
           durationInHours,
           startBidAmount,
@@ -1465,7 +1466,7 @@ export class UserAuctionsService {
         data: {
           userId,
           productId,
-          type,
+          type: AuctionType.SCHEDULED,
           durationUnit,
           durationInDays,
           startBidAmount,
@@ -1561,7 +1562,7 @@ export class UserAuctionsService {
         data: {
           userId,
           productId,
-          type,
+          type: AuctionType.SCHEDULED,
           durationUnit,
           durationInHours,
           startBidAmount,
