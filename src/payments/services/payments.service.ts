@@ -343,7 +343,7 @@ export class PaymentsService {
         if (auction.type === AuctionType.ON_TIME) {
           // Set ON_TIME Daily auction ACTIVE
           const today = new Date();
-          const expiryDate = this.addDays(new Date(), auction.durationInDays);
+          const expiryDate = this.addDays(today, auction.durationInDays);
 
           await this.prismaService.auction.update({
             where: { id: auctionId },

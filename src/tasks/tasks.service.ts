@@ -19,6 +19,8 @@ export class TasksService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async publishAllInScheduleAuction() {
+    console.log('publish AllInSchedule Auction cron job on fire');
+
     // Get InSchedule auctions
     const inScheduleAuctions = await this.prismaService.auction.findMany({
       where: {
