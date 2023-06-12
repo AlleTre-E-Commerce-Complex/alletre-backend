@@ -17,7 +17,7 @@ export class TasksService {
   /**
    * Function will run every hour to get inschdeule and publish them if paid
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Interval(60000)
   async publishAllInScheduleAuction() {
     console.log('publish AllInSchedule Auction cron job on fire');
 
@@ -76,7 +76,7 @@ export class TasksService {
   /**
    * Function will run every mintue to set all auction expired
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Interval(60000)
   async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
