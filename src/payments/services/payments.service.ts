@@ -50,7 +50,10 @@ export class PaymentsService {
       const auction = await this.prismaService.auction.findFirst({
         where: { id: userPaymentForAuction.auctionId },
       });
-      if (auction.startDate < new Date()) {
+      if (
+        auction.type === AuctionType.SCHEDULED &&
+        auction.startDate < new Date()
+      ) {
         throw new MethodNotAllowedException(
           'Auction Start Date Now Not Valid For Publishing.',
         );
