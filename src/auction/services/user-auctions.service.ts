@@ -1150,6 +1150,38 @@ export class UserAuctionsService {
     );
   }
 
+  async confirmDelivery(winnerId: number, auctionId: number) {
+    // Validate auction expiration
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+    });
+
+    // Check authorization
+    if (auction.userId === winnerId)
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا الاعلان من احد إعلاناتك',
+        en: 'This auction is one of your created auctions',
+      });
+
+    // Check winner of auction
+    const auctionWinner = await this.prismaService.joinedAuction.findFirst({
+      where: {
+        auctionId: auctionId,
+        status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
+      },
+    });
+    if (auctionWinner.userId != winnerId)
+      throw new MethodNotAllowedResponse({
+        ar: 'لايمكنك تكملة العملية',
+        en: 'You Can not Complete Operation',
+      });
+
+    return await this.prismaService.joinedAuction.update({
+      where: { id: auctionWinner.id },
+      data: { status: JoinedAuctionStatus.COMPLETED },
+    });
+  }
+
   async findAllAuctionBidders(auctionId: number) {
     return await this.prismaService.$queryRawUnsafe(`
     SELECT "U"."id", "U"."userName", MAX(CAST("B"."amount" AS DECIMAL)) AS "lastBidAmount", MAX("B"."createdAt") AS "lastBidTime", "C"."totalBids"

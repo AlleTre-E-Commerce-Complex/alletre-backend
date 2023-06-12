@@ -224,6 +224,7 @@ export class PaymentsService {
       payload,
       stripeSignature,
     );
+    console.log('Webhook Called...');
 
     switch (status) {
       case PaymentStatus.SUCCESS:
@@ -234,6 +235,8 @@ export class PaymentsService {
 
         switch (auctionPaymentTransaction.type) {
           case PaymentType.BIDDER_DEPOSIT:
+            console.log('Webhook BIDDER_DEPOSIT ...');
+
             await this.prismaService.$transaction([
               // Update payment transaction
               this.prismaService.payment.update({
@@ -262,6 +265,8 @@ export class PaymentsService {
             break;
 
           case PaymentType.SELLER_DEPOSIT:
+            console.log('Webhook SELLER_DEPOSIT ...');
+
             // Update Auction
             await this.publishAuction(auctionPaymentTransaction.auctionId);
 
@@ -273,6 +278,8 @@ export class PaymentsService {
             break;
 
           case PaymentType.AUCTION_PURCHASE:
+            console.log('Webhook AUCTION_PURCHASE ...');
+
             const joinedAuction =
               await this.prismaService.joinedAuction.findFirst({
                 where: {

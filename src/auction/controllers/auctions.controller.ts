@@ -406,6 +406,20 @@ export class AuctionsController {
       ),
     };
   }
+  @Post('/user/:auctionId/confirm-delivery')
+  @UseGuards(AuthGuard)
+  async deliveryConfirmationByBidder(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.confirmDelivery(
+        Number(account.id),
+        auctionId,
+      ),
+    };
+  }
 
   @Get('/user/:auctionId/total-bids')
   @UseGuards(AuthOrGuestGuard)

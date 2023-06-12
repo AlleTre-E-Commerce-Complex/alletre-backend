@@ -88,9 +88,7 @@ export class TasksService {
         expiryDate: {
           lte: new Date(), // Filter auctions where expiryDate is less than or equal to the current date and time
         },
-        status: {
-          not: AuctionStatus.EXPIRED, // Exclude auctions that are already marked as expired
-        },
+        status: { notIn: [AuctionStatus.SOLD, AuctionStatus.EXPIRED] }, // Exclude auctions that are already marked as or sold
       },
     });
 
