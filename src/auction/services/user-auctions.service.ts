@@ -1858,6 +1858,17 @@ export class UserAuctionsService {
     return auction;
   }
 
+  async _checkAuctionAvailabiltyForSubmittingOrReturn(auctionId: number) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+    if (auction.status !== AuctionStatus.ACTIVE)
+      throw new MethodNotAllowedResponse({
+        en: 'Auction has been Expired',
+        ar: 'تم غلق الاعلان',
+      });
+
+    return auction;
+  }
+
   async _isAuctionHasBidders(auctionId: number) {
     const hasBidders = await this.prismaService.bids.findFirst({
       where: { auctionId },

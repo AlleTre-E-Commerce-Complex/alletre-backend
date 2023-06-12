@@ -88,7 +88,7 @@ export class TasksService {
         expiryDate: {
           lte: new Date(), // Filter auctions where expiryDate is less than or equal to the current date and time
         },
-        status: { notIn: [AuctionStatus.SOLD, AuctionStatus.EXPIRED] }, // Exclude auctions that are already marked as or sold
+        status: AuctionStatus.ACTIVE,
       },
     });
 
@@ -111,8 +111,8 @@ export class TasksService {
         take: 1,
       });
 
-      // Get winner joinedAuction
-      const bidderJoinedAuction =
+      // Get winner winnedBidderAuction
+      const winnedBidderAuction =
         await this.prismaService.joinedAuction.findFirst({
           where: {
             userId: highestBid.userId,
@@ -120,17 +120,24 @@ export class TasksService {
           },
         });
 
-      // Update winner joinedAuction to winner and waiting for payment
+      // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
       const today = new Date();
       const newDate = new Date(today.setDate(today.getDate() + 3));
 
-      await this.prismaService.joinedAuction.update({
-        where: { id: bidderJoinedAuction.id },
-        data: {
-          status: JoinedAuctionStatus.PENDING_PAYMENT,
-          paymentExpiryDate: newDate,
-        },
-      });
+      await this.prismaService.$transaction([
+        this.prismaService.joinedAuction.update({
+          where: { id: winnedBidderAuction.id },
+          data: {
+            status: JoinedAuctionStatus.PENDING_PAYMENT,
+            paymentExpiryDate: newDate,
+          },
+        }),
+
+        this.prismaService.joinedAuction.updateMany({
+          where: { auctionId: auction.id, id: { not: winnedBidderAuction.id } },
+          data: { status: JoinedAuctionStatus.LOST },
+        }),
+      ]);
 
       //TODO: Notify user
     }
