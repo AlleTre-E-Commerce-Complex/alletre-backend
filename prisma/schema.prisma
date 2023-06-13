@@ -77,6 +77,10 @@ model Category {
   hasUsageCondition        Boolean        @default(false)
   sellerDepositFixedAmount Decimal?
   bidderDepositFixedAmount Decimal?
+  bannerLink               String?
+  bannerPath               String?
+  sliderLink               String?
+  sliderPath               String?
   products                 Product[]
   subCategories            SubCategory[]
   brands                   Brand[]
@@ -89,6 +93,8 @@ model SubCategory {
   nameEn       String
   categoryId   Int
   createdAt    DateTime       @default(now())
+  imageLink    String?
+  imagePath    String?
   products     Product[]
   category     Category       @relation(fields: [categoryId], references: [id])
   customFields CustomFields[]
