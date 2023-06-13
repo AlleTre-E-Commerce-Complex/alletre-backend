@@ -8,6 +8,7 @@ import { AuctionsHelper } from './helpers/auctions-helper';
 import { BidsWebSocketGateway } from './gateway/bids.gateway';
 import { AuthModule } from 'src/auth/auth.module';
 import { PaymentsModule } from 'src/payments/payments.module';
+import { AuctionStatusValidator } from './validations/auction-validator';
 
 @Module({
   imports: [PrismaModule, FirebaseModule, AuthModule, PaymentsModule],
@@ -16,6 +17,7 @@ import { PaymentsModule } from 'src/payments/payments.module';
     PaginationService,
     AuctionsHelper,
     BidsWebSocketGateway,
+    AuctionStatusValidator,
   ],
   controllers: [AuctionsController],
   exports: [UserAuctionsService],

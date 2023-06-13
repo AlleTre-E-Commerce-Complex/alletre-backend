@@ -27,6 +27,8 @@ import { AuctionsHelper } from '../helpers/auctions-helper';
 import { Decimal } from '@prisma/client/runtime';
 import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 import { PaymentsService } from 'src/payments/services/payments.service';
+import { AuctionStatusValidator } from '../validations/auction-validator';
+import { AuctionActions } from 'src/common/enums/auction-actions.enum';
 
 @Injectable()
 export class UserAuctionsService {
@@ -37,6 +39,7 @@ export class UserAuctionsService {
     private auctionsHelper: AuctionsHelper,
     private bidsWebSocketGateway: BidsWebSocketGateway,
     private paymentService: PaymentsService,
+    private auctionStatusValidator: AuctionStatusValidator,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -122,7 +125,11 @@ export class UserAuctionsService {
   async updateDraftAuction(auctionId: number, productDTO: ProductDTO) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.AUCTION_UPDATE,
+    );
+    // await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
 
     await this._updateProduct(auction.productId, productDTO);
 
@@ -136,7 +143,11 @@ export class UserAuctionsService {
   ) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.AUCTION_UPDATE,
+    );
+    // await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
 
     const { type, durationUnit, startDate, product } = auctionCreationDTO;
 
@@ -189,7 +200,11 @@ export class UserAuctionsService {
   async deleteDraftedAuction(userId: number, auctionId: number) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    await this.auctionsHelper._auctionCanBeDeletedByOwner(auctionId);
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.AUCTION_DELETE,
+    );
+    // await this.auctionsHelper._auctionCanBeDeletedByOwner(auctionId);
 
     const deletedImages = this.prismaService.image.deleteMany({
       where: { productId: auction.productId },
@@ -898,7 +913,20 @@ export class UserAuctionsService {
 
   async payToPublish(userId: number, auctionId: number) {
     await this.auctionsHelper._isAuctionOwner(userId, auctionId);
-    await this.auctionsHelper._checkAuctionExistanceOr404(auctionId);
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.SELLER_DEPOSIT,
+    );
+
+    this.auctionStatusValidator.isStatusValidForAuction(
+      auction,
+      auction.type === AuctionType.ON_TIME
+        ? AuctionStatus.ACTIVE
+        : AuctionStatus.IN_SCHEDULED,
+    );
+
     const auctionCategory = await this.auctionsHelper._getAuctionCategory(
       auctionId,
     );
@@ -918,8 +946,12 @@ export class UserAuctionsService {
     auctionId: number,
     bidAmount: number,
   ) {
-    // Validate auction expiration
-    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.BIDDER_DEPOSIT,
+    );
 
     // Check authorization
     if (auction.userId === userId)
@@ -967,8 +999,12 @@ export class UserAuctionsService {
     auctionId: number,
     bidAmount: number,
   ) {
-    // Validate auction expiration
-    const auction = await this._checkAuctionExpiredOrReturn(auctionId);
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.SUBMIT_BID,
+    );
 
     // Check authorization
     if (auction.userId === userId)
@@ -1107,11 +1143,12 @@ export class UserAuctionsService {
   }
 
   async payAuctionByBidder(userId: number, auctionId: number) {
-    // TODO: check auction is sold out
-    // Validate auction expiration
-    const auction = await this.prismaService.auction.findUnique({
-      where: { id: auctionId },
-    });
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.BIIDER_PURCHASE,
+    );
 
     // Check authorization
     if (auction.userId === userId)
@@ -1150,11 +1187,39 @@ export class UserAuctionsService {
     );
   }
 
-  async confirmDelivery(winnerId: number, auctionId: number) {
-    // Validate auction expiration
+  async buyNowAuction(userId: number, auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
+
+    if (auction.status !== AuctionStatus.ACTIVE)
+      throw new MethodNotAllowedResponse({
+        ar: 'الاعلان غير متاح',
+        en: 'Auction Is Now Available',
+      });
+
+    // Check authorization
+    if (auction.userId === userId)
+      throw new MethodNotAllowedResponse({
+        ar: 'هذا الاعلان من احد إعلاناتك',
+        en: 'This auction is one of your created auctions',
+      });
+
+    if (!auction.isBuyNowAllowed)
+      throw new MethodNotAllowedResponse({
+        ar: 'الاعلان غير قابل للشراء',
+        en: 'Buy Now Is Now Allowed',
+      });
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
+  }
+
+  async confirmDelivery(winnerId: number, auctionId: number) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     // Check authorization
     if (auction.userId === winnerId)
