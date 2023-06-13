@@ -199,8 +199,8 @@ async function main() {
             },
           },
           {
-            nameAr: 'الهواتف المحمولة وملحقاتها',
-            nameEn: 'Cell phones & Accessors',
+            nameAr: 'الهواتف المحمولة ',
+            nameEn: 'Cell Phones',
             customFields: {
               create: [
                 {
@@ -237,6 +237,49 @@ async function main() {
                   type: 'text',
                   labelAr: 'منظقة المنشأ',
                   labelEn: 'Region Of Manufacture',
+                },
+                {
+                  key: 'material',
+                  resKey: 'material',
+                  type: 'array',
+                  labelAr: 'نوع المادة',
+                  labelEn: 'Material',
+                },
+                {
+                  key: 'brandId',
+                  resKey: 'brand',
+                  type: 'array',
+                  labelAr: 'ماركة',
+                  labelEn: 'Brand',
+                },
+                {
+                  key: 'model',
+                  resKey: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
+              ],
+            },
+          },
+          {
+            nameAr: 'الإكسسوارات',
+            nameEn: 'Accessories',
+            customFields: {
+              create: [
+                {
+                  key: 'color',
+                  resKey: 'color',
+                  type: 'array',
+                  labelAr: 'اللون',
+                  labelEn: 'Color',
+                },
+                {
+                  key: 'type',
+                  resKey: 'type',
+                  type: 'text',
+                  labelAr: 'النوع',
+                  labelEn: 'Type',
                 },
                 {
                   key: 'material',

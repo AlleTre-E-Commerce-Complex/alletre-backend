@@ -146,6 +146,7 @@ export class TasksService {
       //TODO: Notify user
 
       await this.userAuctionService.notifyAuctionWinner(highestBid.userId);
+      console.log('User notified');
     }
   }
 }
