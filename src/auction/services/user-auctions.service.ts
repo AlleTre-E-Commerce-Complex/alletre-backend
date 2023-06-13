@@ -20,6 +20,7 @@ import {
   PaymentType,
   Prisma,
   Product,
+  User,
 } from '@prisma/client';
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
@@ -1043,7 +1044,7 @@ export class UserAuctionsService {
     });
 
     // emit to all biders using socket instance
-    await this.bidsWebSocketGateway.userSubmitBidEventHandler(
+    this.bidsWebSocketGateway.userSubmitBidEventHandler(
       auctionId,
       new Prisma.Decimal(bidAmount),
       totalBids,
@@ -1140,6 +1141,17 @@ export class UserAuctionsService {
           })
         : [],
     };
+  }
+
+  async notifyAuctionWinner(userId: number) {
+    const auctionWinner = await this.prismaService.user.findFirst({
+      where: { id: userId },
+    });
+
+    this.bidsWebSocketGateway.notifyWinner(
+      auctionWinner.socketId,
+      auctionWinner.id,
+    );
   }
 
   async payAuctionByBidder(userId: number, auctionId: number) {

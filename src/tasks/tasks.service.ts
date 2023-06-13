@@ -6,13 +6,17 @@ import {
   PaymentStatus,
   PaymentType,
 } from '@prisma/client';
+import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
 
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private userAuctionService: UserAuctionsService,
+  ) {}
 
   /**
    * Function will run every hour to get inschdeule and publish them if paid
@@ -140,6 +144,8 @@ export class TasksService {
       ]);
 
       //TODO: Notify user
+
+      this.userAuctionService.notifyAuctionWinner(highestBid.userId);
     }
   }
 }

@@ -58,7 +58,7 @@ export class BidsWebSocketGateway
     }
   }
 
-  async userSubmitBidEventHandler(
+  userSubmitBidEventHandler(
     auctionId: number,
     bidAmount: Decimal,
     totalBids: number,
@@ -67,5 +67,12 @@ export class BidsWebSocketGateway
     this.server
       .to(String(auctionId))
       .emit('bid:submitted', { bidAmount, totalBids });
+  }
+
+  /**
+   * notify winner user
+   */
+  notifyWinner(socketId: string, userId: number) {
+    this.server.to(socketId).emit('auction:winner', { userId });
   }
 }
