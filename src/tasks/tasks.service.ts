@@ -145,7 +145,7 @@ export class TasksService {
 
       //TODO: Notify user
 
-      this.userAuctionService.notifyAuctionWinner(highestBid.userId);
+      await this.userAuctionService.notifyAuctionWinner(highestBid.userId);
     }
   }
 }
