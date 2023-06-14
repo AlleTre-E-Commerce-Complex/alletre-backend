@@ -216,6 +216,26 @@ export class AuctionsController {
       data: userAuctionsPaginated.auctions,
     };
   }
+
+  @Get('/user/purchased-auctions')
+  @UseGuards(AuthGuard)
+  async getPurchasedAuctions(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const purchasedAuctionsPaginated =
+      await this.userAuctionsService.getAllPurchasedAuctions(
+        account.id,
+        paginationDTO,
+      );
+
+    return {
+      success: true,
+      pagination: purchasedAuctionsPaginated.pagination,
+      data: purchasedAuctionsPaginated.auctions,
+    };
+  }
+
   @Post('/user/pay')
   @UseGuards(AuthGuard)
   async payForAuction(
@@ -406,6 +426,22 @@ export class AuctionsController {
       ),
     };
   }
+
+  @Post('/user/:auctionId/buy-now')
+  @UseGuards(AuthGuard)
+  async buyNowAuction(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.buyNowAuction(
+        Number(account.id),
+        auctionId,
+      ),
+    };
+  }
+
   @Post('/user/:auctionId/confirm-delivery')
   @UseGuards(AuthGuard)
   async deliveryConfirmationByBidder(

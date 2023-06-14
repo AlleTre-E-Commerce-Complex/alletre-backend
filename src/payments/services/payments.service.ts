@@ -222,6 +222,69 @@ export class PaymentsService {
     return { clientSecret, paymentIntentId };
   }
 
+  async createBuyNowPaymentTransaction(
+    user: User,
+    auctionId: number,
+    currency: string,
+    amount: number,
+  ) {
+    // Create SripeCustomer if has no account
+    let stripeCustomerId: string;
+    if (!user?.stripeId) {
+      stripeCustomerId = await this.stripeService.createCustomer(
+        user.email,
+        user.userName,
+      );
+
+      // Add to user stripeCustomerId
+      await this.prismaService.user.update({
+        where: { id: user.id },
+        data: { stripeId: stripeCustomerId },
+      });
+    }
+
+    // Check if user has already has transaction for auction
+    const userPaymentTransaction = await this.getAuctionPaymentTransaction(
+      user.id,
+      auctionId,
+      PaymentType.BUY_NOW_PURCHASE,
+    );
+    if (userPaymentTransaction) {
+      // Retrieve PaymentIntent and clientSecret for clientSide
+      const paymentIntent = await this.stripeService.retrievePaymentIntent(
+        userPaymentTransaction.paymentIntentId,
+      );
+
+      if (paymentIntent.status === 'succeeded')
+        throw new MethodNotAllowedException('already paid');
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      };
+    }
+
+    // Create PaymentIntent
+    const { clientSecret, paymentIntentId } =
+      await this.stripeService.createPaymentIntent(
+        stripeCustomerId,
+        amount,
+        currency,
+      );
+
+    //TODO:  Add currency in payment model
+    await this.prismaService.payment.create({
+      data: {
+        userId: user.id,
+        auctionId: auctionId,
+        amount: amount,
+        paymentIntentId: paymentIntentId,
+        type: PaymentType.BUY_NOW_PURCHASE,
+      },
+    });
+    return { clientSecret, paymentIntentId };
+  }
+
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
     const { paymentIntent, status } = await this.stripeService.webHookHandler(
       payload,
@@ -314,6 +377,22 @@ export class PaymentsService {
             ]);
 
             break;
+          case PaymentType.BUY_NOW_PURCHASE:
+            console.log('Webhook BUY_NOW_PURCHASE ...');
+
+            await this.prismaService.$transaction([
+              // Update payment transaction
+              this.prismaService.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.SUCCESS },
+              }),
+
+              // Update auction status to sold
+              this.prismaService.auction.update({
+                where: { id: auctionPaymentTransaction.auctionId },
+                data: { status: AuctionStatus.SOLD },
+              }),
+            ]);
 
           default:
             break;

@@ -1200,15 +1200,12 @@ export class UserAuctionsService {
   }
 
   async buyNowAuction(userId: number, auctionId: number) {
-    const auction = await this.prismaService.auction.findUnique({
-      where: { id: auctionId },
-    });
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
-    if (auction.status !== AuctionStatus.ACTIVE)
-      throw new MethodNotAllowedResponse({
-        ar: 'الاعلان غير متاح',
-        en: 'Auction Is Now Available',
-      });
+    this.auctionStatusValidator.isActionValidForAuction(
+      auction,
+      AuctionActions.BUY_NOW,
+    );
 
     // Check authorization
     if (auction.userId === userId)
@@ -1217,19 +1214,94 @@ export class UserAuctionsService {
         en: 'This auction is one of your created auctions',
       });
 
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
     if (!auction.isBuyNowAllowed)
       throw new MethodNotAllowedResponse({
         ar: 'الاعلان غير قابل للشراء',
         en: 'Buy Now Is Now Allowed',
       });
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-    });
-
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
+    return await this.paymentService.createBuyNowPaymentTransaction(
+      user,
+      auctionId,
+      'AED',
+      auction.acceptedAmount.toNumber(),
+    );
   }
 
+  async getAllPurchasedAuctions(userId: number, paginationDTO: PaginationDTO) {
+    const { page = 1, perPage = 4 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        Payment: {
+          some: {
+            userId,
+            status: PaymentStatus.SUCCESS,
+            type: PaymentType.BUY_NOW_PURCHASE,
+          },
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        endDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+      },
+      skip: skip,
+      take: limit,
+    });
+
+    const count = await this.prismaService.auction.count({
+      where: {
+        Payment: {
+          some: {
+            userId,
+            status: PaymentStatus.SUCCESS,
+            type: PaymentType.BUY_NOW_PURCHASE,
+          },
+        },
+      },
+    });
+
+    return {
+      pagination: this.paginationService.getPagination(count, page, perPage),
+      auctions,
+    };
+  }
   async confirmDelivery(winnerId: number, auctionId: number) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 

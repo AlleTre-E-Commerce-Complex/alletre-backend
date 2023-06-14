@@ -24,6 +24,7 @@ export class AuctionStatusValidator {
     [AuctionStatus.ACTIVE]: [
       AuctionActions.BIDDER_DEPOSIT,
       AuctionActions.SUBMIT_BID,
+      AuctionActions.BUY_NOW,
     ],
     [AuctionStatus.IN_SCHEDULED]: [],
     [AuctionStatus.SOLD]: [],
