@@ -1279,6 +1279,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
+        Payment: { select: { createdAt: true } },
         _count: { select: { bids: true } },
       },
       skip: skip,
