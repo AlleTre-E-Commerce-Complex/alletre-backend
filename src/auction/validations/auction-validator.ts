@@ -26,9 +26,10 @@ export class AuctionStatusValidator {
       AuctionActions.SUBMIT_BID,
       AuctionActions.BUY_NOW,
     ],
+    [AuctionStatus.WAITING_FOR_PAYMENT]: [AuctionActions.BIIDER_PURCHASE],
     [AuctionStatus.IN_SCHEDULED]: [],
     [AuctionStatus.SOLD]: [],
-    [AuctionStatus.EXPIRED]: [AuctionActions.BIIDER_PURCHASE],
+    [AuctionStatus.EXPIRED]: [],
   };
 
   constructor() {}

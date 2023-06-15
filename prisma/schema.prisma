@@ -256,6 +256,7 @@ enum AuctionStatus {
   IN_SCHEDULED
   ARCHIVED
   SOLD
+  WAITING_FOR_PAYMENT
   EXPIRED
 }
 
