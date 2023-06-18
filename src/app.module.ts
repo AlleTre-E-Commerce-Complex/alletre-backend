@@ -12,6 +12,7 @@ import { WatchListModule } from './watch-list/watch-list.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PaymentsModule } from './payments/payments.module';
     WatchListModule,
     TasksModule,
     PaymentsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
