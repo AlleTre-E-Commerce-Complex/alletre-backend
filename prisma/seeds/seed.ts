@@ -1,6 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
+import * as bcrypt from 'bcrypt';
+
 async function main() {
+  const hashedPassword = await bcrypt.hash(
+    process.env.ADMIN_PASS,
+    parseInt(process.env.SALT),
+  );
+
+  await prisma.admin.create({
+    data: { email: process.env.ADMIN_EMAIL, password: hashedPassword },
+  });
   await prisma.category.create({
     data: {
       nameAr: 'الأجهزة الكهربائية',

@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../user/user.module';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { EmailModule } from '../emails/email.module';
+import { AdminModule } from 'src/admin/admin.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EmailModule } from '../emails/email.module';
     UserModule,
     FirebaseModule,
     EmailModule,
+    AdminModule,
   ],
   providers: [AuthService],
   controllers: [AuthController],

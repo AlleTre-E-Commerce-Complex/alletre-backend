@@ -10,6 +10,7 @@ import { ForbiddenResponse, NotFoundResponse } from '../common/errors';
 import { EmailSerivce } from '../emails/email.service';
 import { EmailsType } from './enums/emails-type.enum';
 import { Socket } from 'socket.io';
+import { AdminService } from 'src/admin/admin.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly firebaseService: FirebaseService,
     private readonly emailSerivce: EmailSerivce,
+    private readonly adminService: AdminService,
   ) {
     /* TODO document why this constructor is empty */
   }
@@ -300,5 +302,42 @@ export class AuthService {
 
   async getUserByRole(id: number, role: string) {
     if (role == Role.User) return await this.userService.findUserByIdOr404(id);
+    if (role == Role.Admin)
+      return await this.adminService.getAdminByIdOr404(id);
+  }
+
+  async adminSignIn(email: string, password: string) {
+    const admin = await this.adminService.getAdminByEmailOr404(email);
+
+    //  Compare password with userPassword
+    try {
+      const isPasswordMatches = await bcrypt.compare(password, admin.password);
+      if (!isPasswordMatches)
+        throw new MethodNotAllowedResponse({
+          ar: 'خطأ في بيانات المستخدم',
+          en: 'Invalid user credentials',
+        });
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ في بيانات المستخدم',
+        en: 'Invalid user credentials',
+      });
+    }
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: admin.id,
+      email: admin.email,
+      roles: [Role.Admin],
+    });
+
+    const adminWithoutPassword = this.userService.exclude(admin, ['password']);
+
+    return {
+      ...adminWithoutPassword,
+      imageLink: undefined,
+      imagePath: undefined,
+      accessToken,
+      refreshToken,
+    };
   }
 }

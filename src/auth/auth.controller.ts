@@ -82,4 +82,25 @@ export class AuthController {
   async activateEmailController(@Query('token') token: string) {
     return await this.authService.activateAccount(token);
   }
+
+  @Post('/admin/sign-in')
+  async adminSignInController(@Body() UserSignInBody: UserSignInDTO) {
+    return {
+      success: true,
+      data: await this.authService.adminSignIn(
+        UserSignInBody.email,
+        UserSignInBody.password,
+      ),
+    };
+  }
+
+  @Post('/admin/refresh-token')
+  async adminRefreshTokenController(
+    @Body('refreshToken') refreshToken: string,
+  ) {
+    return {
+      success: true,
+      data: await this.authService.refreshToken(refreshToken),
+    };
+  }
 }
