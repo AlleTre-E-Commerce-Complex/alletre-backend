@@ -1279,7 +1279,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
-        Payment: { select: { createdAt: true } },
+        Payment: { select: { createdAt: true, type: true } },
         _count: { select: { bids: true } },
       },
       skip: skip,
@@ -1298,9 +1298,16 @@ export class UserAuctionsService {
       },
     });
 
+    const convertedAuctions = auctions.map((auction) => {
+      const filteredPayments = auction.Payment.filter(
+        (payment) => payment.type === PaymentType.BUY_NOW_PURCHASE,
+      );
+      return { ...auction, Payment: filteredPayments };
+    });
+
     return {
       pagination: this.paginationService.getPagination(count, page, perPage),
-      auctions,
+      auctions: convertedAuctions,
     };
   }
   async confirmDelivery(winnerId: number, auctionId: number) {
