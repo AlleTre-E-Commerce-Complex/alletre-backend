@@ -36,6 +36,8 @@ import {
 } from '@nestjs/platform-express';
 import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
 import { Role } from 'src/auth/enums/role.enum';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -270,6 +272,22 @@ export class AuctionsController {
       success: true,
       totalItems: auctionsAnalytics.count,
       data: auctionsAnalytics.auctionsGrouping,
+    };
+  }
+
+  @Get('/admin/all')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async getAllAuctionsByAdmin(
+    @Query() getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
+  ) {
+    const auctionsPaginated =
+      await this.userAuctionsService.findAuctionsByAdmin(getAuctionsByOwnerDTO);
+
+    return {
+      success: true,
+      pagination: auctionsPaginated.pagination,
+      data: auctionsPaginated.auctions,
     };
   }
 

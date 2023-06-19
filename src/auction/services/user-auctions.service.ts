@@ -300,6 +300,51 @@ export class UserAuctionsService {
     };
   }
 
+  async findAuctionsByAdmin(getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO) {
+    const { page = 1, perPage = 10, status } = getAuctionsByOwnerDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      skip: skip,
+      take: limit,
+      where: {
+        ...(status ? { status: status } : {}),
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+        bids: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    const count = await this.prismaService.auction.count({
+      where: {
+        ...(status ? { status: status } : {}),
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      count,
+      page,
+      perPage,
+    );
+
+    return { auctions, pagination };
+  }
+
   async findAuctionsForUser(
     roles: Role[],
     getAuctionsDTO: GetAuctionsDTO,
