@@ -976,13 +976,28 @@ export class UserAuctionsService {
     const auctionCategory = await this.auctionsHelper._getAuctionCategory(
       auctionId,
     );
+
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      include: {
+        locations: { include: { country: true } },
+      },
     });
+
+    const sellerMainLocation = user.locations.find((location) => {
+      if (location.isMain) return location;
+    });
+
+    if (!sellerMainLocation)
+      throw new MethodNotAllowedResponse({
+        ar: 'ادخل عنوان رئيسي',
+        en: 'Set one location as main',
+      });
+
     return await this.paymentService.payDepositBySeller(
       user,
       auctionId,
-      'AED',
+      sellerMainLocation.country.currency,
       auctionCategory.sellerDepositFixedAmount.toNumber(),
     );
   }
@@ -1028,13 +1043,28 @@ export class UserAuctionsService {
     const auctionCategory = await this.auctionsHelper._getAuctionCategory(
       auctionId,
     );
+
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      include: {
+        locations: { include: { country: true } },
+      },
     });
+
+    const bidderMainLocation = user.locations.find((location) => {
+      if (location.isMain) return location;
+    });
+
+    if (!bidderMainLocation)
+      throw new MethodNotAllowedResponse({
+        ar: 'ادخل عنوان رئيسي',
+        en: 'Set one location as main',
+      });
+
     return await this.paymentService.payDepositByBidder(
       user,
       auctionId,
-      'AED',
+      bidderMainLocation.country.currency,
       auctionCategory.bidderDepositFixedAmount.toNumber(),
       bidAmount,
     );
@@ -1216,7 +1246,20 @@ export class UserAuctionsService {
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      include: {
+        locations: { include: { country: true } },
+      },
     });
+
+    const userMainLocation = user.locations.find((location) => {
+      if (location.isMain) return location;
+    });
+
+    if (!userMainLocation)
+      throw new MethodNotAllowedResponse({
+        ar: 'ادخل عنوان رئيسي',
+        en: 'Set one location as main',
+      });
 
     // Check winner of auction
     const auctionWinner = await this.prismaService.joinedAuction.findFirst({
@@ -1239,7 +1282,7 @@ export class UserAuctionsService {
     return await this.paymentService.payAuctionByBidder(
       user,
       auctionId,
-      'AED',
+      userMainLocation.country.currency,
       latestBidAmount.toNumber(),
     );
   }
@@ -1261,7 +1304,20 @@ export class UserAuctionsService {
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      include: {
+        locations: { include: { country: true } },
+      },
     });
+
+    const userMainLocation = user.locations.find((location) => {
+      if (location.isMain) return location;
+    });
+
+    if (!userMainLocation)
+      throw new MethodNotAllowedResponse({
+        ar: 'ادخل عنوان رئيسي',
+        en: 'Set one location as main',
+      });
 
     if (!auction.isBuyNowAllowed)
       throw new MethodNotAllowedResponse({
@@ -1273,7 +1329,7 @@ export class UserAuctionsService {
     return await this.paymentService.createBuyNowPaymentTransaction(
       user,
       auctionId,
-      'AED',
+      userMainLocation.country.currency,
       auction.acceptedAmount.toNumber(),
     );
   }

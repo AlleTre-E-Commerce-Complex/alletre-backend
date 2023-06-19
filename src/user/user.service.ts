@@ -161,23 +161,16 @@ export class UserService {
     const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
 
     try {
-      await this.prismaService.$transaction([
-        this.prismaService.location.create({
-          data: {
-            userId: userId,
-            address,
-            cityId,
-            countryId,
-            ...(zipCode ? { zipCode } : {}),
-            addressLabel,
-          },
-        }),
-
-        this.prismaService.user.update({
-          where: { id: userId },
-          data: { hasCompletedProfile: true },
-        }),
-      ]);
+      await this.prismaService.location.create({
+        data: {
+          userId: userId,
+          address,
+          cityId,
+          countryId,
+          ...(zipCode ? { zipCode } : {}),
+          addressLabel,
+        },
+      });
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في إضافة العنوان الخاص بك',
@@ -298,13 +291,18 @@ export class UserService {
     try {
       await this.prismaService.$transaction([
         this.prismaService.location.updateMany({
-          where: { userId: userId, isMain: true },
+          where: { userId: userId },
           data: { isMain: false },
         }),
 
         this.prismaService.location.update({
           where: { id: locationId },
           data: { isMain: true },
+        }),
+
+        this.prismaService.user.update({
+          where: { id: userId },
+          data: { hasCompletedProfile: true },
         }),
       ]);
     } catch (error) {
@@ -319,6 +317,7 @@ export class UserService {
   async deleteLocationById(userId: number, locationId: number) {
     await this._isMyLocation(userId, locationId);
     await this._isLocationRelatedToAuction(locationId);
+    await this._isMainLocation(locationId);
 
     await this.prismaService.location.delete({ where: { id: locationId } });
   }
@@ -365,6 +364,17 @@ export class UserService {
       throw new MethodNotAllowedResponse({
         ar: 'هذا العنوان تم تعينه مع إعلان من قبل',
         en: 'This Location Is Already Related To Auction',
+      });
+  }
+
+  private async _isMainLocation(locationId: number) {
+    const isMainLocation = await this.prismaService.location.findUnique({
+      where: { id: locationId },
+    });
+    if (isMainLocation.isMain)
+      throw new MethodNotAllowedResponse({
+        ar: 'لايمكنك حذف عنوانك الرئيسي',
+        en: 'You Can Not Delete Your Main Location',
       });
   }
 
