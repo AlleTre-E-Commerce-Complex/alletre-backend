@@ -161,16 +161,41 @@ export class UserService {
     const { address, addressLabel, cityId, countryId, zipCode } = locationDTO;
 
     try {
-      await this.prismaService.location.create({
-        data: {
-          userId: userId,
-          address,
-          cityId,
-          countryId,
-          ...(zipCode ? { zipCode } : {}),
-          addressLabel,
-        },
+      const userLocations = await this.prismaService.location.findMany({
+        where: { userId },
       });
+
+      if (userLocations.length) {
+        await this.prismaService.location.create({
+          data: {
+            userId: userId,
+            address,
+            cityId,
+            countryId,
+            ...(zipCode ? { zipCode } : {}),
+            addressLabel,
+          },
+        });
+      } else {
+        await this.prismaService.$transaction([
+          this.prismaService.location.create({
+            data: {
+              userId: userId,
+              address,
+              cityId,
+              countryId,
+              ...(zipCode ? { zipCode } : {}),
+              addressLabel,
+              isMain: true,
+            },
+          }),
+
+          this.prismaService.user.update({
+            where: { id: userId },
+            data: { hasCompletedProfile: true },
+          }),
+        ]);
+      }
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في إضافة العنوان الخاص بك',
