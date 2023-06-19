@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -17,6 +18,10 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { Account } from '../auth/decorators/account.decorator';
 import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { PaginationDTO } from 'src/auction/dtos';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/enums/role.enum';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('users')
 export class UserController {
@@ -40,6 +45,18 @@ export class UserController {
     };
   }
 
+  @Get('admin/all')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async getAllUsers(
+    @Query() paginationDTO: PaginationDTO,
+    @Query('name') name: string,
+  ) {
+    return {
+      success: true,
+      data: await this.userService.getAllUsers(paginationDTO, name),
+    };
+  }
   @Post('locations')
   @UseGuards(AuthGuard)
   async addNewLocationController(

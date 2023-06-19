@@ -18,6 +18,9 @@ import {
 } from '@nestjs/platform-express';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/enums/role.enum';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('categories')
 export class CategoryController {
@@ -75,7 +78,8 @@ export class CategoryController {
   }
 
   @Put('/:categoryId/upload-images')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @UseInterceptors(
     FileFieldsInterceptor(
       [

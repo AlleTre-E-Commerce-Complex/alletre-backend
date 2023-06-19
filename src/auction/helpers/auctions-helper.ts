@@ -29,7 +29,7 @@ export class AuctionsHelper {
     if (title && title.length) {
       productFilterOrSearch = {
         ...productFilterOrSearch,
-        ...{ title: { contains: title } },
+        ...{ title: { startsWith: title, mode: 'insensitive' } },
       };
     }
     if (categories?.length) {

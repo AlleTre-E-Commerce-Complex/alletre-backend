@@ -6,12 +6,15 @@ import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import * as bcrypt from 'bcrypt';
 import { OAuthType } from '@prisma/client';
+import { PaginationDTO } from 'src/auction/dtos';
+import { PaginationService } from 'src/common/services/pagination.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private prismaService: PrismaService,
     private firebaseService: FirebaseService,
+    private paginationService: PaginationService,
   ) {}
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
@@ -363,6 +366,43 @@ export class UserService {
         ar: 'هذا العنوان تم تعينه مع إعلان من قبل',
         en: 'This Location Is Already Related To Auction',
       });
+  }
+
+  async getAllUsers(paginationDTO: PaginationDTO, name?: string) {
+    const { page = 1, perPage = 10 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const users = await this.prismaService.user.findMany({
+      where: {
+        ...(name
+          ? { userName: { startsWith: name, mode: 'insensitive' } }
+          : {}),
+      },
+      select: {
+        userName: true,
+        email: true,
+        phone: true,
+        imageLink: true,
+        isVerified: true,
+        createdAt: true,
+        _count: { select: { auctions: true, JoinedAuction: true } },
+      },
+      take: limit,
+      skip,
+    });
+
+    const count = await this.prismaService.user.count({
+      where: { ...(name ? { userName: { startsWith: name } } : {}) },
+    });
+
+    return {
+      pagination: this.paginationService.getPagination(count, page, perPage),
+      users,
+    };
   }
 
   // Exclude keys from user
