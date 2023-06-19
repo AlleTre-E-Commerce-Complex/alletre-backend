@@ -28,7 +28,9 @@ export class FirebaseService {
         metadata: metadata,
         destination: filePath,
       });
-    } catch {
+    } catch (error) {
+      console.log(error);
+
       throw new MethodNotAllowedResponse({
         ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
         en: 'Error uploading images to the cloud, please try again.',

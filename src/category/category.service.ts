@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as fsPomises from 'fs/promises';
-import { MethodNotAllowedResponse } from 'src/common/errors';
+import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
+import { FirebaseService } from 'src/firebase/firebase.service';
 @Injectable()
 export class CategoryService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private firebaseService: FirebaseService,
+  ) {}
 
   async getAllCategories() {
     return await this.prismaService.category.findMany({});
@@ -64,6 +68,53 @@ export class CategoryService {
   async getAllBrands(categoryId?: number) {
     return await this.prismaService.brand.findMany({
       where: { ...(categoryId ? { categoryId: Number(categoryId) } : {}) },
+    });
+  }
+
+  async uploadImagesForCategory(
+    categoryId: number,
+    banner?: Express.Multer.File,
+    slider?: Express.Multer.File,
+  ) {
+    console.log(banner, slider);
+
+    const category = await this.prismaService.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category)
+      throw new NotFoundResponse({
+        en: 'Category Not Found',
+        ar: 'لا يوجد هذا العنصر',
+      });
+
+    let bannerLink: string,
+      bannerPath: string,
+      sliderLink: string,
+      sliderPath: string;
+
+    // Upload Images
+    if (banner) {
+      const { fileLink, filePath } = await this.firebaseService.uploadImage(
+        banner,
+      );
+      bannerLink = fileLink;
+      bannerPath = filePath;
+    }
+    if (slider) {
+      const { fileLink, filePath } = await this.firebaseService.uploadImage(
+        slider,
+      );
+
+      sliderLink = fileLink;
+      sliderPath = filePath;
+    }
+
+    await this.prismaService.category.update({
+      where: { id: categoryId },
+      data: {
+        ...(bannerLink ? { bannerLink, bannerPath } : {}),
+        ...(sliderLink ? { sliderLink, sliderPath } : {}),
+      },
     });
   }
 }
