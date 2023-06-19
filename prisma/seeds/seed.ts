@@ -758,6 +758,7 @@ async function main() {
     data: {
       nameAr: 'مصر',
       nameEn: 'Egypt',
+      currency: 'EGP',
       cities: {
         create: [
           { nameAr: 'القاهرة', nameEn: 'Cairo' },
@@ -795,6 +796,7 @@ async function main() {
     data: {
       nameAr: 'الإمارات العربية المتحدة',
       nameEn: 'United Arab Emirates',
+      currency: 'AED',
       cities: {
         create: [
           { nameAr: 'دبي', nameEn: 'Dubai' },

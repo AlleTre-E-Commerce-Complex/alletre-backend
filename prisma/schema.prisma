@@ -36,6 +36,7 @@ model Country {
   id        Int        @id @default(autoincrement())
   nameAr    String
   nameEn    String
+  currency  String?
   createdAt DateTime   @default(now())
   cities    City[]
   locations Location[]
