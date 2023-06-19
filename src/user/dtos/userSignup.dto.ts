@@ -5,6 +5,7 @@ import {
   IsString,
   Length,
 } from '@nestjs/class-validator';
+import { IsOptional } from 'class-validator';
 
 export class UserSignUpDTO {
   @IsNotEmpty()
@@ -21,6 +22,5 @@ export class UserSignUpDTO {
   password: string;
 
   @IsNotEmpty()
-  @IsPhoneNumber()
   phone: string;
 }
