@@ -5,13 +5,17 @@ import {
   ParseIntPipe,
   Put,
   Query,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 
@@ -81,7 +85,7 @@ export class CategoryController {
       { dest: 'uploads/' },
     ),
   )
-  async uploadImages(
+  async uploadImagesForCategories(
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @UploadedFiles()
     files: {
@@ -101,6 +105,22 @@ export class CategoryController {
         categoryId,
         files.banner[0],
         files.slider[0],
+      ),
+    };
+  }
+
+  @Put('/sub-categories/:subCategoryId/upload-images')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('image', { dest: 'uploads/' }))
+  async uploadImagesForSubCategory(
+    @Param('subCategoryId', ParseIntPipe) subCategoryId: number,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return {
+      success: true,
+      data: await this.categoryService.uploadImageForSubCategory(
+        subCategoryId,
+        image,
       ),
     };
   }

@@ -117,4 +117,37 @@ export class CategoryService {
       },
     });
   }
+
+  async uploadImageForSubCategory(
+    subCategoryId: number,
+    image: Express.Multer.File,
+  ) {
+    const subCategory = await this.prismaService.subCategory.findUnique({
+      where: { id: subCategoryId },
+    });
+    if (!subCategory)
+      throw new NotFoundResponse({
+        en: 'subCategory Not Found',
+        ar: 'لا يوجد هذا العنصر',
+      });
+
+    // Upload Images
+    if (!image)
+      throw new MethodNotAllowedResponse({
+        ar: 'قم برفع الصورة',
+        en: 'Upload Image',
+      });
+
+    const { fileLink, filePath } = await this.firebaseService.uploadImage(
+      image,
+    );
+
+    await this.prismaService.subCategory.update({
+      where: { id: subCategoryId },
+      data: {
+        imageLink: fileLink,
+        imagePath: filePath,
+      },
+    });
+  }
 }
