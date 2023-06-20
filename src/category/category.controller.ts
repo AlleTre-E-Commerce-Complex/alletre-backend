@@ -93,8 +93,8 @@ export class CategoryController {
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @UploadedFiles()
     files: {
-      banner?: Express.Multer.File;
-      slider?: Express.Multer.File;
+      banner?: Express.Multer.File[];
+      slider?: Express.Multer.File[];
     },
   ) {
     if (!files)
@@ -107,8 +107,8 @@ export class CategoryController {
       success: true,
       data: await this.categoryService.uploadImagesForCategory(
         categoryId,
-        files.banner[0],
-        files.slider[0],
+        files.banner?.length ? files.banner[0] : undefined,
+        files.slider?.length ? files.slider[0] : undefined,
       ),
     };
   }
