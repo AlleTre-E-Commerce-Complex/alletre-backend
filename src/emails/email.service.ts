@@ -9,12 +9,11 @@ export class EmailSerivce {
   }
 
   private transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    secure: true,
-    port: 465,
+    host: process.env.NODEMAILER_HOST,
+    port: process.env.NODEMAILER_PORT,
     auth: {
-      user: process.env.EMAIL_FROM,
-      pass: process.env.EMAIL_PASSWORD,
+      user: process.env.NODEMAILER_EMAIL,
+      pass: process.env.NODEMAILER_PASS,
     },
   });
 
