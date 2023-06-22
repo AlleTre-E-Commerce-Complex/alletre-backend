@@ -2059,19 +2059,6 @@ export class UserAuctionsService {
       cityId,
     } = productBody;
 
-    const nonNumericOptionalFields = {
-      usageStatus,
-      color,
-      processor,
-      operatingSystem,
-      releaseYear,
-      regionOfManufacture,
-      cameraType,
-      material,
-      landType,
-      model,
-    };
-
     let updatedProduct: Product;
     try {
       updatedProduct = await this.prismaService.product.update({
@@ -2080,17 +2067,44 @@ export class UserAuctionsService {
           title,
           categoryId: Number(categoryId),
           description,
-          ...(age ? { age: Number(age) } : {}),
-          ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
-          ...(brandId ? { brandId: Number(brandId) } : {}),
-          ...(screenSize ? { screenSize: Number(screenSize) } : {}),
-          ...(ramSize ? { ramSize: Number(ramSize) } : {}),
-          ...(totalArea ? { totalArea: Number(totalArea) } : {}),
-          ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
-          ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
-          ...(countryId ? { countryId: Number(countryId) } : {}),
-          ...(cityId ? { cityId: Number(cityId) } : {}),
-          ...nonNumericOptionalFields,
+          ...(age ? { age: Number(age) } : { age: null }),
+          ...(subCategoryId
+            ? { subCategoryId: Number(subCategoryId) }
+            : { subCategoryId: null }),
+          ...(brandId ? { brandId: Number(brandId) } : { brandId: null }),
+          ...(screenSize
+            ? { screenSize: Number(screenSize) }
+            : { screenSize: null }),
+          ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
+          ...(totalArea
+            ? { totalArea: Number(totalArea) }
+            : { totalArea: null }),
+          ...(numberOfRooms
+            ? { numberOfRooms: Number(numberOfRooms) }
+            : { numberOfRooms: null }),
+          ...(numberOfFloors
+            ? { numberOfFloors: Number(numberOfFloors) }
+            : { numberOfFloors: null }),
+          ...(countryId
+            ? { countryId: Number(countryId) }
+            : { countryId: null }),
+          ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
+          ...(usageStatus
+            ? { usageStatus: usageStatus }
+            : { usageStatus: null }),
+          ...(model ? { model } : { model: null }),
+          ...(color ? { color } : { color: null }),
+          ...(processor ? { processor } : { processor: null }),
+          ...(operatingSystem
+            ? { operatingSystem }
+            : { operatingSystem: null }),
+          ...(releaseYear ? { releaseYear } : { releaseYear: null }),
+          ...(regionOfManufacture
+            ? { regionOfManufacture }
+            : { regionOfManufacture: null }),
+          ...(cameraType ? { cameraType } : { cameraType: null }),
+          ...(material ? { material } : { material: null }),
+          ...(landType ? { landType } : { landType: null }),
         },
       });
     } catch (error) {
