@@ -12,7 +12,9 @@ async function bootstrap() {
     bufferLogs: true,
     rawBody: true,
   });
-  app.enableCors({ origin: '*' });
+  app.enableCors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONT_URL : '*',
+  });
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
   // app.useGlobalPipes(new ValidationPipe({ transform: true }));
