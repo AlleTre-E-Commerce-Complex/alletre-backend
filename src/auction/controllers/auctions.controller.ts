@@ -167,6 +167,26 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/similar')
+  @UseGuards(AuthOrGuestGuard)
+  async getSimilarAuctions(
+    @Account() account: any,
+    @Query('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    const similarAuctionsResult =
+      await this.userAuctionsService.findSimilarAuctions(
+        auctionId,
+        account.roles,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      count: similarAuctionsResult.count,
+      data: similarAuctionsResult.similarAuctions,
+    };
+  }
+
   @Get('/user/sponsored')
   @UseGuards(AuthOrGuestGuard)
   async getSponseredAuctions(@Account() account: any) {

@@ -666,6 +666,76 @@ export class UserAuctionsService {
       pagination,
     };
   }
+
+  async findSimilarAuctions(auctionId: number, roles: Role[], userId?: number) {
+    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+    const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+      auctionId,
+    );
+
+    const similarAuctions = await this.prismaService.auction.findMany({
+      where: {
+        product: { category: auctionCategory },
+        id: { not: auctionId },
+        status: {
+          in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        endDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+      },
+      take: 8,
+    });
+
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          similarAuctions,
+        );
+      return {
+        similarAuctions:
+          this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+            userId,
+            savedAuctions,
+          ),
+        count: similarAuctions.length,
+      };
+    }
+
+    return {
+      similarAuctions,
+      count: similarAuctions.length,
+    };
+  }
   async findUpCommingAuctionsForUser(
     roles: Role[],
     paginationDTO: PaginationDTO,
