@@ -77,6 +77,15 @@ export class CategoryController {
     };
   }
 
+  @Get('home')
+  @UseGuards(AuthOrGuestGuard)
+  async findCategoriesIncludeSub() {
+    return {
+      success: true,
+      data: await this.categoryService.getAllCategoriesIncludeSub(),
+    };
+  }
+
   @Put('/:categoryId/upload-images')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)

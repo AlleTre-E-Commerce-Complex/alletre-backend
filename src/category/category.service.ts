@@ -14,6 +14,12 @@ export class CategoryService {
     return await this.prismaService.category.findMany({});
   }
 
+  async getAllCategoriesIncludeSub() {
+    return await this.prismaService.category.findMany({
+      include: { subCategories: true },
+    });
+  }
+
   async getAllSubCategories(categoryId?: number) {
     return await this.prismaService.subCategory.findMany({
       where: { ...(categoryId ? { categoryId: categoryId } : {}) },
