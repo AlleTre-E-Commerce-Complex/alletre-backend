@@ -175,7 +175,7 @@ export class AuctionsController {
   ) {
     const similarAuctionsResult =
       await this.userAuctionsService.findSimilarAuctions(
-        auctionId,
+        Number(auctionId),
         account.roles,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       );
