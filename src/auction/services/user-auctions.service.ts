@@ -668,16 +668,18 @@ export class UserAuctionsService {
   }
 
   async findSimilarAuctions(auctionId: number, roles: Role[], userId?: number) {
-    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+    const auction = await this.checkAuctionExistanceAndReturn(
+      Number(auctionId),
+    );
 
     const auctionCategory = await this.auctionsHelper._getAuctionCategory(
-      auctionId,
+      Number(auctionId),
     );
 
     const similarAuctions = await this.prismaService.auction.findMany({
       where: {
         product: { category: auctionCategory },
-        id: { not: auctionId },
+        id: { not: Number(auctionId) },
         status: {
           in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
         },
