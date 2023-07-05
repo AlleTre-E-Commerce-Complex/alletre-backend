@@ -676,7 +676,7 @@ export class UserAuctionsService {
 
     const similarAuctions = await this.prismaService.auction.findMany({
       where: {
-        product: { category: auctionCategory },
+        product: { categoryId: auctionCategory.id },
         id: { not: auctionId },
         status: {
           in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
