@@ -34,6 +34,24 @@ export class CategoryController {
       data: await this.categoryService.getAllCategories(),
     };
   }
+
+  @Get('/brands')
+  @UseGuards(AuthOrGuestGuard)
+  async getAllBrands(@Query('categoryId') categoryId: number) {
+    return {
+      success: true,
+      data: await this.categoryService.getAllBrands(categoryId),
+    };
+  }
+
+  @Get('/home')
+  @UseGuards(AuthOrGuestGuard)
+  async findCategoriesIncludeSub() {
+    return {
+      success: true,
+      data: await this.categoryService.getAllCategoriesIncludeSub(),
+    };
+  }
   @Get('/sub-categories')
   @UseGuards(AuthOrGuestGuard)
   async findSubCategories(
@@ -65,24 +83,6 @@ export class CategoryController {
     return {
       success: true,
       data: await this.categoryService.getSystemCustomFields(),
-    };
-  }
-
-  @Get('/brands')
-  @UseGuards(AuthOrGuestGuard)
-  async getAllBrands(@Query('categoryId') categoryId: number) {
-    return {
-      success: true,
-      data: await this.categoryService.getAllBrands(categoryId),
-    };
-  }
-
-  @Get('/home')
-  @UseGuards(AuthOrGuestGuard)
-  async findCategoriesIncludeSub() {
-    return {
-      success: true,
-      data: await this.categoryService.getAllCategoriesIncludeSub(),
     };
   }
 
