@@ -26,7 +26,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
 
-  @Get('all')
+  @Get('/all')
   @UseGuards(AuthOrGuestGuard)
   async findCategories() {
     return {
@@ -44,7 +44,7 @@ export class CategoryController {
       data: await this.categoryService.getAllSubCategories(categoryId),
     };
   }
-  @Get('custom-fields')
+  @Get('/custom-fields')
   @UseGuards(AuthOrGuestGuard)
   async getCustomFieldsController(
     @Query('categoryId') categoryId: number,
@@ -59,7 +59,7 @@ export class CategoryController {
     };
   }
 
-  @Get('system-fields')
+  @Get('/system-fields')
   @UseGuards(AuthOrGuestGuard)
   async getSystemFieldsController() {
     return {
@@ -68,7 +68,7 @@ export class CategoryController {
     };
   }
 
-  @Get('brands')
+  @Get('/brands')
   @UseGuards(AuthOrGuestGuard)
   async getAllBrands(@Query('categoryId') categoryId: number) {
     return {
@@ -77,7 +77,7 @@ export class CategoryController {
     };
   }
 
-  @Get('home')
+  @Get('/home')
   @UseGuards(AuthOrGuestGuard)
   async findCategoriesIncludeSub() {
     return {
