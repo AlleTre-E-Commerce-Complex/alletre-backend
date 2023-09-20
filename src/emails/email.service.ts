@@ -44,7 +44,7 @@ export class EmailSerivce {
           to: email,
           subject: `Allatre Reset Password`,
           html: `<h1>Please use the link to reset your password </h1>
-          <p>${process.env.FRONT_URL}/auth/credentials-update?token=${token}</p>`,
+          <p>${process.env.FRONT_URL}/credentials-update/change-password?token=${token}</p>`,
         };
     }
   }
