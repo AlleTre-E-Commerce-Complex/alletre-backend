@@ -1070,7 +1070,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       sellerMainLocation.country.currency,
-      auctionCategory.sellerDepositFixedAmount.toNumber(),
+      Number(auctionCategory.sellerDepositFixedAmount),
     );
   }
 
@@ -1137,7 +1137,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       bidderMainLocation.country.currency,
-      auctionCategory.bidderDepositFixedAmount.toNumber(),
+      Number(auctionCategory.bidderDepositFixedAmount),
       bidAmount,
     );
   }
@@ -1355,7 +1355,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       userMainLocation.country.currency,
-      latestBidAmount.toNumber(),
+      Number(latestBidAmount),
     );
   }
 
@@ -1402,7 +1402,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       userMainLocation.country.currency,
-      auction.acceptedAmount.toNumber(),
+      Number(auction.acceptedAmount),
     );
   }
 
