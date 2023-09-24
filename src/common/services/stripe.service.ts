@@ -27,9 +27,12 @@ export class StripeService {
     currency: string,
     metadata?: any,
   ) {
+    const amountInSmallestUnit = amount * 100;
+    console.log(amountInSmallestUnit);
+
     const paymentIntent = await this.stripe.paymentIntents.create({
       customer: stripeCustomerId,
-      amount: amount * 100,
+      amount: Math.ceil(amountInSmallestUnit),
       currency: currency,
       setup_future_usage: 'off_session',
       automatic_payment_methods: {
