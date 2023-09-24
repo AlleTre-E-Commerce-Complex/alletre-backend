@@ -34,7 +34,7 @@ export class StripeService {
       amountInSmallestUnit,
     );
 
-    let paymentIntent;
+    let paymentIntent: any;
     try {
       paymentIntent = await this.stripe.paymentIntents.create({
         customer: stripeCustomerId,
@@ -48,7 +48,7 @@ export class StripeService {
       });
     } catch (error) {
       throw new MethodNotAllowedResponse({
-        ar: 'قمة عملية الدفع غير صالحة',
+        ar: 'قيمة عملية الدفع غير صالحة',
         en: 'Invalid Payment Amount',
       });
     }
