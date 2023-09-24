@@ -1,6 +1,7 @@
 import { Injectable, MethodNotAllowedException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 import Stripe from 'stripe';
+import { MethodNotAllowedResponse } from '../errors';
 
 @Injectable()
 export class StripeService {
@@ -28,7 +29,7 @@ export class StripeService {
     metadata?: any,
   ) {
     const amountInSmallestUnit = amount * 100;
-    console.log(amountInSmallestUnit);
+    console.log('Amount To Be Paid: ', amountInSmallestUnit);
 
     const paymentIntent = await this.stripe.paymentIntents.create({
       customer: stripeCustomerId,
@@ -40,6 +41,13 @@ export class StripeService {
       },
       metadata,
     });
+
+    if (!paymentIntent.client_secret)
+      throw new MethodNotAllowedResponse({
+        ar: 'قمة عملية الدفع غير صالحة',
+        en: 'Invalid Payment Amount',
+      });
+
     return {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
