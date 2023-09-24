@@ -29,24 +29,29 @@ export class StripeService {
     metadata?: any,
   ) {
     const amountInSmallestUnit = amount * 100;
-    console.log('Amount To Be Paid: ', amountInSmallestUnit);
+    console.log(
+      '-------------Amount To Be Paid:------------ ',
+      amountInSmallestUnit,
+    );
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
-      customer: stripeCustomerId,
-      amount: Math.ceil(amountInSmallestUnit),
-      currency: currency,
-      setup_future_usage: 'off_session',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata,
-    });
-
-    if (!paymentIntent.client_secret)
+    let paymentIntent;
+    try {
+      paymentIntent = await this.stripe.paymentIntents.create({
+        customer: stripeCustomerId,
+        amount: Math.ceil(amountInSmallestUnit),
+        currency: currency,
+        setup_future_usage: 'off_session',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata,
+      });
+    } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'قمة عملية الدفع غير صالحة',
         en: 'Invalid Payment Amount',
       });
+    }
 
     return {
       clientSecret: paymentIntent.client_secret,

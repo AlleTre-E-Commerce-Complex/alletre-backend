@@ -1070,7 +1070,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       sellerMainLocation.country.currency,
-      parseFloat(auctionCategory.sellerDepositFixedAmount),
+      Number(auctionCategory.sellerDepositFixedAmount),
     );
   }
 
@@ -1137,7 +1137,7 @@ export class UserAuctionsService {
       user,
       auctionId,
       bidderMainLocation.country.currency,
-      auctionCategory.bidderDepositFixedAmount.toNumber(),
+      Number(auctionCategory.bidderDepositFixedAmount),
       bidAmount,
     );
   }
