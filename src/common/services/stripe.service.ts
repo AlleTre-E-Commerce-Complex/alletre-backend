@@ -29,7 +29,7 @@ export class StripeService {
   ) {
     const paymentIntent = await this.stripe.paymentIntents.create({
       customer: stripeCustomerId,
-      amount: amount,
+      amount: amount * 100,
       currency: currency,
       setup_future_usage: 'off_session',
       automatic_payment_methods: {
