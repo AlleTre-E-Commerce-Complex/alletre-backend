@@ -117,6 +117,12 @@ export class StripeService {
           status: PaymentStatus.FAILED,
           paymentIntent,
         };
+      case 'payment_intent.created':
+        const createdPaymentIntent = event.data.object;
+        console.log(
+          `PaymentIntent for ${createdPaymentIntent.amount} was created!`,
+        );
+        break;
       default:
         // Unexpected event type
         console.log(`Unhandled event type ${event.type}.`);
