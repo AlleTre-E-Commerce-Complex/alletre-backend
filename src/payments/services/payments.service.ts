@@ -400,11 +400,15 @@ export class PaymentsService {
 
         break;
       case PaymentStatus.FAILED:
+        console.log('Payment Intent Failed ..');
         // Update Payment
         await this.prismaService.payment.update({
           where: { paymentIntentId: paymentIntent.id },
           data: { status: PaymentStatus.FAILED },
         });
+        break;
+      case PaymentStatus.PENDING:
+        console.log('Payment Intent Created ..');
         break;
     }
   }
