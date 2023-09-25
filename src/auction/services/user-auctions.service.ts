@@ -2223,12 +2223,9 @@ export class UserAuctionsService {
   }
 
   async _findLatestBidForAuction(auctionId: number) {
-    const latestBid = await this.prismaService.bids.findMany({
+    return await this.prismaService.bids.findFirst({
       where: { auctionId },
-      orderBy: { createdAt: 'desc' },
-      take: 1,
+      orderBy: { amount: 'desc' },
     });
-
-    return latestBid[0].amount;
   }
 }
