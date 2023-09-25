@@ -286,17 +286,17 @@ export class PaymentsService {
   }
 
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
-    const { paymentIntent, status } = await this.stripeService.webHookHandler(
+    const webHookResult = await this.stripeService.webHookHandler(
       payload,
       stripeSignature,
     );
-    console.log('Webhook Called...');
+    if (!webHookResult) return;
 
-    switch (status) {
+    switch (webHookResult.status) {
       case PaymentStatus.SUCCESS:
         const auctionPaymentTransaction =
           await this.prismaService.payment.findUnique({
-            where: { paymentIntentId: paymentIntent.id },
+            where: { paymentIntentId: webHookResult.paymentIntent.id },
           });
 
         switch (auctionPaymentTransaction.type) {
@@ -306,7 +306,7 @@ export class PaymentsService {
             await this.prismaService.$transaction([
               // Update payment transaction
               this.prismaService.payment.update({
-                where: { paymentIntentId: paymentIntent.id },
+                where: { paymentIntentId: webHookResult.paymentIntent.id },
                 data: { status: PaymentStatus.SUCCESS },
               }),
 
@@ -323,7 +323,7 @@ export class PaymentsService {
                 data: {
                   userId: auctionPaymentTransaction.userId,
                   auctionId: auctionPaymentTransaction.auctionId,
-                  amount: paymentIntent.metadata.bidAmount,
+                  amount: webHookResult.paymentIntent.metadata.bidAmount,
                 },
               }),
             ]);
@@ -338,7 +338,7 @@ export class PaymentsService {
 
             // Update payment transaction
             await this.prismaService.payment.update({
-              where: { paymentIntentId: paymentIntent.id },
+              where: { paymentIntentId: webHookResult.paymentIntent.id },
               data: { status: PaymentStatus.SUCCESS },
             });
             break;
@@ -357,7 +357,7 @@ export class PaymentsService {
             await this.prismaService.$transaction([
               // Update payment transaction
               this.prismaService.payment.update({
-                where: { paymentIntentId: paymentIntent.id },
+                where: { paymentIntentId: webHookResult.paymentIntent.id },
                 data: { status: PaymentStatus.SUCCESS },
               }),
 
@@ -383,7 +383,7 @@ export class PaymentsService {
             await this.prismaService.$transaction([
               // Update payment transaction
               this.prismaService.payment.update({
-                where: { paymentIntentId: paymentIntent.id },
+                where: { paymentIntentId: webHookResult.paymentIntent.id },
                 data: { status: PaymentStatus.SUCCESS },
               }),
 
@@ -403,7 +403,7 @@ export class PaymentsService {
         console.log('Payment Intent Failed ..');
         // Update Payment
         await this.prismaService.payment.update({
-          where: { paymentIntentId: paymentIntent.id },
+          where: { paymentIntentId: webHookResult.paymentIntent.id },
           data: { status: PaymentStatus.FAILED },
         });
         break;

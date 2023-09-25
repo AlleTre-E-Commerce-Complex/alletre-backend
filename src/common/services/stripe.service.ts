@@ -95,9 +95,8 @@ export class StripeService {
     }
 
     // Handle the event
-    console.log(`Unhandled event type ${event.type}`);
+    console.log(`event type ${event.type}`);
 
-    let paymentIntentResult: any;
     // Handle the event
     switch (event.type) {
       case 'payment_intent.succeeded':
@@ -105,42 +104,31 @@ export class StripeService {
         console.log(
           `PaymentIntent for ${paymentIntent.amount} was successful!`,
         );
-        paymentIntentResult = {
+        return {
           status: PaymentStatus.SUCCESS,
           paymentIntent,
         };
-        break;
       case 'payment_intent.payment_failed':
         const failedPaymentIntent = event.data.object;
         console.log(
           `PaymentIntent for ${failedPaymentIntent.amount} was failed!`,
         );
-        paymentIntentResult = {
+        return {
           status: PaymentStatus.FAILED,
           paymentIntent: failedPaymentIntent,
         };
-        break;
-
       case 'payment_intent.created':
         const createdPaymentIntent = event.data.object;
         console.log(
           `PaymentIntent for ${createdPaymentIntent.amount} was created!`,
         );
-        paymentIntentResult = {
+        return {
           status: PaymentStatus.PENDING,
           paymentIntent: createdPaymentIntent,
         };
-        break;
-
       default:
         // Unexpected event type
         console.log(`Unhandled event type ${event.type}.`);
-        paymentIntentResult = {
-          status: PaymentStatus.PENDING,
-          paymentIntent: {},
-        };
-        break;
     }
-    return paymentIntentResult;
   }
 }
