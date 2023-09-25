@@ -169,15 +169,16 @@ export class TasksService {
         console.log('User notified');
       }
       // Set auction to EXPIRED
-      await this.prismaService.auction.update({
-        where: {
-          id: auction.id,
-        },
-        data: {
-          status: AuctionStatus.EXPIRED, // Update the status of the auction to 'EXPIRED'
-          endDate: new Date(), // Set the endDate to the current date and time
-        },
-      });
+      else
+        await this.prismaService.auction.update({
+          where: {
+            id: auction.id,
+          },
+          data: {
+            status: AuctionStatus.EXPIRED, // Update the status of the auction to 'EXPIRED'
+            endDate: new Date(), // Set the endDate to the current date and time
+          },
+        });
     }
   }
 }
