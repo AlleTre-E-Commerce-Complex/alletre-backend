@@ -122,22 +122,22 @@ export class TasksService {
             },
           });
 
-        // Set auction to waiting for payment from winner to stop bids
-        await this.prismaService.auction.update({
-          where: {
-            id: auction.id,
-          },
-          data: {
-            status: AuctionStatus.WAITING_FOR_PAYMENT, // Update the status of the auction to 'WAITING_FOR_PAYMENT'
-            endDate: new Date(), // Set the endDate to the current date and time
-          },
-        });
-
         // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
         const today = new Date();
         const newDate = new Date(today.setDate(today.getDate() + 3));
 
         await this.prismaService.$transaction([
+          // Set auction to waiting for payment from winner to stop bids
+          this.prismaService.auction.update({
+            where: {
+              id: auction.id,
+            },
+            data: {
+              status: AuctionStatus.WAITING_FOR_PAYMENT, // Update the status of the auction to 'WAITING_FOR_PAYMENT'
+              endDate: new Date(), // Set the endDate to the current date and time
+            },
+          }),
+
           this.prismaService.joinedAuction.update({
             where: { id: winnedBidderAuction.id },
             data: {
