@@ -94,6 +94,8 @@ export class TasksService {
   }
 
   async _markExpiredAuctionsAndNotifyWinnerBidder() {
+    console.log(' Start Expiration Schedular ');
+
     // Get expiredAuctions
     const auctionsToBeExpired = await this.prismaService.auction.findMany({
       where: {
@@ -105,13 +107,19 @@ export class TasksService {
     });
 
     for (const auction of auctionsToBeExpired) {
+      console.log(' Auction = ', auction);
+
       // Get user with highest bids for auctions
       const highestBidForAuction = await this.prismaService.bids.findFirst({
         where: { auctionId: auction.id },
         orderBy: { amount: 'desc' },
       });
 
+      console.log('Max Bid = ', highestBidForAuction);
+
       if (highestBidForAuction) {
+        console.log('There is max bid');
+
         // Get winner winnedBidderAuction
         const winnedBidderAuction =
           await this.prismaService.joinedAuction.findFirst({
