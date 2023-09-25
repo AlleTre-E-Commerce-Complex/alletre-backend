@@ -106,11 +106,11 @@ export class TasksService {
 
     for (const auction of auctionsToBeExpired) {
       // Get user with highest bids for auctions
-      const highestBidForAuction = await this.prismaService.bids.findFirst({
+      const highestBidForAuction = await this.prismaService.bids.findMany({
         where: { auctionId: auction.id },
         orderBy: { createdAt: 'desc' },
         take: 1,
-      });
+      })[0];
 
       if (highestBidForAuction) {
         // Get winner winnedBidderAuction
