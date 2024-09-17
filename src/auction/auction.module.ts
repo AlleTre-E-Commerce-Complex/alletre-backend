@@ -22,4 +22,8 @@ import { AuctionStatusValidator } from './validations/auction-validator';
   controllers: [AuctionsController],
   exports: [UserAuctionsService],
 })
-export class AuctionModule {}
+export class AuctionModule {
+  constructor(){
+    console.log('test auxtion module');
+  }
+}

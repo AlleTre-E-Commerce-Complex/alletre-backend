@@ -19,23 +19,22 @@ export class FirebaseService {
       cacheControl: 'public, max-age=31536000',
     };
     const filePath = `${prefix}-${fileId}`;
-
+    console.log('file Path : ',filePath)
     let data: any;
     try {
       data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
-        // Support for HTTP requests made with `Accept-Encoding: gzip`
         gzip: true,
         metadata: metadata,
         destination: filePath,
       });
     } catch (error) {
-      console.log(error);
-
+      console.error('Error uploading to Firebase:', error.message, error.code);
       throw new MethodNotAllowedResponse({
         ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
         en: 'Error uploading images to the cloud, please try again.',
       });
     }
+    
 
     await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
       (error) => {

@@ -30,6 +30,7 @@ model User {
   bids                Bids[]
   Payment             Payment[]
   JoinedAuction       JoinedAuction[]
+  wallet              Wallet[]
 }
 
 model Country {
@@ -193,6 +194,7 @@ model Auction {
   bids            Bids[]
   Payment         Payment[]
   JoinedAuction   JoinedAuction[]
+  wallet          Wallet[]
 }
 
 model WatchList {
@@ -248,6 +250,23 @@ model Admin {
   createdAt DateTime @default(now())
 }
 
+model Wallet {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  auctionId       Int
+  amount          Decimal
+  date            DateTime      @default(now())
+  description     String
+  status          WalletStatus
+  auction         Auction       @relation(fields: [auctionId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])         
+}
+
+enum WalletStatus {
+  DEPOSIT
+  WITHDRAWAL
+}
+
 enum UsageStatus {
   NEW
   USED
@@ -258,7 +277,11 @@ enum PaymentStatus {
   PENDING
   SUCCESS
   FAILED
+  HOLD
+  CANCELLED
 }
+
+
 
 enum AuctionStatus {
   DRAFTED

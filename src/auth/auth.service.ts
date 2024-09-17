@@ -97,7 +97,7 @@ export class AuthService {
 
     const token = this.jwtService.sign(
       { email: userSignUpBody.email },
-      {
+      { 
         secret: process.env.EMAIL_VERIFICATION_SECRET,
         expiresIn: '7m',
       },
@@ -112,7 +112,7 @@ export class AuthService {
 
     return {
       ...userWithoutPassword,
-      imageLink: undefined,
+      imageLink: undefined, 
       imagePath: undefined,
       accessToken,
       refreshToken,
@@ -220,7 +220,7 @@ export class AuthService {
         en: 'Forbidden Access',
         ar: 'غير مصرح لك ',
       });
-
+  
     let payload: { email: string };
     try {
       payload = this.jwtService.verify(token, {
@@ -232,17 +232,135 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
     }
-
+  
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
     );
-
-    if (verificationResult === 'SUCCESS')
-      return `<html> <h1 style={color:Burgundy;text-align=center;}>Verified Successfuly </h1> 
+  
+    const successMessage = `
+      <html>
+        <head>
+          <style>
+            body {
+              background-color: rgba(0, 0, 0, 0.5);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .modal {
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+              width: 300px;
+              text-align: center;
+            }
+            .modal-header {
+              background-color: #801f50;
+              color: white;
+              padding: 10px;
+              border-top-left-radius: 8px;
+              border-top-right-radius: 8px;
+            }
+            .modal-body {
+              padding: 20px;
+            }
+            .modal-footer {
+              padding: 10px;
+            }
+            .modal a {
+              display: inline-block;
+              margin-top: 20px;
+              padding: 10px 20px;
+              background-color: #801f50;
+              color: white;
+              text-decoration: none;
+              border-radius: 4px;
+              transition: background-color 0.3s;
+            }
+            .modal a:hover {
+              background-color: #5e1438;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="modal">
+            <div class="modal-header">Email Confirmation</div>
+            <div class="modal-body">
+              <h1>Verified Successfully</h1>
+              <a href=${process.env.FRONT_URL}>Go to Login</a>
+            </div>
+          </div>
+        </body>
       </html>`;
-    else
-      return `<html> <h1 style="color:Burgundy;text-align=center;> Verification Failed </h1> </html>`;
+  
+    const failureMessage = `
+      <html>
+        <head>
+          <style>
+            body {
+              background-color: rgba(0, 0, 0, 0.5);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .modal {
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+              width: 300px;
+              text-align: center;
+            }
+            .modal-header {
+              background-color: #801f50;
+              color: white;
+              padding: 10px;
+              border-top-left-radius: 8px;
+              border-top-right-radius: 8px;
+            }
+            .modal-body {
+              padding: 20px;
+            }
+            .modal-footer {
+              padding: 10px;
+            }
+            .modal a {
+              display: inline-block;
+              margin-top: 20px;
+              padding: 10px 20px;
+              background-color: #801f50;
+              color: white;
+              text-decoration: none;
+              border-radius: 4px;
+              transition: background-color 0.3s;
+            }
+            .modal a:hover {
+              background-color: #5e1438;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="modal">
+            <div class="modal-header">Email Confirmation</div>
+            <div class="modal-body">
+              <h1>Verification Failed</h1>
+              <a href=${process.env.FRONT_URL}>Go to Login</a>
+            </div>
+          </div>
+        </body>
+      </html>`;
+  
+    if (verificationResult === 'SUCCESS') {
+      return successMessage;
+    } else {
+      return failureMessage;
+    }
   }
+  
+  
 
   generateTokens(payload: { id: number; email: string; roles: string[] }) {
     const accessToken = this.jwtService.sign(payload, {
@@ -288,7 +406,7 @@ export class AuthService {
     }
   }
 
-  authenticateSocketUser(socket: Socket) {
+  authenticateSocketUser(socket: Socket) {  
     try {
       const token = socket.handshake.headers['authorization'].split(' ')[1];
       const payload = this.jwtService.verify(token, {

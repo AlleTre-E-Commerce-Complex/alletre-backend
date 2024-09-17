@@ -25,7 +25,8 @@ import {
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
-import { Decimal } from '@prisma/client/runtime';
+// import { Decimal } from '@prisma/client/runtime';
+import Decimal from 'decimal.js';
 import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { AuctionStatusValidator } from '../validations/auction-validator';
@@ -350,6 +351,10 @@ export class UserAuctionsService {
     getAuctionsDTO: GetAuctionsDTO,
     userId?: number,
   ) {
+    // console.log('===>3',roles);
+    // console.log('===>4',getAuctionsDTO);
+    // console.log('===>5',userId);
+    
     const {
       page = 1,
       perPage = 10,
@@ -363,7 +368,9 @@ export class UserAuctionsService {
       title,
       auctionStatus,
     } = getAuctionsDTO;
-
+    // here all data of the getAuctionDTO will come when we do a search and filter in home screen
+    // console.log( '===>', page ,perPage ,brands,categories,countries,priceFrom,priceTo,sellingType,usageStatus,title, auctionStatus,);
+    
     const { limit, skip } = this.paginationService.getSkipAndLimit(
       Number(page),
       Number(perPage),
@@ -837,7 +844,9 @@ export class UserAuctionsService {
     };
   }
 
-  async findSponseredAuctions(roles: Role[], userId?: number) {
+  async findSponseredAuctions(roles: Role[], userId?: number) { 
+    console.log('auctions ====> account1',roles,userId)
+    
     const auctions = await this.prismaService.auction.findMany({
       where: {
         status: AuctionStatus.ACTIVE,
@@ -876,13 +885,13 @@ export class UserAuctionsService {
       orderBy: { startBidAmount: 'desc' },
       take: 4,
     });
+    console.log('auctions ====> account2',auctions)
     if (roles.includes(Role.User)) {
       return this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
         userId,
         auctions,
       );
     }
-
     return auctions;
   }
 

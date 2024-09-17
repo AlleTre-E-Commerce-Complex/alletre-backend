@@ -19,7 +19,7 @@ export class UserService {
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
     const { userName, email, phone } = UserSignData;
-
+    console.log('===========>',userName,email,phone)
     // Check email
     const isEmailExist = await this.findUserByEmail(email);
     if (isEmailExist)

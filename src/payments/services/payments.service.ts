@@ -74,12 +74,22 @@ export class PaymentsService {
     }
 
     // Create PaymentIntent
-    const { clientSecret, paymentIntentId } =
-      await this.stripeService.createPaymentIntent(
-        stripeCustomerId,
-        amount,
-        currency,
-      );
+    // const { clientSecret, paymentIntentId } =
+    //   await this.stripeService.createPaymentIntent(
+    //     stripeCustomerId,
+    //     amount,
+    //     currency,
+    //   );
+
+     // Create PaymentIntent
+      // the above is commented out becuase now we are holding (authorizing) the money.
+
+     const { clientSecret, paymentIntentId } = 
+     await this.stripeService.createDepositPaymentIntent(
+       stripeCustomerId,
+       amount,
+       currency,
+     );
 
     //TODO:  Add currency in payment model
     await this.prismaService.payment.create({
@@ -101,6 +111,7 @@ export class PaymentsService {
     amount: number,
     bidAmount: number,
   ) {
+    
     // Create SripeCustomer if has no account
     let stripeCustomerId: string;
     if (!user?.stripeId) {
@@ -108,14 +119,14 @@ export class PaymentsService {
         user.email,
         user.userName,
       );
-
+      
       // Add to user stripeCustomerId
       await this.prismaService.user.update({
         where: { id: user.id },
         data: { stripeId: stripeCustomerId },
       });
     }
-
+    
     // Check if bidder has already pay deposit for auction
     const bidderPaymentForAuction = await this.getAuctionPaymentTransaction(
       user.id,
@@ -127,19 +138,32 @@ export class PaymentsService {
       const paymentIntent = await this.stripeService.retrievePaymentIntent(
         bidderPaymentForAuction.paymentIntentId,
       );
-
-      if (paymentIntent.status === 'succeeded')
+      console.log('pay deposite by bidder===>',bidderPaymentForAuction);
+      
+      if (paymentIntent.status === 'succeeded') {
         throw new MethodNotAllowedException('already paid');
-
+       }
+      
       return {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
       };
     }
-
+    
+    
     // Create PaymentIntent
-    const { clientSecret, paymentIntentId } =
-      await this.stripeService.createPaymentIntent(
+    // const { clientSecret, paymentIntentId } =
+    // await this.stripeService.createPaymentIntent(
+    //   stripeCustomerId,
+    //   amount,
+    //     currency,
+    //     { bidAmount: Number(bidAmount) },
+    //   );
+
+      // Create PaymentIntent 
+      // the above is commented out becuase now we are holding (authorizing) the money.
+      const { clientSecret, paymentIntentId } =
+      await this.stripeService.createDepositPaymentIntent(
         stripeCustomerId,
         amount,
         currency,
@@ -286,13 +310,79 @@ export class PaymentsService {
   }
 
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
+    console.log('Webhook Called ==> payload',payload);
+    console.log('Webhook Called ==> stripeSignature',stripeSignature);
+
     const { paymentIntent, status } = await this.stripeService.webHookHandler(
       payload,
       stripeSignature,
     );
-    console.log('Webhook Called...');
+    console.log('PaymentIntent data :===>',paymentIntent);
 
     switch (status) {
+      case PaymentStatus.CANCELLED: 
+      // const auctionCancelPaymentTransaction =
+          await this.prismaService.payment.update({
+            where: { paymentIntentId: paymentIntent.id },
+            data:{status:PaymentStatus.CANCELLED}
+          });
+          
+      break;  
+      case PaymentStatus.HOLD:
+
+        const auctionHoldPaymentTransaction =
+          await this.prismaService.payment.findUnique({
+            where: { paymentIntentId: paymentIntent.id },
+          });
+
+          switch (auctionHoldPaymentTransaction.type) {
+            case PaymentType.BIDDER_DEPOSIT:
+            console.log('Webhook BIDDER_DEPOSIT ...');
+
+            await this.prismaService.$transaction([
+              // Update payment transaction
+              this.prismaService.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.HOLD },
+              }),
+
+              // Join user to auction
+              this.prismaService.joinedAuction.create({
+                data: {
+                  userId: auctionHoldPaymentTransaction.userId,
+                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                },
+              }),
+
+              // Create bid for user
+              this.prismaService.bids.create({
+                data: {
+                  userId: auctionHoldPaymentTransaction.userId,
+                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                  amount: paymentIntent.metadata.bidAmount,
+                },
+              }),
+            ]);
+
+            break;
+            case PaymentType.SELLER_DEPOSIT:
+              console.log('Webhook SELLER_DEPOSIT ...');
+  
+              // Update Auction
+              await this.publishAuction(auctionHoldPaymentTransaction.auctionId);
+  
+              // Update payment transaction
+              await this.prismaService.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.HOLD },
+              });
+              break;
+              default:
+                break
+          }
+        break;
+
+        //==============================================================
       case PaymentStatus.SUCCESS:
         const auctionPaymentTransaction =
           await this.prismaService.payment.findUnique({
@@ -310,22 +400,22 @@ export class PaymentsService {
                 data: { status: PaymentStatus.SUCCESS },
               }),
 
-              // Join user to auction
-              this.prismaService.joinedAuction.create({
-                data: {
-                  userId: auctionPaymentTransaction.userId,
-                  auctionId: auctionPaymentTransaction.auctionId,
-                },
-              }),
+              // // Join user to auction
+              // this.prismaService.joinedAuction.create({
+              //   data: {
+              //     userId: auctionPaymentTransaction.userId,
+              //     auctionId: auctionPaymentTransaction.auctionId,
+              //   },
+              // }),
 
-              // Create bid for user
-              this.prismaService.bids.create({
-                data: {
-                  userId: auctionPaymentTransaction.userId,
-                  auctionId: auctionPaymentTransaction.auctionId,
-                  amount: paymentIntent.metadata.bidAmount,
-                },
-              }),
+              // // Create bid for user
+              // this.prismaService.bids.create({
+              //   data: {
+              //     userId: auctionPaymentTransaction.userId,
+              //     auctionId: auctionPaymentTransaction.auctionId,
+              //     amount: paymentIntent.metadata.bidAmount,
+              //   },
+              // }),
             ]);
 
             break;
@@ -334,7 +424,7 @@ export class PaymentsService {
             console.log('Webhook SELLER_DEPOSIT ...');
 
             // Update Auction
-            await this.publishAuction(auctionPaymentTransaction.auctionId);
+            // await this.publishAuction(auctionPaymentTransaction.auctionId);
 
             // Update payment transaction
             await this.prismaService.payment.update({
@@ -426,10 +516,12 @@ export class PaymentsService {
     });
   }
   async publishAuction(auctionId: number) {
+
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
-
+    console.log('publish auction for checking :-->',auction);
+    
     switch (auction.durationUnit) {
       case DurationUnits.DAYS:
         if (auction.type === AuctionType.ON_TIME) {

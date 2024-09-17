@@ -9,8 +9,9 @@ export class EmailSerivce {
   }
 
   private transporter = nodemailer.createTransport({
-    host: process.env.NODEMAILER_HOST,
-    port: process.env.NODEMAILER_PORT,
+    // host: process.env.NODEMAILER_HOST,
+    // port: process.env.NODEMAILER_PORT,
+    service:'gmail', 
     auth: {
       user: process.env.NODEMAILER_EMAIL,
       pass: process.env.NODEMAILER_PASS,
@@ -26,11 +27,11 @@ export class EmailSerivce {
       case EmailsType.VERIFICATION:
         return {
           from: {
-            name: 'Allatre Team',
+            name: 'Alletre Team',
             address: process.env.EMAIL_FROM,
           },
           to: email,
-          subject: `Allatre Email Verification`,
+          subject: `Alletre Email Verification`,
           html: `
           <!DOCTYPE html>
   <html>
@@ -92,7 +93,7 @@ export class EmailSerivce {
 
       .button:hover {
         transform: translateY(-10px);
-      }
+      } 
 
     </style>
   </head>
@@ -113,11 +114,11 @@ export class EmailSerivce {
       case EmailsType.RESET_PASSWORD:
         return {
           from: {
-            name: 'Allatre Team',
+            name: 'Alletre Team',
             address: process.env.EMAIL_FROM,
           },
           to: email,
-          subject: `Allatre Reset Password`,
+          subject: `Alletre Reset Password`,
           html: `
           <!DOCTYPE html>
   <html>
@@ -198,6 +199,7 @@ export class EmailSerivce {
     }
   }
   async sendEmail(email: string, token: string, emailType: EmailsType) {
+    // console.log('token ==================**********>',token)
     const mailOptions = this.mailOptionsGenerator(email, token, emailType);
     try {
       await this.transporter.sendMail(mailOptions);

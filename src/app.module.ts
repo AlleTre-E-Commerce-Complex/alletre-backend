@@ -16,7 +16,8 @@ import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    LoggerModule.forRoot({
+    LoggerModule.forRoot(
+      {
       pinoHttp: {
         customProps: (req, res) => {
           return {
@@ -30,14 +31,15 @@ import { AdminModule } from './admin/admin.module';
           target: 'pino-pretty',
         },
       },
-    }),
+    }
+  ),
     ScheduleModule.forRoot(),
     AuthModule,
     UserModule,
     FirebaseModule,
     PrismaModule,
     EmailModule,
-    AuctionModule,
+    AuctionModule, 
     CategoryModule,
     RegionsModule,
     WatchListModule,
@@ -46,4 +48,8 @@ import { AdminModule } from './admin/admin.module';
     AdminModule,
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    console.log('AppModule initialized');
+  }
+}

@@ -41,7 +41,10 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private userAuctionsService: UserAuctionsService) {}
+  constructor(private userAuctionsService: UserAuctionsService) {
+    console.log('Auction called ... ');
+    
+  }
 
   @Post('')
   @UseGuards(AuthGuard)
@@ -93,13 +96,15 @@ export class AuctionsController {
     @Account() account: any,
     @Query() getAuctionsDTO: GetAuctionsDTO,
   ) {
+    // console.log('=====**>1 /user/main',account) 
+    
     const auctionsPaginated =
-      await this.userAuctionsService.findAuctionsForUser(
-        account.roles,
-        getAuctionsDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
-      );
-
+    await this.userAuctionsService.findAuctionsForUser(
+      account.roles,
+      getAuctionsDTO,
+      account.roles.includes(Role.User) ? Number(account.id) : undefined,
+    );
+    console.log('=====**> 2/user/main',auctionsPaginated) 
     return {
       success: true,
       pagination: auctionsPaginated.pagination,
@@ -183,17 +188,21 @@ export class AuctionsController {
     return {
       success: true,
       count: similarAuctionsResult.count,
-      data: similarAuctionsResult.similarAuctions,
+      data: similarAuctionsResult.similarAuctions, 
     };
   }
 
   @Get('/user/sponsored')
   @UseGuards(AuthOrGuestGuard)
   async getSponseredAuctions(@Account() account: any) {
+    // console.log('auctions ====> account',account)
+    
     const auctions = await this.userAuctionsService.findSponseredAuctions(
       account.roles,
       account.roles.includes(Role.User) ? Number(account.id) : undefined,
     );
+    
+    // console.log('auctions ====> account',auctions)
     return {
       status: true,
       totalItems: auctions?.length,

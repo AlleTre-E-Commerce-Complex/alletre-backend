@@ -7,6 +7,8 @@ import {
   PaymentType,
 } from '@prisma/client';
 import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
+import { StripeService } from 'src/common/services/stripe.service';
+import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -16,6 +18,8 @@ export class TasksService {
   constructor(
     private prismaService: PrismaService,
     private userAuctionService: UserAuctionsService,
+    private paymentService : PaymentsService,
+    private stripeService : StripeService,
   ) {}
 
   /**
@@ -105,6 +109,7 @@ export class TasksService {
         status: AuctionStatus.ACTIVE,
       },
     });
+    console.log(' [IMPORTANT] auctionsToBeExpired: ',auctionsToBeExpired);
 
     for (const auction of auctionsToBeExpired) {
       console.log(' Auction = ', auction);
@@ -118,7 +123,7 @@ export class TasksService {
       console.log('Max Bid = ', highestBidForAuction);
 
       if (highestBidForAuction) {
-        console.log('There is max bid');
+        console.log(' [IMPORTANT] 2 There is max bid');
 
         // Get winner winnedBidderAuction
         const winnedBidderAuction =
@@ -161,12 +166,56 @@ export class TasksService {
             data: { status: JoinedAuctionStatus.LOST },
           }),
         ]);
+        
+        const winnedBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
+          winnedBidderAuction.userId,
+          winnedBidderAuction.auctionId,
+          PaymentType.BIDDER_DEPOSIT
+        )
+
+            // Capture the payment for the winning bidder
+            if (winnedBidderPaymentData.paymentIntentId) {
+              try {
+                await this.stripeService.captureDepositPaymentIntent(
+                  winnedBidderPaymentData.paymentIntentId,
+                );
+                console.log(`Captured payment for winning bidder: ${winnedBidderAuction.userId}`);
+              } catch (error) {
+                console.error('Error capturing payment for winning bidder:', error);
+              }
+            }
+
+             // Cancel payment authorizations for losing bidders
+        const losingBidders = await this.prismaService.joinedAuction.findMany({
+          where: {
+            auctionId: auction.id,
+            id: { not: winnedBidderAuction.id },
+            status: JoinedAuctionStatus.LOST
+          },
+        });
+        
+        for (const loser of losingBidders) {
+          try {
+
+            const lostBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
+              loser.userId,
+              loser.auctionId,
+              PaymentType.BIDDER_DEPOSIT
+            )
+
+            await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
+            console.log(`Canceled payment for losing bidder: ${loser.userId}`);
+          } catch (error) {
+            console.error('Error canceling payment for losing bidder:', error);
+          }
+        }
 
         //TODO: Notify user
         await this.userAuctionService.notifyAuctionWinner(
           highestBidForAuction.userId,
         );
         console.log('User notified');
+        
       }
       // Set auction to EXPIRED
       else

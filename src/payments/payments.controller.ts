@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { PaymentsService } from './services/payments.service';
+import { Request } from 'express';
 
 @Controller('payments')
 export class PaymentsController {

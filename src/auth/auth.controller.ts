@@ -14,6 +14,7 @@ export class AuthController {
 
   @Post('/sign-up')
   async userSignUpController(@Body() userSignUpBody: UserSignUpDTO) {
+    console.log('User sign-up data:', userSignUpBody);
     return {
       success: true,
       data: await this.authService.signUp(userSignUpBody),
@@ -22,6 +23,8 @@ export class AuthController {
 
   @Post('/sign-in')
   async userSignController(@Body() UserSignInBody: UserSignInDTO) {
+    console.log('user signup data =====>:',UserSignInBody)
+
     return {
       success: true,
       data: await this.authService.signIn(
