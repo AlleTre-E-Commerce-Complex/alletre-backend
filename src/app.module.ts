@@ -13,6 +13,8 @@ import { TasksModule } from './tasks/tasks.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { WalletModule } from './wallet/wallet.module';
+
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { AdminModule } from './admin/admin.module';
     TasksModule,
     PaymentsModule,
     AdminModule,
+    WalletModule,
   ],
 })
 export class AppModule {

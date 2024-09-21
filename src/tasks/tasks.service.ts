@@ -100,6 +100,9 @@ export class TasksService {
   async _markExpiredAuctionsAndNotifyWinnerBidder() {
     console.log(' Start Expiration Schedular ');
 
+
+console.log('Auctions about to expire in the next 10 minutes: ', new Date());
+
     // Get expiredAuctions
     const auctionsToBeExpired = await this.prismaService.auction.findMany({
       where: {
@@ -111,7 +114,10 @@ export class TasksService {
     });
     console.log(' [IMPORTANT] auctionsToBeExpired: ',auctionsToBeExpired);
 
-    for (const auction of auctionsToBeExpired) {
+    // for (const auction of auctionsToBeExpired) {
+      
+    // }
+    Promise.all(auctionsToBeExpired.map(async (auction)=>{
       console.log(' Auction = ', auction);
 
       // Get user with highest bids for auctions
@@ -194,21 +200,37 @@ export class TasksService {
           },
         });
         
-        for (const loser of losingBidders) {
-          try {
+        // for (const loser of losingBidders) {
+        //   try {
 
-            const lostBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
+        //     const lostBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
+        //       loser.userId,
+        //       loser.auctionId,
+        //       PaymentType.BIDDER_DEPOSIT
+        //     )
+
+        //     await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
+        //     console.log(`Canceled payment for losing bidder: ${loser.userId}`);
+        //   } catch (error) {
+        //     console.error('Error canceling payment for losing bidder:', error);
+        //   }
+        // }
+
+        await Promise.all(losingBidders.map(async (loser) => {
+          try {
+            const lostBidderPaymentData = await this.paymentService.getAuctionPaymentTransaction(
               loser.userId,
               loser.auctionId,
-              PaymentType.BIDDER_DEPOSIT
-            )
-
+              PaymentType.BIDDER_DEPOSIT,
+            );
+        
             await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
             console.log(`Canceled payment for losing bidder: ${loser.userId}`);
           } catch (error) {
             console.error('Error canceling payment for losing bidder:', error);
           }
-        }
+        }));
+        
 
         //TODO: Notify user
         await this.userAuctionService.notifyAuctionWinner(
@@ -228,6 +250,6 @@ export class TasksService {
             endDate: new Date(), // Set the endDate to the current date and time
           },
         });
-    }
+    }))
   }
 }

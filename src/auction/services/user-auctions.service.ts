@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, MethodNotAllowedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
@@ -21,6 +21,8 @@ import {
   Prisma,
   Product,
   User,
+  WalletStatus,
+  WalletTransactionType,
 } from '@prisma/client';
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
@@ -31,11 +33,13 @@ import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { AuctionStatusValidator } from '../validations/auction-validator';
 import { AuctionActions } from 'src/common/enums/auction-actions.enum';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class UserAuctionsService {
   constructor(
     private prismaService: PrismaService,
+    private walletService: WalletService,
     private paginationService: PaginationService,
     private firebaseService: FirebaseService,
     private auctionsHelper: AuctionsHelper,
@@ -1493,6 +1497,8 @@ export class UserAuctionsService {
     };
   }
   async confirmDelivery(winnerId: number, auctionId: number) {
+   try {
+    console.log('confirm delevery has called : auctionId :',auctionId)
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     // Check authorization
@@ -1509,16 +1515,59 @@ export class UserAuctionsService {
         status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
       },
     });
+    console.log('auctionWinner data from joined Auction :===>',auctionWinner)
     if (auctionWinner.userId != winnerId)
       throw new MethodNotAllowedResponse({
         ar: 'لايمكنك تكملة العملية',
         en: 'You Can not Complete Operation',
       });
 
-    return await this.prismaService.joinedAuction.update({
-      where: { id: auctionWinner.id },
-      data: { status: JoinedAuctionStatus.COMPLETED },
+      const auctionWinnerBidAmount = await this._findLatestBidForAuction(auctionWinner.auctionId)
+      console.log('auction winner bid amount :===>',auctionWinnerBidAmount)
+
+      const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
+      let walletData = {
+        status:WalletStatus.DEPOSIT,
+        transactionType:WalletTransactionType.By_AUCTION,
+        description:"Auction full payment",
+        amount:Number(auctionWinnerBidAmount),
+        auctionId:Number(auctionId),
+        balance:lastWalletTransactionBalance ?
+         Number(lastWalletTransactionBalance) + Number(auctionWinnerBidAmount) : 
+         Number(auctionWinnerBidAmount)
+      }
+
+      const [walletCreationData, confirmDeliveryResult] =
+       await this.prismaService.$transaction(async (prisma) => {
+
+        const walletCreationData = await this.walletService.create(
+          auction.userId, walletData
+        );
+
+        const confirmDeliveryResult = await prisma.joinedAuction.update({
+          where: { id: auctionWinner.id },
+          data: { status: JoinedAuctionStatus.COMPLETED },
+        });
+      
+        return [walletCreationData, confirmDeliveryResult];
+      });
+      
+      
+
+      console.log('walletCreationData :',walletCreationData)
+      console.log('confirmDeliveryResult :',confirmDeliveryResult);
+      
+
+    return confirmDeliveryResult
+   } catch (error) {
+    // Handle the error appropriately
+    // You can log the error, rethrow it, or return a custom response
+    console.error('Error during confirmDelivery:', error);
+    throw new MethodNotAllowedResponse({
+      ar: 'حدث خطأ أثناء تأكيد التسليم',
+      en: 'An error occurred during delivery confirmation',
     });
+  }
   }
 
   async findAllAuctionBidders(auctionId: number) {

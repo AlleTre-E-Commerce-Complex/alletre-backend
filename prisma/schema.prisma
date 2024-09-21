@@ -194,9 +194,20 @@ model Auction {
   bids            Bids[]
   Payment         Payment[]
   JoinedAuction   JoinedAuction[]
-  wallet          Wallet[]
+  Wallet          Wallet[]
 }
 
+model Purchase {
+  id              Int             @id @default(autoincrement())
+  productId       Int             @unique
+  sellerId        Int
+  buyerId         Int
+  purchaseDate    DateTime        @default(now())
+  productQuantity Int             @default(1)
+  productAmount   Decimal
+  totalAmount     Decimal
+  Wallet          Wallet[]     
+}
 model WatchList {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -250,23 +261,36 @@ model Admin {
   createdAt DateTime @default(now())
 }
 
+
 model Wallet {
   id              Int      @id @default(autoincrement())
   userId          Int
-  auctionId       Int
+  auctionId       Int?
+  purchaseId      Int?
   amount          Decimal
   date            DateTime      @default(now())
   description     String
   status          WalletStatus
-  auction         Auction       @relation(fields: [auctionId], references: [id])
-  user            User          @relation(fields: [userId], references: [id])         
+  transactionType WalletTransactionType
+  balance         Decimal        @default(6000)
+  auction         Auction?       @relation(fields: [auctionId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])  
+  purchase        Purchase?      @relation(fields: [purchaseId],references: [id])       
 }
 
+model WalletBalance {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  balance         Int
+}
 enum WalletStatus {
   DEPOSIT
   WITHDRAWAL
 }
-
+enum WalletTransactionType {
+  By_AUCTION
+  BY_DIRECT_SELL
+}
 enum UsageStatus {
   NEW
   USED
