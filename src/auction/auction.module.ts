@@ -10,6 +10,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { PaymentsModule } from 'src/payments/payments.module';
 import { AuctionStatusValidator } from './validations/auction-validator';
 import { WalletService } from 'src/wallet/wallet.service';
+import { StripeService } from 'src/common/services/stripe.service';
 
 @Module({
   imports: [PrismaModule, FirebaseModule, AuthModule, PaymentsModule],
@@ -20,6 +21,7 @@ import { WalletService } from 'src/wallet/wallet.service';
     BidsWebSocketGateway,
     AuctionStatusValidator,
     WalletService,
+    StripeService,
   ],
   controllers: [AuctionsController],
   exports: [UserAuctionsService],

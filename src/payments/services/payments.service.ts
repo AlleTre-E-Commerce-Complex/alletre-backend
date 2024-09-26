@@ -317,7 +317,7 @@ export class PaymentsService {
       payload,
       stripeSignature,
     );
-    console.log('PaymentIntent data :===>',paymentIntent);
+    console.log('PaymentIntent data :===>',paymentIntent,status);
 
     switch (status) {
       case PaymentStatus.CANCELLED: 

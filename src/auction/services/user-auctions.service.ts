@@ -34,10 +34,13 @@ import { PaymentsService } from 'src/payments/services/payments.service';
 import { AuctionStatusValidator } from '../validations/auction-validator';
 import { AuctionActions } from 'src/common/enums/auction-actions.enum';
 import { WalletService } from 'src/wallet/wallet.service';
+import { StripeService } from 'src/common/services/stripe.service';
+import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 
 @Injectable()
 export class UserAuctionsService {
   constructor(
+    private stripeService: StripeService,
     private prismaService: PrismaService,
     private walletService: WalletService,
     private paginationService: PaginationService,
@@ -126,6 +129,15 @@ export class UserAuctionsService {
         status: AuctionStatus.DRAFTED,
       },
     });
+  }
+
+  async updateAuctionForCancellation(auctionId:number){
+    try {
+      console.log(auctionId)
+    } catch (error) {
+      console.log(error);
+      
+    }
   }
 
   async updateDraftAuction(auctionId: number, productDTO: ProductDTO) {
@@ -1536,9 +1548,21 @@ export class UserAuctionsService {
          Number(lastWalletTransactionBalance) + Number(auctionWinnerBidAmount) : 
          Number(auctionWinnerBidAmount)
       }
+      //here we need to create the functionalities for cancelling the holded cash of the seller
+     
 
-      const [walletCreationData, confirmDeliveryResult] =
+      const sellerPaymentData =await this.prismaService.payment.findFirst({
+        where:{
+        userId: auction.userId,
+        auctionId:Number(auctionId)
+        }
+      })
+      console.log('sellerPaymentData :',sellerPaymentData)
+      const [walletCreationData, confirmDeliveryResult,cancelledIntent] =
        await this.prismaService.$transaction(async (prisma) => {
+
+      const cancelledIntent = this.stripeService.cancelDepositPaymentIntent(
+         sellerPaymentData.paymentIntentId)
 
         const walletCreationData = await this.walletService.create(
           auction.userId, walletData
@@ -1549,13 +1573,15 @@ export class UserAuctionsService {
           data: { status: JoinedAuctionStatus.COMPLETED },
         });
       
-        return [walletCreationData, confirmDeliveryResult];
+        return [walletCreationData, confirmDeliveryResult,cancelledIntent];
       });
       
       
 
       console.log('walletCreationData :',walletCreationData)
       console.log('confirmDeliveryResult :',confirmDeliveryResult);
+      console.log('cancelledIntent Result :',cancelledIntent);
+      
       
 
     return confirmDeliveryResult
@@ -1570,6 +1596,51 @@ export class UserAuctionsService {
   }
   }
 
+  async uploadAuctionComplaints(
+    userId: number,
+    AuctionComplaintsData:AuctionComplaintsDTO,
+    images:Express.Multer.File[]){
+    try {
+      console.log('at auction service page :',AuctionComplaintsData)
+      const imagesHolder = [];
+     const newComplaintData = await  this.prismaService.auctionComplaints.create({
+        data:{
+          auctionStatus:AuctionComplaintsData.auctionStatus,
+          message:AuctionComplaintsData.message,
+          auctionId:AuctionComplaintsData.auctionId,
+          userId:userId,
+        }
+      })
+      if (images?.length) {
+        for (const image of images) {
+          const uploadedImage = await this.firebaseService.uploadImage(image);
+          imagesHolder.push(uploadedImage);
+        }
+      }
+
+      if (imagesHolder?.length) {
+        imagesHolder.forEach(async (image) => {
+          await this.prismaService.complaintImages.create({
+            data: {
+              complaintId:newComplaintData.id,
+              imageLink: image.fileLink,
+              imagePath: image.filePath,
+            },
+          });
+        });
+      }
+      console.log('result')
+      return 'result'
+    } catch (error) {
+       // Handle the error appropriately
+    // You can log the error, rethrow it, or return a custom response
+      console.error('Error during confirmDelivery:', error);
+      throw new MethodNotAllowedResponse({
+      ar: 'حدث خطأ عند تحميل شكوى المزاد',
+      en: 'An error occurred when upload auction complaint',
+    });
+    }
+  }
   async findAllAuctionBidders(auctionId: number) {
     return await this.prismaService.$queryRawUnsafe(`
     SELECT "U"."id", "U"."userName", MAX(CAST("B"."amount" AS DECIMAL)) AS "lastBidAmount", MAX("B"."createdAt") AS "lastBidTime", "C"."totalBids"

@@ -38,6 +38,7 @@ import { AuthOrGuestGuard } from 'src/auth/guards/authOrGuest.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -58,6 +59,9 @@ export class AuctionsController {
     @Body() auctionCreationDTO: AuctionCreationDTO,
     @UploadedFiles() images: Array<Express.Multer.File>,
   ) {
+    console.log('The form data of the publish auction :',auctionCreationDTO)
+    console.log('The images of the publish auction :',images)
+
     return {
       success: true,
       data: await this.userAuctionsService.createPendingAuction(
@@ -380,6 +384,23 @@ export class AuctionsController {
     };
   }
 
+ 
+  @Put('/user/:auctionId/cancel-auction')
+  @UseGuards(AuthGuard, OwnerGuard)
+  async cancelAuctionByOwner(
+    @Param('auctionId', ParseIntPipe) auctionId: number, 
+  ){
+     try {
+      console.log('auction id :',auctionId)
+     await this.userAuctionsService.updateAuctionForCancellation(auctionId)
+     } catch (error) {
+      console.log(error);
+      
+     }
+  }
+
+
+
   @Put('/user/:auctionId/draft-details')
   @UseGuards(AuthGuard, OwnerGuard)
   @UseInterceptors(AnyFilesInterceptor())
@@ -419,6 +440,7 @@ export class AuctionsController {
     @Param('auctionId', ParseIntPipe) auctionId: number,
     @UploadedFile() image: Express.Multer.File,
   ) {
+    console.log('[IMPORTANT] images===>',image)
     await this.userAuctionsService.uploadImageForAuction(auctionId, image);
     return {
       success: true,
@@ -502,6 +524,33 @@ export class AuctionsController {
         auctionId,
       ),
     };
+  }
+
+  @Post('/user/auction-complaints')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('images', 20, {
+      dest: 'uploads/',
+    }),
+  )
+  async uploadComplaintsByBidder(
+    @Account() account:any,
+    // @Param('auctionId', ParseIntPipe) auctionId : number,
+    @Body() AuctionComplaintsData :AuctionComplaintsDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>
+  ){
+
+      console.log('AuctionComplaintsData',AuctionComplaintsData)
+    console.log('images : ',images)
+    return {
+      success: true,
+      data : await this.userAuctionsService.uploadAuctionComplaints(
+        Number(account.id),
+        AuctionComplaintsData,
+        images
+          )
+    }
+   
   }
 
   @Get('/user/:auctionId/total-bids')

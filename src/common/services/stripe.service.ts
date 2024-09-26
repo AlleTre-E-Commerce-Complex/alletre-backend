@@ -187,7 +187,7 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         case 'payment_intent.canceled':
           const cancelPaymentIntent = event.data.object
           console.log(
-            `PaymentIntent for ${cancelPaymentIntent.amount} was Holded (authorized)!`,
+            `PaymentIntent for ${cancelPaymentIntent.amount} was Cancelled!`,
           );
           return {
             status:PaymentStatus.CANCELLED,

@@ -31,6 +31,8 @@ model User {
   Payment             Payment[]
   JoinedAuction       JoinedAuction[]
   wallet              Wallet[]
+  auctionComplaints   AuctionComplaints[]
+
 }
 
 model Country {
@@ -195,6 +197,7 @@ model Auction {
   Payment         Payment[]
   JoinedAuction   JoinedAuction[]
   Wallet          Wallet[]
+  auctionComplaints AuctionComplaints[]
 }
 
 model Purchase {
@@ -283,6 +286,33 @@ model WalletBalance {
   userId          Int
   balance         Int
 }
+model AuctionComplaints {
+  id              Int            @id @default(autoincrement())
+  userId          Int
+  auctionId       Int
+  date            DateTime       @default(now())
+  message         String
+  auctionStatus   JoinedAuctionStatus
+  problemStatus   ProblemStatus  @default(PENDING)
+  images          ComplaintImages[]
+  auction         Auction       @relation(fields: [auctionId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])   
+}
+
+model ComplaintImages {
+  id          Int      @id @default(autoincrement())
+  complaintId Int
+  imagePath   String
+  imageLink   String
+  createdAt   DateTime @default(now())
+  complaint   AuctionComplaints       @relation(fields: [complaintId], references: [id])
+}
+
+enum ProblemStatus {
+  PENDING
+  SOLVED
+  IN_PROGRESS
+}
 enum WalletStatus {
   DEPOSIT
   WITHDRAWAL
@@ -316,6 +346,7 @@ enum AuctionStatus {
   SOLD
   WAITING_FOR_PAYMENT
   EXPIRED
+  CANCELLED
 }
 
 enum AuctionType {
