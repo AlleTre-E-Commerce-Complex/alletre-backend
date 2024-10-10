@@ -38,11 +38,40 @@ export class WalletService {
     return result;
   }
 
+  //add to alletre wallet
+   async addToAlletreWallet(
+    userId : number,
+    createWalletData: CreateWalletDto) {
+      let result:any
+    try {
+       result = await this.prismaSevice.alletreWallet.create({
+        data:{
+          userId,
+          description:createWalletData.description,
+          amount:createWalletData.amount,
+          status:createWalletData.status,
+          transactionType:createWalletData.transactionType, 
+          auctionId:createWalletData.auctionId,
+          purchaseId:createWalletData.purchaseId,
+          balance:createWalletData.balance
+        }
+      })
+      console.log('the create wallet transaction result : ==>',result)
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إجراء معاملتك',
+        en: 'Something went wrong while processing your transaction.',
+      });
+    }
+    return result;
+  }
+
   async findAll(userId:number) {
     
     const walletData = await this.prismaSevice.wallet.findMany({where:{userId}})
-    console.log('wallet data :',walletData)
-    let balance = walletData[walletData.length-1]
+    // console.log('wallet data :',walletData)
+    // let balance = walletData[walletData.length-1]
     return walletData
   }
 
@@ -51,9 +80,15 @@ export class WalletService {
       where:{userId},
       orderBy:{id:'desc'}
     })
-    return walletLastTransaction.balance
+    return walletLastTransaction?.balance
   }
 
+  async findLastTransactionOfAlletre() {
+    const walletLastTransaction = await this.prismaSevice.alletreWallet.findFirst({
+      orderBy:{id:'desc'}
+    })
+    return walletLastTransaction?.balance
+  }
   update(id: number, updateWalletDto: UpdateWalletDto) {
     return `This action updates a #${id} wallet`;
   }

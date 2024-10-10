@@ -36,6 +36,8 @@ import { AuctionActions } from 'src/common/enums/auction-actions.enum';
 import { WalletService } from 'src/wallet/wallet.service';
 import { StripeService } from 'src/common/services/stripe.service';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
+import { EmailSerivce } from 'src/emails/email.service';
+import { EmailsType } from 'src/auth/enums/emails-type.enum';
 
 @Injectable()
 export class UserAuctionsService {
@@ -49,6 +51,7 @@ export class UserAuctionsService {
     private bidsWebSocketGateway: BidsWebSocketGateway,
     private paymentService: PaymentsService,
     private auctionStatusValidator: AuctionStatusValidator,
+    private emailService : EmailSerivce
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -130,13 +133,274 @@ export class UserAuctionsService {
       },
     });
   }
+ 
 
-  async updateAuctionForCancellation(auctionId:number){
+  async updateAuctionForCancellation(auctionId:number,userId:number){
     try {
-      console.log(auctionId)
+        const auction = await this.prismaService.auction.findUnique({
+          where:{id:auctionId},
+          include:{
+            product:{
+              include:{images:true}
+            },
+            user:true
+          }
+        })
+        const BiddersData = await this.prismaService.bids.findMany({
+          where:{
+            auctionId
+          },
+          orderBy:{amount:'desc'},
+         
+        })
+        if(BiddersData.length){
+          console.log('BiddersData :',BiddersData);
+       
+          
+          //Finding the seller security Deposit amount
+          const sellerSecurityDeposit = await this.prismaService.payment.findFirst({
+            where:{
+              auctionId,
+              type:PaymentType.SELLER_DEPOSIT
+            },
+          })
+          
+          const isSellerPaymentCaptured = await this.stripeService.captureDepositPaymentIntent(sellerSecurityDeposit.paymentIntentId)
+          
+          //find highest Bidder
+          if(isSellerPaymentCaptured){
+            
+            //send mail to seller 
+            const body = {
+                subject :'Auction Cancelled',
+                title:'Your acution is cancelled',
+                Product_Name : auction.product.title,
+                img:auction.product.images[0].imageLink,
+                message:` Hi ${auction.user.userName}, 
+                Your Acution of ${auction.product.title}
+                (Model:${auction.product.model})
+                has been successfully cancelled. 
+                You have lost your security deposit due to there are bidders on your auction.
+                If you would like to do another auction, 
+                Please click the button below. Thank you. `,
+                Button_text :'Click here to create another Auction',
+                Button_URL :process.env.FRONT_URL
+              }
+              //calling send email function
+              await this.emailService.sendEmail(
+                auction.user.email,
+                'token',
+                EmailsType.OTHER,
+                body
+              )
+
+          //here we need to send messages to all bidders
+          //that this auction is cancelled by the seller.
+          const BiddersPaymentData = await this.prismaService.payment.findMany({
+            where:{auctionId,type:'BIDDER_DEPOSIT'},
+            include:{
+              user:true,
+              
+            }
+            
+          })
+          
+          const highestBidderId = BiddersData[0].userId
+            //find security Deposit of highest bidder // becuase when the acution complete, the S_D of winned bidder will be captured
+          let highestBidderSecurityDeposit = 0
+
+          BiddersPaymentData?.map(async data=>{
+            if(data.userId === highestBidderId){
+              highestBidderSecurityDeposit = Number(data.amount)
+            }
+            //send email to bidders
+            let body = {
+              subject :'Auction Cancelled',
+              title:'Your acution is cancelled',
+              Product_Name : auction.product.title,
+              img:auction.product.images[0].imageLink,
+              message:` Hi, ${data.user.userName}, 
+                        We are really sorry to say that your Acution of ${auction.product.title}
+                       (Model:${auction.product.model})
+                       has been cancelled by the owner of the product. 
+                       Your Security Deposit has been sent back to your wallet 
+                        ${data?.user.id === highestBidderId ?
+                        "along with a compansation due to you are the highest Bidder.":""}. 
+                       If you would like to do another auction, 
+                       Please click the button below. Thank you. `,
+              Button_text :'Click here to create another Auction',
+              Button_URL :process.env.FRONT_URL
+            }
+            if(auction.status === 'ACTIVE'){
+              const cancelDepositResult =  await this.stripeService.cancelDepositPaymentIntent(data?.paymentIntentId)
+              if(cancelDepositResult){
+              await this.emailService.sendEmail(
+                data.user.email,
+                'token',
+                EmailsType.OTHER,
+                body
+              )
+              }
+            }else if(auction.status === 'WAITING_FOR_PAYMENT' && data.userId === highestBidderId){
+              await this.emailService.sendEmail(
+                data.user.email,
+                'token',
+                EmailsType.OTHER,
+                body
+              )
+            }
+
+          })
+         
+          
+            //finding the last transaction balance of the highest bidder 
+            const lastWalletTransactionBalance = await this.walletService.findLastTransaction(highestBidderId) 
+            //finding the last transaction balance of the alletreWallet
+            const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+          
+            //calculating the amount that need add to the highest bidder
+            const compensationPersenatage = auction.status === 'ACTIVE' ? 15 : 20
+            const amountToWinnedBidderWallet = (Number(sellerSecurityDeposit.amount)*compensationPersenatage)/100 
+            const originalAmountToWinnedBidderWallet =  auction.status === 'WAITING_FOR_PAYMENT'? 
+            amountToWinnedBidderWallet+highestBidderSecurityDeposit : amountToWinnedBidderWallet
+            //calculating the amount that need add to the alletreWallet
+            const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
+            //tranfering data for the copensation to the highest bidder wallet.
+            let highestBidderWalletData = {
+              status:WalletStatus.DEPOSIT,
+              transactionType:WalletTransactionType.By_AUCTION,
+              description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+              amount:originalAmountToWinnedBidderWallet,
+              auctionId:Number(auctionId),
+              balance:lastWalletTransactionBalance ?
+               (Number(lastWalletTransactionBalance) + originalAmountToWinnedBidderWallet) : originalAmountToWinnedBidderWallet
+            }
+            //tranfering data for the alletre fees 
+            
+            let alletreWalletData = {
+              status:WalletStatus.DEPOSIT,
+              transactionType:WalletTransactionType.By_AUCTION,
+              description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+              amount:amountToAlletteWallet,
+              auctionId:Number(auctionId),
+              balance:lastBalanceOfAlletre ?
+               (Number(lastBalanceOfAlletre) + amountToAlletteWallet) : amountToAlletteWallet
+            }
+            //capturing the seller deposit 
+          await this.prismaService.$transaction(async(prisma)=>{
+                //transfer to the  highest bidder wallet
+            await this.walletService.create(highestBidderId, highestBidderWalletData);
+  
+                //transfer to the  alletre wallet
+                  
+            await this.walletService.addToAlletreWallet(userId,alletreWalletData)
+            
+            await prisma.auction.update({
+                where:{
+                  id:auctionId
+                },
+                data:{
+                  status:auction.status === 'ACTIVE' ? 
+                  AuctionStatus.CANCELLED_BEFORE_EXP_DATE 
+                  :
+                  AuctionStatus.CANCELLED_AFTER_EXP_DATE
+                }
+              })
+              
+               if(auction.status === 'ACTIVE'){
+                await prisma.joinedAuction.updateMany({
+                  where:{auctionId},
+                  data:{status:JoinedAuctionStatus.CANCELLED_BEFORE_EXP_DATE}
+                })
+               }else if(auction.status === 'WAITING_FOR_PAYMENT'){
+                await prisma.joinedAuction.updateMany({
+                  where:{
+                    auctionId,
+                    status:'PENDING_PAYMENT'
+                  },
+                  data:{
+                    status:JoinedAuctionStatus.CANCELLED_AFTER_EXP_DATE
+                  }
+                })
+               }
+              })
+              return {success:true,message:'You have successfully cancelled the auction.'}
+            
+          }else{
+            throw new MethodNotAllowedResponse({
+              ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+              en: 'Sorry! You cannot cancel this auction',
+            });
+          }
+          
+
+        }else{
+          //cancell auction with zero bidders
+          const updatedDataOfCancellAuction = await this.prismaService.auction.update({
+            where:{id:auctionId},
+            data:{status:auction.status ==='ACTIVE' ?
+              AuctionStatus.CANCELLED_BEFORE_EXP_DATE :
+              AuctionStatus.CANCELLED_AFTER_EXP_DATE,
+              endDate: new Date()},
+            include:{
+              user:true,
+              product:{
+                include:{images:true}
+              },
+              Payment:{
+                where:{
+                  type:'SELLER_DEPOSIT',
+                }
+              }
+            }
+          })
+          if(updatedDataOfCancellAuction){
+            const sellerPaymentData =await this.prismaService.payment.findFirst({
+              where:{
+                auctionId:updatedDataOfCancellAuction.id,
+                type:'SELLER_DEPOSIT'
+              }
+            })
+          const isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+          if(isSendBackS_D){
+              //Email Data
+              const body = {
+                subject :'Auction Cancelled',
+                title:'Your acution is cancelled',
+                Product_Name : updatedDataOfCancellAuction.product.title,
+                img:updatedDataOfCancellAuction.product.images[0].imageLink,
+                message:` Hi ${updatedDataOfCancellAuction.user.userName}, 
+                          Your Acution of ${updatedDataOfCancellAuction.product.title}
+                         (Model:${updatedDataOfCancellAuction.product.model})
+                         has been successfully cancelled. 
+                         Your Security Deposit has been sent back to you account. 
+                         If you would like to do another auction, 
+                         Please click the button below. Thank you. `,
+                Button_text :'Click here to create another Auction',
+                Button_URL :process.env.FRONT_URL
+              }
+              //calling send email function
+              await this.emailService.sendEmail(
+                updatedDataOfCancellAuction.user.email,
+                'token',
+                EmailsType.OTHER,
+                body
+              )
+            }
+            return {success:true,message:'You have successfully cancelled your auction.'}
+          }else{
+            throw new MethodNotAllowedResponse({
+              ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+              en: 'Sorry! You cannot cancel this auction',
+            });
+          }
+        }
     } catch (error) {
       console.log(error);
-      
+      throw new MethodNotAllowedResponse({
+        ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+        en: 'Sorry! You cannot cancel this auction',
+      });
     }
   }
 
@@ -435,6 +699,15 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
+
         product: {
           select: {
             id: true,
@@ -551,6 +824,14 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
         product: {
           select: {
             id: true,
@@ -639,6 +920,14 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
         product: {
           select: {
             id: true,
@@ -724,6 +1013,14 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
         product: {
           select: {
             id: true,
@@ -809,6 +1106,14 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
         product: {
           select: {
             id: true,
@@ -885,6 +1190,14 @@ export class UserAuctionsService {
         startBidAmount: true,
         startDate: true,
         locationId: true,
+        isItemSendForDelivery:true,
+        IsDelivery:true,
+        deliveryPolicyDescription:true,
+        numOfDaysOfExpecetdDelivery:true,
+        IsReturnPolicy:true,
+        returnPolicyDescription:true,
+        IsWarranty:true,
+        warrantyPolicyDescription:true,
         product: {
           select: {
             id: true,
@@ -1535,30 +1848,47 @@ export class UserAuctionsService {
       });
 
       const auctionWinnerBidAmount = await this._findLatestBidForAuction(auctionWinner.auctionId)
-      console.log('auction winner bid amount :===>',auctionWinnerBidAmount)
+      const feesAmountOfAlletre = (Number(auctionWinnerBidAmount)*5)/100
+      const amountToSellerWallet =  Number(auctionWinnerBidAmount) - feesAmountOfAlletre
 
       const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
+      const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
       let walletData = {
         status:WalletStatus.DEPOSIT,
         transactionType:WalletTransactionType.By_AUCTION,
         description:"Auction full payment",
-        amount:Number(auctionWinnerBidAmount),
+        amount:Number(amountToSellerWallet),
         auctionId:Number(auctionId),
         balance:lastWalletTransactionBalance ?
-         Number(lastWalletTransactionBalance) + Number(auctionWinnerBidAmount) : 
-         Number(auctionWinnerBidAmount)
+         Number(lastWalletTransactionBalance) + Number(amountToSellerWallet) : 
+         Number(amountToSellerWallet)
       }
-      //here we need to create the functionalities for cancelling the holded cash of the seller
-     
 
+      let walletDataToAlletre = {
+        status:WalletStatus.DEPOSIT,
+        transactionType:WalletTransactionType.By_AUCTION,
+        description:"fees of Auction full payment",
+        amount:Number(feesAmountOfAlletre),
+        auctionId:Number(auctionId),
+        balance:lastWalletTransactionAlletre ?
+         Number(lastWalletTransactionAlletre) + Number(feesAmountOfAlletre) : 
+         Number(feesAmountOfAlletre)
+      }
+      
+     
       const sellerPaymentData =await this.prismaService.payment.findFirst({
         where:{
         userId: auction.userId,
         auctionId:Number(auctionId)
-        }
+        },
+        include:{
+          user:true,
+          auction:{include:{product:{include:{images:true}}}}
+        },
+
       })
       console.log('sellerPaymentData :',sellerPaymentData)
-      const [walletCreationData, confirmDeliveryResult,cancelledIntent] =
+      const [walletCreationData, confirmDeliveryResult,cancelledIntent,alletreWalletCreationData] =
        await this.prismaService.$transaction(async (prisma) => {
 
       const cancelledIntent = this.stripeService.cancelDepositPaymentIntent(
@@ -1567,23 +1897,56 @@ export class UserAuctionsService {
         const walletCreationData = await this.walletService.create(
           auction.userId, walletData
         );
-
+        //add to alletre wallet (fees)
+        const alletreWalletCreationData = await this.walletService.addToAlletreWallet(
+          winnerId,
+          walletDataToAlletre
+        )
         const confirmDeliveryResult = await prisma.joinedAuction.update({
           where: { id: auctionWinner.id },
           data: { status: JoinedAuctionStatus.COMPLETED },
+          include:{user:true}
         });
       
-        return [walletCreationData, confirmDeliveryResult,cancelledIntent];
+        return [walletCreationData, confirmDeliveryResult,cancelledIntent,alletreWalletCreationData];
       });
       
       
-
-      console.log('walletCreationData :',walletCreationData)
-      console.log('confirmDeliveryResult :',confirmDeliveryResult);
-      console.log('cancelledIntent Result :',cancelledIntent);
+      if(walletCreationData && confirmDeliveryResult && cancelledIntent && alletreWalletCreationData){
+        console.log('sending email to seller and bidder after delivery confirmation')
+       //sending email to seller and bidder after delivery confirmation
+       let emailBodyToSeller = {
+        subject :'Delivery successful',
+        title:'Your Auction winner has confirmed the delivery',
+        Product_Name : sellerPaymentData.auction.product.title,
+        img:sellerPaymentData.auction.product.images[0].imageLink,
+        message:` Hi, ${sellerPaymentData.user.userName}, 
+                 Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
+                 (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
+                 The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
+                 From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. 
+                 If you would like to Participate another auction, Please click the button below. Thank you. `,
+        Button_text :'Click here to create another Auction',
+        Button_URL :process.env.FRONT_URL
+      }
+      let emailBodyToWinner = {
+        subject :'Delivery successful',
+        title:'Delivery successful',
+        Product_Name : sellerPaymentData.auction.product.title,
+        img:sellerPaymentData.auction.product.images[0].imageLink,
+        message:` Hi, ${confirmDeliveryResult.user.userName}, 
+                 Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
+                 (Model:${sellerPaymentData.auction.product.model}). 
+                  We would like to thank you and appreciate you for choosing Alle Tre. If you would like to participate another auction, Please click the button below. Thank you. `,
+        Button_text :'Click here to create another Auction',
+        Button_URL :process.env.FRONT_URL
+      }
+      Promise.all([
+        await this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyToSeller),
+        await this.emailService.sendEmail(confirmDeliveryResult.user.email,'token',EmailsType.OTHER,emailBodyToWinner)
+      ])
+      }
       
-      
-
     return confirmDeliveryResult
    } catch (error) {
     // Handle the error appropriately
@@ -1594,6 +1957,55 @@ export class UserAuctionsService {
       en: 'An error occurred during delivery confirmation',
     });
   }
+  }
+
+  async IsSendItemForDelivery(accountId:number,auctionId:number,message:string){
+    try {
+      console.log('IsSendItemForDelivery:',accountId,auctionId,message)
+      const IsItemSend = await this.prismaService.auction.update({
+        where:{
+          id:auctionId,
+          userId:accountId
+        },
+        data:{isItemSendForDelivery:true},
+        include:{
+          bids:{
+          include:{user:true},
+          orderBy:{amount:'desc'}
+        },
+        product:{include:{images:true}}
+      }
+      })
+      const highestBidder = IsItemSend.bids[0].user
+      if(highestBidder){
+        let emailBodyToWinner = {
+          subject :'Auction product has been sent from the seller',
+          title:'Auction product has been sent from the seller',
+          Product_Name : IsItemSend.product.title,
+          img:IsItemSend.product.images[0].imageLink,
+          message:` Hi, ${highestBidder.userName}, 
+                   Thank you for choosing Alle Tre Auction. The seller has been sent the product  of Auction of ${IsItemSend.product.title}
+                   (Model:${IsItemSend.product.model}) for delivery. Once the item delivered, please confirm the delivery by cliking the "confirm delivery" button.
+                   ${message? `Seller Message : ${message}`:" " } 
+                    We would like to thank you and appreciate you for choosing Alle Tre. If you would like to participate another auction, Please click the button below. Thank you. `,
+          Button_text :'Click here ',
+          Button_URL :process.env.FRONT_URL
+        }
+        await this.emailService.sendEmail(highestBidder.email,'token',EmailsType.OTHER,emailBodyToWinner)
+        return IsItemSend
+      }else{
+        throw new MethodNotAllowedResponse({
+          ar: 'لايمكنك تكملة العملية',
+          en: 'You Can not Complete Operation',
+        });
+      }
+    } catch (error) {
+      console.log('is send item for delivery error : ',error)
+      throw new MethodNotAllowedResponse({
+        ar: 'لايمكنك تكملة العملية',
+        en: 'You Can not Complete Operation',
+      });
+    }
   }
 
   async uploadAuctionComplaints(
@@ -1671,6 +2083,13 @@ export class UserAuctionsService {
       isBuyNowAllowed,
       acceptedAmount,
       locationId,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionDto;
 
     let auction: Auction;
@@ -1685,6 +2104,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
         },
         include: {
@@ -1692,7 +2118,7 @@ export class UserAuctionsService {
         },
       });
     } catch (error) {
-      console.log(error);
+      console.log('_createOnTimeDailyAuction',error);
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في اضافة الاعلان تأكد من صحة البيانات',
         en: 'Something Went Wrong While Adding Your Auction',
@@ -1702,6 +2128,8 @@ export class UserAuctionsService {
     // TODO: Create Payment Service and set startDate(cuurentDate) & expiryDate=(Date()+durationInDays) & status=PUBLISHED when payment proceed
     return auction;
   }
+
+  
   private async _updateOnTimeDailyAuction(
     auctionId: number,
     userId: number,
@@ -1716,6 +2144,13 @@ export class UserAuctionsService {
       isBuyNowAllowed,
       acceptedAmount,
       locationId,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -1731,6 +2166,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           status: AuctionStatus.PENDING_OWNER_DEPOIST,
         },
@@ -1777,6 +2219,13 @@ export class UserAuctionsService {
       isBuyNowAllowed,
       acceptedAmount,
       locationId,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionDto;
 
     let auction: Auction;
@@ -1792,6 +2241,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
         },
         include: {
@@ -1825,6 +2281,13 @@ export class UserAuctionsService {
       isBuyNowAllowed,
       acceptedAmount,
       locationId,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -1841,6 +2304,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           status: AuctionStatus.PENDING_OWNER_DEPOIST,
         },
@@ -1948,6 +2418,13 @@ export class UserAuctionsService {
       acceptedAmount,
       locationId,
       startDate,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionDto;
 
     let auction: Auction;
@@ -1963,6 +2440,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           startDate: new Date(startDate),
         },
@@ -1997,6 +2481,13 @@ export class UserAuctionsService {
       acceptedAmount,
       locationId,
       startDate,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -2013,6 +2504,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           startDate,
           status: AuctionStatus.PENDING_OWNER_DEPOIST,
@@ -2044,6 +2542,13 @@ export class UserAuctionsService {
       acceptedAmount,
       locationId,
       startDate,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionDto;
 
     let auction: Auction;
@@ -2059,6 +2564,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           startDate: new Date(startDate),
         },
@@ -2094,6 +2606,13 @@ export class UserAuctionsService {
       acceptedAmount,
       locationId,
       startDate,
+      IsDelivery,
+      deliveryPolicyDescription,
+      numOfDaysOfExpecetdDelivery,
+      IsRetrunPolicy,
+      returnPolicyDescription,
+      IsWaranty,
+      warrantyPolicyDescription
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -2110,6 +2629,13 @@ export class UserAuctionsService {
           startBidAmount,
           ...(isBuyNowAllowed == 'YES' ? { isBuyNowAllowed: true } : {}),
           ...(acceptedAmount ? { acceptedAmount } : {}),
+          ...(IsDelivery === 'true'? {IsDelivery:true} : {}),
+          ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
+          ...(numOfDaysOfExpecetdDelivery ? { numOfDaysOfExpecetdDelivery } : {}),
+          ...(IsRetrunPolicy === 'true'? {IsReturnPolicy:true} : {}),
+          ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
+          ...(IsWaranty === 'true'? {IsWarranty:true} : {}),
+          ...(warrantyPolicyDescription ? { warrantyPolicyDescription } : {}),
           locationId,
           startDate,
           status: AuctionStatus.PENDING_OWNER_DEPOIST,

@@ -31,6 +31,7 @@ model User {
   Payment             Payment[]
   JoinedAuction       JoinedAuction[]
   wallet              Wallet[]
+  alletreWallet       AlletreWallet[]
   auctionComplaints   AuctionComplaints[]
 
 }
@@ -173,31 +174,41 @@ model Image {
 }
 
 model Auction {
-  id              Int             @id @default(autoincrement())
-  userId          Int
-  productId       Int             @unique
-  locationId      Int?
-  status          AuctionStatus   @default(PENDING_OWNER_DEPOIST)
-  type            AuctionType?
-  durationUnit    DurationUnits?
-  durationInDays  Int?
-  durationInHours Int?
-  startBidAmount  Decimal?
-  isBuyNowAllowed Boolean         @default(false)
-  acceptedAmount  Decimal?
-  startDate       DateTime?
-  expiryDate      DateTime?
-  endDate         DateTime?
-  createdAt       DateTime        @default(now())
-  product         Product         @relation(fields: [productId], references: [id])
-  user            User            @relation(fields: [userId], references: [id])
-  watchLists      WatchList[]
-  location        Location?       @relation(fields: [locationId], references: [id])
-  bids            Bids[]
-  Payment         Payment[]
-  JoinedAuction   JoinedAuction[]
-  Wallet          Wallet[]
-  auctionComplaints AuctionComplaints[]
+  id                           Int             @id @default(autoincrement())
+  userId                       Int
+  productId                    Int             @unique
+  locationId                   Int?
+  status                       AuctionStatus   @default(PENDING_OWNER_DEPOIST)
+  type                         AuctionType?
+  durationUnit                 DurationUnits?
+  durationInDays               Int?
+  durationInHours              Int?
+  startBidAmount               Decimal?
+  isBuyNowAllowed              Boolean          @default(false)
+  isItemSendForDelivery        Boolean?   @default(false)
+  IsDelivery                   Boolean?         @default(false)
+  deliveryPolicyDescription    String?
+  numOfDaysOfExpecetdDelivery  Int?
+  IsReturnPolicy               Boolean?         @default(false)
+  returnPolicyDescription      String?
+  IsWarranty                   Boolean?         @default(false)
+  warrantyPolicyDescription    String?
+  acceptedAmount               Decimal?
+  startDate                    DateTime?
+  expiryDate                   DateTime?
+  endDate                      DateTime?
+  createdAt                    DateTime        @default(now())
+  product                      Product         @relation(fields: [productId], references: [id])
+  user                         User            @relation(fields: [userId], references: [id])
+  watchLists                   WatchList[]
+  location                     Location?       @relation(fields: [locationId], references: [id])
+  bids                         Bids[]
+  Payment                      Payment[]
+  JoinedAuction                JoinedAuction[]
+  Wallet                       Wallet[]
+  alletreWallet                AlletreWallet[]
+  auctionComplaints            AuctionComplaints[]
+
 }
 
 model Purchase {
@@ -210,6 +221,7 @@ model Purchase {
   productAmount   Decimal
   totalAmount     Decimal
   Wallet          Wallet[]     
+  alletreWallet   AlletreWallet[]
 }
 model WatchList {
   id        Int      @id @default(autoincrement())
@@ -234,10 +246,11 @@ model Payment {
   id              Int           @id @default(autoincrement())
   userId          Int
   auctionId       Int
-  paymentIntentId String        @unique
+  paymentIntentId String?        @unique
   amount          Decimal
   createdAt       DateTime      @default(now())
   type            PaymentType?
+  isWalletPayment Boolean       @default(false)
   status          PaymentStatus @default(PENDING)
   auction         Auction       @relation(fields: [auctionId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
@@ -250,6 +263,7 @@ model JoinedAuction {
   createdAt         DateTime            @default(now())
   status            JoinedAuctionStatus @default(IN_PROGRESS)
   paymentExpiryDate DateTime?
+  isWarningMessageSent Boolean           @default(false)
   auction           Auction             @relation(fields: [auctionId], references: [id])
   user              User                @relation(fields: [userId], references: [id])
 }
@@ -275,17 +289,29 @@ model Wallet {
   description     String
   status          WalletStatus
   transactionType WalletTransactionType
-  balance         Decimal        @default(6000)
+  balance         Decimal        
   auction         Auction?       @relation(fields: [auctionId], references: [id])
   user            User           @relation(fields: [userId], references: [id])  
   purchase        Purchase?      @relation(fields: [purchaseId],references: [id])       
 }
 
-model WalletBalance {
+model AlletreWallet {
   id              Int      @id @default(autoincrement())
   userId          Int
-  balance         Int
+  auctionId       Int?
+  purchaseId      Int?
+  amount          Decimal
+  date            DateTime      @default(now())
+  description     String
+  status          WalletStatus
+  transactionType WalletTransactionType
+  balance         Decimal        
+  auction         Auction?       @relation(fields: [auctionId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])  
+  purchase        Purchase?      @relation(fields: [purchaseId],references: [id])       
 }
+
+
 model AuctionComplaints {
   id              Int            @id @default(autoincrement())
   userId          Int
@@ -346,7 +372,9 @@ enum AuctionStatus {
   SOLD
   WAITING_FOR_PAYMENT
   EXPIRED
-  CANCELLED
+  CANCELLED_BEFORE_EXP_DATE
+  CANCELLED_AFTER_EXP_DATE
+
 }
 
 enum AuctionType {
@@ -372,6 +400,8 @@ enum JoinedAuctionStatus {
   PAYMENT_EXPIRED
   LOST
   COMPLETED
+  CANCELLED_BEFORE_EXP_DATE
+  CANCELLED_AFTER_EXP_DATE
 }
 
 enum PaymentType {

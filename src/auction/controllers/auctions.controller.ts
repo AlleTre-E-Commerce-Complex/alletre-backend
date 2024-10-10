@@ -387,19 +387,16 @@ export class AuctionsController {
  
   @Put('/user/:auctionId/cancel-auction')
   @UseGuards(AuthGuard, OwnerGuard)
+
   async cancelAuctionByOwner(
     @Param('auctionId', ParseIntPipe) auctionId: number, 
+    @Account() account : any
   ){
-     try {
-      console.log('auction id :',auctionId)
-     await this.userAuctionsService.updateAuctionForCancellation(auctionId)
-     } catch (error) {
-      console.log(error);
-      
-     }
+    return await this.userAuctionsService.updateAuctionForCancellation(
+      auctionId,
+      account.id
+    )
   }
-
-
 
   @Put('/user/:auctionId/draft-details')
   @UseGuards(AuthGuard, OwnerGuard)
@@ -522,6 +519,23 @@ export class AuctionsController {
       data: await this.userAuctionsService.confirmDelivery(
         Number(account.id),
         auctionId,
+      ),
+    };
+  }
+
+  @Put('/user/:auctionId/sendItem-forDelivery')
+  @UseGuards(AuthGuard)
+  async sendItemForDeivery(
+    @Account() account: any,
+    @Param('auctionId',ParseIntPipe) auctionId: number,
+    @Body() body : {message : string}
+  ){
+    return {
+      success: true,
+      data: await this.userAuctionsService.IsSendItemForDelivery(
+        Number(account.id),
+        auctionId,
+        body.message
       ),
     };
   }

@@ -52,6 +52,17 @@ export class CategoryController {
       data: await this.categoryService.getAllCategoriesIncludeSub(),
     };
   }
+  @Get('/getParticularCatergory')
+  @UseGuards(AuthOrGuestGuard)
+  async findParticularCatergory(
+    @Query('categoryId', ParseIntPipe) categoryId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.categoryService.findParticularCatergory(categoryId),
+    };
+  }
+  
   @Get('/sub-categories')
   @UseGuards(AuthOrGuestGuard)
   async findSubCategories(

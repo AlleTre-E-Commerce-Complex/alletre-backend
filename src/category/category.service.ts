@@ -20,6 +20,16 @@ export class CategoryService {
     });
   }
 
+  async findParticularCatergory(categoryId?: number) {
+    try {
+      return await this.prismaService.category.findUnique({
+        where: { id:categoryId },
+      });
+    } catch (error) {
+      console.log('Error when finding the category data :',error)
+    }
+  }
+
   async getAllSubCategories(categoryId?: number) {
     return await this.prismaService.subCategory.findMany({
       where: { ...(categoryId ? { categoryId: categoryId } : {}) },

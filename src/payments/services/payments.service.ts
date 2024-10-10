@@ -8,7 +8,9 @@ import {
   PaymentType,
   User,
 } from '@prisma/client';
+import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
+import { EmailSerivce } from 'src/emails/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -16,6 +18,7 @@ export class PaymentsService {
   constructor(
     private readonly stripeService: StripeService,
     private readonly prismaService: PrismaService,
+    private readonly emailService : EmailSerivce,
   ) {}
 
   async payDepositBySeller(
@@ -73,16 +76,7 @@ export class PaymentsService {
       };
     }
 
-    // Create PaymentIntent
-    // const { clientSecret, paymentIntentId } =
-    //   await this.stripeService.createPaymentIntent(
-    //     stripeCustomerId,
-    //     amount,
-    //     currency,
-    //   );
-
-     // Create PaymentIntent
-      // the above is commented out becuase now we are holding (authorizing) the money.
+  
 
      const { clientSecret, paymentIntentId } = 
      await this.stripeService.createDepositPaymentIntent(
@@ -388,7 +382,7 @@ export class PaymentsService {
           await this.prismaService.payment.findUnique({
             where: { paymentIntentId: paymentIntent.id },
           });
-
+          console.log('auctionPaymentTransaction :' ,auctionPaymentTransaction,paymentIntent )
         switch (auctionPaymentTransaction.type) {
           case PaymentType.BIDDER_DEPOSIT:
             console.log('Webhook BIDDER_DEPOSIT ...');
@@ -400,22 +394,22 @@ export class PaymentsService {
                 data: { status: PaymentStatus.SUCCESS },
               }),
 
-              // // Join user to auction
-              // this.prismaService.joinedAuction.create({
-              //   data: {
-              //     userId: auctionPaymentTransaction.userId,
-              //     auctionId: auctionPaymentTransaction.auctionId,
-              //   },
-              // }),
+                // // Join user to auction
+                // this.prismaService.joinedAuction.create({
+                //   data: {
+                //     userId: auctionPaymentTransaction.userId,
+                //     auctionId: auctionPaymentTransaction.auctionId,
+                //   },
+                // }),
 
-              // // Create bid for user
-              // this.prismaService.bids.create({
-              //   data: {
-              //     userId: auctionPaymentTransaction.userId,
-              //     auctionId: auctionPaymentTransaction.auctionId,
-              //     amount: paymentIntent.metadata.bidAmount,
-              //   },
-              // }),
+                // // Create bid for user
+                // this.prismaService.bids.create({
+                //   data: {
+                //     userId: auctionPaymentTransaction.userId,
+                //     auctionId: auctionPaymentTransaction.auctionId,
+                //     amount: paymentIntent.metadata.bidAmount,
+                //   },
+                // }),
             ]);
 
             break;
@@ -442,30 +436,74 @@ export class PaymentsService {
                   userId: auctionPaymentTransaction.userId,
                   auctionId: auctionPaymentTransaction.auctionId,
                 },
+                include:{
+                  user:true
+                }
               });
 
-            await this.prismaService.$transaction([
-              // Update payment transaction
-              this.prismaService.payment.update({
-                where: { paymentIntentId: paymentIntent.id },
-                data: { status: PaymentStatus.SUCCESS },
-              }),
-
-              // Update joinedAuction for bidder to WAITING_DELIVERY
-              this.prismaService.joinedAuction.update({
-                where: { id: joinedAuction.id },
-                data: {
-                  status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
-                },
-              }),
-
-              // Update auction status to sold
-              this.prismaService.auction.update({
-                where: { id: auctionPaymentTransaction.auctionId },
-                data: { status: AuctionStatus.SOLD },
-              }),
-            ]);
-
+       
+           const {paymentSuccessData} = await this.prismaService.$transaction(async prisma =>{
+                   // Update payment transaction
+                 const paymentSuccessData =    await prisma.payment.update({
+                    where: { paymentIntentId: paymentIntent.id },
+                    data: { status: PaymentStatus.SUCCESS },
+                    include:{auction:{include:{
+                      product:{include:{images:true}},
+                      user:true
+                    }}}
+                  })
+    
+                  // Update joinedAuction for bidder to WAITING_DELIVERY
+                  await prisma.joinedAuction.update({
+                    where: { id: joinedAuction.id },
+                    data: {
+                      status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
+                    },
+                  })
+    
+                  // Update auction status to sold
+                  await prisma.auction.update({
+                    where: { id: auctionPaymentTransaction.auctionId },
+                    data: { status: AuctionStatus.SOLD },
+                  })
+                  return {paymentSuccessData}
+            })
+            if(paymentSuccessData){
+              //send email to the seller 
+              let emailBodyToSeller = {
+                subject :'Payment successful',
+                title:'Your auction winner has paid the full amount',
+                Product_Name : paymentSuccessData.auction.product.title,
+                img:paymentSuccessData.auction.product.images[0].imageLink,
+                message:` Hi, ${paymentSuccessData.auction.user.userName}, 
+                          The winner of your Auction of ${paymentSuccessData.auction.product.title}
+                         (Model:${paymentSuccessData.auction.product.model}) has been paid the full amount. 
+                         We would like to let you know that you can hand over the item to the winner. once the winner
+                         confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
+                         there is a chance to lose your security deposite.
+                         If you would like to participate another auction, Please click the button below. Thank you. `,
+                Button_text :'Click here to create another Auction',
+                Button_URL :process.env.FRONT_URL
+              }
+              let emailBodyToWinner = {
+                subject :'Payment successful',
+                title:'Payment successful',
+                Product_Name : paymentSuccessData.auction.product.title,
+                img:paymentSuccessData.auction.product.images[0].imageLink,
+                message:` Hi, ${joinedAuction.user.userName}, 
+                          You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
+                         (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
+                         by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
+                          We would like to thank you and appreciate you for choosing Alle Tre.  
+                          If you would like to participate another auction, Please click the button below. Thank you. `,
+                Button_text :'Click here to create another Auction',
+                Button_URL :process.env.FRONT_URL
+              }
+              Promise.all([
+                await this.emailService.sendEmail(paymentSuccessData.auction.user.email,'token',EmailsType.OTHER,emailBodyToSeller),
+                await this.emailService.sendEmail(joinedAuction.user.email,'token',EmailsType.OTHER,emailBodyToWinner)
+              ])
+            }
             break;
           case PaymentType.BUY_NOW_PURCHASE:
             console.log('Webhook BUY_NOW_PURCHASE ...');
@@ -584,6 +622,8 @@ export class PaymentsService {
 
   addHours(date: Date, hours: number) {
     const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + 10 * 60 * 1000); // Add 10 minutes
+
     return newDate;
   }
 

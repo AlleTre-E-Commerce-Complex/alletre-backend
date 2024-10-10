@@ -6,12 +6,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class OwnerGuard implements CanActivate {
   constructor(private prismaService: PrismaService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+
     const request = context.switchToHttp().getRequest();
     if (!request.account) return false;
 
     const userId = request.account?.id;
     const auctionId = request.params?.auctionId;
-
+    console.log('auctionId from OwnerGuard = :',auctionId)
     // Check user with auctions authorization
     const auction = await this.findAuctionByIdOr404(Number(auctionId));
 

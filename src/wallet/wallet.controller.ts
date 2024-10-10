@@ -12,14 +12,14 @@ export class WalletController {
   }
 
   @Post()
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   create(
-    // @Account() account:any,
+    @Account() account:any,
     @Body() createWalletDto: CreateWalletDto,
 
   ) {
     console.log('create in wallet controller ')
-    return this.walletService.create(1,createWalletDto);
+    return this.walletService.create(account.id,createWalletDto);
   }
 
   @Get('get_from_wallet')

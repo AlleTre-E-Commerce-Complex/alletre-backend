@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { EmailsType } from '../auth/enums/emails-type.enum';
+import { EmailBody } from './EmailBody';
+
 
 @Injectable()
-export class EmailSerivce {
+export class EmailSerivce extends EmailBody {
   constructor() {
+    super()
     /* TODO document why this constructor is empty */
   }
 
@@ -22,6 +25,7 @@ export class EmailSerivce {
     email: string,
     token: string,
     emailType: string,
+    body?:any
   ) {
     switch (emailType) {
       case EmailsType.VERIFICATION:
@@ -196,11 +200,23 @@ export class EmailSerivce {
 </html>
           `,
         };
-    }
+    
+        case EmailsType.OTHER:
+          return {
+            from: {
+              name: 'Alletre Team',
+              address: process.env.EMAIL_FROM,
+            },
+            to: email,
+            subject: body.subject,
+            html: this.emailBody(body,token)
+          };
+      }
+
   }
-  async sendEmail(email: string, token: string, emailType: EmailsType) {
-    // console.log('token ==================**********>',token)
-    const mailOptions = this.mailOptionsGenerator(email, token, emailType);
+  async sendEmail(email: string, token: string, emailType: EmailsType,body?:any) {
+    console.log('email ==================**********>',email)
+    const mailOptions = this.mailOptionsGenerator(email, token,emailType,body);
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (error) {

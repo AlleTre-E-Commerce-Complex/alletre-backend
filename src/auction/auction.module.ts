@@ -11,6 +11,7 @@ import { PaymentsModule } from 'src/payments/payments.module';
 import { AuctionStatusValidator } from './validations/auction-validator';
 import { WalletService } from 'src/wallet/wallet.service';
 import { StripeService } from 'src/common/services/stripe.service';
+import { EmailSerivce } from 'src/emails/email.service';
 
 @Module({
   imports: [PrismaModule, FirebaseModule, AuthModule, PaymentsModule],
@@ -18,10 +19,11 @@ import { StripeService } from 'src/common/services/stripe.service';
     UserAuctionsService,
     PaginationService,
     AuctionsHelper,
-    BidsWebSocketGateway,
+    BidsWebSocketGateway, 
     AuctionStatusValidator,
     WalletService,
     StripeService,
+    EmailSerivce,
   ],
   controllers: [AuctionsController],
   exports: [UserAuctionsService],

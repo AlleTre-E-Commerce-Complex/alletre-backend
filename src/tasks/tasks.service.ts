@@ -5,11 +5,16 @@ import {
   JoinedAuctionStatus,
   PaymentStatus,
   PaymentType,
+  WalletStatus,
+  WalletTransactionType,
 } from '@prisma/client';
 import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
+import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
+import { EmailSerivce } from 'src/emails/email.service';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class TasksService {
@@ -20,6 +25,8 @@ export class TasksService {
     private userAuctionService: UserAuctionsService,
     private paymentService : PaymentsService,
     private stripeService : StripeService,
+    private walletService : WalletService,
+    private emailService : EmailSerivce,
   ) {}
 
   /**
@@ -68,26 +75,231 @@ export class TasksService {
           paymentExpiryDate: { lte: new Date() },
           status: JoinedAuctionStatus.PENDING_PAYMENT,
         },
+        include:{
+          auction:true
+        }
       });
 
     for (const joinedAuction of pendingPaymentAuction) {
-      await this.prismaService.$transaction([
-        // Set auction now expired
-        this.prismaService.auction.update({
-          where: { id: joinedAuction.auctionId },
-          data: { status: AuctionStatus.EXPIRED },
-        }),
 
-        // Set joinedauction now expired
-        this.prismaService.joinedAuction.update({
-          where: { id: joinedAuction.id },
-          data: { status: JoinedAuctionStatus.PAYMENT_EXPIRED },
-        }),
-      ]);
+      //find the security deposit Of Winned bidder
+      const winnerSecurityDeposit = await this.prismaService.payment.findFirst({
+        where:{
+          auctionId:joinedAuction.auctionId,
+          userId:joinedAuction.userId,
+          type:'BIDDER_DEPOSIT'
+        },
+        include:{
+          user:true
+        }
+      })
+      const sellerPaymentData = await this.prismaService.payment.findFirst({
+        where:{
+          auctionId:joinedAuction.auctionId,
+          userId:joinedAuction.auction.userId,
+          type:"SELLER_DEPOSIT",
+        },
+        include:{
+          user:true,
+          auction:{include:{product:{include:{images:true}}}}
+        }
+      })
+      if(winnerSecurityDeposit){
+        //finding the last transaction balance of the highest bidder 
+        const lastWalletTransactionBalance = await this.walletService.findLastTransaction(joinedAuction.auction.userId) 
+        //finding the last transaction balance of the alletreWallet
+        const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+        //calculating the amount that need add to the highest bidder
+        const compensationPercenatage = 30
+        const amountToSellerWallet = (Number(winnerSecurityDeposit.amount)*compensationPercenatage)/100 
+        //calculating the amount that need add to the alletreWallet
+        const amountToAlletreWallet = Number(winnerSecurityDeposit.amount) - amountToSellerWallet
+              //tranfering data for the copensation to the higherst bidder wallet.
+              let walletData = {
+                status:WalletStatus.DEPOSIT,
+                transactionType:WalletTransactionType.By_AUCTION,
+                description:"Due to full payment deley by the winned bidder.",
+                amount:amountToSellerWallet,
+                auctionId:Number(joinedAuction.auctionId),
+                balance:lastWalletTransactionBalance ?
+                 (Number(lastWalletTransactionBalance) + amountToSellerWallet) : amountToSellerWallet
+              }
+              //tranfering data for the alletre fees 
+              
+              let alletreWalletData = {
+                status:WalletStatus.DEPOSIT,
+                transactionType:WalletTransactionType.By_AUCTION,
+                description:"Due to full payment delay by the winned bidder.",
+                amount:amountToAlletreWallet,
+                auctionId:Number(joinedAuction.auctionId),
+                balance:lastBalanceOfAlletre ?
+                 (Number(lastBalanceOfAlletre) + amountToAlletreWallet) : amountToAlletreWallet
+              }
+
+              try {
+                const { releaseSecurityDepositOfseller } = await this.prismaService.$transaction(async (prisma) => {
+                  const releaseSecurityDepositOfseller = await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+                  
+                  // Transfer to the highest bidder wallet
+                  await this.walletService.create(joinedAuction.auction.userId, walletData);
+                  
+                  // Transfer to the alletre wallet
+                  await this.walletService.addToAlletreWallet(joinedAuction.userId, alletreWalletData);
+                  
+                  // Update auction and joined auction statuses
+                  await prisma.auction.update({
+                    where: { id: joinedAuction.auctionId },
+                    data: { status: AuctionStatus.EXPIRED },
+                  });
+                  await prisma.joinedAuction.update({
+                    where: { id: joinedAuction.id },
+                    data: { status: JoinedAuctionStatus.PAYMENT_EXPIRED },
+                  });
+                  
+                  return { releaseSecurityDepositOfseller };
+                });
+              
+                if (releaseSecurityDepositOfseller) {
+                   //sendEmailtoSeller
+                      let emailBodyForSeller = {
+                        subject :'Pending Payment time Expired',
+                        title:'Pending Payment time Expired',
+                        Product_Name : sellerPaymentData.auction.product.title,
+                        img:sellerPaymentData.auction.product.images[0].imageLink,
+                        message:` Hi, ${sellerPaymentData.user.userName}, 
+                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
+                                (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
+                                So we are giving you an amount as a compensation to your wallet and your security deposit has
+                                been sent back to your bank account. 
+                                If you would like to do another auction, Please click the button below. Thank you. `,
+                        Button_text :'Click here to create another Auction',
+                        Button_URL :process.env.FRONT_URL
+                      }
+                      //sendEmailtoBidder
+                      let emailBodyForBidder = {
+                        subject :'Pending Payment time Expired',
+                        title:'Pending Payment time Expired',
+                        Product_Name : sellerPaymentData.auction.product.title,
+                        img:sellerPaymentData.auction.product.images[0].imageLink,
+                        message:` Hi, ${winnerSecurityDeposit.user.userName}, 
+                        We are really sorry to say that, the time to pay the pending amount of Auction of ${sellerPaymentData.auction.product.title}
+                        (Model:${sellerPaymentData.auction.product.model}) has been expired. Due to the delay of the payment you have lost
+                        your security deposite. 
+                        If you would like to participate on another auction, Please click the button below. Thank you. `,
+                        Button_text :'Click here',
+                        Button_URL :process.env.FRONT_URL
+                      }
+                     Promise.all([
+                      await this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyForSeller),
+                      await this.emailService.sendEmail(winnerSecurityDeposit.user.email,'token',EmailsType.OTHER,emailBodyForBidder)
+                     ])
+                    }
+                  } catch (error) {
+                let body = {
+                  subject :'Error When Handling the winner full paymet expiry in the task service ',
+                  title:'Error When Handling the winner full paymet expiry in the task service',
+                  message:`This is a test message from alletre backend when error occur at markPendingBidderPaymentAuctionsExpired function 
+                           Transaction Failed ${error.message}`,
+                  Button_text :'Click here to continue your payment',
+                  Button_URL :process.env.FRONT_URL
+                }
+                await this.emailService.sendEmail('kamaru916@gmail.com','token',EmailsType.OTHER,  body)
+                console.error(`Transaction failed: ${error.message}`);
+              }
+              
+
+        }
     }
-
-    //TODO: Notify all users
   }
+
+  //Function to send email when the seller is refuse or has any issue to deliver the item.
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async _markPendingDelivery(){
+    try {
+      const pendingDeliveryAuction =
+    await this.prismaService.auction.findMany({
+      where:{
+        status:'SOLD',
+        isItemSendForDelivery:false,
+      },
+      include:{user:true,product:{include:{images:true}}}
+    })
+    Promise.all(pendingDeliveryAuction.map(async auction=>{
+         // Calculate expected delivery date
+        const expectedDeliveryDate = new Date(auction.expiryDate);
+        expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + auction.numOfDaysOfExpecetdDelivery);
+        const currentDate = new Date();
+
+    // Check if the current date is greater than the expected delivery date
+    if (currentDate > expectedDeliveryDate) {
+      console.log('Sending email to seller, delivery is delayed.');
+       // Email body for the seller
+       const emailBodyForSeller = {
+        subject: 'Delivery Delay Notification',
+        title: 'Auction Delivery Delayed',
+        Product_Name: auction.product.title,
+        img: auction.product.images[0].imageLink,
+        message: `Hi, ${auction.user.userName}, 
+                  It appears that the delivery of your product from the auction "${auction.product.title}"
+                  (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
+                  Please take action to fulfill the delivery.`,
+        Button_text: 'Check Auction',
+        Button_URL: process.env.FRONT_URL,
+      };
+      await this.emailService.sendEmail(auction.user.email,'token',EmailsType.OTHER,  emailBodyForSeller)
+    }
+    }))
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  //Function will run every minute to check the upcoming Pending payment by bidders and will send a warning email
+  
+  @Interval(60000)
+  async _markUpcomingPendingPayment(){
+      // Get pending payment auctions
+      const pendingPaymentAuction =
+      await this.prismaService.joinedAuction.findMany({
+        where: {
+          
+          paymentExpiryDate: { 
+            gte: new Date(), // Expiration date is greater than or equal to the current time (i.e., in the future)
+            lte: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // Expiring within the next two hours
+            // lte: new Date(new Date().getTime() + 10 * 60 * 1000), // Expiring within the next 10 minutes
+           },
+          status: JoinedAuctionStatus.PENDING_PAYMENT,
+          isWarningMessageSent:false
+        },
+        include:{
+          auction:{include:{product:{include:{images:true}}}},
+          user:true
+        }
+      });
+
+      if(pendingPaymentAuction.length){
+        Promise.all(pendingPaymentAuction.map(async data=>{
+          let body = {
+            subject :'Warning.. Pending Payment is going to be expired soon',
+            title:'Pending Payment is going to be expired soon',
+            Product_Name : data.auction.product.title,
+            img:data.auction.product.images[0].imageLink,
+            message:` Hi, ${data.user.userName}, 
+                      Your pending payment on your Auction of ${data.auction.product.title}
+                     (Model:${data.auction.product.model}) is going to be expired soon.
+                      Notice : If you are refuce to pay, you will lose the security deposite.
+                     If you would like to do another auction, Please click the button below. Thank you. `,
+            Button_text :'Click here to continue your payment',
+            Button_URL :process.env.FRONT_URL
+          }
+          await this.emailService.sendEmail(data.user.email,'token',EmailsType.OTHER,  body)
+          await this.prismaService.joinedAuction.update({
+            where:{id:data.id},
+            data:{isWarningMessageSent:true}
+          })
+        }))
+      }
+
+  } 
 
   /**
    * Function will run every mintue to set all auction expired
@@ -100,9 +312,6 @@ export class TasksService {
   async _markExpiredAuctionsAndNotifyWinnerBidder() {
     console.log(' Start Expiration Schedular ');
 
-
-console.log('Auctions about to expire in the next 10 minutes: ', new Date());
-
     // Get expiredAuctions
     const auctionsToBeExpired = await this.prismaService.auction.findMany({
       where: {
@@ -113,23 +322,20 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
       },
     });
     console.log(' [IMPORTANT] auctionsToBeExpired: ',auctionsToBeExpired);
-
-    // for (const auction of auctionsToBeExpired) {
-      
-    // }
-    Promise.all(auctionsToBeExpired.map(async (auction)=>{
-      console.log(' Auction = ', auction);
-
-      // Get user with highest bids for auctions
-      const highestBidForAuction = await this.prismaService.bids.findFirst({
+   
+    Promise.all(auctionsToBeExpired?.map(async (auction)=>{
+      //get all bidders on an auction
+      const BiddersForAuction = await this.prismaService.bids.findMany({
         where: { auctionId: auction.id },
         orderBy: { amount: 'desc' },
       });
+      
+      // Get user with highest bids for auctions
+      
+      if (BiddersForAuction.length) {
 
-      console.log('Max Bid = ', highestBidForAuction);
-
-      if (highestBidForAuction) {
-        console.log(' [IMPORTANT] 2 There is max bid');
+        const highestBidForAuction = BiddersForAuction[0]
+        console.log('Max Bid = ', highestBidForAuction);
 
         // Get winner winnedBidderAuction
         const winnedBidderAuction =
@@ -142,11 +348,17 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
 
         // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
         const today = new Date();
-        const newDate = new Date(today.setDate(today.getDate() + 3));
+        const newDate = new Date(today.setDate(today.getDate() + 2));
+        // const newDate = new Date(today.getTime() + 15 * 60 * 1000); // Adds 10 minutes
 
-        await this.prismaService.$transaction([
-          // Set auction to waiting for payment from winner to stop bids
-          this.prismaService.auction.update({
+
+
+       
+
+       const {isAcutionUpdated,isHighestBidder_J_auctionUpdated,isLostBidders_J_auctionUpdated}
+       = await this.prismaService.$transaction(async prisma=>{
+           // Set auction to waiting for payment from winner to stop bids
+          const isAcutionUpdated =  await prisma.auction.update({
             where: {
               id: auction.id,
             },
@@ -154,32 +366,115 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
               status: AuctionStatus.WAITING_FOR_PAYMENT, // Update the status of the auction to 'WAITING_FOR_PAYMENT'
               endDate: new Date(), // Set the endDate to the current date and time
             },
-          }),
+            include:{user:true,product:{include:{images:true}}}
+          })
 
-          this.prismaService.joinedAuction.update({
+        const isHighestBidder_J_auctionUpdated = await prisma.joinedAuction.update({
             where: { id: winnedBidderAuction.id },
             data: {
               status: JoinedAuctionStatus.PENDING_PAYMENT,
               paymentExpiryDate: newDate,
             },
-          }),
+            include:{user:true}
+          })
 
-          this.prismaService.joinedAuction.updateMany({
+        const isLostBidders_J_auctionUpdated = await prisma.joinedAuction.updateMany({
             where: {
               auctionId: auction.id,
               id: { not: winnedBidderAuction.id },
             },
             data: { status: JoinedAuctionStatus.LOST },
-          }),
-        ]);
         
+          })
+          return {isAcutionUpdated,
+            isHighestBidder_J_auctionUpdated,
+            isLostBidders_J_auctionUpdated}
+        })
+
+        if(isAcutionUpdated){
+          //sendEmailtoSeller
+          let body = {
+            subject :'Auction Expired',
+            title:'Your acution is Expired',
+            Product_Name : isAcutionUpdated.product.title,
+            img:isAcutionUpdated.product.images[0].imageLink,
+            message:` Hi, ${isAcutionUpdated.user.userName}, 
+                      your Auction of ${isAcutionUpdated.product.title}
+                     (Model:${isAcutionUpdated.product.model}) has been expired. Please wait until the winner pay the full amount.
+                     Once the winner pay the full amount, you need to delevery the product with in two days
+                     If you would like to do another auction, Please click the button below. Thank you. `,
+            Button_text :'Click here to create another Auction',
+            Button_URL :process.env.FRONT_URL
+          }
+          await this.emailService.sendEmail(
+            isAcutionUpdated.user.email,
+            'token',
+            EmailsType.OTHER,
+            body
+          )
+        }
+        if(isHighestBidder_J_auctionUpdated){
+          //sendEmailToHighestBidder
+          let body = {
+            subject :'Auction Expired',
+            title:'Your acution is Expired',
+            Product_Name : isAcutionUpdated.product.title,
+            img:isAcutionUpdated.product.images[0].imageLink,
+            message:` Hi, ${isHighestBidder_J_auctionUpdated.user.userName}, 
+                      Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title}
+                      (Model:${isAcutionUpdated.product.model}). Please pay the full amount within 48 hours.
+                      Otherwise, you will lose you security deposit.
+                      If you would like to do another bid, Please click the button below. Thank you. `,
+            Button_text :'Click here to create another Auction',
+            Button_URL :process.env.FRONT_URL
+          }
+          await this.emailService.sendEmail(
+            isHighestBidder_J_auctionUpdated.user.email,
+            'token',
+            EmailsType.OTHER,
+            body
+          )
+        }
+        if(isLostBidders_J_auctionUpdated){
+          //sendEmailToLostBidders
+         const loserData = await this.prismaService.joinedAuction.findMany({
+          where:{
+            auctionId:auction.id,
+            id: { not: winnedBidderAuction.id },
+          },
+          include:{user:true}
+         })
+         if(loserData.length){
+          Promise.all(loserData.map(async data=>{
+            let body = {
+              subject :'Auction Expired',
+              title:'Your acution is Expired',
+              Product_Name : isAcutionUpdated.product.title,
+              img:isAcutionUpdated.product.images[0].imageLink,
+              message:` Hi, ${data.user.userName}, 
+                        We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title}
+                       (Model:${isAcutionUpdated.product.model}). Thank you for choosing the Alle Tre for your Auction.
+                       If you would like to do another Bid, Please click the button below. Thank you. `,
+              Button_text :'Click here to create another Auction',
+              Button_URL :process.env.FRONT_URL
+            }
+            await this.emailService.sendEmail(
+              data.user.email,
+              'token',
+              EmailsType.OTHER,
+              body
+            )
+          }))
+         }
+        }
+
         const winnedBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
           winnedBidderAuction.userId,
           winnedBidderAuction.auctionId,
           PaymentType.BIDDER_DEPOSIT
         )
 
-            // Capture the payment for the winning bidder
+            // Capture the S-D of the winning bidder
             if (winnedBidderPaymentData.paymentIntentId) {
               try {
                 await this.stripeService.captureDepositPaymentIntent(
@@ -200,21 +495,7 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
           },
         });
         
-        // for (const loser of losingBidders) {
-        //   try {
-
-        //     const lostBidderPaymentData =await this.paymentService.getAuctionPaymentTransaction(
-        //       loser.userId,
-        //       loser.auctionId,
-        //       PaymentType.BIDDER_DEPOSIT
-        //     )
-
-        //     await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
-        //     console.log(`Canceled payment for losing bidder: ${loser.userId}`);
-        //   } catch (error) {
-        //     console.error('Error canceling payment for losing bidder:', error);
-        //   }
-        // }
+      
 
         await Promise.all(losingBidders.map(async (loser) => {
           try {
@@ -241,7 +522,8 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
       }
       // Set auction to EXPIRED
       else
-        await this.prismaService.auction.update({
+        {
+         const auctionExpairyData = await this.prismaService.auction.update({
           where: {
             id: auction.id,
           },
@@ -249,7 +531,46 @@ console.log('Auctions about to expire in the next 10 minutes: ', new Date());
             status: AuctionStatus.EXPIRED, // Update the status of the auction to 'EXPIRED'
             endDate: new Date(), // Set the endDate to the current date and time
           },
+          include:{
+            user:true,
+            product:{
+              include:{images:true}
+            }
+          },
+          
         });
+        if(auctionExpairyData){
+          //send email here 
+          const sellerPaymentData =await this.prismaService.payment.findFirst({
+            where:{
+              auctionId:auctionExpairyData.id,
+              type:'SELLER_DEPOSIT'
+            }
+          })
+          
+          const isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+         if(isSendBackS_D){
+          const body = {
+            subject :'Auction Expired',
+            title : 'Your Auction has been expired',
+            Product_Name : auctionExpairyData.product.title,
+            img:auctionExpairyData.product.images[0].imageLink,
+            message:` Hi ${auctionExpairyData.user.userName}, Your Acution of ${auctionExpairyData.product.title}
+                     (Model:${auctionExpairyData.product.model}) has been expired. 
+                     Your Security Deposit has been sent back to you account. 
+                     If you would like to do another auction, Please click the button below. Thank you. `,
+            Button_text :'Click here to create another Auction',
+            Button_URL :process.env.FRONT_URL
+          }
+          await this.emailService.sendEmail(
+            auctionExpairyData.user.email,
+            'token',
+            EmailsType.OTHER,
+            body
+          )
+         }
+        }
+      }
     }))
   }
 }
