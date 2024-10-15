@@ -38,7 +38,7 @@ export class WalletService {
     return result;
   }
 
-  //add to alletre wallet
+  //add to alletre wallet(Note : here we add user id to understand from whose mone came to wallet)
    async addToAlletreWallet(
     userId : number,
     createWalletData: CreateWalletDto) {

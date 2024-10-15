@@ -351,10 +351,6 @@ export class TasksService {
         const newDate = new Date(today.setDate(today.getDate() + 2));
         // const newDate = new Date(today.getTime() + 15 * 60 * 1000); // Adds 10 minutes
 
-
-
-       
-
        const {isAcutionUpdated,isHighestBidder_J_auctionUpdated,isLostBidders_J_auctionUpdated}
        = await this.prismaService.$transaction(async prisma=>{
            // Set auction to waiting for payment from winner to stop bids
@@ -386,9 +382,7 @@ export class TasksService {
             data: { status: JoinedAuctionStatus.LOST },
         
           })
-          return {isAcutionUpdated,
-            isHighestBidder_J_auctionUpdated,
-            isLostBidders_J_auctionUpdated}
+          return {isAcutionUpdated, isHighestBidder_J_auctionUpdated, isLostBidders_J_auctionUpdated}
         })
 
         if(isAcutionUpdated){
@@ -474,8 +468,8 @@ export class TasksService {
           PaymentType.BIDDER_DEPOSIT
         )
 
-            // Capture the S-D of the winning bidder
-            if (winnedBidderPaymentData.paymentIntentId) {
+    // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
+            if (!winnedBidderPaymentData.isWalletPayment && winnedBidderPaymentData.paymentIntentId) {
               try {
                 await this.stripeService.captureDepositPaymentIntent(
                   winnedBidderPaymentData.paymentIntentId,
@@ -495,8 +489,6 @@ export class TasksService {
           },
         });
         
-      
-
         await Promise.all(losingBidders.map(async (loser) => {
           try {
             const lostBidderPaymentData = await this.paymentService.getAuctionPaymentTransaction(
@@ -504,8 +496,42 @@ export class TasksService {
               loser.auctionId,
               PaymentType.BIDDER_DEPOSIT,
             );
-        
-            await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
+            if(!lostBidderPaymentData.isWalletPayment){
+              await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
+            }else{
+              //logic to transfer to the wallet
+              console.log('test ======');
+              
+              //finding the last transaction balance of the Seller 
+              const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(loser.userId) 
+              //finding the last transaction balance of the alletreWallet
+              const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+               //wallet data for withdraw money from seller wallet
+
+                  let BidderWalletData = {
+                    status:WalletStatus.DEPOSIT,
+                    transactionType:WalletTransactionType.By_AUCTION,
+                    description:`Return security deposit due to auction lost`,
+                    amount:Number(lostBidderPaymentData.amount),
+                    auctionId:Number(lostBidderPaymentData.auctionId),
+                    balance: lastWalletTransactionBalanceOfBidder ?
+                    Number(lastWalletTransactionBalanceOfBidder) + Number(lostBidderPaymentData.amount ): 
+                    Number(lostBidderPaymentData.amount)
+                  }
+                  // wallet data for deposit to alletre wallet
+                  
+                  let alletreWalletData = {
+                    status:WalletStatus.WITHDRAWAL,
+                    transactionType:WalletTransactionType.By_AUCTION,
+                    description:`Return of bidder security deposit due to lost auction`,
+                    amount:Number(lostBidderPaymentData.amount),
+                    auctionId:Number(lostBidderPaymentData.auctionId),
+                    balance:(Number(lastBalanceOfAlletre) - Number(lostBidderPaymentData.amount)) 
+                  }
+                  await this.walletService.create(lostBidderPaymentData.userId,BidderWalletData)
+                  //crete new transaction in alletre wallet
+                  await this.walletService.addToAlletreWallet(lostBidderPaymentData.userId,alletreWalletData)
+            }
             console.log(`Canceled payment for losing bidder: ${loser.userId}`);
           } catch (error) {
             console.error('Error canceling payment for losing bidder:', error);
@@ -547,8 +573,47 @@ export class TasksService {
               type:'SELLER_DEPOSIT'
             }
           })
-          
-          const isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+          let isSendBackS_D : any
+          if(!sellerPaymentData.isWalletPayment){
+             isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+          }else{
+                try {
+                  //logic to transfer to the wallet
+                //finding the last transaction balance of the Seller 
+                const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(sellerPaymentData.userId) 
+                //finding the last transaction balance of the alletreWallet
+                const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+                //wallet data for withdraw money from seller wallet
+
+                    let BidderWalletData = {
+                      status:WalletStatus.DEPOSIT,
+                      transactionType:WalletTransactionType.By_AUCTION,
+                      description:`Return security deposit due to auction Expired and there is zero bidders`,
+                      amount:Number(sellerPaymentData.amount),
+                      auctionId:Number(sellerPaymentData.auctionId),
+                      balance: lastWalletTransactionBalanceOfBidder ?
+                      Number(lastWalletTransactionBalanceOfBidder) + Number(sellerPaymentData.amount ): 
+                      Number(sellerPaymentData.amount)
+                    }
+                    // wallet data for deposit to alletre wallet
+                    
+                    let alletreWalletData = {
+                      status:WalletStatus.WITHDRAWAL,
+                      transactionType:WalletTransactionType.By_AUCTION,
+                      description:`Return of seller security auction Expired and there is zero bidders`,
+                      amount:Number(sellerPaymentData.amount),
+                      auctionId:Number(sellerPaymentData.auctionId),
+                      balance:(Number(lastBalanceOfAlletre) - Number(sellerPaymentData.amount)) 
+                    }
+                    
+                    await this.walletService.create(sellerPaymentData.userId,BidderWalletData)
+                    //crete new transaction in alletre wallet
+                    await this.walletService.addToAlletreWallet(sellerPaymentData.userId,alletreWalletData)
+                    isSendBackS_D = true
+                } catch (error) {
+                    console.log('Send back Security Deposite of seller Error',error)
+                }
+             }
          if(isSendBackS_D){
           const body = {
             subject :'Auction Expired',
@@ -560,7 +625,7 @@ export class TasksService {
                      Your Security Deposit has been sent back to you account. 
                      If you would like to do another auction, Please click the button below. Thank you. `,
             Button_text :'Click here to create another Auction',
-            Button_URL :process.env.FRONT_URL
+            Button_URL  : process.env.FRONT_URL
           }
           await this.emailService.sendEmail(
             auctionExpairyData.user.email,
@@ -569,6 +634,8 @@ export class TasksService {
             body
           )
          }
+          
+          
         }
       }
     }))

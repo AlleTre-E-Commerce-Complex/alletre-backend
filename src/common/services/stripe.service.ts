@@ -36,7 +36,8 @@ async createDepositPaymentIntent(
     '-------------Amount To Be Paid:------------ ',
     amountInSmallestUnit,
   );
-
+  console.log('stripeCustomerId in createDepositPaymentIntent:',stripeCustomerId);
+  
   let paymentIntent: any;
   try {
     paymentIntent = await this.stripe.paymentIntents.create({

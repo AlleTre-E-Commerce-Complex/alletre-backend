@@ -180,7 +180,7 @@ model Auction {
   locationId                   Int?
   status                       AuctionStatus   @default(PENDING_OWNER_DEPOIST)
   type                         AuctionType?
-  durationUnit                 DurationUnits?
+  durationUnit                 DurationUnits? 
   durationInDays               Int?
   durationInHours              Int?
   startBidAmount               Decimal?

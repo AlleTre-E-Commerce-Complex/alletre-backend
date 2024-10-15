@@ -39,6 +39,7 @@ import { Role } from 'src/auth/enums/role.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
+import { WalletPayDto } from '../dtos/walletPay.dto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -283,6 +284,24 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/walletPay')
+  @UseGuards(AuthGuard)
+  async walletPayForAuction(
+    @Account() account: any,
+    @Body() walletPayDto: WalletPayDto,
+  ) {
+    let isWalletPayment =true
+    console.log('wallet pay api called')
+    return {
+      success: true,
+      data: await this.userAuctionsService.payToPublish(
+        account.id, 
+        walletPayDto.auctionId,
+        walletPayDto.amount,
+        isWalletPayment,
+      ),
+    };
+  }
   @Get('/user/ownes/analytics')
   @UseGuards(AuthGuard)
   async getAuctionsAnalytics(@Account() account: any) {
@@ -461,6 +480,24 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/bidder-walletDeposit')
+  @UseGuards(AuthGuard)
+  async bidderWalletDeposit(
+    @Account() account: any,
+    @Body() walletPayDto: WalletPayDto,
+  ){
+    const isWalletPayment = true
+    return {
+      success: true,
+      data: await this.userAuctionsService.payDepositByBidder(
+        Number(account.id),
+        walletPayDto.auctionId,
+        Number(walletPayDto.bidAmount),
+        isWalletPayment
+      ),
+    };
+  }
+
   @Post('/user/:auctionId/bidder-deposit')
   @UseGuards(AuthGuard)
   async bidderDeposit(
@@ -478,6 +515,7 @@ export class AuctionsController {
     };
   }
 
+  
   @Post('/user/:auctionId/bidder-purchase')
   @UseGuards(AuthGuard)
   async auctionPurchaseByBidder(
@@ -489,6 +527,23 @@ export class AuctionsController {
       data: await this.userAuctionsService.payAuctionByBidder(
         Number(account.id),
         auctionId,
+      ),
+    };
+  }
+
+  @Post('/user/:auctionId/wallet-bidder-purchase')
+  @UseGuards(AuthGuard)
+  async auctionPurchasePayWithWalletByBidder(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    const isWalletPayment = true
+    return {
+      success: true,
+      data: await this.userAuctionsService.payAuctionByBidder(
+        Number(account.id),
+        auctionId,
+        isWalletPayment
       ),
     };
   }
@@ -508,6 +563,22 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/:auctionId/buy-now-through-wallet')
+  @UseGuards(AuthGuard)
+  async buyNowAuctionThroughWallet(
+    @Account() account: any,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+  ) {
+    const isWalletPayment = true
+    return {
+      success: true,
+      data: await this.userAuctionsService.buyNowAuction(
+        Number(account.id),
+        auctionId,
+        isWalletPayment
+      ),
+    };
+  }
   @Post('/user/:auctionId/confirm-delivery')
   @UseGuards(AuthGuard)
   async deliveryConfirmationByBidder(

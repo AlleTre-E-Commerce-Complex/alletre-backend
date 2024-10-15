@@ -1314,7 +1314,7 @@ export class UserAuctionsService {
       where: {
         userId,
         auctionId,
-        status: PaymentStatus.SUCCESS,
+        status: {in:[PaymentStatus.SUCCESS ,PaymentStatus.HOLD]},
         type: PaymentType.BIDDER_DEPOSIT,
       },
     });
@@ -1367,7 +1367,7 @@ export class UserAuctionsService {
     return auction;
   }
 
-  async payToPublish(userId: number, auctionId: number) {
+  async payToPublish(userId: number, auctionId: number,amount?:number,isWalletPayment?:boolean) {
     await this.auctionsHelper._isAuctionOwner(userId, auctionId);
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
@@ -1404,19 +1404,32 @@ export class UserAuctionsService {
         en: 'Set one location as main',
       });
 
-    return await this.paymentService.payDepositBySeller(
-      user,
-      auctionId,
-      sellerMainLocation.country.currency,
-      Number(auctionCategory.sellerDepositFixedAmount),
-    );
+    if(!isWalletPayment){
+      return await this.paymentService.payDepositBySeller(
+        user,
+        auctionId,
+        sellerMainLocation.country.currency,
+        Number(auctionCategory.sellerDepositFixedAmount),
+      );
+    }else{
+      return await this.paymentService.walletPayDepositBySeller(
+        user,
+        auctionId,
+        // sellerMainLocation.country.currency,
+        amount
+      );
+    }
+
   }
 
   async payDepositByBidder(
     userId: number,
     auctionId: number,
     bidAmount: number,
+    isWalletPayment?:boolean,
   ) {
+    console.log('payDepositByBidder test 1');
+    
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     this.auctionStatusValidator.isActionValidForAuction(
@@ -1428,7 +1441,7 @@ export class UserAuctionsService {
     if (auction.userId === userId)
       throw new MethodNotAllowedResponse({
         ar: 'هذا الاعلان من احد إعلاناتك',
-        en: 'This auction is one of your created auctions',
+        en: 'This auction is one of your created auctions', 
       });
 
     // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
@@ -1439,14 +1452,14 @@ export class UserAuctionsService {
       if (latestBidAmount >= new Prisma.Decimal(bidAmount))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
+          en: 'Bid Amount Must Be Greater Than Current Amount1',
         });
     } else {
       latestBidAmount = auction.startBidAmount;
       if (latestBidAmount >= new Prisma.Decimal(bidAmount))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
+          en: 'Bid Amount Must Be Greater Than Current Amount2',
         });
     }
 
@@ -1471,13 +1484,25 @@ export class UserAuctionsService {
         en: 'Set one location as main',
       });
 
-    return await this.paymentService.payDepositByBidder(
-      user,
-      auctionId,
-      bidderMainLocation.country.currency,
-      Number(auctionCategory.bidderDepositFixedAmount),
-      bidAmount,
-    );
+    console.log('payDepositByBidder test 2');
+      if(!isWalletPayment){
+
+        return await this.paymentService.payDepositByBidder(
+          user,
+          auctionId,
+          bidderMainLocation.country.currency,
+          Number(auctionCategory.bidderDepositFixedAmount),
+          bidAmount,
+        );
+      }else{
+        return await this.paymentService.walletPayDepositByBidder(
+          user,
+          auctionId,
+          // bidderMainLocation.country.currency,
+          Number(auctionCategory.bidderDepositFixedAmount),
+          bidAmount,
+        )
+      }
   }
 
   async submitBidForAuction(
@@ -1507,14 +1532,14 @@ export class UserAuctionsService {
       if (latestBidAmount >= new Prisma.Decimal(bidAmount))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
+          en: 'Bid Amount Must Be Greater Than Current Amount3',
         });
     } else {
       latestBidAmount = auction.startBidAmount;
       if (latestBidAmount >= new Prisma.Decimal(bidAmount))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
+          en: 'Bid Amount Must Be Greater Than Current Amount4',
         });
     }
 
@@ -1639,7 +1664,7 @@ export class UserAuctionsService {
     );
   }
 
-  async payAuctionByBidder(userId: number, auctionId: number) {
+  async payAuctionByBidder(userId: number, auctionId: number,isWalletPayment?:boolean) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     this.auctionStatusValidator.isActionValidForAuction(
@@ -1689,15 +1714,24 @@ export class UserAuctionsService {
       auctionWinner.auctionId,
     );
 
-    return await this.paymentService.payAuctionByBidder(
-      user,
-      auctionId,
-      userMainLocation.country.currency,
-      Number(latestBidAmount),
-    );
+    if(!isWalletPayment){
+      return await this.paymentService.payAuctionByBidder(
+        user,
+        auctionId,
+        userMainLocation.country.currency,
+        Number(latestBidAmount),
+      );
+    }else{
+      return await this.paymentService.payAuctionByBidderWithWallet(
+        user,
+        auctionId,
+        // userMainLocation.country.currency,
+        Number(latestBidAmount),
+      );
+    }
   }
 
-  async buyNowAuction(userId: number, auctionId: number) {
+  async buyNowAuction(userId: number, auctionId: number,isWalletPayment?:boolean) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     this.auctionStatusValidator.isActionValidForAuction(
@@ -1736,12 +1770,16 @@ export class UserAuctionsService {
       });
 
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
-    return await this.paymentService.createBuyNowPaymentTransaction(
-      user,
-      auctionId,
-      userMainLocation.country.currency,
-      Number(auction.acceptedAmount),
-    );
+      if(!isWalletPayment){
+        return await this.paymentService.createBuyNowPaymentTransaction(
+          user,
+          auctionId,
+          userMainLocation.country.currency,
+          Number(auction.acceptedAmount),
+        );
+      }else{
+        // need to crete the createBuyNowPaymentTransaction for wallet 
+      }
   }
 
   async getAllPurchasedAuctions(userId: number, paginationDTO: PaginationDTO) {
