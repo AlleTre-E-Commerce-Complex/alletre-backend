@@ -23,6 +23,7 @@ import {
   User,
   WalletStatus,
   WalletTransactionType,
+  WithdrawalStatus,
 } from '@prisma/client';
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
@@ -38,6 +39,7 @@ import { StripeService } from 'src/common/services/stripe.service';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { EmailSerivce } from 'src/emails/email.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
+import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 
 @Injectable()
 export class UserAuctionsService {
@@ -154,8 +156,9 @@ export class UserAuctionsService {
          
         })
         if(BiddersData.length){
+
           console.log('BiddersData :',BiddersData);
-       
+          console.log('Auction cancellation with bidders ')
           
           //Finding the seller security Deposit amount
           const sellerSecurityDeposit = await this.prismaService.payment.findFirst({
@@ -165,7 +168,27 @@ export class UserAuctionsService {
             },
           })
           
-          const isSellerPaymentCaptured = await this.stripeService.captureDepositPaymentIntent(sellerSecurityDeposit.paymentIntentId)
+          let isSellerPaymentCaptured: any
+          if(sellerSecurityDeposit.isWalletPayment){
+            isSellerPaymentCaptured = sellerSecurityDeposit.status === 'SUCCESS' ? true : false
+          }else{
+            isSellerPaymentCaptured = await this.stripeService.captureDepositPaymentIntent(sellerSecurityDeposit.paymentIntentId)
+            //find the last transaction balane of the alletre
+            const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+             //tranfering data for the alletre fees 
+             let alletreWalletData = {
+              status: WalletStatus.DEPOSIT,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before' : 'after'} expiry date.`,
+              amount: Number(isSellerPaymentCaptured.amount) / 100,  // Convert from cents to dollars
+              auctionId: Number(auctionId),
+              balance: lastBalanceOfAlletre ? 
+                (Number(lastBalanceOfAlletre) + (Number(isSellerPaymentCaptured.amount) / 100)) : 
+                Number(isSellerPaymentCaptured.amount) / 100  // Convert from cents to dollars
+            };
+            await this.walletService.addToAlletreWallet(userId,alletreWalletData)
+
+          }
           
           //find highest Bidder
           if(isSellerPaymentCaptured){
@@ -194,63 +217,103 @@ export class UserAuctionsService {
                 body
               )
 
-          //here we need to send messages to all bidders
-          //that this auction is cancelled by the seller.
-          const BiddersPaymentData = await this.prismaService.payment.findMany({
-            where:{auctionId,type:'BIDDER_DEPOSIT'},
-            include:{
-              user:true,
+              //here we need to send messages to all bidders that this auction is cancelled by the seller.
+              const BiddersPaymentData = await this.prismaService.payment.findMany({
+                where:{auctionId,type:'BIDDER_DEPOSIT'},
+                include:{
+                  user:true,
+                  
+                }
+                
+              })
               
-            }
-            
-          })
-          
-          const highestBidderId = BiddersData[0].userId
-            //find security Deposit of highest bidder // becuase when the acution complete, the S_D of winned bidder will be captured
-          let highestBidderSecurityDeposit = 0
+              const highestBidderId = BiddersData[0].userId
+                //find security Deposit of highest bidder // becuase when the acution complete, the S_D of winned bidder will be captured
+              let highestBidderSecurityDeposit = 0
 
-          BiddersPaymentData?.map(async data=>{
-            if(data.userId === highestBidderId){
-              highestBidderSecurityDeposit = Number(data.amount)
-            }
-            //send email to bidders
-            let body = {
-              subject :'Auction Cancelled',
-              title:'Your acution is cancelled',
-              Product_Name : auction.product.title,
-              img:auction.product.images[0].imageLink,
-              message:` Hi, ${data.user.userName}, 
-                        We are really sorry to say that your Acution of ${auction.product.title}
-                       (Model:${auction.product.model})
-                       has been cancelled by the owner of the product. 
-                       Your Security Deposit has been sent back to your wallet 
-                        ${data?.user.id === highestBidderId ?
-                        "along with a compansation due to you are the highest Bidder.":""}. 
-                       If you would like to do another auction, 
-                       Please click the button below. Thank you. `,
-              Button_text :'Click here to create another Auction',
-              Button_URL :process.env.FRONT_URL
-            }
-            if(auction.status === 'ACTIVE'){
-              const cancelDepositResult =  await this.stripeService.cancelDepositPaymentIntent(data?.paymentIntentId)
-              if(cancelDepositResult){
-              await this.emailService.sendEmail(
-                data.user.email,
-                'token',
-                EmailsType.OTHER,
-                body
-              )
-              }
-            }else if(auction.status === 'WAITING_FOR_PAYMENT' && data.userId === highestBidderId){
-              await this.emailService.sendEmail(
-                data.user.email,
-                'token',
-                EmailsType.OTHER,
-                body
-              )
-            }
+              BiddersPaymentData?.map(async data=>{
+                if(data.userId === highestBidderId){
+                  highestBidderSecurityDeposit = Number(data.amount)
+                }
+                //send email to bidders
+                let body = {
+                  subject :'Auction Cancelled',
+                  title:'Your acution is cancelled',
+                  Product_Name : auction.product.title,
+                  img:auction.product.images[0].imageLink,
+                  message:` Hi, ${data.user.userName}, 
+                            We are really sorry to say that your Acution of ${auction.product.title}
+                          (Model:${auction.product.model})
+                          has been cancelled by the owner of the product. 
+                          Your Security Deposit has been sent back to your ${data.isWalletPayment ? 'wallet.':'banck account.'} 
+                            ${data?.user.id === highestBidderId ?
+                            "And also you will get a compansation to your wallet due to you are the highest Bidder.":""}. 
+                          If you would like to do another auction, 
+                          Please click the button below. Thank you. `,
+                  Button_text :'Click here to create another Auction',
+                  Button_URL :process.env.FRONT_URL
+                }
+                if(auction.status === 'ACTIVE'){
+                  console.log('Auction cancellation with bidders BEFORE expiry')
 
-          })
+                  let cancelDepositResult :any = false
+                  if(data.isWalletPayment){
+                      //here need to create the functionality for sending back the security deposit of the lost bidders to the wallet
+                       //finding the last transaction balance of the lost bidder 
+                      const lastWalletTransactionBalanceOfLostBidder = await this.walletService.findLastTransaction(data.userId) 
+                      //finding the last transaction balance of the alletreWallet
+                      const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+                           //tranfering data for the copensation to the lost bidder wallet.
+                          let lostBidderWalletData = {
+                            status:WalletStatus.DEPOSIT,
+                            transactionType:WalletTransactionType.By_AUCTION,
+                            description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+                            amount : Number(data.amount),
+                            auctionId:Number(auctionId),
+                            balance:lastWalletTransactionBalanceOfLostBidder ?
+                            (Number(lastWalletTransactionBalanceOfLostBidder) + Number(data.amount)) : Number(data.amount)
+                          }
+
+                          //tranfering data for the alletre fees 
+                          let alletreWalletData = {
+                            status:WalletStatus.WITHDRAWAL,
+                            transactionType:WalletTransactionType.By_AUCTION,
+                            description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+                            amount:Number(data.amount),
+                            auctionId:Number(auctionId),
+                            balance: (Number(lastBalanceOfAlletre) - Number(data.amount)) 
+                          }
+                            //transfer to the seller wallet
+                            const lostBidderWalletTranser = await this.walletService.create(data.userId, lostBidderWalletData);
+                            //transfer to the  alletre wallet
+                            const alleTreWalletTranser =  await this.walletService.addToAlletreWallet(data.userId,alletreWalletData)
+
+                            if(lostBidderWalletTranser && alleTreWalletTranser) cancelDepositResult =  true ; else cancelDepositResult = false
+                          
+
+                  }else{
+                      cancelDepositResult =  await this.stripeService.cancelDepositPaymentIntent(data?.paymentIntentId)
+                  }
+                  if(cancelDepositResult){
+                  await this.emailService.sendEmail(
+                    data.user.email,
+                    'token',
+                    EmailsType.OTHER,
+                    body
+                  )
+                  }
+                }else if(auction.status === 'WAITING_FOR_PAYMENT' && data.userId === highestBidderId){
+                  console.log('Auction cancellation with bidders AFTER expiry')
+
+                  await this.emailService.sendEmail(
+                    data.user.email,
+                    'token',
+                    EmailsType.OTHER,
+                    body
+                  )
+                }
+
+              })
          
           
             //finding the last transaction balance of the highest bidder 
@@ -263,65 +326,72 @@ export class UserAuctionsService {
             const amountToWinnedBidderWallet = (Number(sellerSecurityDeposit.amount)*compensationPersenatage)/100 
             const originalAmountToWinnedBidderWallet =  auction.status === 'WAITING_FOR_PAYMENT'? 
             amountToWinnedBidderWallet+highestBidderSecurityDeposit : amountToWinnedBidderWallet
-            //calculating the amount that need add to the alletreWallet
-            const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
+
+            // //calculating the amount that need add to the alletreWallet
+            // const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
+
             //tranfering data for the copensation to the highest bidder wallet.
             let highestBidderWalletData = {
               status:WalletStatus.DEPOSIT,
               transactionType:WalletTransactionType.By_AUCTION,
               description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
-              amount:originalAmountToWinnedBidderWallet,
+              amount : originalAmountToWinnedBidderWallet,
               auctionId:Number(auctionId),
               balance:lastWalletTransactionBalance ?
                (Number(lastWalletTransactionBalance) + originalAmountToWinnedBidderWallet) : originalAmountToWinnedBidderWallet
             }
+
             //tranfering data for the alletre fees 
-            
             let alletreWalletData = {
-              status:WalletStatus.DEPOSIT,
+              status:WalletStatus.WITHDRAWAL,
               transactionType:WalletTransactionType.By_AUCTION,
               description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
-              amount:amountToAlletteWallet,
+              amount:originalAmountToWinnedBidderWallet,
               auctionId:Number(auctionId),
-              balance:lastBalanceOfAlletre ?
-               (Number(lastBalanceOfAlletre) + amountToAlletteWallet) : amountToAlletteWallet
+              balance: (Number(lastBalanceOfAlletre) - originalAmountToWinnedBidderWallet) 
             }
-            //capturing the seller deposit 
-          await this.prismaService.$transaction(async(prisma)=>{
-                //transfer to the  highest bidder wallet
+            await this.prismaService.$transaction(async(prisma)=>{
+               try {
+                 //transfer to the  highest bidder wallet
             await this.walletService.create(highestBidderId, highestBidderWalletData);
   
-                //transfer to the  alletre wallet
-                  
-            await this.walletService.addToAlletreWallet(userId,alletreWalletData)
-            
-            await prisma.auction.update({
-                where:{
-                  id:auctionId
-                },
-                data:{
-                  status:auction.status === 'ACTIVE' ? 
-                  AuctionStatus.CANCELLED_BEFORE_EXP_DATE 
-                  :
-                  AuctionStatus.CANCELLED_AFTER_EXP_DATE
-                }
-              })
+            //transfer to the  alletre wallet
               
-               if(auction.status === 'ACTIVE'){
-                await prisma.joinedAuction.updateMany({
-                  where:{auctionId},
-                  data:{status:JoinedAuctionStatus.CANCELLED_BEFORE_EXP_DATE}
-                })
-               }else if(auction.status === 'WAITING_FOR_PAYMENT'){
-                await prisma.joinedAuction.updateMany({
-                  where:{
-                    auctionId,
-                    status:'PENDING_PAYMENT'
-                  },
-                  data:{
-                    status:JoinedAuctionStatus.CANCELLED_AFTER_EXP_DATE
-                  }
-                })
+             await this.walletService.addToAlletreWallet(userId,alletreWalletData)
+        
+        await prisma.auction.update({
+            where:{
+              id:auctionId
+            },
+            data:{
+              status:auction.status === 'ACTIVE' ? 
+              AuctionStatus.CANCELLED_BEFORE_EXP_DATE 
+              :
+              AuctionStatus.CANCELLED_AFTER_EXP_DATE
+            }
+          })
+          
+           if(auction.status === 'ACTIVE'){
+            await prisma.joinedAuction.updateMany({
+              where:{auctionId},
+              data:{status:JoinedAuctionStatus.CANCELLED_BEFORE_EXP_DATE}
+            })
+           }else if(auction.status === 'WAITING_FOR_PAYMENT'){
+            await prisma.joinedAuction.updateMany({
+              where:{
+                auctionId,
+                status:'PENDING_PAYMENT'
+              },
+              data:{
+                status:JoinedAuctionStatus.CANCELLED_AFTER_EXP_DATE
+              }
+            })
+           }
+               } catch (error) {
+                throw new MethodNotAllowedResponse({
+                  ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+                  en: 'Sorry! You cannot cancel this auction',
+                });
                }
               })
               return {success:true,message:'You have successfully cancelled the auction.'}
@@ -335,7 +405,8 @@ export class UserAuctionsService {
           
 
         }else{
-          //cancell auction with zero bidders
+          //cancel auction with zero bidders
+          console.log('Cancel auction with zero bidders before expire')
           const updatedDataOfCancellAuction = await this.prismaService.auction.update({
             where:{id:auctionId},
             data:{status:auction.status ==='ACTIVE' ?
@@ -361,7 +432,45 @@ export class UserAuctionsService {
                 type:'SELLER_DEPOSIT'
               }
             })
-          const isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+            //here need to check the depost is from wallet or not
+            let isSendBackS_D :any 
+            if(sellerPaymentData.isWalletPayment){
+              console.log('security deposit of this cancelled auciton is via WALLET')
+              //find last wallet transaction of seller
+            const lastWalletTransactionBalanceOfSeller = await this.walletService.findLastTransaction(sellerPaymentData.userId) 
+             //finding the last transaction balance of the alletreWallet
+             const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+             //wallet data  to seller .
+            let sellerWalletData = {
+              status:WalletStatus.DEPOSIT,
+              transactionType:WalletTransactionType.By_AUCTION,
+              description:`Due to you cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+              amount : Number(sellerPaymentData.amount),
+              auctionId:Number(auctionId),
+              balance:lastWalletTransactionBalanceOfSeller ?
+               (Number(lastWalletTransactionBalanceOfSeller) + Number(sellerPaymentData.amount)) : Number(sellerPaymentData.amount)
+            }
+
+            //tranfering data for the alletre fees 
+            let alletreWalletData = {
+              status:WalletStatus.WITHDRAWAL,
+              transactionType:WalletTransactionType.By_AUCTION,
+              description:`Due to seller cancelled the auction ${auction.status === 'ACTIVE' ? 'before':'after'} expiry date.`,
+              amount:Number(sellerPaymentData.amount),
+              auctionId:Number(auctionId),
+              balance: (Number(lastBalanceOfAlletre) - Number(sellerPaymentData.amount)) 
+            }
+               //transfer to the seller wallet
+                const sellerWalletTranser = await this.walletService.create(sellerPaymentData.userId, sellerWalletData);
+                //transfer to the  alletre wallet
+                const alleTreWalletTranser =  await this.walletService.addToAlletreWallet(sellerPaymentData.userId,alletreWalletData)
+
+                if(sellerWalletTranser&&alleTreWalletTranser) isSendBackS_D =  true ; else isSendBackS_D = false
+
+            }else{
+              console.log('security deposit of this cancelled auciton is via STRIPE')
+               isSendBackS_D =  await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+            }
           if(isSendBackS_D){
               //Email Data
               const body = {
@@ -373,7 +482,7 @@ export class UserAuctionsService {
                           Your Acution of ${updatedDataOfCancellAuction.product.title}
                          (Model:${updatedDataOfCancellAuction.product.model})
                          has been successfully cancelled. 
-                         Your Security Deposit has been sent back to you account. 
+                         Your Security Deposit has been sent back to your ${sellerPaymentData.isWalletPayment? 'wallet.':'account.'} . 
                          If you would like to do another auction, 
                          Please click the button below. Thank you. `,
                 Button_text :'Click here to create another Auction',
@@ -1367,6 +1476,106 @@ export class UserAuctionsService {
     return auction;
   }
 
+  async getPendingPayments(aucitonId:string,paymentType:PaymentType,userId:number){
+    try {
+      const data = await this.prismaService.payment.findMany({
+        where:{
+          auctionId:Number(aucitonId),
+          userId:userId,
+          type:paymentType
+        }
+      })
+      console.log('data :',data)
+      if(data.length > 0 && data[0]?.paymentIntentId!== null){
+      console.log('data when true:',data)
+        return {isPendingPaymentData:true}
+      }else{
+      console.log('data when false:',data)
+
+        return {isPendingPaymentData:false}
+      }
+    } catch (error) {
+      console.log('Get Pending Payments error :',error)
+    }
+  }
+
+
+  async getAccountData (userId:number){
+    try {
+      const accountData = await this.prismaService.bankAccount.findMany({
+        where:{userId}
+      })
+      if(accountData.length){
+        return {
+          success :true ,
+          accountData
+        }
+      }else {
+        return {
+          success : false,
+          message : 'Please add a bank account.'
+        }
+      }
+    } catch (error) {
+      console.log('Check KYC status error at user auctions service file :',error)
+        return {kycStatus : false,errorMessage : error.message}
+    }
+  }
+  async addBankAccount (bankAccountData:addNewBankAccountDto,userId:number){
+    try {
+      const accountData = await this.prismaService.bankAccount.create({
+        data :{...bankAccountData,userId:Number(userId)}
+      })
+      
+      if(accountData){
+        return {
+          success :true ,
+          accountData
+        }
+      }else {
+        return {
+          success : false,
+          message : 'There are some internal issue, please try again later.'
+        }
+      }
+    } catch (error) {
+      console.log('Error on add new Bank Account :',error)
+      return {
+        success : false,
+        message : 'There are some internal issue, please try again later.'
+      }
+    }
+  }
+  async withdrawalRequest(amount:number,selectedBankAccountId:number,userId:number){
+    try {
+      console.log('test withdrawal request : ',amount)
+      const request = await this.prismaService.withdrawalRequests.create({
+        data:{
+          amount,
+          bankAccountId:selectedBankAccountId,
+          userId,
+          withdrawalStatus:WithdrawalStatus.PENDING
+        }
+      })
+      if(request){
+        return {
+          success : true,
+          request
+        }
+      }else {
+        return {
+          success : false,
+          message : 'Failed to process withdrawal request'
+        }
+      }
+    } catch (error) {
+      console.log(error)
+      return {
+        success: false,
+        message: error.message || 'Failed to process withdrawal request',
+      };
+    }
+  }
   async payToPublish(userId: number, auctionId: number,amount?:number,isWalletPayment?:boolean) {
     await this.auctionsHelper._isAuctionOwner(userId, auctionId);
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
@@ -1779,6 +1988,12 @@ export class UserAuctionsService {
         );
       }else{
         // need to crete the createBuyNowPaymentTransaction for wallet 
+        return await this.paymentService.createBuyNowPaymentTransactionWallet(
+          user,
+          auctionId,
+          // userMainLocation.country.currency,
+          Number(auction.acceptedAmount),
+        );
       }
   }
 
@@ -1885,33 +2100,7 @@ export class UserAuctionsService {
         en: 'You Can not Complete Operation',
       });
 
-      const auctionWinnerBidAmount = await this._findLatestBidForAuction(auctionWinner.auctionId)
-      const feesAmountOfAlletre = (Number(auctionWinnerBidAmount)*5)/100
-      const amountToSellerWallet =  Number(auctionWinnerBidAmount) - feesAmountOfAlletre
-
-      const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
-      const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
-      let walletData = {
-        status:WalletStatus.DEPOSIT,
-        transactionType:WalletTransactionType.By_AUCTION,
-        description:"Auction full payment",
-        amount:Number(amountToSellerWallet),
-        auctionId:Number(auctionId),
-        balance:lastWalletTransactionBalance ?
-         Number(lastWalletTransactionBalance) + Number(amountToSellerWallet) : 
-         Number(amountToSellerWallet)
-      }
-
-      let walletDataToAlletre = {
-        status:WalletStatus.DEPOSIT,
-        transactionType:WalletTransactionType.By_AUCTION,
-        description:"fees of Auction full payment",
-        amount:Number(feesAmountOfAlletre),
-        auctionId:Number(auctionId),
-        balance:lastWalletTransactionAlletre ?
-         Number(lastWalletTransactionAlletre) + Number(feesAmountOfAlletre) : 
-         Number(feesAmountOfAlletre)
-      }
+    
       
      
       const sellerPaymentData =await this.prismaService.payment.findFirst({
@@ -1926,66 +2115,143 @@ export class UserAuctionsService {
 
       })
       console.log('sellerPaymentData :',sellerPaymentData)
-      const [walletCreationData, confirmDeliveryResult,cancelledIntent,alletreWalletCreationData] =
-       await this.prismaService.$transaction(async (prisma) => {
+      let isSellerDepositSendBack :any = false
+      //checking if seller deposit is through wallet or not
+      if(!sellerPaymentData.isWalletPayment){
+        //if not through wallet (which means through stripe) then cancell the payment intent
+         isSellerDepositSendBack =await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId)
+      }else{
+        // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
+        // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
+        const [lastWalletTransactionBalance, lastWalletTransactionAlletre] = await Promise.all([
+          this.walletService.findLastTransaction(auction.userId),
+          this.walletService.findLastTransactionOfAlletre(),
+        ]);
+        //if  through wallet then return the deposit to the seller wallet
+        let sellerReturnSecurityDepositWalletData = {
+          status:WalletStatus.DEPOSIT,
+          transactionType:WalletTransactionType.By_AUCTION,
+          description:"Return Security deposit due to winner confirmed the delivery",
+          amount:Number(sellerPaymentData.amount),
+          auctionId:Number(auctionId),
+          balance:lastWalletTransactionBalance ?
+           Number(lastWalletTransactionBalance) + Number(sellerPaymentData.amount) : 
+           Number(sellerPaymentData.amount)
+        }
+  
+        let walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
+          status:WalletStatus.WITHDRAWAL,
+          transactionType:WalletTransactionType.By_AUCTION,
+          description:"Return Security deposit of seller due to winner confirmed the delivery",
+          amount:Number(sellerPaymentData.amount),
+          auctionId:Number(auctionId),
+          balance:Number(lastWalletTransactionAlletre) - Number(sellerPaymentData.amount) 
+        }
+          //  const sellerWalletCreationData = await this.walletService.create(auction.userId, sellerReturnSeucurityDepositWalletData);
+          //  const alletreWalletCreationData = await this.walletService.addToAlletreWallet(auction.userId,walletDataToAlletreWhenRetrunSecurityDepositToSeller)
+           const [sellerWalletCreationData, alletreWalletCreationData] = await Promise.all([
+            this.walletService.create(auction.userId, sellerReturnSecurityDepositWalletData),
+            this.walletService.addToAlletreWallet(auction.userId, walletDataToAlletreWhenRetrunSecurityDepositToSeller),
+          ]);
+          //  if(sellerWalletCreationData && alletreWalletCreationData) isSellerDepositSendBack = true ; else isSellerDepositSendBack = false
+           isSellerDepositSendBack = sellerWalletCreationData && alletreWalletCreationData;
+           
+      }
 
-      const cancelledIntent = this.stripeService.cancelDepositPaymentIntent(
-         sellerPaymentData.paymentIntentId)
+        if(isSellerDepositSendBack){
+          const auctionWinnerBidAmount = await this._findLatestBidForAuction(auctionWinner.auctionId)
+    
+          const feesAmountOfAlletre = (Number(auctionWinnerBidAmount)*10)/100
+          const amountToSellerWallet =  Number(auctionWinnerBidAmount) - feesAmountOfAlletre
+    
+          // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
+          // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
 
-        const walletCreationData = await this.walletService.create(
-          auction.userId, walletData
-        );
-        //add to alletre wallet (fees)
-        const alletreWalletCreationData = await this.walletService.addToAlletreWallet(
-          winnerId,
-          walletDataToAlletre
-        )
-        const confirmDeliveryResult = await prisma.joinedAuction.update({
-          where: { id: auctionWinner.id },
-          data: { status: JoinedAuctionStatus.COMPLETED },
-          include:{user:true}
-        });
-      
-        return [walletCreationData, confirmDeliveryResult,cancelledIntent,alletreWalletCreationData];
-      });
-      
-      
-      if(walletCreationData && confirmDeliveryResult && cancelledIntent && alletreWalletCreationData){
-        console.log('sending email to seller and bidder after delivery confirmation')
-       //sending email to seller and bidder after delivery confirmation
-       let emailBodyToSeller = {
-        subject :'Delivery successful',
-        title:'Your Auction winner has confirmed the delivery',
-        Product_Name : sellerPaymentData.auction.product.title,
-        img:sellerPaymentData.auction.product.images[0].imageLink,
-        message:` Hi, ${sellerPaymentData.user.userName}, 
-                 Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
-                 (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
-                 The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
-                 From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. 
-                 If you would like to Participate another auction, Please click the button below. Thank you. `,
-        Button_text :'Click here to create another Auction',
-        Button_URL :process.env.FRONT_URL
-      }
-      let emailBodyToWinner = {
-        subject :'Delivery successful',
-        title:'Delivery successful',
-        Product_Name : sellerPaymentData.auction.product.title,
-        img:sellerPaymentData.auction.product.images[0].imageLink,
-        message:` Hi, ${confirmDeliveryResult.user.userName}, 
-                 Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
-                 (Model:${sellerPaymentData.auction.product.model}). 
-                  We would like to thank you and appreciate you for choosing Alle Tre. If you would like to participate another auction, Please click the button below. Thank you. `,
-        Button_text :'Click here to create another Auction',
-        Button_URL :process.env.FRONT_URL
-      }
-      Promise.all([
-        await this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyToSeller),
-        await this.emailService.sendEmail(confirmDeliveryResult.user.email,'token',EmailsType.OTHER,emailBodyToWinner)
-      ])
-      }
-      
-    return confirmDeliveryResult
+          const [lastWalletTransactionBalance,lastWalletTransactionAlletre] = await Promise.all([
+            this.walletService.findLastTransaction(auction.userId),
+            this.walletService.findLastTransactionOfAlletre()
+          ])
+          let walletData = {
+            status:WalletStatus.DEPOSIT,
+            transactionType:WalletTransactionType.By_AUCTION,
+            description:"Auction full payment",
+            amount:Number(amountToSellerWallet),
+            auctionId:Number(auctionId),
+            balance:lastWalletTransactionBalance ?
+             Number(lastWalletTransactionBalance) + Number(amountToSellerWallet) : 
+             Number(amountToSellerWallet)
+          }
+    
+          let walletDataToAlletre = {
+            status:WalletStatus.WITHDRAWAL,
+            transactionType:WalletTransactionType.By_AUCTION,
+            description:"Send Auction full payment after deduct the fees",
+            amount:Number(amountToSellerWallet),
+            auctionId:Number(auctionId),
+            balance: Number(lastWalletTransactionAlletre) - Number(amountToSellerWallet) 
+          }
+
+
+          const [walletCreationData, confirmDeliveryResult,alletreWalletCreationData] =
+           await this.prismaService.$transaction(async (prisma) => {
+
+            //full amount to seller wallet after duducting the fees
+           const walletCreationData = await this.walletService.create(auction.userId, walletData);
+
+           //sending the full amount from alle tre wallet to seller wallet 
+           //(due to  buyer pay the full amount, it has already in the alletre wallet )
+           const alletreWalletCreationData = await this.walletService.addToAlletreWallet(auction.userId,walletDataToAlletre)
+           const confirmDeliveryResult = await prisma.joinedAuction.update({
+             where: { id: auctionWinner.id },
+             data: { status: JoinedAuctionStatus.COMPLETED },
+             include:{user:true}
+           });
+         
+           return Promise.all([walletCreationData, confirmDeliveryResult,alletreWalletCreationData]);
+         });
+         if(walletCreationData && confirmDeliveryResult  && alletreWalletCreationData){
+          console.log('sending email to seller and bidder after delivery confirmation')
+         //sending email to seller and bidder after delivery confirmation
+         let emailBodyToSeller = {
+          subject :'Delivery successful',
+          title:'Your Auction winner has confirmed the delivery',
+          Product_Name : sellerPaymentData.auction.product.title,
+          img:sellerPaymentData.auction.product.images[0].imageLink,
+          message:` Hi, ${sellerPaymentData.user.userName}, 
+                   Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
+                   (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
+                   The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
+                   From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. 
+                   If you would like to Participate another auction, Please click the button below. Thank you. `,
+          Button_text :'Click here to create another Auction',
+          Button_URL :process.env.FRONT_URL
+        }
+        let emailBodyToWinner = {
+          subject :'Delivery successful',
+          title:'Delivery successful',
+          Product_Name : sellerPaymentData.auction.product.title,
+          img:sellerPaymentData.auction.product.images[0].imageLink,
+          message:` Hi, ${confirmDeliveryResult.user.userName}, 
+                   Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
+                   (Model:${sellerPaymentData.auction.product.model}). 
+                    We would like to thank you and appreciate you for choosing Alle Tre. If you would like to participate another auction, Please click the button below. Thank you. `,
+          Button_text :'Click here to create another Auction',
+          Button_URL :process.env.FRONT_URL
+        }
+       await Promise.all([
+           this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyToSeller),
+           this.emailService.sendEmail(confirmDeliveryResult.user.email,'token',EmailsType.OTHER,emailBodyToWinner)
+        ])
+        }
+        
+          return confirmDeliveryResult
+        }else{
+          throw new MethodNotAllowedResponse({
+            ar: 'حدث خطأ أثناء تأكيد التسليم',
+            en: 'An error occurred during delivery confirmation',
+          });
+        }
+
    } catch (error) {
     // Handle the error appropriately
     // You can log the error, rethrow it, or return a custom response

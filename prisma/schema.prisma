@@ -9,42 +9,66 @@ datasource db {
 }
 
 model User {
-  id                  Int             @id @default(autoincrement())
-  userName            String?
-  email               String?         @unique
-  password            String?
-  phone               String?         @unique
-  createdAt           DateTime        @default(now())
-  imageLink           String?
-  imagePath           String?
-  isOAuth             Boolean         @default(false)
-  hasCompletedProfile Boolean         @default(false)
-  isVerified          Boolean         @default(false)
-  lang                String          @default("en")
-  oAuthType           OAuthType?
-  socketId            String?
-  stripeId            String?
-  auctions            Auction[]
-  locations           Location[]
-  watchLists          WatchList[]
-  bids                Bids[]
-  Payment             Payment[]
-  JoinedAuction       JoinedAuction[]
-  wallet              Wallet[]
-  alletreWallet       AlletreWallet[]
-  auctionComplaints   AuctionComplaints[]
-
+  id                        Int                         @id @default(autoincrement())
+  userName                  String?           
+  email                     String?                     @unique
+  password                  String?           
+  phone                     String?                     @unique
+  createdAt                 DateTime                    @default(now())
+  imageLink                 String?           
+  imagePath                 String?           
+  isOAuth                   Boolean                     @default(false)
+  hasCompletedProfile       Boolean                     @default(false)
+  isVerified                Boolean                     @default(false)
+  lang                      String                      @default("en")
+  oAuthType                 OAuthType?
+  socketId                  String?
+  stripeId                  String?
+  stripeConnectedAccountId  String?         
+  auctions                  Auction[]
+  locations                 Location[]
+  watchLists                WatchList[]
+  bids                      Bids[]
+  Payment                   Payment[]
+  JoinedAuction             JoinedAuction[]
+  wallet                    Wallet[]
+  alletreWallet             AlletreWallet[]
+  auctionComplaints         AuctionComplaints[]
+  bankAccount               BankAccount[]
+  withdrawalRequests        WithdrawalRequests[]
 }
 
 model Country {
-  id        Int        @id @default(autoincrement())
-  nameAr    String
-  nameEn    String
-  currency  String?
-  createdAt DateTime   @default(now())
-  cities    City[]
-  locations Location[]
-  Product   Product[]
+  id                    Int                   @id @default(autoincrement())
+  nameAr                String            
+  nameEn                String            
+  currency              String?           
+  createdAt             DateTime              @default(now())
+  cities                City[]
+  locations             Location[]
+  Product               Product[]
+}
+
+model BankAccount {
+  id                    Int                    @id @default(autoincrement())
+  accountHolderName     String          
+  bankName              String          
+  accountNumber         String          
+  routingNumber         String          
+  userId                Int         
+  user                  User                   @relation(fields:[userId], references : [id])  
+  withdrawalRequests    WithdrawalRequests[]
+}
+
+model WithdrawalRequests {
+  id                    Int                     @id @default(autoincrement())
+  amount                Decimal           
+  referenceNumber       Int                     @unique @default(autoincrement())
+  bankAccountId         Int           
+  userId                Int  
+  withdrawalStatus      WithdrawalStatus        @default(PENDING)
+  user                  User                    @relation(fields: [userId], references: [id])
+  bankAccount           BankAccount             @relation(fields: [bankAccountId], references: [id])
 }
 
 model City {
@@ -354,6 +378,14 @@ enum UsageStatus {
 }
 
 enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  HOLD
+  CANCELLED
+}
+
+enum WithdrawalStatus {
   PENDING
   SUCCESS
   FAILED

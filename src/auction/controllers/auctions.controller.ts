@@ -40,6 +40,8 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { WalletPayDto } from '../dtos/walletPay.dto';
+import { PaymentType } from '@prisma/client';
+import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -272,6 +274,16 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/pendingPayment')
+  @UseGuards(AuthGuard)
+  async getPendingPayment(
+    @Account() account: any,
+    @Query('auctionId') auctionId: string,
+    @Query('paymentType') paymentType: PaymentType,
+  ){
+    return await this.userAuctionsService.getPendingPayments(auctionId,paymentType,account.id)
+  }
+
   @Post('/user/pay')
   @UseGuards(AuthGuard)
   async payForAuction(
@@ -283,6 +295,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.payToPublish(account.id, auctionId),
     };
   }
+
 
   @Post('/user/walletPay')
   @UseGuards(AuthGuard)
@@ -302,6 +315,55 @@ export class AuctionsController {
       ),
     };
   }
+
+  // @Get('/user/checkKYCStatusForWithdrawal')
+  // @UseGuards(AuthGuard)
+  // async checkKYCStatusForWithdrawal(
+  //   @Account() account: any
+  // ){
+  //   return this.userAuctionsService.checkKYCStatus(account.id)
+  // }
+
+  @Post('/user/addBankAccount')
+  @UseGuards(AuthGuard)
+  async addBankAccount(
+    @Account() account: any,
+    @Body() newBankAccountData: addNewBankAccountDto,
+  ) {
+    try {
+      console.log('test withdrawal')
+
+    return await this.userAuctionsService.addBankAccount(newBankAccountData,account.id)
+    } catch (error) {
+      console.log(error);
+      
+    }
+  }
+
+  @Get('/user/getAccountData')
+  @UseGuards(AuthGuard)
+  async checkKYCStatus(
+    @Account() account: any
+  ) {
+   return await this.userAuctionsService.getAccountData(Number(account.id))
+  }
+
+  @Post('/user/withdrawalRequest')
+  @UseGuards(AuthGuard)
+  async withdrawalRequest(
+    @Account() account: any,
+    @Body('amount') amount: number,
+    @Body('selectedBankAccountId') selectedBankAccountId: number
+  ) {
+    return await this.userAuctionsService.withdrawalRequest(
+      amount,selectedBankAccountId,account.id
+    );
+
+  }
+  
+
+
+
   @Get('/user/ownes/analytics')
   @UseGuards(AuthGuard)
   async getAuctionsAnalytics(@Account() account: any) {
@@ -570,14 +632,11 @@ export class AuctionsController {
     @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
     const isWalletPayment = true
-    return {
-      success: true,
-      data: await this.userAuctionsService.buyNowAuction(
-        Number(account.id),
-        auctionId,
-        isWalletPayment
-      ),
-    };
+    return await this.userAuctionsService.buyNowAuction(
+      Number(account.id),
+      auctionId,
+      isWalletPayment
+    )
   }
   @Post('/user/:auctionId/confirm-delivery')
   @UseGuards(AuthGuard)

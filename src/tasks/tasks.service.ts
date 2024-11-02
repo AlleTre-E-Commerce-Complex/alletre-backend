@@ -11,6 +11,7 @@ import {
 import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
+import { EmailBatchService } from 'src/emails/email-batch.service';
 import { EmailSerivce } from 'src/emails/email.service';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -27,6 +28,7 @@ export class TasksService {
     private stripeService : StripeService,
     private walletService : WalletService,
     private emailService : EmailSerivce,
+    private emailBatchService : EmailBatchService,
   ) {}
 
   /**
@@ -34,6 +36,7 @@ export class TasksService {
    */
   @Interval(60000)
   async publishAllInScheduleAuction() {
+    
     console.log('publish AllInSchedule Auction cron job on fire');
 
     // Get InSchedule auctions
@@ -54,11 +57,17 @@ export class TasksService {
 
     for (const auction of inScheduleAuctions) {
       // Set payment expired
-      await this.prismaService.auction.update({
+     const updatedAuction = await this.prismaService.auction.update({
         where: { id: auction.id },
         data: { status: AuctionStatus.ACTIVE },
+      include:{product:{include:{images:true}}}
+
       });
+      if(updatedAuction){
+        await this.emailBatchService.sendBulkEmails(updatedAuction);
+      }
     }
+
 
     //TODO: Notify all users
   }
@@ -68,6 +77,7 @@ export class TasksService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async markPendingBidderPaymentAuctionsExpired() {
+
     // Get pending payment auctions
     const pendingPaymentAuction =
       await this.prismaService.joinedAuction.findMany({
@@ -80,7 +90,9 @@ export class TasksService {
         }
       });
 
+    console.log('pendingPaymentAuction :',pendingPaymentAuction)
     for (const joinedAuction of pendingPaymentAuction) {
+ 
 
       //find the security deposit Of Winned bidder
       const winnerSecurityDeposit = await this.prismaService.payment.findFirst({
@@ -105,62 +117,107 @@ export class TasksService {
         }
       })
       if(winnerSecurityDeposit){
-        //finding the last transaction balance of the highest bidder 
-        const lastWalletTransactionBalance = await this.walletService.findLastTransaction(joinedAuction.auction.userId) 
-        //finding the last transaction balance of the alletreWallet
-        const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
-        //calculating the amount that need add to the highest bidder
-        const compensationPercenatage = 30
-        const amountToSellerWallet = (Number(winnerSecurityDeposit.amount)*compensationPercenatage)/100 
-        //calculating the amount that need add to the alletreWallet
-        const amountToAlletreWallet = Number(winnerSecurityDeposit.amount) - amountToSellerWallet
-              //tranfering data for the copensation to the higherst bidder wallet.
-              let walletData = {
-                status:WalletStatus.DEPOSIT,
-                transactionType:WalletTransactionType.By_AUCTION,
-                description:"Due to full payment deley by the winned bidder.",
-                amount:amountToSellerWallet,
-                auctionId:Number(joinedAuction.auctionId),
-                balance:lastWalletTransactionBalance ?
-                 (Number(lastWalletTransactionBalance) + amountToSellerWallet) : amountToSellerWallet
-              }
-              //tranfering data for the alletre fees 
-              
-              let alletreWalletData = {
-                status:WalletStatus.DEPOSIT,
-                transactionType:WalletTransactionType.By_AUCTION,
-                description:"Due to full payment delay by the winned bidder.",
-                amount:amountToAlletreWallet,
-                auctionId:Number(joinedAuction.auctionId),
-                balance:lastBalanceOfAlletre ?
-                 (Number(lastBalanceOfAlletre) + amountToAlletreWallet) : amountToAlletreWallet
-              }
+
 
               try {
-                const { releaseSecurityDepositOfseller } = await this.prismaService.$transaction(async (prisma) => {
-                  const releaseSecurityDepositOfseller = await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
-                  
-                  // Transfer to the highest bidder wallet
-                  await this.walletService.create(joinedAuction.auction.userId, walletData);
-                  
-                  // Transfer to the alletre wallet
-                  await this.walletService.addToAlletreWallet(joinedAuction.userId, alletreWalletData);
-                  
-                  // Update auction and joined auction statuses
-                  await prisma.auction.update({
-                    where: { id: joinedAuction.auctionId },
-                    data: { status: AuctionStatus.EXPIRED },
-                  });
-                  await prisma.joinedAuction.update({
-                    where: { id: joinedAuction.id },
-                    data: { status: JoinedAuctionStatus.PAYMENT_EXPIRED },
-                  });
-                  
-                  return { releaseSecurityDepositOfseller };
-                });
-              
+                let releaseSecurityDepositOfseller : any = false
+                if(sellerPaymentData.isWalletPayment){
+                  // relese security deposit of seller if payment through wallet
+                  const [lastWalletTransactionBalance, lastWalletTransactionAlletre] = await Promise.all([
+                    this.walletService.findLastTransaction(sellerPaymentData.userId),
+                    this.walletService.findLastTransactionOfAlletre(),
+                  ]);
+                  let sellerReturnSecurityDepositWalletData = {
+                    status:WalletStatus.DEPOSIT,
+                    transactionType:WalletTransactionType.By_AUCTION,
+                    description:"Return Security deposit due to winner Not paid the full amount",
+                    amount:Number(sellerPaymentData.amount),
+                    auctionId:Number(sellerPaymentData.auctionId),
+                    balance:lastWalletTransactionBalance ?
+                     Number(lastWalletTransactionBalance) + Number(sellerPaymentData.amount) : 
+                     Number(sellerPaymentData.amount)
+                  }
+                  let walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
+                    status:WalletStatus.WITHDRAWAL,
+                    transactionType:WalletTransactionType.By_AUCTION,
+                    description:"Return Security deposit of seller due to winner confirmed the delivery",
+                    amount:Number(sellerPaymentData.amount),
+                    auctionId:Number(sellerPaymentData.auctionId),
+                    balance:Number(lastWalletTransactionAlletre) - Number(sellerPaymentData.amount) 
+                  }
+                  const [sellerWalletCreationData, alletreWalletCreationData] = await Promise.all([
+                    this.walletService.create(sellerPaymentData.userId, sellerReturnSecurityDepositWalletData),
+                    this.walletService.addToAlletreWallet(sellerPaymentData.userId, walletDataToAlletreWhenRetrunSecurityDepositToSeller),
+                  ]);
+                  releaseSecurityDepositOfseller = sellerWalletCreationData && alletreWalletCreationData;
+
+                }else{
+                 
+                  console.log('seller payment data ', sellerPaymentData)
+                  // relese security deposit of seller if payment through stripe
+                   releaseSecurityDepositOfseller = await this.stripeService.cancelDepositPaymentIntent(sellerPaymentData.paymentIntentId);
+                }
+               
                 if (releaseSecurityDepositOfseller) {
+      
+
+                        //finding the last transaction balance of the seller 
+                        const lastWalletTransactionBalance = await this.walletService.findLastTransaction(joinedAuction.auction.userId) 
+                        //finding the last transaction balance of the alletreWallet
+                        const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+                        //calculating the amount that need add to the highest bidder
+                        const compensationPercenatage = 30
+                        const amountToSellerWallet = (Number(winnerSecurityDeposit.amount)*compensationPercenatage)/100 
+
+                        // // calculating the amount that need add to the alletreWallet
+                        // const amountToAlletreWallet = Number(winnerSecurityDeposit.amount) - amountToSellerWallet
+
+                              //tranfering data for the copensation to the higherst bidder wallet.
+                              let walletData = {
+                                status:WalletStatus.DEPOSIT,
+                                transactionType:WalletTransactionType.By_AUCTION,
+                                description:"compensation Due to full payment deley by the winned bidder.",
+                                amount:amountToSellerWallet,
+                                auctionId:Number(joinedAuction.auctionId),
+                                balance:lastWalletTransactionBalance ?
+                                (Number(lastWalletTransactionBalance) + amountToSellerWallet) : amountToSellerWallet
+                              }
+                              //tranfering data for the alletre fees 
+                              
+                              let alletreWalletData = {
+                                status:WalletStatus.WITHDRAWAL,
+                                transactionType:WalletTransactionType.By_AUCTION,
+                                description:"compensation Due to full payment delay by the winned bidder.",
+                                amount:amountToSellerWallet,
+                                auctionId:Number(joinedAuction.auctionId),
+                                balance: (Number(lastBalanceOfAlletre) + amountToSellerWallet)
+                              }
+  
+
+                          await this.prismaService.$transaction(async (prisma) => {
+    
+                          
+                            // Transfer to the highest bidder wallet
+                            await this.walletService.create(joinedAuction.auction.userId, walletData);
+                            
+                            // Transfer to the alletre wallet
+                            await this.walletService.addToAlletreWallet(joinedAuction.userId, alletreWalletData);
+                            
+                            // Update auction and joined auction statuses
+                            await prisma.auction.update({
+                              where: { id: joinedAuction.auctionId },
+                              data: { status: AuctionStatus.EXPIRED },
+                            });
+                            await prisma.joinedAuction.update({
+                              where: { id: joinedAuction.id },
+                              data: { status: JoinedAuctionStatus.PAYMENT_EXPIRED },
+                            });
+                            
+                            // return { releaseSecurityDepositOfseller };
+                          });
                    //sendEmailtoSeller
+
+
                       let emailBodyForSeller = {
                         subject :'Pending Payment time Expired',
                         title:'Pending Payment time Expired',
@@ -189,9 +246,9 @@ export class TasksService {
                         Button_text :'Click here',
                         Button_URL :process.env.FRONT_URL
                       }
-                     Promise.all([
-                      await this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyForSeller),
-                      await this.emailService.sendEmail(winnerSecurityDeposit.user.email,'token',EmailsType.OTHER,emailBodyForBidder)
+                     await Promise.all([
+                       this.emailService.sendEmail(sellerPaymentData.user.email,'token',EmailsType.OTHER,emailBodyForSeller),
+                       this.emailService.sendEmail(winnerSecurityDeposit.user.email,'token',EmailsType.OTHER,emailBodyForBidder)
                      ])
                     }
                   } catch (error) {
@@ -210,6 +267,7 @@ export class TasksService {
 
         }
     }
+
   }
 
   //Function to send email when the seller is refuse or has any issue to deliver the item.
@@ -224,7 +282,7 @@ export class TasksService {
       },
       include:{user:true,product:{include:{images:true}}}
     })
-    Promise.all(pendingDeliveryAuction.map(async auction=>{
+   await Promise.all(pendingDeliveryAuction.map(async auction=>{
          // Calculate expected delivery date
         const expectedDeliveryDate = new Date(auction.expiryDate);
         expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + auction.numOfDaysOfExpecetdDelivery);
@@ -277,7 +335,7 @@ export class TasksService {
       });
 
       if(pendingPaymentAuction.length){
-        Promise.all(pendingPaymentAuction.map(async data=>{
+      await  Promise.all(pendingPaymentAuction.map(async data=>{
           let body = {
             subject :'Warning.. Pending Payment is going to be expired soon',
             title:'Pending Payment is going to be expired soon',
@@ -323,7 +381,7 @@ export class TasksService {
     });
     console.log(' [IMPORTANT] auctionsToBeExpired: ',auctionsToBeExpired);
    
-    Promise.all(auctionsToBeExpired?.map(async (auction)=>{
+   await Promise.all(auctionsToBeExpired?.map(async (auction)=>{
       //get all bidders on an auction
       const BiddersForAuction = await this.prismaService.bids.findMany({
         where: { auctionId: auction.id },
@@ -349,7 +407,7 @@ export class TasksService {
         // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
         const today = new Date();
         const newDate = new Date(today.setDate(today.getDate() + 2));
-        // const newDate = new Date(today.getTime() + 15 * 60 * 1000); // Adds 10 minutes
+        // const newDate = new Date(today.getTime() + 10 * 60 * 1000); // Adds 10 minutes
 
        const {isAcutionUpdated,isHighestBidder_J_auctionUpdated,isLostBidders_J_auctionUpdated}
        = await this.prismaService.$transaction(async prisma=>{
@@ -439,7 +497,7 @@ export class TasksService {
           include:{user:true}
          })
          if(loserData.length){
-          Promise.all(loserData.map(async data=>{
+          await Promise.all(loserData.map(async data=>{
             let body = {
               subject :'Auction Expired',
               title:'Your acution is Expired',
@@ -468,13 +526,25 @@ export class TasksService {
           PaymentType.BIDDER_DEPOSIT
         )
 
-    // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
+            // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
             if (!winnedBidderPaymentData.isWalletPayment && winnedBidderPaymentData.paymentIntentId) {
               try {
-                await this.stripeService.captureDepositPaymentIntent(
-                  winnedBidderPaymentData.paymentIntentId,
-                );
+               const isSellerPaymentCaptured = await this.stripeService.captureDepositPaymentIntent(winnedBidderPaymentData.paymentIntentId);
                 console.log(`Captured payment for winning bidder: ${winnedBidderAuction.userId}`);
+                //find the last transaction balane of the alletre
+                  const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
+                  //tranfering data for the alletre fees 
+                  let alletreWalletData = {
+                  status: WalletStatus.DEPOSIT,
+                  transactionType: WalletTransactionType.By_AUCTION,
+                  description: `Captured payment for winning bidder`,
+                  amount: Number(isSellerPaymentCaptured.amount) / 100,  // Convert from cents to dollars
+                  auctionId: Number(winnedBidderPaymentData.auctionId),
+                  balance: lastBalanceOfAlletre ? 
+                    (Number(lastBalanceOfAlletre) + (Number(isSellerPaymentCaptured.amount) / 100)) : 
+                    Number(isSellerPaymentCaptured.amount) / 100  // Convert from cents to dollars
+                };
+                await this.walletService.addToAlletreWallet(winnedBidderPaymentData.userId,alletreWalletData)
               } catch (error) {
                 console.error('Error capturing payment for winning bidder:', error);
               }
@@ -500,7 +570,7 @@ export class TasksService {
               await this.stripeService.cancelDepositPaymentIntent(lostBidderPaymentData.paymentIntentId);
             }else{
               //logic to transfer to the wallet
-              console.log('test ======');
+
               
               //finding the last transaction balance of the Seller 
               const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(loser.userId) 
@@ -547,8 +617,8 @@ export class TasksService {
         
       }
       // Set auction to EXPIRED
-      else
-        {
+      else{
+        //if there are zero bidders
          const auctionExpairyData = await this.prismaService.auction.update({
           where: {
             id: auction.id,
@@ -583,9 +653,9 @@ export class TasksService {
                 const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(sellerPaymentData.userId) 
                 //finding the last transaction balance of the alletreWallet
                 const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
-                //wallet data for withdraw money from seller wallet
-
-                    let BidderWalletData = {
+               
+                //wallet data for deposit  money to seller wallet
+                    let sellerWalletData = {
                       status:WalletStatus.DEPOSIT,
                       transactionType:WalletTransactionType.By_AUCTION,
                       description:`Return security deposit due to auction Expired and there is zero bidders`,
@@ -595,7 +665,7 @@ export class TasksService {
                       Number(lastWalletTransactionBalanceOfBidder) + Number(sellerPaymentData.amount ): 
                       Number(sellerPaymentData.amount)
                     }
-                    // wallet data for deposit to alletre wallet
+                    // wallet data for withdraw from alletre wallet
                     
                     let alletreWalletData = {
                       status:WalletStatus.WITHDRAWAL,
@@ -606,7 +676,7 @@ export class TasksService {
                       balance:(Number(lastBalanceOfAlletre) - Number(sellerPaymentData.amount)) 
                     }
                     
-                    await this.walletService.create(sellerPaymentData.userId,BidderWalletData)
+                    await this.walletService.create(sellerPaymentData.userId,sellerWalletData)
                     //crete new transaction in alletre wallet
                     await this.walletService.addToAlletreWallet(sellerPaymentData.userId,alletreWalletData)
                     isSendBackS_D = true

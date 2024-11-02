@@ -3,15 +3,17 @@ import { Injectable, MethodNotAllowedException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 import Stripe from 'stripe';
 import { MethodNotAllowedResponse } from '../errors';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class StripeService {
+export class StripeService  {
   private stripe: Stripe;
 
-  constructor() {
+  constructor(private readonly prismaService :PrismaService) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2022-11-15',
     });
+    
   }
 
   async createCustomer(email: string, userName: string) {
@@ -122,6 +124,7 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         metadata,
       });
     } catch (error) {
+      console.log(error)
       throw new MethodNotAllowedResponse({
         ar: 'قيمة عملية الدفع غير صالحة',
         en: 'Invalid Payment Amount',
@@ -157,7 +160,7 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
   }
 
   async webHookHandler(payload: any, stripeSignature: string) {
-//we can use--->   "payment_intent.amount_capturable_updated"   <---event of web hook for handling the HOLD method of stripe
+        //we can use--->   "payment_intent.amount_capturable_updated"   <---event of web hook for handling the HOLD method of stripe
 
     let event = payload;
     console.log('payload=>',payload,'stripeSignature==>',stripeSignature)
@@ -218,4 +221,153 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         console.log(`Unhandled event type ${event.type}.`);
     }
   }
+
+  /**
+   * Check if KYC requirements for the connected account are completed.
+   */
+  async checkKYCStatus(userId: number) {
+    try {
+      console.log('checkKYCStatus test 1')
+      let user = await this.fetchUserFromDatabase(userId);
+      console.log('checkKYCStatus test 2 ')
+      
+      // If no connected account exists, create one and save its ID
+      if (!user.stripeConnectedAccountId) {
+      console.log('checkKYCStatus test 3')
+        const account = await this.stripe.accounts.create({
+          type: 'express',
+          country: 'AE',
+          email: user.email,
+          business_type: 'individual',
+          capabilities: {
+            transfers: { requested: true },
+            card_payments: { requested: true },
+          },
+        });
+  
+        console.log('checkKYCStatus test 4',account)
+        user.stripeConnectedAccountId = account.id;
+        await this.saveConnectedAccountIdToDatabase(userId, account.id);
+      }
+  
+      // Retrieve the account status and check KYC requirements
+      const account = await this.stripe.accounts.retrieve(user.stripeConnectedAccountId);
+      console.log('checkKYCStatus test 5',account)
+  
+      // If there are still KYC fields due, return incomplete status
+      if (account.requirements?.currently_due.length > 0) {
+        console.log('checkKYCStatus test 6')
+  
+        return {
+          isKYCComplete: false,
+          dueFields: account.requirements.currently_due,
+        };
+      }
+      console.log('checkKYCStatus test 7')
+  
+      return { isKYCComplete: true, dueFields: [] };
+    } catch (error) {
+      console.log('check KYC Error at stripe service file :',error)
+      throw new MethodNotAllowedException(`Sorry you cannot complete the KYC due to some internal issue..!`);
+    }
+  }
+
+  /**
+   * Create an onboarding link for KYC completion.
+   */
+  async sendOnboardingLink(userId: number) {
+    console.log('sendOnboardingLink 1')
+    const user = await this.fetchUserFromDatabase(userId);
+    console.log('sendOnboardingLink 2 :',user)
+
+    if (!user.stripeConnectedAccountId) {
+    console.log('sendOnboardingLink 3')
+
+      throw new Error('Connected account ID not found');
+    }
+
+    const accountLink = await this.stripe.accountLinks.create({
+      account: user.stripeConnectedAccountId,
+      refresh_url: 'https://example.com/reauth',
+      return_url: `${process.env.FRONT_URL}/alletre/profile/wallet`,
+      type: 'account_onboarding',
+    });
+    console.log('sendOnboardingLink 4 :',accountLink)
+
+    return accountLink.url;
+  }
+
+  /**
+   * Withdraw funds to a connected account after KYC verification check.
+   */
+  async withdrawFunds(userId: number, amount: number) {
+    const connectedAccount = await this.getOrCreateConnectedAccount(userId);
+    const kycStatus = await this.checkKYCStatus(userId);
+
+    if (!kycStatus.isKYCComplete) {
+      throw new Error('KYC verification is incomplete. Please complete KYC.');
+    }
+
+    const transfer = await this.stripe.transfers.create({
+      amount: amount,
+      currency: 'aed',
+      destination: connectedAccount.id,
+      transfer_group: `user_${userId}`,
+    });
+
+    const payout = await this.stripe.payouts.create(
+      {
+        amount: amount,
+        currency: 'aed',
+        metadata: { userId, transferId: transfer.id },
+      },
+      { stripeAccount: connectedAccount.id }
+    );
+
+    return payout;
+  }
+  
+ 
+
+  // Helper function to retrieve or create a Stripe connected account for the user
+  private async getOrCreateConnectedAccount(userId: number) {
+    const user = await this.fetchUserFromDatabase(userId);
+
+    if (user.stripeConnectedAccountId) {
+      return await this.stripe.accounts.retrieve(user.stripeConnectedAccountId);
+    } else {
+      const account = await this.stripe.accounts.create({
+        type: 'express',
+        country: 'AE',
+        business_type: 'individual',
+        email: user.email,
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+      });
+      await this.saveConnectedAccountIdToDatabase(userId, account.id);
+      return account;
+    }
+  }
+
+  private async fetchUserFromDatabase(userId: number) {
+    return await this.prismaService.user.findUnique(
+      {
+        where:
+        {
+          id:userId
+        }
+      }
+    )
+  }
+
+  private async saveConnectedAccountIdToDatabase(userId: number, stripeConnectedAccountId: string) {
+    await this.prismaService.user.update({
+      where :{id: userId},
+      data : {stripeConnectedAccountId}
+    })
+  }
+
+  
 }
