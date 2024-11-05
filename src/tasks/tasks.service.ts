@@ -37,8 +37,7 @@ export class TasksService {
   @Interval(60000)
   async publishAllInScheduleAuction() {
     
-    console.log('publish AllInSchedule Auction cron job on fire');
-
+    
     // Get InSchedule auctions
     const inScheduleAuctions = await this.prismaService.auction.findMany({
       where: {
@@ -47,13 +46,14 @@ export class TasksService {
         Payment: {
           every: {
             type: PaymentType.SELLER_DEPOSIT,
-            status: PaymentStatus.SUCCESS,
+            status: { in: [PaymentStatus.SUCCESS, PaymentStatus.HOLD] },
           },
         },
       },
     });
+    
+    console.log(`publish AllInSchedule Auction cron job on fire [${new Date()}] :`,inScheduleAuctions);
 
-    console.log(inScheduleAuctions);
 
     for (const auction of inScheduleAuctions) {
       // Set payment expired
