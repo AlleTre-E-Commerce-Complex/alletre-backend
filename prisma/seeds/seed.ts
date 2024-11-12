@@ -16,8 +16,8 @@ async function main() {
       nameAr: 'الأجهزة الكهربائية',
       nameEn: 'Electronic Devices',
       hasUsageCondition: true,
-      bidderDepositFixedAmount: 1000,
-      sellerDepositFixedAmount: 1000,
+      bidderDepositFixedAmount: 100,
+      sellerDepositFixedAmount: 100,
       brands: {
         create: [
           { name: 'Sony' },
@@ -325,8 +325,8 @@ async function main() {
       nameAr: 'مجوهرات',
       nameEn: 'Jewelry',
       hasUsageCondition: true,
-      bidderDepositFixedAmount: 1000,
-      sellerDepositFixedAmount: 1000,
+      bidderDepositFixedAmount: 100,
+      sellerDepositFixedAmount: 100,
       brands: {
         create: [
           { name: 'Mejuri' },
@@ -417,8 +417,8 @@ async function main() {
     data: {
       nameAr: 'ملكيات',
       nameEn: 'Properties',
-      bidderDepositFixedAmount: 1000,
-      sellerDepositFixedAmount: 1000,
+      bidderDepositFixedAmount: 100,
+      sellerDepositFixedAmount: 100,
       subCategories: {
         create: [
           {
@@ -703,8 +703,8 @@ async function main() {
       nameAr: 'سيارات',
       nameEn: 'Cars',
       hasUsageCondition: true,
-      bidderDepositFixedAmount: 1000,
-      sellerDepositFixedAmount: 1000,
+      bidderDepositFixedAmount: 100,
+      sellerDepositFixedAmount: 100,
       brands: {
         create: [
           { name: 'Alfa Romeo' },

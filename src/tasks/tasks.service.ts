@@ -406,7 +406,7 @@ export class TasksService {
 
         // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
         const today = new Date();
-        const newDate = new Date(today.setDate(today.getDate() + 2));
+        const newDate = new Date(today.setDate(today.getDate() + 3));
         // const newDate = new Date(today.getTime() + 10 * 60 * 1000); // Adds 10 minutes
 
        const {isAcutionUpdated,isHighestBidder_J_auctionUpdated,isLostBidders_J_auctionUpdated}

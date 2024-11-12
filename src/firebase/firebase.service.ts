@@ -28,12 +28,15 @@ export class FirebaseService {
         destination: filePath,
       });
     } catch (error) {
-      console.error('Error uploading to Firebase:', error.message, error.code);
-      throw new MethodNotAllowedResponse({
-        ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
-        en: 'Error uploading images to the cloud, please try again.',
-      });
-    }
+      console.error('Error code uploading to Firebase:',  error.code);
+      console.error('Error message uploading to Firebase:',  error.message);
+        throw new MethodNotAllowedResponse({
+          ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
+          en: 'Error uploading images to the cloud, please try again.',
+        });
+      
+      
+      }
     
 
     await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(

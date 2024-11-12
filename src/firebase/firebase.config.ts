@@ -1,6 +1,10 @@
 // Import Firebase
 import firebaseAdmin from 'firebase-admin';
 
+console.log("Firebase Project ID:", process.env.FIREBASE_PROJECT_ID);
+console.log("Firebase Client Email:", process.env.FIREBASE_CLIENT_EMAIL);
+console.log("Firebase Storage Bucket:", process.env.FIREBASE_STORAGE_BUCKET);
+
 const app = firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
