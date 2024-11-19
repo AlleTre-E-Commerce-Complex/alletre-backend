@@ -231,7 +231,7 @@ export class StripeService {
   async checkKYCStatus(userId: number) {
     try {
       console.log('checkKYCStatus test 1');
-      let user = await this.fetchUserFromDatabase(userId);
+      const user = await this.fetchUserFromDatabase(userId);
       console.log('checkKYCStatus test 2 ');
 
       // If no connected account exists, create one and save its ID

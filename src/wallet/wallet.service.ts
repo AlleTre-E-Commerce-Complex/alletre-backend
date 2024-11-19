@@ -5,11 +5,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 @Injectable()
 export class WalletService {
-  constructor(private prismaSevice: PrismaService) {}
+  constructor(private prismaSevice: PrismaService) {
+    console.log('wallet.service is called');
+  }
   async create(userId: number, createWalletData: CreateWalletDto) {
     let result: any;
     try {
-      console.log('wallet.service is called', createWalletData);
       result = await this.prismaSevice.wallet.create({
         data: {
           userId,

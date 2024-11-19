@@ -68,8 +68,8 @@ export class EmailBatchService {
     }
     return result;
   }
-  async getAllRegisteredUsers(batchSize: number = 1000) {
-    let emails = [];
+  async getAllRegisteredUsers(batchSize = 1000) {
+    const emails = [];
     let skip = 0;
     let batch: any;
 
