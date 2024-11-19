@@ -42,7 +42,6 @@ export class AuctionCreationDTO {
   @IsString()
   @IsIn(['YES'])
   isBuyNowAllowed: string;
-  
 
   @IsOptional()
   @Transform(({ value }): number => parseFloat(value))
@@ -68,7 +67,6 @@ export class AuctionCreationDTO {
   @IsNumber()
   locationId: number;
 
-  
   @IsOptional()
   @IsString()
   IsDelivery: string;
@@ -93,7 +91,7 @@ export class AuctionCreationDTO {
   @IsOptional()
   @IsString()
   IsWaranty: string;
-  
+
   @IsOptional()
   @IsString()
   warrantyPolicyDescription: string;

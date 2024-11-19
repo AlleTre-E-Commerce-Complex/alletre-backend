@@ -9,29 +9,27 @@ import { BadRequestExceptionFilter } from './common/filters/badrequestException.
 import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {  
+  const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
-    rawBody: true ,
+    rawBody: true,
   });
 
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [
-        process.env.FRONT_URL,
-        process.env.ADMIN_FRONT_URL,
-      ]
-    : ['*']; 
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
+      : ['*'];
 
   app.enableCors({
     origin: (origin, callback) => {
       if (allowedOrigins.includes(origin) || !origin) {
-        callback(null, true); // Allow the request 
+        callback(null, true); // Allow the request
       } else {
         callback(new Error('Not allowed by CORS')); // Reject the request
       }
     },
   });
 
-  app.useGlobalInterceptors(new LoggerErrorInterceptor());  
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
   // Create an instance of PrismaService
   const prismaService = app.get(PrismaService);
@@ -42,7 +40,7 @@ async function bootstrap() {
     await app.close();
   };
 
-  process.on('exit', exitHandler); 
+  process.on('exit', exitHandler);
   process.on('beforeExit', exitHandler);
   process.on('SIGINT', exitHandler);
   process.on('SIGTERM', exitHandler);
@@ -57,7 +55,9 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const PORT = process.env.PORT || 3001;
-  await app.listen(PORT, () => console.log(`The port is running at http://localhost:${PORT}`));
+  await app.listen(PORT, () =>
+    console.log(`The port is running at http://localhost:${PORT}`),
+  );
 }
 
 bootstrap();

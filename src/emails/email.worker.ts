@@ -4,7 +4,12 @@ import * as sgMail from '@sendgrid/mail';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-async function sendBatchEmails(users: string[], subject: string, text: string, html: string) {
+async function sendBatchEmails(
+  users: string[],
+  subject: string,
+  text: string,
+  html: string,
+) {
   const msg = {
     to: users,
     from: 'alletre.auctions@gmail.com',
@@ -22,4 +27,9 @@ async function sendBatchEmails(users: string[], subject: string, text: string, h
 }
 
 // workerData includes data passed from the main thread
-sendBatchEmails(workerData.users, workerData.subject, workerData.text, workerData.html);
+sendBatchEmails(
+  workerData.users,
+  workerData.subject,
+  workerData.text,
+  workerData.html,
+);

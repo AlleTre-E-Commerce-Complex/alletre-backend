@@ -1,6 +1,7 @@
 import { UsageStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -116,4 +117,14 @@ export class ProductDTO {
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   cityId: number;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isOffer: boolean;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  offerAmount: number;
 }

@@ -9,9 +9,9 @@ export class RegionsController {
 
   @Get('countries')
   @UseGuards(AuthOrGuestGuard)
-  async getAllCountriesController() { 
+  async getAllCountriesController() {
     return {
-      success: true, 
+      success: true,
       data: await this.regionsService.getAllCountries(),
     };
   }

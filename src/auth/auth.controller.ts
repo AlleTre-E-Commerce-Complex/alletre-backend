@@ -23,7 +23,7 @@ export class AuthController {
 
   @Post('/sign-in')
   async userSignController(@Body() UserSignInBody: UserSignInDTO) {
-    console.log('user signup data =====>:',UserSignInBody)
+    console.log('user signup data =====>:', UserSignInBody);
 
     return {
       success: true,

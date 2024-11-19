@@ -18,7 +18,7 @@ export class AuthGuard implements CanActivate {
 
   validateAccessToken(accessToken: string) {
     console.log('validateAccessToken cheking...');
-    
+
     if (accessToken.split(' ')[0] !== 'Bearer')
       throw new ForbiddenException('Invalid token');
 

@@ -5,31 +5,26 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 @Injectable()
 export class WalletService {
-  constructor(
-    private prismaSevice : PrismaService,
-  ){
-    console.log('wallet.service is called')
-  }
-  async create(
-    userId : number,
-    createWalletData: CreateWalletDto) {
-      let result:any
+  constructor(private prismaSevice: PrismaService) {}
+  async create(userId: number, createWalletData: CreateWalletDto) {
+    let result: any;
     try {
-       result = await this.prismaSevice.wallet.create({
-        data:{
+      console.log('wallet.service is called', createWalletData);
+      result = await this.prismaSevice.wallet.create({
+        data: {
           userId,
-          description:createWalletData.description,
-          amount:createWalletData.amount,
-          status:createWalletData.status,
-          transactionType:createWalletData.transactionType, 
-          auctionId:createWalletData.auctionId,
-          purchaseId:createWalletData.purchaseId,
-          balance:createWalletData.balance
-        }
-      })
-      console.log('the create wallet transaction result : ==>',result)
+          description: createWalletData.description,
+          amount: createWalletData.amount,
+          status: createWalletData.status,
+          transactionType: createWalletData.transactionType,
+          auctionId: createWalletData.auctionId,
+          purchaseId: createWalletData.purchaseId,
+          balance: createWalletData.balance,
+        },
+      });
+      console.log('the create wallet transaction result : ==>', result);
     } catch (error) {
-      console.log(error);
+      console.log('create wallet error :', error);
       throw new MethodNotAllowedResponse({
         ar: 'لقد حدث خطأ ما أثناء إجراء معاملتك',
         en: 'Something went wrong while processing your transaction.',
@@ -39,24 +34,22 @@ export class WalletService {
   }
 
   //add to alletre wallet(Note : here we add user id to understand from whose mone came to wallet)
-   async addToAlletreWallet(
-    userId : number,
-    createWalletData: CreateWalletDto) {
-      let result:any
+  async addToAlletreWallet(userId: number, createWalletData: CreateWalletDto) {
+    let result: any;
     try {
-       result = await this.prismaSevice.alletreWallet.create({
-        data:{
+      result = await this.prismaSevice.alletreWallet.create({
+        data: {
           userId,
-          description:createWalletData.description,
-          amount:createWalletData.amount,
-          status:createWalletData.status,
-          transactionType:createWalletData.transactionType, 
-          auctionId:createWalletData.auctionId,
-          purchaseId:createWalletData.purchaseId,
-          balance:createWalletData.balance
-        }
-      })
-      console.log('the create wallet transaction result : ==>',result)
+          description: createWalletData.description,
+          amount: createWalletData.amount,
+          status: createWalletData.status,
+          transactionType: createWalletData.transactionType,
+          auctionId: createWalletData.auctionId,
+          purchaseId: createWalletData.purchaseId,
+          balance: createWalletData.balance,
+        },
+      });
+      console.log('the create wallet transaction result : ==>', result);
     } catch (error) {
       console.log(error);
       throw new MethodNotAllowedResponse({
@@ -67,27 +60,29 @@ export class WalletService {
     return result;
   }
 
-  async findAll(userId:number) {
-    
-    const walletData = await this.prismaSevice.wallet.findMany({where:{userId}})
+  async findAll(userId: number) {
+    const walletData = await this.prismaSevice.wallet.findMany({
+      where: { userId },
+    });
     // console.log('wallet data :',walletData)
     // let balance = walletData[walletData.length-1]
-    return walletData
+    return walletData;
   }
 
   async findLastTransaction(userId: number) {
     const walletLastTransaction = await this.prismaSevice.wallet.findFirst({
-      where:{userId},
-      orderBy:{id:'desc'}
-    })
-    return walletLastTransaction?.balance
+      where: { userId },
+      orderBy: { id: 'desc' },
+    });
+    return walletLastTransaction?.balance;
   }
 
   async findLastTransactionOfAlletre() {
-    const walletLastTransaction = await this.prismaSevice.alletreWallet.findFirst({
-      orderBy:{id:'desc'}
-    })
-    return walletLastTransaction?.balance
+    const walletLastTransaction =
+      await this.prismaSevice.alletreWallet.findFirst({
+        orderBy: { id: 'desc' },
+      });
+    return walletLastTransaction?.balance;
   }
   update(id: number, updateWalletDto: UpdateWalletDto) {
     return `This action updates a #${id} wallet`;

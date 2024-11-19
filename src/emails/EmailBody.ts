@@ -1,28 +1,25 @@
-export class EmailBody{
+export class EmailBody {
+  constructor() {}
 
-    constructor(){}
+  emailBody(body: any, token?: any) {
+    const imgSrc = body.img ? body.img : '';
+    const message = body.message ? body.message : '';
+    console.log('emial body :', body);
+    let data: any;
+    for (let [key, value] of Object.entries(body)) {
+      if (
+        key !== 'img' &&
+        key !== 'message' &&
+        key !== 'subject' &&
+        key !== 'Button_URL' &&
+        key !== 'title' &&
+        key !== 'Button_text'
+      ) {
+        data += `<p>${key} : <span>${value}</span></p>`;
+      }
+    }
 
-    emailBody(body:any,token?:any,){
-        const imgSrc = body.img ? body.img : ''
-        const message = body.message ? body.message :''
-        console.log('emial body :',body)
-        let data:any
-        for(let [key,value] of Object.entries(body)){
-           if(
-                key !== 'img' && 
-                key !== 'message' && 
-                key !== 'subject' &&
-                key !== 'Button_URL' &&
-                key !== 'title' &&
-                key !== 'Button_text')
-            {
-                data += `<p>${key} : <span>${value}</span></p>`
-            }
-        }
-
-
-        return(
-            `<html>
+    return `<html>
     <head>
       <meta charset="UTF-8">
       <style>
@@ -112,8 +109,6 @@ export class EmailBody{
         </div>
       </div>
     </body>
-  </html>`
-        )
-    }
+  </html>`;
+  }
 }
-

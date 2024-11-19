@@ -1,4 +1,3 @@
-
 import { Injectable, MethodNotAllowedException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 import Stripe from 'stripe';
@@ -6,14 +5,13 @@ import { MethodNotAllowedResponse } from '../errors';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class StripeService  {
+export class StripeService {
   private stripe: Stripe;
 
-  constructor(private readonly prismaService :PrismaService) {
+  constructor(private readonly prismaService: PrismaService) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2022-11-15',
     });
-    
   }
 
   async createCustomer(email: string, userName: string) {
@@ -25,80 +23,85 @@ export class StripeService  {
     return stripeCustomer.id;
   }
 
-  
   // Modify the existing createPaymentIntent method
-async createDepositPaymentIntent(
-  stripeCustomerId: string,
-  amount: number,
-  currency: string,
-  metadata?: any,
-) {
-  const amountInSmallestUnit = amount * 100;
-  console.log(
-    '-------------Amount To Be Paid:------------ ',
-    amountInSmallestUnit,
-  );
-  console.log('stripeCustomerId in createDepositPaymentIntent:',stripeCustomerId);
-  
-  let paymentIntent: any;
-  try {
-    paymentIntent = await this.stripe.paymentIntents.create({
-      customer: stripeCustomerId,
-      amount: Math.ceil(amountInSmallestUnit),
-      currency: currency,
-      capture_method: 'manual', // Authorize only, don't capture immediately
-      setup_future_usage: 'off_session',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata,
-    });
-  } catch (error) {
-    throw new MethodNotAllowedResponse({
-      ar: 'قيمة عملية الدفع غير صالحة',
-      en: 'Invalid Payment Amount',
-    });
+  async createDepositPaymentIntent(
+    stripeCustomerId: string,
+    amount: number,
+    currency: string,
+    metadata?: any,
+  ) {
+    const amountInSmallestUnit = amount * 100;
+    console.log(
+      '-------------Amount To Be Paid:------------ ',
+      amountInSmallestUnit,
+    );
+    console.log(
+      'stripeCustomerId in createDepositPaymentIntent:',
+      stripeCustomerId,
+    );
+
+    let paymentIntent: any;
+    try {
+      paymentIntent = await this.stripe.paymentIntents.create({
+        customer: stripeCustomerId,
+        amount: Math.ceil(amountInSmallestUnit),
+        currency: currency,
+        capture_method: 'manual', // Authorize only, don't capture immediately
+        setup_future_usage: 'off_session',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata,
+      });
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: 'قيمة عملية الدفع غير صالحة',
+        en: 'Invalid Payment Amount',
+      });
+    }
+    console.log('Create Deposite Payment Intent---->', paymentIntent);
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    };
   }
-  console.log('Create Deposite Payment Intent---->',paymentIntent)
 
-  return {
-    clientSecret: paymentIntent.client_secret,
-    paymentIntentId: paymentIntent.id,
-  };
-}
+  // Add a method to capture the authorized payment
+  async captureDepositPaymentIntent(paymentIntentId: string) {
+    try {
+      console.log('captureDepositPaymentIntent: -->', paymentIntentId);
 
-// Add a method to capture the authorized payment
-async captureDepositPaymentIntent(paymentIntentId: string) {
-  try {
-    console.log('captureDepositPaymentIntent: -->',paymentIntentId)
-
-    const capturedPaymentIntent = await this.stripe.paymentIntents.capture(paymentIntentId);
-    return capturedPaymentIntent;
-  } catch (error) {
-    console.error('Error capturing Payment Intent:', error);
-    throw new MethodNotAllowedResponse({
-      ar: 'فشل في إتمام عملية الدفع',
-      en: 'Failed to capture payment.',
-    });
+      const capturedPaymentIntent = await this.stripe.paymentIntents.capture(
+        paymentIntentId,
+      );
+      return capturedPaymentIntent;
+    } catch (error) {
+      console.error('Error capturing Payment Intent:', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'فشل في إتمام عملية الدفع',
+        en: 'Failed to capture payment.',
+      });
+    }
   }
-}
 
-// Add a method to cancel the authorized payment
-async cancelDepositPaymentIntent(paymentIntentId: string) {
-  try {
-    console.log('cancelDepositPaymentIntent: -->',paymentIntentId)
-    const canceledIntent = await this.stripe.paymentIntents.cancel(paymentIntentId);
-    return canceledIntent;
-  } catch (error) {
-    console.error('Error canceling Payment Intent:', error);
-    throw new MethodNotAllowedResponse({
-      ar: 'فشل في إلغاء عملية الدفع',
-      en: 'Failed to cancel payment.',
-    });
+  // Add a method to cancel the authorized payment
+  async cancelDepositPaymentIntent(paymentIntentId: string) {
+    try {
+      console.log('cancelDepositPaymentIntent: -->', paymentIntentId);
+      const canceledIntent = await this.stripe.paymentIntents.cancel(
+        paymentIntentId,
+      );
+      return canceledIntent;
+    } catch (error) {
+      console.error('Error canceling Payment Intent:', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'فشل في إلغاء عملية الدفع',
+        en: 'Failed to cancel payment.',
+      });
+    }
   }
-}
 
-  
   async createPaymentIntent(
     stripeCustomerId: string,
     amount: number,
@@ -124,7 +127,7 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         metadata,
       });
     } catch (error) {
-      console.log(error)
+      console.log(error);
       throw new MethodNotAllowedResponse({
         ar: 'قيمة عملية الدفع غير صالحة',
         en: 'Invalid Payment Amount',
@@ -160,10 +163,10 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
   }
 
   async webHookHandler(payload: any, stripeSignature: string) {
-        //we can use--->   "payment_intent.amount_capturable_updated"   <---event of web hook for handling the HOLD method of stripe
+    //we can use--->   "payment_intent.amount_capturable_updated"   <---event of web hook for handling the HOLD method of stripe
 
     let event = payload;
-    console.log('payload=>',payload,'stripeSignature==>',stripeSignature)
+    console.log('payload=>', payload, 'stripeSignature==>', stripeSignature);
     try {
       event = this.stripe.webhooks.constructEvent(
         payload,
@@ -186,17 +189,17 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         );
         return {
           status: PaymentStatus.HOLD,
-          paymentIntent:holdPaymentIntent,
+          paymentIntent: holdPaymentIntent,
         };
-        case 'payment_intent.canceled':
-          const cancelPaymentIntent = event.data.object
-          console.log(
-            `PaymentIntent for ${cancelPaymentIntent.amount} was Cancelled!`,
-          );
-          return {
-            status:PaymentStatus.CANCELLED,
-            paymentIntent:cancelPaymentIntent
-          };
+      case 'payment_intent.canceled':
+        const cancelPaymentIntent = event.data.object;
+        console.log(
+          `PaymentIntent for ${cancelPaymentIntent.amount} was Cancelled!`,
+        );
+        return {
+          status: PaymentStatus.CANCELLED,
+          paymentIntent: cancelPaymentIntent,
+        };
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object;
         console.log(
@@ -227,13 +230,13 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
    */
   async checkKYCStatus(userId: number) {
     try {
-      console.log('checkKYCStatus test 1')
+      console.log('checkKYCStatus test 1');
       let user = await this.fetchUserFromDatabase(userId);
-      console.log('checkKYCStatus test 2 ')
-      
+      console.log('checkKYCStatus test 2 ');
+
       // If no connected account exists, create one and save its ID
       if (!user.stripeConnectedAccountId) {
-      console.log('checkKYCStatus test 3')
+        console.log('checkKYCStatus test 3');
         const account = await this.stripe.accounts.create({
           type: 'express',
           country: 'AE',
@@ -244,31 +247,35 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
             card_payments: { requested: true },
           },
         });
-  
-        console.log('checkKYCStatus test 4',account)
+
+        console.log('checkKYCStatus test 4', account);
         user.stripeConnectedAccountId = account.id;
         await this.saveConnectedAccountIdToDatabase(userId, account.id);
       }
-  
+
       // Retrieve the account status and check KYC requirements
-      const account = await this.stripe.accounts.retrieve(user.stripeConnectedAccountId);
-      console.log('checkKYCStatus test 5',account)
-  
+      const account = await this.stripe.accounts.retrieve(
+        user.stripeConnectedAccountId,
+      );
+      console.log('checkKYCStatus test 5', account);
+
       // If there are still KYC fields due, return incomplete status
       if (account.requirements?.currently_due.length > 0) {
-        console.log('checkKYCStatus test 6')
-  
+        console.log('checkKYCStatus test 6');
+
         return {
           isKYCComplete: false,
           dueFields: account.requirements.currently_due,
         };
       }
-      console.log('checkKYCStatus test 7')
-  
+      console.log('checkKYCStatus test 7');
+
       return { isKYCComplete: true, dueFields: [] };
     } catch (error) {
-      console.log('check KYC Error at stripe service file :',error)
-      throw new MethodNotAllowedException(`Sorry you cannot complete the KYC due to some internal issue..!`);
+      console.log('check KYC Error at stripe service file :', error);
+      throw new MethodNotAllowedException(
+        `Sorry you cannot complete the KYC due to some internal issue..!`,
+      );
     }
   }
 
@@ -276,12 +283,12 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
    * Create an onboarding link for KYC completion.
    */
   async sendOnboardingLink(userId: number) {
-    console.log('sendOnboardingLink 1')
+    console.log('sendOnboardingLink 1');
     const user = await this.fetchUserFromDatabase(userId);
-    console.log('sendOnboardingLink 2 :',user)
+    console.log('sendOnboardingLink 2 :', user);
 
     if (!user.stripeConnectedAccountId) {
-    console.log('sendOnboardingLink 3')
+      console.log('sendOnboardingLink 3');
 
       throw new Error('Connected account ID not found');
     }
@@ -292,7 +299,7 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
       return_url: `${process.env.FRONT_URL}/alletre/profile/wallet`,
       type: 'account_onboarding',
     });
-    console.log('sendOnboardingLink 4 :',accountLink)
+    console.log('sendOnboardingLink 4 :', accountLink);
 
     return accountLink.url;
   }
@@ -321,13 +328,11 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
         currency: 'aed',
         metadata: { userId, transferId: transfer.id },
       },
-      { stripeAccount: connectedAccount.id }
+      { stripeAccount: connectedAccount.id },
     );
 
     return payout;
   }
-  
- 
 
   // Helper function to retrieve or create a Stripe connected account for the user
   private async getOrCreateConnectedAccount(userId: number) {
@@ -352,22 +357,20 @@ async cancelDepositPaymentIntent(paymentIntentId: string) {
   }
 
   private async fetchUserFromDatabase(userId: number) {
-    return await this.prismaService.user.findUnique(
-      {
-        where:
-        {
-          id:userId
-        }
-      }
-    )
+    return await this.prismaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
   }
 
-  private async saveConnectedAccountIdToDatabase(userId: number, stripeConnectedAccountId: string) {
+  private async saveConnectedAccountIdToDatabase(
+    userId: number,
+    stripeConnectedAccountId: string,
+  ) {
     await this.prismaService.user.update({
-      where :{id: userId},
-      data : {stripeConnectedAccountId}
-    })
+      where: { id: userId },
+      data: { stripeConnectedAccountId },
+    });
   }
-
-  
 }

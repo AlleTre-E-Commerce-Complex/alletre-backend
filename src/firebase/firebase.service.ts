@@ -19,7 +19,7 @@ export class FirebaseService {
       cacheControl: 'public, max-age=31536000',
     };
     const filePath = `${prefix}-${fileId}`;
-    console.log('file Path : ',filePath)
+    console.log('file Path : ', filePath);
     let data: any;
     try {
       data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
@@ -28,16 +28,13 @@ export class FirebaseService {
         destination: filePath,
       });
     } catch (error) {
-      console.error('Error code uploading to Firebase:',  error.code);
-      console.error('Error message uploading to Firebase:',  error.message);
-        throw new MethodNotAllowedResponse({
-          ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
-          en: 'Error uploading images to the cloud, please try again.',
-        });
-      
-      
-      }
-    
+      console.error('Error code uploading to Firebase:', error.code);
+      console.error('Error message uploading to Firebase:', error.message);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
+        en: 'Error uploading images to the cloud, please try again.',
+      });
+    }
 
     await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
       (error) => {

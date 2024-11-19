@@ -47,7 +47,6 @@ import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 export class AuctionsController {
   constructor(private userAuctionsService: UserAuctionsService) {
     console.log('Auction called ... ');
-    
   }
 
   @Post('')
@@ -62,8 +61,8 @@ export class AuctionsController {
     @Body() auctionCreationDTO: AuctionCreationDTO,
     @UploadedFiles() images: Array<Express.Multer.File>,
   ) {
-    console.log('The form data of the publish auction :',auctionCreationDTO)
-    console.log('The images of the publish auction :',images)
+    console.log('The form data of the publish auction :', auctionCreationDTO);
+    console.log('The images of the publish auction :', images);
 
     return {
       success: true,
@@ -103,15 +102,15 @@ export class AuctionsController {
     @Account() account: any,
     @Query() getAuctionsDTO: GetAuctionsDTO,
   ) {
-    // console.log('=====**>1 /user/main',account) 
-    
+    // console.log('=====**>1 /user/main',account)
+
     const auctionsPaginated =
-    await this.userAuctionsService.findAuctionsForUser(
-      account.roles,
-      getAuctionsDTO,
-      account.roles.includes(Role.User) ? Number(account.id) : undefined,
-    );
-    console.log('=====**> 2/user/main',auctionsPaginated) 
+      await this.userAuctionsService.findAuctionsForUser(
+        account.roles,
+        getAuctionsDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+    console.log('=====**> 2/user/main', auctionsPaginated);
     return {
       success: true,
       pagination: auctionsPaginated.pagination,
@@ -195,7 +194,7 @@ export class AuctionsController {
     return {
       success: true,
       count: similarAuctionsResult.count,
-      data: similarAuctionsResult.similarAuctions, 
+      data: similarAuctionsResult.similarAuctions,
     };
   }
 
@@ -203,12 +202,12 @@ export class AuctionsController {
   @UseGuards(AuthOrGuestGuard)
   async getSponseredAuctions(@Account() account: any) {
     // console.log('auctions ====> account',account)
-    
+
     const auctions = await this.userAuctionsService.findSponseredAuctions(
       account.roles,
       account.roles.includes(Role.User) ? Number(account.id) : undefined,
     );
-    
+
     // console.log('auctions ====> account',auctions)
     return {
       status: true,
@@ -280,8 +279,12 @@ export class AuctionsController {
     @Account() account: any,
     @Query('auctionId') auctionId: string,
     @Query('paymentType') paymentType: PaymentType,
-  ){
-    return await this.userAuctionsService.getPendingPayments(auctionId,paymentType,account.id)
+  ) {
+    return await this.userAuctionsService.getPendingPayments(
+      auctionId,
+      paymentType,
+      account.id,
+    );
   }
 
   @Post('/user/pay')
@@ -296,19 +299,18 @@ export class AuctionsController {
     };
   }
 
-
   @Post('/user/walletPay')
   @UseGuards(AuthGuard)
   async walletPayForAuction(
     @Account() account: any,
     @Body() walletPayDto: WalletPayDto,
   ) {
-    let isWalletPayment =true
-    console.log('wallet pay api called')
+    let isWalletPayment = true;
+    console.log('wallet pay api called');
     return {
       success: true,
       data: await this.userAuctionsService.payToPublish(
-        account.id, 
+        account.id,
         walletPayDto.auctionId,
         walletPayDto.amount,
         isWalletPayment,
@@ -331,21 +333,21 @@ export class AuctionsController {
     @Body() newBankAccountData: addNewBankAccountDto,
   ) {
     try {
-      console.log('test withdrawal')
+      console.log('test withdrawal');
 
-    return await this.userAuctionsService.addBankAccount(newBankAccountData,account.id)
+      return await this.userAuctionsService.addBankAccount(
+        newBankAccountData,
+        account.id,
+      );
     } catch (error) {
       console.log(error);
-      
     }
   }
 
   @Get('/user/getAccountData')
   @UseGuards(AuthGuard)
-  async checkKYCStatus(
-    @Account() account: any
-  ) {
-   return await this.userAuctionsService.getAccountData(Number(account.id))
+  async checkKYCStatus(@Account() account: any) {
+    return await this.userAuctionsService.getAccountData(Number(account.id));
   }
 
   @Post('/user/withdrawalRequest')
@@ -353,16 +355,14 @@ export class AuctionsController {
   async withdrawalRequest(
     @Account() account: any,
     @Body('amount') amount: number,
-    @Body('selectedBankAccountId') selectedBankAccountId: number
+    @Body('selectedBankAccountId') selectedBankAccountId: number,
   ) {
     return await this.userAuctionsService.withdrawalRequest(
-      amount,selectedBankAccountId,account.id
+      amount,
+      selectedBankAccountId,
+      account.id,
     );
-
   }
-  
-
-
 
   @Get('/user/ownes/analytics')
   @UseGuards(AuthGuard)
@@ -465,18 +465,16 @@ export class AuctionsController {
     };
   }
 
- 
   @Put('/user/:auctionId/cancel-auction')
   @UseGuards(AuthGuard, OwnerGuard)
-
   async cancelAuctionByOwner(
-    @Param('auctionId', ParseIntPipe) auctionId: number, 
-    @Account() account : any
-  ){
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Account() account: any,
+  ) {
     return await this.userAuctionsService.updateAuctionForCancellation(
       auctionId,
-      account.id
-    )
+      account.id,
+    );
   }
 
   @Put('/user/:auctionId/draft-details')
@@ -518,7 +516,7 @@ export class AuctionsController {
     @Param('auctionId', ParseIntPipe) auctionId: number,
     @UploadedFile() image: Express.Multer.File,
   ) {
-    console.log('[IMPORTANT] images===>',image)
+    console.log('[IMPORTANT] images===>', image);
     await this.userAuctionsService.uploadImageForAuction(auctionId, image);
     return {
       success: true,
@@ -547,15 +545,17 @@ export class AuctionsController {
   async bidderWalletDeposit(
     @Account() account: any,
     @Body() walletPayDto: WalletPayDto,
-  ){
-    const isWalletPayment = true
+  ) {
+    const isWalletPayment = true;
+    console.log('**==>', walletPayDto);
     return {
       success: true,
       data: await this.userAuctionsService.payDepositByBidder(
         Number(account.id),
         walletPayDto.auctionId,
-        Number(walletPayDto.bidAmount),
-        isWalletPayment
+        Number(walletPayDto.submitBidValue),
+        isWalletPayment,
+        Number(walletPayDto.amount),
       ),
     };
   }
@@ -577,7 +577,6 @@ export class AuctionsController {
     };
   }
 
-  
   @Post('/user/:auctionId/bidder-purchase')
   @UseGuards(AuthGuard)
   async auctionPurchaseByBidder(
@@ -599,13 +598,13 @@ export class AuctionsController {
     @Account() account: any,
     @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
-    const isWalletPayment = true
+    const isWalletPayment = true;
     return {
       success: true,
       data: await this.userAuctionsService.payAuctionByBidder(
         Number(account.id),
         auctionId,
-        isWalletPayment
+        isWalletPayment,
       ),
     };
   }
@@ -631,12 +630,12 @@ export class AuctionsController {
     @Account() account: any,
     @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
-    const isWalletPayment = true
+    const isWalletPayment = true;
     return await this.userAuctionsService.buyNowAuction(
       Number(account.id),
       auctionId,
-      isWalletPayment
-    )
+      isWalletPayment,
+    );
   }
   @Post('/user/:auctionId/confirm-delivery')
   @UseGuards(AuthGuard)
@@ -657,15 +656,15 @@ export class AuctionsController {
   @UseGuards(AuthGuard)
   async sendItemForDeivery(
     @Account() account: any,
-    @Param('auctionId',ParseIntPipe) auctionId: number,
-    @Body() body : {message : string}
-  ){
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Body() body: { message: string },
+  ) {
     return {
       success: true,
       data: await this.userAuctionsService.IsSendItemForDelivery(
         Number(account.id),
         auctionId,
-        body.message
+        body.message,
       ),
     };
   }
@@ -678,23 +677,21 @@ export class AuctionsController {
     }),
   )
   async uploadComplaintsByBidder(
-    @Account() account:any,
+    @Account() account: any,
     // @Param('auctionId', ParseIntPipe) auctionId : number,
-    @Body() AuctionComplaintsData :AuctionComplaintsDTO,
-    @UploadedFiles() images: Array<Express.Multer.File>
-  ){
-
-      console.log('AuctionComplaintsData',AuctionComplaintsData)
-    console.log('images : ',images)
+    @Body() AuctionComplaintsData: AuctionComplaintsDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+  ) {
+    console.log('AuctionComplaintsData', AuctionComplaintsData);
+    console.log('images : ', images);
     return {
       success: true,
-      data : await this.userAuctionsService.uploadAuctionComplaints(
+      data: await this.userAuctionsService.uploadAuctionComplaints(
         Number(account.id),
         AuctionComplaintsData,
-        images
-          )
-    }
-   
+        images,
+      ),
+    };
   }
 
   @Get('/user/:auctionId/total-bids')

@@ -97,7 +97,7 @@ export class AuthService {
 
     const token = this.jwtService.sign(
       { email: userSignUpBody.email },
-      { 
+      {
         secret: process.env.EMAIL_VERIFICATION_SECRET,
         expiresIn: '7m',
       },
@@ -112,7 +112,7 @@ export class AuthService {
 
     return {
       ...userWithoutPassword,
-      imageLink: undefined, 
+      imageLink: undefined,
       imagePath: undefined,
       accessToken,
       refreshToken,
@@ -220,7 +220,7 @@ export class AuthService {
         en: 'Forbidden Access',
         ar: 'غير مصرح لك ',
       });
-  
+
     let payload: { email: string };
     try {
       payload = this.jwtService.verify(token, {
@@ -232,11 +232,11 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
     }
-  
+
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
     );
-  
+
     const successMessage = `
       <html>
         <head>
@@ -294,7 +294,7 @@ export class AuthService {
           </div>
         </body>
       </html>`;
-  
+
     const failureMessage = `
       <html>
         <head>
@@ -352,15 +352,13 @@ export class AuthService {
           </div>
         </body>
       </html>`;
-  
+
     if (verificationResult === 'SUCCESS') {
       return successMessage;
     } else {
       return failureMessage;
     }
   }
-  
-  
 
   generateTokens(payload: { id: number; email: string; roles: string[] }) {
     const accessToken = this.jwtService.sign(payload, {
@@ -406,7 +404,7 @@ export class AuthService {
     }
   }
 
-  authenticateSocketUser(socket: Socket) {  
+  authenticateSocketUser(socket: Socket) {
     try {
       const token = socket.handshake.headers['authorization'].split(' ')[1];
       const payload = this.jwtService.verify(token, {

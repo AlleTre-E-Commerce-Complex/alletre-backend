@@ -168,6 +168,8 @@ model Product {
   releaseYear         String?
   regionOfManufacture String?
   ramSize             Int?
+  isOffer             Boolean        @default(false)
+  offerAmount         Decimal?       @default(0)  
   cameraType          String?
   material            String?
   age                 Int?

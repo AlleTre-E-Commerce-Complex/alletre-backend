@@ -62,7 +62,7 @@ export class CategoryController {
       data: await this.categoryService.findParticularCatergory(categoryId),
     };
   }
-  
+
   @Get('/sub-categories')
   @UseGuards(AuthOrGuestGuard)
   async findSubCategories(

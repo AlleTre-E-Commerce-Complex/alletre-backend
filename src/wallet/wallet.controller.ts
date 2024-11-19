@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
@@ -8,32 +17,26 @@ import { Account } from 'src/auth/decorators/account.decorator';
 @Controller('wallet')
 export class WalletController {
   constructor(private readonly walletService: WalletService) {
-    console.log('wallet called-->')
+    console.log('wallet called-->');
   }
 
   @Post()
   @UseGuards(AuthGuard)
-  create(
-    @Account() account:any,
-    @Body() createWalletDto: CreateWalletDto,
-
-  ) {
-    console.log('create in wallet controller ')
-    return this.walletService.create(account.id,createWalletDto);
+  create(@Account() account: any, @Body() createWalletDto: CreateWalletDto) {
+    console.log('create in wallet controller ');
+    return this.walletService.create(account.id, createWalletDto);
   }
 
   @Get('get_from_wallet')
   @UseGuards(AuthGuard)
-  findAll(@Account() account:any) {
-    console.log('account details from wallet controll :',account)
+  findAll(@Account() account: any) {
+    console.log('account details from wallet controll :', account);
     return this.walletService.findAll(account.id);
   }
 
-
-
   @Get('get_balance')
   @UseGuards(AuthGuard)
-  findOne(@Account() account:any) {
+  findOne(@Account() account: any) {
     return this.walletService.findLastTransaction(+account.id);
   }
 

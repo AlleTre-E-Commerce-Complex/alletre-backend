@@ -10,6 +10,13 @@ import { EmailBatchService } from 'src/emails/email-batch.service';
 
 @Module({
   imports: [PrismaModule, AuctionModule],
-  providers: [TasksService,PaymentsService,StripeService,WalletService,EmailSerivce,EmailBatchService],
+  providers: [
+    TasksService,
+    PaymentsService,
+    StripeService,
+    WalletService,
+    EmailSerivce,
+    EmailBatchService,
+  ],
 })
 export class TasksModule {}

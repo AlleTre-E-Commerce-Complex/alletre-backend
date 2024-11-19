@@ -1,4 +1,4 @@
-import {  Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class WalletPayDto {
@@ -18,5 +18,6 @@ export class WalletPayDto {
   // @Transform(({ value }): number => parseFloat(value))
   @Type(() => Number)
   @IsNumber() // Ensures that amount is a number (can be float or int)
-  bidAmount: number;
+  // bidAmount: number;
+  submitBidValue: number;
 }

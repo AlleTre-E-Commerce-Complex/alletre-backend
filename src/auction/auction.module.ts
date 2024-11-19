@@ -19,7 +19,7 @@ import { EmailSerivce } from 'src/emails/email.service';
     UserAuctionsService,
     PaginationService,
     AuctionsHelper,
-    BidsWebSocketGateway, 
+    BidsWebSocketGateway,
     AuctionStatusValidator,
     WalletService,
     StripeService,
@@ -29,7 +29,7 @@ import { EmailSerivce } from 'src/emails/email.service';
   exports: [UserAuctionsService],
 })
 export class AuctionModule {
-  constructor(){
+  constructor() {
     console.log('test auxtion module');
   }
 }

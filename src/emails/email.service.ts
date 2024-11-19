@@ -3,18 +3,17 @@ import * as nodemailer from 'nodemailer';
 import { EmailsType } from '../auth/enums/emails-type.enum';
 import { EmailBody } from './EmailBody';
 
-
 @Injectable()
 export class EmailSerivce extends EmailBody {
   constructor() {
-    super()
+    super();
     /* TODO document why this constructor is empty */
   }
 
   private transporter = nodemailer.createTransport({
     // host: process.env.NODEMAILER_HOST,
     // port: process.env.NODEMAILER_PORT,
-    service:'gmail', 
+    service: 'gmail',
     auth: {
       user: process.env.NODEMAILER_EMAIL,
       pass: process.env.NODEMAILER_PASS,
@@ -25,7 +24,7 @@ export class EmailSerivce extends EmailBody {
     email: string,
     token: string,
     emailType: string,
-    body?:any
+    body?: any,
   ) {
     switch (emailType) {
       case EmailsType.VERIFICATION:
@@ -200,23 +199,32 @@ export class EmailSerivce extends EmailBody {
 </html>
           `,
         };
-    
-        case EmailsType.OTHER:
-          return {
-            from: {
-              name: 'Alletre Team',
-              address: process.env.EMAIL_FROM,
-            },
-            to: email,
-            subject: body.subject,
-            html: this.emailBody(body,token)
-          };
-      }
 
+      case EmailsType.OTHER:
+        return {
+          from: {
+            name: 'Alletre Team',
+            address: process.env.EMAIL_FROM,
+          },
+          to: email,
+          subject: body.subject,
+          html: this.emailBody(body, token),
+        };
+    }
   }
-  async sendEmail(email: string, token: string, emailType: EmailsType,body?:any) {
-    console.log('email ==================**********>',email)
-    const mailOptions = this.mailOptionsGenerator(email, token,emailType,body);
+  async sendEmail(
+    email: string,
+    token: string,
+    emailType: EmailsType,
+    body?: any,
+  ) {
+    console.log('email ==================**********>', email);
+    const mailOptions = this.mailOptionsGenerator(
+      email,
+      token,
+      emailType,
+      body,
+    );
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (error) {

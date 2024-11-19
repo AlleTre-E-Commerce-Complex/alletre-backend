@@ -23,10 +23,10 @@ export class CategoryService {
   async findParticularCatergory(categoryId?: number) {
     try {
       return await this.prismaService.category.findUnique({
-        where: { id:categoryId },
+        where: { id: categoryId },
       });
     } catch (error) {
-      console.log('Error when finding the category data :',error)
+      console.log('Error when finding the category data :', error);
     }
   }
 

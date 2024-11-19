@@ -15,11 +15,9 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { WalletModule } from './wallet/wallet.module';
 
-
 @Module({
   imports: [
-    LoggerModule.forRoot(
-      {
+    LoggerModule.forRoot({
       pinoHttp: {
         customProps: (req, res) => {
           return {
@@ -33,15 +31,14 @@ import { WalletModule } from './wallet/wallet.module';
           target: 'pino-pretty',
         },
       },
-    }
-  ),
+    }),
     ScheduleModule.forRoot(),
     AuthModule,
     UserModule,
     FirebaseModule,
     PrismaModule,
     EmailModule,
-    AuctionModule, 
+    AuctionModule,
     CategoryModule,
     RegionsModule,
     WatchListModule,
