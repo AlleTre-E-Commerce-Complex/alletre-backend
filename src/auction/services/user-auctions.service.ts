@@ -179,7 +179,7 @@ export class UserAuctionsService {
           const lastBalanceOfAlletre =
             await this.walletService.findLastTransactionOfAlletre();
           //tranfering data for the alletre fees
-          let alletreWalletData = {
+          const alletreWalletData = {
             status: WalletStatus.DEPOSIT,
             transactionType: WalletTransactionType.By_AUCTION,
             description: `Due to seller cancelled the auction ${
@@ -241,7 +241,7 @@ export class UserAuctionsService {
               highestBidderSecurityDeposit = Number(data.amount);
             }
             //send email to bidders
-            let body = {
+            const body = {
               subject: 'Auction Cancelled',
               title: 'Your acution is cancelled',
               Product_Name: auction.product.title,
@@ -278,7 +278,7 @@ export class UserAuctionsService {
                 const lastBalanceOfAlletre =
                   await this.walletService.findLastTransactionOfAlletre();
                 //tranfering data for the copensation to the lost bidder wallet.
-                let lostBidderWalletData = {
+                const lostBidderWalletData = {
                   status: WalletStatus.DEPOSIT,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Due to seller cancelled the auction ${
@@ -293,7 +293,7 @@ export class UserAuctionsService {
                 };
 
                 //tranfering data for the alletre fees
-                let alletreWalletData = {
+                const alletreWalletData = {
                   status: WalletStatus.WITHDRAWAL,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Due to seller cancelled the auction ${
@@ -368,7 +368,7 @@ export class UserAuctionsService {
           // const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
 
           //tranfering data for the copensation to the highest bidder wallet.
-          let highestBidderWalletData = {
+          const highestBidderWalletData = {
             status: WalletStatus.DEPOSIT,
             transactionType: WalletTransactionType.By_AUCTION,
             description: `Due to seller cancelled the auction ${
@@ -383,7 +383,7 @@ export class UserAuctionsService {
           };
 
           //tranfering data for the alletre fees
-          let alletreWalletData = {
+          const alletreWalletData = {
             status: WalletStatus.WITHDRAWAL,
             transactionType: WalletTransactionType.By_AUCTION,
             description: `Due to seller cancelled the auction ${
@@ -503,7 +503,7 @@ export class UserAuctionsService {
             const lastBalanceOfAlletre =
               await this.walletService.findLastTransactionOfAlletre();
             //wallet data  to seller .
-            let sellerWalletData = {
+            const sellerWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description: `Due to you cancelled the auction ${
@@ -518,7 +518,7 @@ export class UserAuctionsService {
             };
 
             //tranfering data for the alletre fees
-            let alletreWalletData = {
+            const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description: `Due to seller cancelled the auction ${
@@ -2244,7 +2244,7 @@ export class UserAuctionsService {
             this.walletService.findLastTransactionOfAlletre(),
           ]);
         //if  through wallet then return the deposit to the seller wallet
-        let sellerReturnSecurityDepositWalletData = {
+        const sellerReturnSecurityDepositWalletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
           description:
@@ -2257,7 +2257,7 @@ export class UserAuctionsService {
             : Number(sellerPaymentData.amount),
         };
 
-        let walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
+        const walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,
           description:
@@ -2303,7 +2303,7 @@ export class UserAuctionsService {
             this.walletService.findLastTransaction(auction.userId),
             this.walletService.findLastTransactionOfAlletre(),
           ]);
-        let walletData = {
+        const walletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
           description: 'Auction full payment',
@@ -2315,7 +2315,7 @@ export class UserAuctionsService {
             : Number(amountToSellerWallet),
         };
 
-        let walletDataToAlletre = {
+        const walletDataToAlletre = {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,
           description: 'Send Auction full payment after deduct the fees',
@@ -2364,7 +2364,7 @@ export class UserAuctionsService {
             'sending email to seller and bidder after delivery confirmation',
           );
           //sending email to seller and bidder after delivery confirmation
-          let emailBodyToSeller = {
+          const emailBodyToSeller = {
             subject: 'Delivery successful',
             title: 'Your Auction winner has confirmed the delivery',
             Product_Name: sellerPaymentData.auction.product.title,
@@ -2378,7 +2378,7 @@ export class UserAuctionsService {
             Button_text: 'Click here to create another Auction',
             Button_URL: process.env.FRONT_URL,
           };
-          let emailBodyToWinner = {
+          const emailBodyToWinner = {
             subject: 'Delivery successful',
             title: 'Delivery successful',
             Product_Name: sellerPaymentData.auction.product.title,
@@ -2447,7 +2447,7 @@ export class UserAuctionsService {
       });
       const highestBidder = IsItemSend.bids[0].user;
       if (highestBidder) {
-        let emailBodyToWinner = {
+        const emailBodyToWinner = {
           subject: 'Auction product has been sent from the seller',
           title: 'Auction product has been sent from the seller',
           Product_Name: IsItemSend.product.title,
