@@ -88,7 +88,7 @@ export class PaymentsService {
       }
       //wallet data for withdraw money from seller wallet
 
-      let SellerWalletData = {
+      const SellerWalletData = {
         status: WalletStatus.WITHDRAWAL,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Security deposit for publishing the new auction`,
@@ -98,7 +98,7 @@ export class PaymentsService {
       };
       // wallet data for deposit to alletre wallet
 
-      let alletreWalletData = {
+      const alletreWalletData = {
         status: WalletStatus.DEPOSIT,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Seller security deposit for publishing new auction `,
@@ -287,7 +287,7 @@ export class PaymentsService {
 
       //wallet data for withdraw money from bidder wallet
 
-      let BidderWalletData = {
+      const BidderWalletData = {
         status: WalletStatus.WITHDRAWAL,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Security deposit for for participating with an auction`,
@@ -297,7 +297,7 @@ export class PaymentsService {
       };
       // wallet data for deposit to alletre wallet
 
-      let alletreWalletData = {
+      const alletreWalletData = {
         status: WalletStatus.DEPOSIT,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Security deposit for for participating with an auction`,
@@ -506,7 +506,7 @@ export class PaymentsService {
         throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
       }
 
-      let BidderWalletData = {
+      const BidderWalletData = {
         status: WalletStatus.WITHDRAWAL,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Complete Payment of winner bidder`,
@@ -516,7 +516,7 @@ export class PaymentsService {
       };
       // wallet data for deposit to alletre wallet
 
-      let alletreWalletData = {
+      const alletreWalletData = {
         status: WalletStatus.DEPOSIT,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Complete Payment of winner bidder`,
@@ -714,7 +714,7 @@ export class PaymentsService {
 
       console.log('test 2');
 
-      let buyerWalletData = {
+      const buyerWalletData = {
         status: WalletStatus.WITHDRAWAL,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Purchase Product through buy now`,
@@ -724,7 +724,7 @@ export class PaymentsService {
       };
       // wallet data for deposit to alletre wallet
 
-      let alletreWalletData = {
+      const alletreWalletData = {
         status: WalletStatus.DEPOSIT,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Purchase Product through buy now`,
@@ -810,7 +810,7 @@ export class PaymentsService {
 
       if (paymentData) {
         //send an email to the buyer
-        let emailBodyToBuyer = {
+        const emailBodyToBuyer = {
           subject: 'Congratulations on Your Purchase - Auction Concluded!',
           title: 'Purchase Successful',
           Product_Name: paymentData.auction.product.title,
@@ -843,7 +843,7 @@ export class PaymentsService {
         await Promise.all(
           auctionPaymentData.map(async (payment) => {
             if (payment.type === 'BIDDER_DEPOSIT') {
-              let is_SD_SendBackToBidder: boolean = false;
+              let is_SD_SendBackToBidder = false;
               if (payment.isWalletPayment) {
                 //implement return security deposit funconality to wallet of bidders
                 //finding the last transaction balance of the Seller
@@ -854,7 +854,7 @@ export class PaymentsService {
                   await this.walletService.findLastTransactionOfAlletre();
 
                 //wallet data for deposit to bidder wallet
-                let bidderWalletData = {
+                const bidderWalletData = {
                   status: WalletStatus.DEPOSIT,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Auction ended; item purchased via Buy Now option.`,
@@ -867,7 +867,7 @@ export class PaymentsService {
                 };
                 // wallet data for WITHDRAWAL to alletre wallet
 
-                let alletreWalletData = {
+                const alletreWalletData = {
                   status: WalletStatus.WITHDRAWAL,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Auction ended; item purchased via Buy Now option.`,
@@ -899,7 +899,7 @@ export class PaymentsService {
               }
               if (is_SD_SendBackToBidder) {
                 //send email to the seller
-                let emailBodyToLostBidders = {
+                const emailBodyToLostBidders = {
                   subject: 'Auction Concluded - Buy Now Option Used',
                   title: 'Auction Concluded',
                   Product_Name: payment.auction.product.title,
@@ -974,7 +974,7 @@ export class PaymentsService {
               // if(is_SD_SendBackToSeller){}
 
               //send email to the seller
-              let emailBodyToSeller = {
+              const emailBodyToSeller = {
                 subject: 'Auction Concluded - Buy Now Option Used',
                 title: 'Auction Concluded',
                 Product_Name: payment.auction.product.title,
@@ -1261,7 +1261,7 @@ export class PaymentsService {
               });
             if (paymentSuccessData) {
               //send email to the seller
-              let emailBodyToSeller = {
+              const emailBodyToSeller = {
                 subject: 'Payment successful',
                 title: 'Your auction winner has paid the full amount',
                 Product_Name: paymentSuccessData.auction.product.title,
@@ -1276,7 +1276,7 @@ export class PaymentsService {
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
               };
-              let emailBodyToWinner = {
+              const emailBodyToWinner = {
                 subject: 'Payment successful',
                 title: 'Payment successful',
                 Product_Name: paymentSuccessData.auction.product.title,
@@ -1377,7 +1377,7 @@ export class PaymentsService {
               // adding the buynow purchase money to alletre wallet for
               const lastWalletTransactionAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
-              let walletDataToAlletre = {
+              const walletDataToAlletre = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
                 description: 'Buy Now purchase',
@@ -1395,7 +1395,7 @@ export class PaymentsService {
               );
 
               //send an email to the buyer
-              let emailBodyToBuyer = {
+              const emailBodyToBuyer = {
                 subject:
                   'Congratulations on Your Purchase - Auction Concluded!',
                 title: 'Purchase Successful',
@@ -1432,7 +1432,7 @@ export class PaymentsService {
               await Promise.all(
                 auctionPaymentData.map(async (payment) => {
                   if (payment.type === 'BIDDER_DEPOSIT') {
-                    let is_SD_SendBackToBidder: boolean = false;
+                    let is_SD_SendBackToBidder = false;
                     if (payment.isWalletPayment) {
                       //implement return security deposit funconality to wallet of bidders
                       //finding the last transaction balance of the Seller
@@ -1445,7 +1445,7 @@ export class PaymentsService {
                         await this.walletService.findLastTransactionOfAlletre();
 
                       //wallet data for deposit to bidder wallet
-                      let bidderWalletData = {
+                      const bidderWalletData = {
                         status: WalletStatus.DEPOSIT,
                         transactionType: WalletTransactionType.By_AUCTION,
                         description: `Auction ended; item purchased via Buy Now option.`,
@@ -1458,7 +1458,7 @@ export class PaymentsService {
                       };
                       // wallet data for WITHDRAWAL to alletre wallet
 
-                      let alletreWalletData = {
+                      const alletreWalletData = {
                         status: WalletStatus.WITHDRAWAL,
                         transactionType: WalletTransactionType.By_AUCTION,
                         description: `Auction ended; item purchased via Buy Now option.`,
@@ -1492,7 +1492,7 @@ export class PaymentsService {
                     }
                     if (is_SD_SendBackToBidder) {
                       //send email to the seller
-                      let emailBodyToLostBidders = {
+                      const emailBodyToLostBidders = {
                         subject: 'Auction Concluded - Buy Now Option Used',
                         title: 'Auction Concluded',
                         Product_Name: payment.auction.product.title,
@@ -1569,7 +1569,7 @@ export class PaymentsService {
                     // if(is_SD_SendBackToSeller){}
 
                     //send email to the seller
-                    let emailBodyToSeller = {
+                    const emailBodyToSeller = {
                       subject: 'Auction Concluded - Buy Now Option Used',
                       title: 'Auction Concluded',
                       Product_Name: payment.auction.product.title,

@@ -305,7 +305,7 @@ export class AuctionsController {
     @Account() account: any,
     @Body() walletPayDto: WalletPayDto,
   ) {
-    let isWalletPayment = true;
+    const isWalletPayment = true;
     console.log('wallet pay api called');
     return {
       success: true,

@@ -123,7 +123,7 @@ export class TasksService {
                 ),
                 this.walletService.findLastTransactionOfAlletre(),
               ]);
-            let sellerReturnSecurityDepositWalletData = {
+            const sellerReturnSecurityDepositWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
@@ -135,7 +135,7 @@ export class TasksService {
                   Number(sellerPaymentData.amount)
                 : Number(sellerPaymentData.amount),
             };
-            let walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
+            const walletDataToAlletreWhenRetrunSecurityDepositToSeller = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
@@ -187,7 +187,7 @@ export class TasksService {
             // const amountToAlletreWallet = Number(winnerSecurityDeposit.amount) - amountToSellerWallet
 
             //tranfering data for the copensation to the higherst bidder wallet.
-            let walletData = {
+            const walletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
@@ -200,7 +200,7 @@ export class TasksService {
             };
             //tranfering data for the alletre fees
 
-            let alletreWalletData = {
+            const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
@@ -237,7 +237,7 @@ export class TasksService {
             });
             //sendEmailtoSeller
 
-            let emailBodyForSeller = {
+            const emailBodyForSeller = {
               subject: 'Pending Payment time Expired',
               title: 'Pending Payment time Expired',
               Product_Name: sellerPaymentData.auction.product.title,
@@ -252,7 +252,7 @@ export class TasksService {
               Button_URL: process.env.FRONT_URL,
             };
             //sendEmailtoBidder
-            let emailBodyForBidder = {
+            const emailBodyForBidder = {
               subject: 'Pending Payment time Expired',
               title: 'Pending Payment time Expired',
               Product_Name: sellerPaymentData.auction.product.title,
@@ -281,7 +281,7 @@ export class TasksService {
             ]);
           }
         } catch (error) {
-          let body = {
+          const body = {
             subject:
               'Error When Handling the winner full paymet expiry in the task service ',
             title:
@@ -378,7 +378,7 @@ export class TasksService {
     if (pendingPaymentAuction.length) {
       await Promise.all(
         pendingPaymentAuction.map(async (data) => {
-          let body = {
+          const body = {
             subject: 'Warning.. Pending Payment is going to be expired soon',
             title: 'Pending Payment is going to be expired soon',
             Product_Name: data.auction.product.title,
@@ -500,7 +500,7 @@ export class TasksService {
 
           if (isAcutionUpdated) {
             //sendEmailtoSeller
-            let body = {
+            const body = {
               subject: 'Auction Expired',
               title: 'Your acution is Expired',
               Product_Name: isAcutionUpdated.product.title,
@@ -522,7 +522,7 @@ export class TasksService {
           }
           if (isHighestBidder_J_auctionUpdated) {
             //sendEmailToHighestBidder
-            let body = {
+            const body = {
               subject: 'Auction Expired',
               title: 'Your acution is Expired',
               Product_Name: isAcutionUpdated.product.title,
@@ -554,7 +554,7 @@ export class TasksService {
             if (loserData.length) {
               await Promise.all(
                 loserData.map(async (data) => {
-                  let body = {
+                  const body = {
                     subject: 'Auction Expired',
                     title: 'Your acution is Expired',
                     Product_Name: isAcutionUpdated.product.title,
@@ -601,7 +601,7 @@ export class TasksService {
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
               //tranfering data for the alletre fees
-              let alletreWalletData = {
+              const alletreWalletData = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
                 description: `Captured payment for winning bidder`,
@@ -659,7 +659,7 @@ export class TasksService {
                     await this.walletService.findLastTransactionOfAlletre();
                   //wallet data for withdraw money from seller wallet
 
-                  let BidderWalletData = {
+                  const BidderWalletData = {
                     status: WalletStatus.DEPOSIT,
                     transactionType: WalletTransactionType.By_AUCTION,
                     description: `Return security deposit due to auction lost`,
@@ -672,7 +672,7 @@ export class TasksService {
                   };
                   // wallet data for deposit to alletre wallet
 
-                  let alletreWalletData = {
+                  const alletreWalletData = {
                     status: WalletStatus.WITHDRAWAL,
                     transactionType: WalletTransactionType.By_AUCTION,
                     description: `Return of bidder security deposit due to lost auction`,
@@ -756,7 +756,7 @@ export class TasksService {
                   await this.walletService.findLastTransactionOfAlletre();
 
                 //wallet data for deposit  money to seller wallet
-                let sellerWalletData = {
+                const sellerWalletData = {
                   status: WalletStatus.DEPOSIT,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Return security deposit due to auction Expired and there is zero bidders`,
@@ -769,7 +769,7 @@ export class TasksService {
                 };
                 // wallet data for withdraw from alletre wallet
 
-                let alletreWalletData = {
+                const alletreWalletData = {
                   status: WalletStatus.WITHDRAWAL,
                   transactionType: WalletTransactionType.By_AUCTION,
                   description: `Return of seller security auction Expired and there is zero bidders`,
