@@ -210,7 +210,7 @@ async function main() {
           },
           {
             nameAr: 'الهواتف المحمولة ',
-            nameEn: 'Cell Phones',
+            nameEn: 'Smart Phones',
             customFields: {
               create: [
                 {
@@ -249,11 +249,11 @@ async function main() {
                   labelEn: 'Region Of Manufacture',
                 },
                 {
-                  key: 'material',
-                  resKey: 'material',
+                  key: 'memory',
+                  resKey: 'memory',
                   type: 'array',
-                  labelAr: 'نوع المادة',
-                  labelEn: 'Material',
+                  labelAr: 'ذكرى',
+                  labelEn: 'Memory',
                 },
                 {
                   key: 'brandId',
