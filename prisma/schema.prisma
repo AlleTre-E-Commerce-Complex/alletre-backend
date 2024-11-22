@@ -173,6 +173,7 @@ model Product {
   offerAmount         Decimal?       @default(0)  
   cameraType          String?
   material            String?
+  memory              String?
   age                 Int?
   totalArea           Float?
   numberOfRooms       Int?

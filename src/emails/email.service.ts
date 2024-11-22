@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { EmailsType } from '../auth/enums/emails-type.enum';
 import { EmailBody } from './EmailBody';
+import * as sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailSerivce extends EmailBody {
