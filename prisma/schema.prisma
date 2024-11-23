@@ -217,6 +217,7 @@ model Auction {
   IsDelivery                   Boolean?         @default(false)
   deliveryPolicyDescription    String?
   numOfDaysOfExpecetdDelivery  Int?
+  DeliveryFees                 Decimal?
   IsReturnPolicy               Boolean?         @default(false)
   returnPolicyDescription      String?
   IsWarranty                   Boolean?         @default(false)
