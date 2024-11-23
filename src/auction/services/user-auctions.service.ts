@@ -902,7 +902,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -1028,7 +1028,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -1125,7 +1125,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -1219,7 +1219,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -1313,7 +1313,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -1398,7 +1398,7 @@ export class UserAuctionsService {
         IsDelivery: true,
         deliveryPolicyDescription: true,
         numOfDaysOfExpecetdDelivery: true,
-        DeliveryFees:true,
+        DeliveryFees: true,
         IsReturnPolicy: true,
         returnPolicyDescription: true,
         IsWarranty: true,
@@ -2576,7 +2576,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionDto;
 
     let auction: Auction;
@@ -2593,8 +2593,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -2638,7 +2640,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -2656,8 +2658,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -2715,7 +2719,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionDto;
 
     let auction: Auction;
@@ -2733,8 +2737,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery } : {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -2798,8 +2804,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -2918,7 +2926,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionDto;
 
     let auction: Auction;
@@ -2936,8 +2944,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -3002,8 +3012,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -3046,7 +3058,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionDto;
 
     let auction: Auction;
@@ -3064,8 +3076,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery }: {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
@@ -3112,7 +3126,7 @@ export class UserAuctionsService {
       returnPolicyDescription,
       IsWaranty,
       warrantyPolicyDescription,
-      DeliveryFees
+      DeliveryFees,
     } = auctionCreationDTO;
 
     let auction: Auction;
@@ -3131,8 +3145,10 @@ export class UserAuctionsService {
           ...(acceptedAmount ? { acceptedAmount } : {}),
           ...(IsDelivery === 'true' ? { IsDelivery: true } : {}),
           ...(deliveryPolicyDescription ? { deliveryPolicyDescription } : {}),
-          ...(numOfDaysOfExpecetdDelivery? { numOfDaysOfExpecetdDelivery } : {}),
-          ...(DeliveryFees? { DeliveryFees }: {}),
+          ...(numOfDaysOfExpecetdDelivery
+            ? { numOfDaysOfExpecetdDelivery }
+            : {}),
+          ...(DeliveryFees ? { DeliveryFees } : {}),
           ...(IsRetrunPolicy === 'true' ? { IsReturnPolicy: true } : {}),
           ...(returnPolicyDescription ? { returnPolicyDescription } : {}),
           ...(IsWaranty === 'true' ? { IsWarranty: true } : {}),
