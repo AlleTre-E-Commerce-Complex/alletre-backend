@@ -81,6 +81,11 @@ export class AuctionCreationDTO {
   numOfDaysOfExpecetdDelivery: number;
 
   @IsOptional()
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  DeliveryFees: number;
+
+  @IsOptional()
   @IsString()
   IsRetrunPolicy: string;
 

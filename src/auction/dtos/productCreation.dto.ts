@@ -84,6 +84,10 @@ export class ProductDTO {
   material: string;
 
   @IsOptional()
+  @IsString()
+  memory: string;
+
+  @IsOptional()
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   age: number;
