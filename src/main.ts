@@ -13,20 +13,42 @@ async function bootstrap() {
     bufferLogs: true,
     rawBody: true,
   });
+  // const allowedOrigins =
+  //   process.env.NODE_ENV === 'production'
+  //     ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
+  //     : ['*'];
+
+  // app.enableCors({
+  //   origin: (origin, callback) => {
+  //     if (allowedOrigins.includes(origin) || !origin) {
+  //       callback(null, true); // Allow the request
+  //     } else {
+  //       callback(new Error('Not allowed by CORS')); // Reject the request
+  //     }
+  //   },
+  // });
 
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
       ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
-      : ['*'];
+      : [
+          'http://localhost:3000',
+          'http://localhost:3002',
+          'http://192.168.1.39:3000',
+        ]; // Add your development URLs
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (allowedOrigins.includes(origin) || !origin) {
-        callback(null, true); // Allow the request
+      if (!origin || allowedOrigins.includes(origin)) {
+        // Allow requests with valid origin or no origin (e.g., Postman)
+        callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS')); // Reject the request
+        console.error(`Blocked by CORS: ${origin}`); // Log the rejected origin
+        callback(new Error('CORS not allowed for this origin'));
       }
     },
+    credentials: true, // Allow credentials (cookies, tokens)
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Specify allowed methods
   });
 
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
