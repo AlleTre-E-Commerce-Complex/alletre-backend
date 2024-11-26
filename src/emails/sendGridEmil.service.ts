@@ -11,7 +11,7 @@ export class SendGridEmailService {
   async sendEmail(to: string[], subject: string, text: string, html: string) {
     const msg = {
       to,
-      from: 'alletre.auctions@gmail.com', // Use your verified SendGrid email
+      from: 'info@alletre.com', // Use your verified SendGrid email
       subject,
       text,
       html,

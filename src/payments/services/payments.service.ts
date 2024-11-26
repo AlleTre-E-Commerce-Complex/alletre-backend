@@ -1260,6 +1260,23 @@ export class PaymentsService {
                 return { paymentSuccessData };
               });
             if (paymentSuccessData) {
+              const lastBalanceOfAlletre =
+                await this.walletService.findLastTransactionOfAlletre();
+              const alletreWalletData = {
+                status: WalletStatus.DEPOSIT,
+                transactionType: WalletTransactionType.By_AUCTION,
+                description: `Complete Payment of winner bidder`,
+                amount: Number(paymentSuccessData.amount),
+                auctionId: Number(paymentSuccessData.auctionId),
+                balance: lastBalanceOfAlletre
+                  ? Number(lastBalanceOfAlletre) +
+                    Number(paymentSuccessData.amount)
+                  : Number(paymentSuccessData.amount),
+              };
+              await this.walletService.addToAlletreWallet(
+                paymentSuccessData.auction.user.id,
+                alletreWalletData,
+              );
               //send email to the seller
               const emailBodyToSeller = {
                 subject: 'Payment successful',
