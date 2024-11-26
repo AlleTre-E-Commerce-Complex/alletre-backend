@@ -125,14 +125,14 @@ export class UserController {
     @Param('locationId', ParseIntPipe) locationId: number,
   ) {
     console.log('Deleting Location:', locationId, account.id);
-   
-      
-    return await this.userService.deleteLocationById(
+
+    return {
+      success: true,
+      data: await this.userService.deleteLocationById(
         Number(account.id),
         locationId,
-      )
-
-   
+      ),
+    };
   }
 
   @Patch('locations/:locationId/set-main')
