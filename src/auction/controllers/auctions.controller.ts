@@ -158,6 +158,26 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/expired-auctions')
+  @UseGuards(AuthOrGuestGuard)
+  async getExpiredAuctions(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const auctionsPaginated =
+      await this.userAuctionsService.findExpiredAuctions(
+        account.roles,
+        paginationDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      pagination: auctionsPaginated.pagination,
+      data: auctionsPaginated.auctions,
+    };
+  }
+
   @Get('/user/up-comming')
   @UseGuards(AuthOrGuestGuard)
   async getUpCommingAuctions(

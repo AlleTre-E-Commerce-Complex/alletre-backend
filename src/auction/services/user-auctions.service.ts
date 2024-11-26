@@ -1181,6 +1181,99 @@ export class UserAuctionsService {
     };
   }
 
+  async findExpiredAuctions(
+    roles: Role[],
+    paginationDTO: PaginationDTO,
+    userId?: number,
+  ) {
+    const { page = 1, perPage = 4 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const auctions = await this.prismaService.auction.findMany({
+      where: {
+        status: AuctionStatus.EXPIRED,
+      },
+      select: {
+        id: true,
+        userId: true,
+        acceptedAmount: true,
+        productId: true,
+        status: true,
+        type: true,
+        createdAt: true,
+        durationInDays: true,
+        durationInHours: true,
+        durationUnit: true,
+        expiryDate: true,
+        endDate: true,
+        isBuyNowAllowed: true,
+        startBidAmount: true,
+        startDate: true,
+        locationId: true,
+        isItemSendForDelivery: true,
+        IsDelivery: true,
+        deliveryPolicyDescription: true,
+        numOfDaysOfExpecetdDelivery: true,
+        DeliveryFees: true,
+        IsReturnPolicy: true,
+        returnPolicyDescription: true,
+        IsWarranty: true,
+        warrantyPolicyDescription: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      // skip: skip,
+      take: 10,
+    });
+
+    const auctionsCount = await this.prismaService.auction.count({
+      where: {
+        status: AuctionStatus.EXPIRED,
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      auctionsCount,
+      page,
+      perPage,
+    );
+
+    if (roles.includes(Role.User)) {
+      const savedAuctions =
+        await this.auctionsHelper._injectIsSavedKeyToAuctionsList(
+          userId,
+          auctions,
+        );
+      return {
+        auctions: this.auctionsHelper._injectIsMyAuctionKeyToAuctionsList(
+          userId,
+          savedAuctions,
+        ),
+        pagination,
+      };
+    }
+
+    return {
+      auctions,
+      pagination,
+    };
+  }
+
   async findSimilarAuctions(auctionId: number, roles: Role[], userId?: number) {
     const auction = await this.checkAuctionExistanceAndReturn(
       Number(auctionId),
@@ -2037,20 +2130,21 @@ export class UserAuctionsService {
     const latestBidAmount = await this._findLatestBidForAuction(
       auctionWinner.auctionId,
     );
-
+    const payingAmount =
+      Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
     if (!isWalletPayment) {
       return await this.paymentService.payAuctionByBidder(
         user,
         auctionId,
         userMainLocation.country.currency,
-        Number(latestBidAmount),
+        Number(payingAmount),
       );
     } else {
       return await this.paymentService.payAuctionByBidderWithWallet(
         user,
         auctionId,
         // userMainLocation.country.currency,
-        Number(latestBidAmount),
+        Number(payingAmount),
       );
     }
   }
@@ -2297,7 +2391,8 @@ export class UserAuctionsService {
           auctionWinner.auctionId,
         );
 
-        const feesAmountOfAlletre = (Number(auctionWinnerBidAmount) * 10) / 100;
+        const feesAmountOfAlletre =
+          (Number(auctionWinnerBidAmount) * 0.5) / 100;
         const amountToSellerWallet =
           Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
 
