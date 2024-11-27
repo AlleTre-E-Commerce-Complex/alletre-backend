@@ -34,7 +34,7 @@ async function bootstrap() {
       : [
           'http://localhost:3000',
           'http://localhost:3002',
-          'http://192.168.1.39:3000',
+          'http://192.168.1.34:3000',
         ]; // Add your development URLs
 
   app.enableCors({
