@@ -17,52 +17,128 @@ export class EmailBatchService {
     const subject = `New Auction: ${updatedAuction.product.title}`;
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     const html = `
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #d9bfbf; background: linear-gradient(to bottom, #ded5d5, #e4e5e7);">
+      <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="desctiption" content="This is my Webpage" />
+    <title>Rameez's Website</title>
+  </head>
+  <body>
+    <div
+      style="
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        color: #d9bfbf;
+        background: linear-gradient(to bottom, #c9c1c1, #e4e5e7);
+      "
+    >
       <!-- Logo Header with Background -->
-      <div style="text-align: center; margin-bottom: 20px; background: linear-gradient(135deg, rgb(186, 110, 128), #9f5b68); padding: 20px; border-radius: 12px;">
-          <img src="C:\Users\muham\OneDrive\Desktop\alltre\alletre-backend\Images\logo192.png" 
-               alt="Alletre Logo" 
-               style="width: 150px; height: auto; margin-bottom: 10px;" />
+      <div
+        style="
+          text-align: center;
+          margin-bottom: 20px;
+          background: linear-gradient(135deg, rgb(186, 110, 128), #9f5b68);
+          padding: 20px;
+          border-radius: 12px;
+        "
+      >
+        <img
+          src="${process.env.FRONT_URL}/Images/logo192.png"
+          alt="Alletre Logo"
+          style="width: 150px; height: auto; margin-bottom: 10px"
+        />
       </div>
 
       <!-- Animated Title -->
-      <h1 style="color: #2c3e50; text-align: center; margin-bottom: 30px; font-size: 28px; 
-      background: linear-gradient(to right, #a91d3a, #5b0c1f); 
-     -webkit-background-clip: text; 
-     -webkit-text-fill-color: transparent;
-     text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
-      
-      ✨ New Auction: ${updatedAuction.product.title} ✨
-  </h1>
-  
-      
+      <h1
+        style="
+          color: #2c3e50;
+          text-align: center;
+          margin-bottom: 30px;
+          font-size: 28px;
+          background: linear-gradient(to right, #a91d3a, #5b0c1f);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        "
+      >
+        ✨ New Auction: ${updatedAuction.product.title} ✨
+      </h1>
+
       <!-- Product Image with Enhanced Styling -->
-      <div style="text-align: center; margin-bottom: 30px;">
-          <div style="background: white; padding: 10px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); display: inline-block;">
-            <img src="${process.env.BACKEND_URL}/images/logo192.png" 
-            alt="Alletre Logo" 
-            style="width: 150px; height: auto; margin-bottom: 10px;" />
-          </div>
+      <div style="text-align: center; margin-bottom: 30px">
+        <div
+          style="
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+          "
+        >
+          <img
+            src="${updatedAuction.product.images[0].imageLink}"
+            alt="Product Image"
+            style="
+              width: 300px;
+              height: auto;
+              border-radius: 8px;
+              transition: transform 0.3s ease;
+            "
+          />
+        </div>
       </div>
 
-      <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;  color: #9e1b24">
-          Don't miss out on this exciting new auction! Check it out now on our platform.
+      <p
+        style="
+          font-size: 16px;
+          line-height: 1.6;
+          text-align: center;
+          margin-bottom: 30px;
+          color: #9e1b24;
+        "
+      >
+        Don't miss out on this exciting new auction! Check it out now on our
+        platform.
       </p>
 
-      <div style="text-align: center;">
-          <a href="${process.env.FRONT_URL}" 
-             style="display: inline-block; padding: 12px 24px; background-color: #a91d3a; color: white; 
-                    text-decoration: none; border-radius: 5px; font-weight: bold; 
-                    transition: background-color 0.3s ease;">
-              View Auction Now
-          </a>
+      <div style="text-align: center">
+        <a
+          href="${process.env.FRONT_URL}"
+          style="
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #a91d3a;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+          "
+        >
+          View Auction Now
+        </a>
       </div>
 
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #7f8c8d; font-size: 12px;">
+      <div
+        style="
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #eee;
+          text-align: center;
+          color: #7f8c8d;
+          font-size: 12px;
+        "
+      >
         <p>Terms and Conditions apply</p>
       </div>
-  </div>
-  </div>
+    </div>
+  </body>
+</html>
+
 
      
     `;
