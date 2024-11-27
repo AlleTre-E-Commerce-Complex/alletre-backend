@@ -17,29 +17,31 @@ export class EmailBatchService {
     const subject = `New Auction: ${updatedAuction.product.title}`;
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     const html = `
-         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #d9bfbf; background: linear-gradient(to bottom, #af8b8b, #f8f9fa);">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #d9bfbf; background: linear-gradient(to bottom, #ded5d5, #e4e5e7);">
       <!-- Logo Header with Background -->
-      <div style="text-align: center; margin-bottom: 20px; background: linear-gradient(135deg, #5b0c1f, #a91d3a); padding: 20px; border-radius: 12px;">
-          <img src="${process.env.FRONT_URL}/alletre-logo.png" 
+      <div style="text-align: center; margin-bottom: 20px; background: linear-gradient(135deg, rgb(186, 110, 128), #9f5b68); padding: 20px; border-radius: 12px;">
+          <img src="C:\Users\muham\OneDrive\Desktop\alltre\alletre-backend\Images\logo192.png" 
                alt="Alletre Logo" 
                style="width: 150px; height: auto; margin-bottom: 10px;" />
       </div>
 
       <!-- Animated Title -->
       <h1 style="color: #2c3e50; text-align: center; margin-bottom: 30px; font-size: 28px; 
-                  background: linear-gradient(to right, #a91d3a, #5b0c1f); 
-                 -webkit-background-clip: text; 
-                 -webkit-text-fill-color: transparent;
-                 text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
-          ✨ New Auction: ${updatedAuction.product.title} ✨
-      </h1>
+      background: linear-gradient(to right, #a91d3a, #5b0c1f); 
+     -webkit-background-clip: text; 
+     -webkit-text-fill-color: transparent;
+     text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+      
+      ✨ New Auction: ${updatedAuction.product.title} ✨
+  </h1>
+  
       
       <!-- Product Image with Enhanced Styling -->
       <div style="text-align: center; margin-bottom: 30px;">
           <div style="background: white; padding: 10px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); display: inline-block;">
-              <img src="${updatedAuction.product.images[0].imageLink}" 
-                   alt="Product Image" 
-                   style="width: 300px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+            <img src="${process.env.BACKEND_URL}/images/logo192.png" 
+            alt="Alletre Logo" 
+            style="width: 150px; height: auto; margin-bottom: 10px;" />
           </div>
       </div>
 
@@ -57,8 +59,12 @@ export class EmailBatchService {
       </div>
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #7f8c8d; font-size: 12px;">
-          <p>This email was sent to you because you're subscribed to auction updates.</p>
+        <p>Terms and Conditions apply</p>
       </div>
+  </div>
+  </div>
+
+     
     `;
     try {
       const userBatches = this.chunkArray(users, this.batchSize);
