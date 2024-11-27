@@ -17,15 +17,49 @@ export class EmailBatchService {
     const subject = `New Auction: ${updatedAuction.product.title}`;
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     const html = `
-                <h1>New Auction: ${updatedAuction.product.title}</h1>
-                <p>Check it out on our site!</p>
-                <img src="${
-                  updatedAuction.product.images[0].imageLink
-                }" alt="Product Image" style="width:300px; height:auto;" />
-                <a class="button" href="${
-                  process.env.FRONT_URL
-                }"><span>${'Click here to visite the site'}</span></a>
-              `;
+         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #d9bfbf; background: linear-gradient(to bottom, #af8b8b, #f8f9fa);">
+      <!-- Logo Header with Background -->
+      <div style="text-align: center; margin-bottom: 20px; background: linear-gradient(135deg, #5b0c1f, #a91d3a); padding: 20px; border-radius: 12px;">
+          <img src="${process.env.FRONT_URL}/alletre-logo.png" 
+               alt="Alletre Logo" 
+               style="width: 150px; height: auto; margin-bottom: 10px;" />
+      </div>
+
+      <!-- Animated Title -->
+      <h1 style="color: #2c3e50; text-align: center; margin-bottom: 30px; font-size: 28px; 
+                  background: linear-gradient(to right, #a91d3a, #5b0c1f); 
+                 -webkit-background-clip: text; 
+                 -webkit-text-fill-color: transparent;
+                 text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+          ✨ New Auction: ${updatedAuction.product.title} ✨
+      </h1>
+      
+      <!-- Product Image with Enhanced Styling -->
+      <div style="text-align: center; margin-bottom: 30px;">
+          <div style="background: white; padding: 10px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); display: inline-block;">
+              <img src="${updatedAuction.product.images[0].imageLink}" 
+                   alt="Product Image" 
+                   style="width: 300px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+          </div>
+      </div>
+
+      <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;  color: #9e1b24">
+          Don't miss out on this exciting new auction! Check it out now on our platform.
+      </p>
+
+      <div style="text-align: center;">
+          <a href="${process.env.FRONT_URL}" 
+             style="display: inline-block; padding: 12px 24px; background-color: #a91d3a; color: white; 
+                    text-decoration: none; border-radius: 5px; font-weight: bold; 
+                    transition: background-color 0.3s ease;">
+              View Auction Now
+          </a>
+      </div>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #7f8c8d; font-size: 12px;">
+          <p>This email was sent to you because you're subscribed to auction updates.</p>
+      </div>
+    `;
     try {
       const userBatches = this.chunkArray(users, this.batchSize);
       const workers = [];
