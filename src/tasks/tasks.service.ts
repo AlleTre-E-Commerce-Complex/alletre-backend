@@ -63,7 +63,7 @@ export class TasksService {
         include: { product: { include: { images: true } } },
       });
       if (updatedAuction) {
-        await this.emailBatchService.sendBulkEmails(updatedAuction);
+        // await this.emailBatchService.sendBulkEmails(updatedAuction);
       }
     }
 

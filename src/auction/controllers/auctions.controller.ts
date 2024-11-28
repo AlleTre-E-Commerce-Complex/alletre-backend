@@ -102,15 +102,13 @@ export class AuctionsController {
     @Account() account: any,
     @Query() getAuctionsDTO: GetAuctionsDTO,
   ) {
-    // console.log('=====**>1 /user/main',account)
-
     const auctionsPaginated =
       await this.userAuctionsService.findAuctionsForUser(
         account.roles,
         getAuctionsDTO,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       );
-    console.log('=====**> 2/user/main', auctionsPaginated);
+
     return {
       success: true,
       pagination: auctionsPaginated.pagination,

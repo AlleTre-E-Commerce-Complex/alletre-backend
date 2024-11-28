@@ -17,11 +17,14 @@ async function sendBatchEmails(
     text,
     html,
   };
+  console.log('SENDGRID_API_KEY : ', process.env.SENDGRID_API_KEY);
 
   try {
+    console.log('test worker');
     await sgMail.sendMultiple(msg);
     parentPort?.postMessage({ success: true });
   } catch (error) {
+    console.log('worker error : ', error);
     parentPort?.postMessage({ success: false, error });
   }
 }

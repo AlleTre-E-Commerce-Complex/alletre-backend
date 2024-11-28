@@ -17,14 +17,8 @@ export class EmailBatchService {
     const subject = `New Auction: ${updatedAuction.product.title}`;
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="description" content="Alletre Auction Notification" />
-          <title>Alletre Auctions</title>
-        </head>
-        <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+      
+        <div style="margin: 0; padding: 0; background-color: #f4f4f4;">
           <div style="
             max-width: 600px;
             margin: 0 auto;
@@ -125,8 +119,8 @@ export class EmailBatchService {
               <p style="margin: 0;">Terms and Conditions apply</p>
             </div>
           </div>
-        </body>
-      </html>
+        </div>
+      
     `;
     try {
       const userBatches = this.chunkArray(users, this.batchSize);
@@ -142,7 +136,12 @@ export class EmailBatchService {
           if (result.success) {
             console.log(`Batch sent successfully`);
           } else {
-            console.error(`Batch failed:`, result.error);
+            console.error('SendGrid Error Details:', {
+              error: result.error,
+              statusCode: result.error?.code,
+              response: result.error?.response?.body,
+              batch: batch.length,
+            });
           }
         });
 
@@ -159,7 +158,8 @@ export class EmailBatchService {
         ),
       );
     } catch (error) {
-      console.log('emial batch service error : ', error);
+      console.error('Email batch service error:', error);
+      throw error;
     }
   }
 

@@ -1681,7 +1681,7 @@ export class PaymentsService {
           });
 
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction);
+            // await this.emailBatchService.sendBulkEmails(updatedAuction);
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule Daily auction
@@ -1714,7 +1714,7 @@ export class PaymentsService {
             include: { product: { include: { images: true } } },
           });
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction);
+            // await this.emailBatchService.sendBulkEmails(updatedAuction);
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
