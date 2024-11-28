@@ -459,6 +459,37 @@ export class UserAuctionsService {
       } else {
         //cancel auction with zero bidders
         console.log('Cancel auction with zero bidders before expire');
+        if (auction.status === 'PENDING_OWNER_DEPOIST') {
+          const updatedAuctionData = await this.prismaService.auction.update({
+            where: { id: auctionId },
+            data: {
+              status: AuctionStatus.CANCELLED_BEFORE_EXP_DATE,
+              endDate: new Date(),
+            },
+            include: {
+              user: true,
+              product: {
+                include: { images: true },
+              },
+              Payment: {
+                where: {
+                  type: 'SELLER_DEPOSIT',
+                },
+              },
+            },
+          });
+          if (updatedAuctionData) {
+            return {
+              success: true,
+              message: 'You have successfully cancelled your auction.',
+            };
+          } else {
+            throw new MethodNotAllowedResponse({
+              ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+              en: 'Sorry! You cannot cancel this auction',
+            });
+          }
+        }
         const updatedDataOfCancellAuction =
           await this.prismaService.auction.update({
             where: { id: auctionId },
