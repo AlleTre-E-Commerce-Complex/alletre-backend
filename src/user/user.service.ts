@@ -5,15 +5,17 @@ import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
 import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import * as bcrypt from 'bcrypt';
-import { OAuthType } from '@prisma/client';
+import { OAuthType, WalletStatus, WalletTransactionType } from '@prisma/client';
 import { PaginationDTO } from 'src/auction/dtos';
 import { PaginationService } from 'src/common/services/pagination.service';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private prismaService: PrismaService,
     private firebaseService: FirebaseService,
+    private walletService: WalletService,
     private paginationService: PaginationService,
   ) {}
 
@@ -49,7 +51,7 @@ export class UserService {
     oAuthType: OAuthType,
   ) {
     // Create User
-    return await this.prismaService.user.create({
+    const user = await this.prismaService.user.create({
       data: {
         ...(email ? { email: email } : {}),
         ...(phone ? { phone: phone } : {}),
@@ -59,6 +61,22 @@ export class UserService {
         oAuthType,
       },
     });
+    if (user && user.id <= 100) {
+      const newUserWalletData = {
+        status: WalletStatus.DEPOSIT,
+        transactionType: WalletTransactionType.By_AUCTION,
+        description: 'Welcome Bonus',
+        amount: 100,
+        auctionId: null,
+        balance: 100,
+      };
+      const addedBonus = await this.walletService.create(
+        user.id,
+        newUserWalletData,
+      );
+      return { user, addedBonus };
+    }
+    return { user, addedBonus: null };
   }
 
   async findUserByEmail(email: string) {
@@ -82,6 +100,9 @@ export class UserService {
   async findUserByEmailOr404(email: string) {
     const user = await this.prismaService.user.findFirst({
       where: { email: email.toLocaleLowerCase() },
+      include: {
+        wallet: true,
+      },
     });
     if (!user)
       throw new NotFoundResponse({

@@ -1,5 +1,5 @@
 export class EmailBody {
-  constructor() {}
+  // constructor() {}
 
   emailBody(body: any, token?: any) {
     const imgSrc = body.img ? body.img : '';
