@@ -8,5 +8,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [WalletController],
   providers: [WalletService, PrismaService],
+  exports: [WalletService],
 })
 export class WalletModule {}

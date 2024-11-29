@@ -63,7 +63,7 @@ export class TasksService {
         include: { product: { include: { images: true } } },
       });
       if (updatedAuction) {
-        // await this.emailBatchService.sendBulkEmails(updatedAuction);
+        await this.emailBatchService.sendBulkEmails(updatedAuction);
       }
     }
 
@@ -292,7 +292,7 @@ export class TasksService {
             Button_URL: process.env.FRONT_URL,
           };
           await this.emailService.sendEmail(
-            'kamaru916@gmail.com',
+            'info@alletre.com',
             'token',
             EmailsType.OTHER,
             body,

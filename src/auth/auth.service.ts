@@ -11,6 +11,8 @@ import { EmailSerivce } from '../emails/email.service';
 import { EmailsType } from './enums/emails-type.enum';
 import { Socket } from 'socket.io';
 import { AdminService } from 'src/admin/admin.service';
+import { WalletStatus, WalletTransactionType } from '@prisma/client';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
     private readonly firebaseService: FirebaseService,
     private readonly emailSerivce: EmailSerivce,
     private readonly adminService: AdminService,
+    private readonly walletService: WalletService,
   ) {
     /* TODO document why this constructor is empty */
   }
@@ -50,11 +53,27 @@ export class AuthService {
       });
     }
 
-    return user;
+    if (user && user.id <= 100 && !user.wallet.length) {
+      const newUserWalletData = {
+        status: WalletStatus.DEPOSIT,
+        transactionType: WalletTransactionType.By_AUCTION,
+        description: 'Welcome Bonus',
+        amount: 100,
+        auctionId: null,
+        balance: 100,
+      };
+      const addedBonus = await this.walletService.create(
+        user.id,
+        newUserWalletData,
+      );
+      return { user, addedBonus };
+    }
+
+    return { user, addedBonus: null };
   }
   async signIn(email: string, password: string) {
     // Validate user using validateUser(email,password)
-    const user = await this.validateUser(email, password);
+    const { user, addedBonus } = await this.validateUser(email, password);
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
@@ -71,6 +90,7 @@ export class AuthService {
       imagePath: undefined,
       accessToken,
       refreshToken,
+      isAddedBonus: addedBonus ? true : false,
     };
   }
   async signUp(userSignUpBody: UserSignUpDTO) {
@@ -137,14 +157,22 @@ export class AuthService {
       });
 
     let user: any;
-
+    let addedBonus: any;
     if (email) {
       user = await this.userService.findUserByEmail(email);
       if (user) await this.userService.verifyUserEmail(email);
     } else if (phone) user = await this.userService.findUserByPhone(phone);
 
-    if (!user)
-      user = await this.userService.oAuth(email, phone, userName, oAuthType);
+    if (!user) {
+      const oAuthData = await this.userService.oAuth(
+        email,
+        phone,
+        userName,
+        oAuthType,
+      );
+      user = oAuthData.user;
+      addedBonus = oAuthData.addedBonus;
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
@@ -161,6 +189,7 @@ export class AuthService {
       imagePath: undefined,
       accessToken,
       refreshToken,
+      isAddedBonus: addedBonus ? true : false,
     };
   }
 
