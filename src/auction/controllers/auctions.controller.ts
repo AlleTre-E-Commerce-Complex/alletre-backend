@@ -571,7 +571,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.payDepositByBidder(
         Number(account.id),
         walletPayDto.auctionId,
-        Number(walletPayDto.submitBidValue),
+        Number(walletPayDto.bidAmount),
         isWalletPayment,
         Number(walletPayDto.amount),
       ),
