@@ -71,10 +71,11 @@ export class AuthService {
 
     return { user, addedBonus: null };
   }
-  async signIn(email: string, password: string) {
+  async signIn(email: string, password: string, userIp: string) {
     // Validate user using validateUser(email,password)
     const { user, addedBonus } = await this.validateUser(email, password);
-
+    // Update user ip address
+    if (user) await this.userService.updateUserIpAddress(user.id, userIp);
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,
@@ -138,7 +139,7 @@ export class AuthService {
       refreshToken,
     };
   }
-  async oAuth(data: OAuthDto) {
+  async oAuth(data: OAuthDto, userIp: string) {
     const { idToken, phone, email, userName, oAuthType } = data;
 
     const verificationStatus = await this.firebaseService.verifyIdToken(
@@ -173,7 +174,7 @@ export class AuthService {
       user = oAuthData.user;
       addedBonus = oAuthData.addedBonus;
     }
-
+    if (user) await this.userService.updateUserIpAddress(user.id, userIp);
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,

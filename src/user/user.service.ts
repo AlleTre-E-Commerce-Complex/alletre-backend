@@ -160,7 +160,12 @@ export class UserService {
       return 'FAILED';
     }
   }
-
+  async updateUserIpAddress(userId: number, ipAddress: string) {
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { ipAddress },
+    });
+  }
   async updateUserCredentials(email: string, hashedPassword: string) {
     try {
       await this.prismaService.user.update({

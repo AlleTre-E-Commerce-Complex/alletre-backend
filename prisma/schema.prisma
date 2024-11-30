@@ -22,6 +22,7 @@ model User {
   isVerified                Boolean                     @default(false)
   lang                      String                      @default("en")
   oAuthType                 OAuthType?
+  ipAddress                 String?
   socketId                  String?
   stripeId                  String?
   stripeConnectedAccountId  String?         
