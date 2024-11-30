@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   UserSignUpDTO,
@@ -14,7 +15,6 @@ export class AuthController {
 
   @Post('/sign-up')
   async userSignUpController(@Body() userSignUpBody: UserSignUpDTO) {
-    console.log('User sign-up data:', userSignUpBody);
     return {
       success: true,
       data: await this.authService.signUp(userSignUpBody),
@@ -22,22 +22,29 @@ export class AuthController {
   }
 
   @Post('/sign-in')
-  async userSignController(@Body() UserSignInBody: UserSignInDTO) {
-    console.log('user signup data =====>:', UserSignInBody);
-
+  async userSignController(
+    @Body() userSignInBody: UserSignInDTO,
+    @Req() req: Request,
+  ) {
+    const userIp = req.ip;
+    console.log('User sign-in data:', 'IP:', userIp);
     return {
       success: true,
       data: await this.authService.signIn(
-        UserSignInBody.email,
-        UserSignInBody.password,
+        userSignInBody.email,
+        userSignInBody.password,
+        userIp,
       ),
     };
   }
+
   @Post('/oAuth')
-  async OAuthController(@Body() oAuthDto: OAuthDto) {
+  async OAuthController(@Body() oAuthDto: OAuthDto, @Req() req: Request) {
+    const userIp = req.ip;
+    console.log('OAuth data:', 'IP:', userIp);
     return {
       success: true,
-      data: await this.authService.oAuth(oAuthDto),
+      data: await this.authService.oAuth(oAuthDto, userIp),
     };
   }
   @Post('/refresh-token')
