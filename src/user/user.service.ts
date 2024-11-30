@@ -470,4 +470,28 @@ export class UserService {
     }
     return user;
   }
+
+  async addNewSubscriber(email: string) {
+    try {
+      console.log('addNewSubscriber===========>**', email);
+      const isEmailExist = await this.prismaService.subscribedUser.findFirst({
+        where: { email: email },
+      });
+      if (isEmailExist) {
+        throw new MethodNotAllowedResponse({
+          ar: 'البريد الالكتروني مسجل من قبل',
+          en: 'Email is already exist',
+        });
+      }
+      return await this.prismaService.subscribedUser.create({
+        data: { email },
+      });
+    } catch (error) {
+      console.log('addNewSubscriber===========>', error.response.message);
+      throw new MethodNotAllowedResponse({
+        ar: error.response.message.ar || 'خطأ في إضافة المشترك',
+        en: error.response.message.en || 'Failed while adding new subscriber',
+      });
+    }
+  }
 }

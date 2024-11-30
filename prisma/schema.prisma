@@ -38,6 +38,12 @@ model User {
   withdrawalRequests        WithdrawalRequests[]
 }
 
+model SubscribedUser {
+  id                    Int                   @id @default(autoincrement())
+  email                 String                @unique
+  createdAt             DateTime              @default(now())
+}
+
 model Country {
   id                    Int                   @id @default(autoincrement())
   nameAr                String            
