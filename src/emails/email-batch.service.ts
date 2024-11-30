@@ -18,40 +18,42 @@ export class EmailBatchService {
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     console.log('send bulk email test 3', text);
     const html = `
-  <head>
+   <head>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
   </head>
   <body style="margin: 0; padding: 0; background-color: #f4f4f4">
-    <div
+     <div
       style="
         font-family: Arial, sans-serif;
         line-height: 1.6;
-        text-align: center;1
+        text-align: center;
         color: #333;
-      "
+        "
     >
-      <div
-        style="
+    <div
+    style="
           background-color: #a91d3a;
           padding: 350px;
           color: white;
           margin: 50px auto; /* Adds top margin and centers horizontally */
-          max-width: 600px; /* Sets the width of the container */
           text-align: center; /* Ensures the icon is centered */
           position: relative; /* Allows positioning of the image */
+          padding: 20px;
+          max-width: 600px; /* Sets the width of the container */
+          border-radius: 12px;
         "
       >
         <img
           src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/10.png?alt=media&token=38270fdb-8c83-4fb1-b51b-4ba4682ae827"
           alt="Alletre Logo"
           style="
-            max-width: 150px;
+            max-width: 80px;
             margin: 0 auto 20px;
             position: absolute;
-            top: 90px; /* Moves the icon above the top edge of the container */
+            top: 40px; /* Moves the icon above the top edge of the container */
             left: 50%;
             transform: translateX(-50%); /* Centers the icon horizontally */
           "
@@ -59,17 +61,17 @@ export class EmailBatchService {
 
         <h2
           style="
-            margin: -60px 0 0; /* Moves it upwards slightly */
+            margin: 120px 0 0; /* Moves it upwards slightly */
             font-weight: bold; /* Makes the text bolder */
             font-size: 36px;
           "
         >
           New Auction
         </h2>
-        <p style="margin-top: 50px; margin-bottom: 0; font-size: 26px">
+        <p style="margin-top: 50px; margin-bottom: -23px; font-size: 20px">
           Don't miss out on this exciting new auction!
         </p>
-        <p style="margin-bottom: 60px; font-size: 26px">
+        <p style="margin-bottom: 60px; font-size: 20px">
           Check it out now on our platform
         </p>
 
@@ -180,11 +182,11 @@ export class EmailBatchService {
             target="_blank"
             style="margin: 0 10px; display: inline-block; text-decoration: none;"
           >
-            <div
-              style="width: 40px; height: 40px; border-radius: 50%; background-color: #a91d3a; display: flex; justify-content: center; align-items: center; box-shadow: 4px 8px 8px  rgba(0, 0, 0, 0.2);"
-            >
-              <i class="fa-brands fa-whatsapp" style="color: white; font-size: 20px"></i>
-            </div>
+            <img 
+              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/whatsapp.png?alt=media&token=YOUR_TOKEN" 
+              alt="WhatsApp"
+              style="width: 40px; height: 40px;"
+            />
           </a>
 
           <!-- Facebook Icon -->
@@ -193,11 +195,11 @@ export class EmailBatchService {
             target="_blank"
             style="margin: 0 10px; display: inline-block; text-decoration: none;"
           >
-            <div
-              style="width: 40px; height: 40px; border-radius: 50%; background-color: #a91d3a; display: flex; justify-content: center; align-items: center; box-shadow: 4px 8px 8px  rgba(0, 0, 0, 0.2);"
-            >
-              <i class="fa-brands fa-facebook" style="color: white; font-size: 20px"></i>
-            </div>
+            <img 
+              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/facebook.png?alt=media&token=YOUR_TOKEN" 
+              alt="Facebook"
+              style="width: 40px; height: 40px;"
+            />
           </a>
 
           <!-- TikTok Icon -->
@@ -206,11 +208,11 @@ export class EmailBatchService {
             target="_blank"
             style="margin: 0 10px; display: inline-block; text-decoration: none;"
           >
-            <div
-              style="width: 40px; height: 40px; border-radius: 50%; background-color: #a91d3a; display: flex; justify-content: center; align-items: center; box-shadow: 4px 8px 8px  rgba(0, 0, 0, 0.2);"
-            >
-              <i class="fa-brands fa-tiktok" style="color: white; font-size: 20px"></i>
-            </div>
+            <img 
+              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tiktok.png?alt=media&token=YOUR_TOKEN" 
+              alt="TikTok"
+              style="width: 40px; height: 40px;"
+            />
           </a>
 
           <!-- Snapchat Icon -->
@@ -219,11 +221,11 @@ export class EmailBatchService {
             target="_blank"
             style="margin: 0 10px; display: inline-block; text-decoration: none;"
           >
-            <div
-              style="width: 40px; height: 40px; border-radius: 50%; background-color: #a91d3a; display: flex; justify-content: center; align-items: center; box-shadow: 4px 8px 8px  rgba(0, 0, 0, 0.2);"
-            >
-              <i class="fa-brands fa-snapchat" style="color: white; font-size: 20px"></i>
-            </div>
+            <img 
+              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/snapchat.png?alt=media&token=YOUR_TOKEN" 
+              alt="Snapchat"
+              style="width: 40px; height: 40px;"
+            />
           </a>
 
           <!-- YouTube Icon -->
@@ -232,11 +234,11 @@ export class EmailBatchService {
             target="_blank"
             style="margin: 0 10px; display: inline-block; text-decoration: none;"
           >
-            <div
-              style="width: 40px; height: 40px; border-radius: 50%; background-color: #a91d3a; display: flex; justify-content: center; align-items: center; box-shadow: 4px 8px 8px  rgba(0, 0, 0, 0.2);"
-            >
-              <i class="fa-brands fa-youtube" style="color: white; font-size: 20px"></i>
-            </div>
+            <img 
+              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/youtube.png?alt=media&token=YOUR_TOKEN" 
+              alt="YouTube"
+              style="width: 40px; height: 40px;"
+            />
           </a>
 
           <p style="font-size: 16px; color: #333; margin-top: 15px;  letter-spacing: 6px;
@@ -246,8 +248,7 @@ export class EmailBatchService {
         </div>
        </div>
       </div>
-  </body>
-    
+  </body>   
     `;
     try {
       const userBatches = this.chunkArray(users, this.batchSize);
