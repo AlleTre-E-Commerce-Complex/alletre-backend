@@ -124,8 +124,6 @@ export class UserController {
     @Account() account: any,
     @Param('locationId', ParseIntPipe) locationId: number,
   ) {
-    console.log('Deleting Location:', locationId, account.id);
-
     return {
       success: true,
       data: await this.userService.deleteLocationById(
@@ -135,7 +133,7 @@ export class UserController {
     };
   }
 
-  @Patch('locations/:locationId/set-main')
+  @Patch('locations/:locationId/make-default')
   @UseGuards(AuthGuard)
   async setLocationAsMainLocation(
     @Account() account: any,

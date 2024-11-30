@@ -174,6 +174,7 @@ export class EmailSerivce extends EmailBody {
         /* Add transition and transform properties */
         transition: transform 0.2s ease-in-out;
         transform: translateY(0);
+        
       }
 
       /* Change the color of the text inside the button */
