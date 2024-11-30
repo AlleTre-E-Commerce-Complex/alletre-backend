@@ -20,95 +20,125 @@ export class EmailBody {
     }
 
     return `<html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        /* Set background color and font styles */
-        body {
-          background-color: #F7F7F7;
-          font-family: Arial, sans-serif;
-        }
-        
-        /* Center the email content */
-        .container {
-          width: 600px;
-          margin: 0 auto;
-        }
-        
-        /* Add padding and borders to the email content */
-        .content {
-          padding: 40px;
-          background-color: #FFFFFF;
-          border-radius: 10px;
-          border: 1px solid #9f0758;
-        }
-        
-        /* Style the heading */
-        h1 {
-          font-size: 32px;
-          margin-top: 0;
-          text-align: center;
-        }
-        
-        /* Style the text content */
-        p {
-          font-size: 18px;
-          margin-top: 15px;
-        }
-        
-        /* Style the button */
-        .button {
-          display: inline-block;
-          background-color: #69053a;
-          color: #FFFFFF;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          margin-top: 20px;
-          /* Add transition and transform properties */
-          transition: transform 0.2s ease-in-out;
-          transform: translateY(0);
-        }
-  
-        /* Change the color of the text inside the button */
-        .button span {
-          color: #FFFFFF;
-        }
-  
-        .button:hover {
-          transform: translateY(-10px);
-        }
-  
-        img{
-          width: 180px;
-          height: 80px;
-          border-radius: 10%;  
-        }
-        .mainBody{
-            display: flex;
-            width:100%;
-            justify-content: space-between;
+     <head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+    <body style="margin: 0; padding: 0; background-color: #ffffff">
+    <div
+      style="
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        text-align: center;
+        color: #333;
+      "
+    >
+      <div
+        style="
+          background-color: #a91d3a;
+          padding: 350px;
+          color: white;
+          margin: 50px auto; /* Adds top margin and centers horizontally */
+          text-align: center; /* Ensures the icon is centered */
+          position: relative; /* Allows positioning of the image */
+          padding: 20px;
+          max-width: 600px; /* Sets the width of the container */
+          border-radius: 12px;
+        "
+      >
+        <img
+          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/10.png?alt=media&token=38270fdb-8c83-4fb1-b51b-4ba4682ae827"
+          alt="Alletre Logo"
+          style="
+            max-width: 80px;
+            margin: 0 auto 20px;
+            position: absolute;
+            top: 65px; /* Moves the icon above the top edge of the container */
+            left: 50%;
+            transform: translateX(-50%); /* Centers the icon horizontally */
+          "
+        />
 
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="content">
-          <h1>${body.title}</h1>
-            <div class="mainBody">
-                <div>
-                    ${data} 
-                </div>
-                <div>
-                    <img src="${imgSrc}" alt="">
-                </div>
-            </div>
-            <p>Message : <span>${message}</span> </p>
-          <a class="button" href="${body.Button_URL}"><span>${body.Button_text}</span></a>
+        <h2
+          style="
+            margin: 120px 0 0; /* Moves it upwards slightly */
+            font-weight: bold; /* Makes the text bolder */
+            font-size: 36px;
+            text-align: center;
+          "
+        >
+          Your Auction has been expired
+        </h2>
+
+        <div
+          style="
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            border: 1px solid #eee;
+          "
+        >
+          <img
+            src="${imgSrc}"
+            alt="Product Image"
+            style="
+              width: 300px;
+              height: auto;
+              border-radius: 8px;
+              display: block;
+              max-width: 100%;
+            "
+          />
         </div>
+        <h1
+          style="
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+          "
+        >
+          ${body.title}
+        </h1>
+        <p>Message : <span>${message}</span></p>
+        <a
+          href="${process.env.FRONT_URL}"
+          style="
+            display: inline-block;
+            padding: 12px 10px;
+            background-color: rgb(158, 151, 151);
+            color: #a91d3a !important;
+            text-decoration: none;
+            border-radius: 10px; /* Increased border-radius for a more rounded button */
+            font-weight: bold;
+            mso-line-height-rule: exactly;
+            width: 250px; /* Button width */
+            text-align: center; /* Center the text */
+            max-width: 100%;
+            white-space: nowrap;
+          "
+        >
+          <span
+            style="
+              display: block;
+              width: 100%;
+              text-align: center;
+              letter-spacing: 3px;
+              font-size: 19px;
+              line-height: 30px; /* Increased line height to make text appear taller */
+            "
+          >
+            View Auction Now!
+          </span>
+        </a>
       </div>
-    </body>
+    </div>
+  </body>
   </html>`;
   }
 }

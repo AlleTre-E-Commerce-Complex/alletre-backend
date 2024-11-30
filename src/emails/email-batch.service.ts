@@ -18,13 +18,8 @@ export class EmailBatchService {
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     console.log('send bulk email test 3', text);
     const html = `
-   <head>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    />
-  </head>
-  <body style="margin: 0; padding: 0; background-color: #f4f4f4">
+  
+  <body style="margin: 0; padding: 0; background-color: #ffffff">
      <div
       style="
         font-family: Arial, sans-serif;
@@ -53,7 +48,7 @@ export class EmailBatchService {
             max-width: 80px;
             margin: 0 auto 20px;
             position: absolute;
-            top: 40px; /* Moves the icon above the top edge of the container */
+            top: 65px; /* Moves the icon above the top edge of the container */
             left: 50%;
             transform: translateX(-50%); /* Centers the icon horizontally */
           "
