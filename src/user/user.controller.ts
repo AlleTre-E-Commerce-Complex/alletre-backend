@@ -22,6 +22,7 @@ import { PaginationDTO } from 'src/auction/dtos';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { SubscribeDto } from './dtos/subscribers.dto';
 
 @Controller('users')
 export class UserController {
@@ -147,6 +148,13 @@ export class UserController {
     );
     return {
       success: true,
+    };
+  }
+  @Post('/subscribers/create')
+  async subscribeToNewsletter(@Body() subscribeDto: SubscribeDto) {
+    return {
+      success: true,
+      data: await this.userService.addNewSubscriber(subscribeDto.email),
     };
   }
 }
