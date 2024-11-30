@@ -19,5 +19,5 @@ export class WalletPayDto {
   @Type(() => Number)
   @IsNumber() // Ensures that amount is a number (can be float or int)
   // bidAmount: number;
-  submitBidValue: number;
+  bidAmount: number;
 }
