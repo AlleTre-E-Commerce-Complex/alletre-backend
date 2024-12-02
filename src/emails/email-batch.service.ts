@@ -48,7 +48,7 @@ export class EmailBatchService {
             max-width: 80px;
             margin: 0 auto 20px;
             position: absolute;
-            top: 65px; /* Moves the icon above the top edge of the container */
+            top: 75px; /* Moves the icon above the top edge of the container */
             left: 50%;
             transform: translateX(-50%); /* Centers the icon horizontally */
           "
@@ -170,71 +170,70 @@ export class EmailBatchService {
           <p style="font-size: 18px; font-weight: bold; margin-bottom: 10px">
             FOLLOW US!
           </p>
-          <div style="text-align: center; margin-top: 30px">
-          <!-- WhatsApp Icon -->
-          <a
-            href="https://wa.me/97172663004"
-            target="_blank"
-            style="margin: 0 10px; display: inline-block; text-decoration: none;"
-          >
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/whatsapp.png?alt=media&token=YOUR_TOKEN" 
-              alt="WhatsApp"
-              style="width: 40px; height: 40px;"
-            />
-          </a>
+         <div style="text-align: center; margin-top: 30px">
+         <!--Instagram -->
+           <a
+           href="https://www.instagram.com/alletre.ae/"
+           target="_blank"
+           style="margin: 0 10px; display: inline-block; text-decoration: none;"
+         >
+           <img 
+             src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/instagram%20Icon.png?alt=media&token=4ca91fcd-2e6f-476c-a0e6-fb6c81c0ac47 " 
+             alt="instagram"
+             style="width: 40px; height: 40px;"
+           />
+         </a>
+         <!-- Facebook Icon -->
+         <a
+           href="https://www.facebook.com/alletr.ae"
+           target="_blank"
+           style="margin: 0 10px; display: inline-block; text-decoration: none;"
+         >
+           <img 
+             src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Facebook%20Icon.png?alt=media&token=15e160e4-1bfb-4e81-9a12-1c41f83edabb " 
+             alt="Facebook"
+             style="width: 40px; height: 40px;"
+           />
+         </a>
 
-          <!-- Facebook Icon -->
-          <a
-            href="https://www.facebook.com/alletr.ae"
-            target="_blank"
-            style="margin: 0 10px; display: inline-block; text-decoration: none;"
-          >
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/facebook.png?alt=media&token=YOUR_TOKEN" 
-              alt="Facebook"
-              style="width: 40px; height: 40px;"
-            />
-          </a>
+         <!-- TikTok Icon -->
+         <a
+           href="https://www.tiktok.com/@alletre.ae"
+           target="_blank"
+           style="margin: 0 10px; display: inline-block; text-decoration: none;"
+         >
+           <img 
+             src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Tick%20Tok%20Icon.png?alt=media&token=6bb9d534-2031-4bf2-870d-a867be937d83 " 
+             alt="TikTok"
+             style="width: 40px; height: 40px;"
+           />
+         </a>
 
-          <!-- TikTok Icon -->
-          <a
-            href="https://www.tiktok.com/@alletre.ae"
-            target="_blank"
-            style="margin: 0 10px; display: inline-block; text-decoration: none;"
-          >
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tiktok.png?alt=media&token=YOUR_TOKEN" 
-              alt="TikTok"
-              style="width: 40px; height: 40px;"
-            />
-          </a>
+         <!-- Snapchat Icon -->
+         <a
+           href="https://www.snapchat.com/add/alletre"
+           target="_blank"
+           style="margin: 0 10px; display: inline-block; text-decoration: none;"
+         >
+           <img 
+             src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Snapchat%20Icon.png?alt=media&token=1a20756e-84f5-4e33-bf1a-f935e626e9b7 " 
+             alt="Snapchat"
+             style="width: 40px; height: 40px;"
+           />
+         </a>
 
-          <!-- Snapchat Icon -->
-          <a
-            href="https://www.snapchat.com/add/alletre"
-            target="_blank"
-            style="margin: 0 10px; display: inline-block; text-decoration: none;"
-          >
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/snapchat.png?alt=media&token=YOUR_TOKEN" 
-              alt="Snapchat"
-              style="width: 40px; height: 40px;"
-            />
-          </a>
-
-          <!-- YouTube Icon -->
-          <a
-            href="https://www.youtube.com/@Alletre_ae"
-            target="_blank"
-            style="margin: 0 10px; display: inline-block; text-decoration: none;"
-          >
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/youtube.png?alt=media&token=YOUR_TOKEN" 
-              alt="YouTube"
-              style="width: 40px; height: 40px;"
-            />
-          </a>
+         <!-- YouTube Icon -->
+         <a
+           href="https://www.youtube.com/@Alletre_ae"
+           target="_blank"
+           style="margin: 0 10px; display: inline-block; text-decoration: none;"
+         >
+           <img 
+             src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Youtube%20Icon.png?alt=media&token=ccb87278-f063-4838-9b02-7ceffae7c710 " 
+             alt="YouTube"
+             style="width: 40px; height: 40px;"
+           />
+         </a>
 
           <p style="font-size: 16px; color: #333; margin-top: 15px;  letter-spacing: 6px;
                 font-size: 26px;">
