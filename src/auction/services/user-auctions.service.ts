@@ -14,6 +14,7 @@ import {
   Auction,
   AuctionStatus,
   AuctionType,
+  DeliveryType,
   DurationUnits,
   JoinedAuctionStatus,
   PaymentStatus,
@@ -938,6 +939,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
 
         product: {
           select: {
@@ -1064,6 +1066,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1161,6 +1164,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1254,6 +1258,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1348,6 +1353,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1442,6 +1448,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1527,6 +1534,7 @@ export class UserAuctionsService {
         returnPolicyDescription: true,
         IsWarranty: true,
         warrantyPolicyDescription: true,
+        deliveryType: true,
         product: {
           select: {
             id: true,
@@ -1893,14 +1901,26 @@ export class UserAuctionsService {
     const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
     if (isAuctionHasBidders) {
       latestBidAmount = await this._findLatestBidForAuction(auctionId);
-      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+      // Convert both to Decimal or both to number for proper comparison
+      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+      const newBid = new Prisma.Decimal(bidAmount.toString());
+      if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
           en: 'Bid Amount Must Be Greater Than Current Amount1',
         });
     } else {
       latestBidAmount = auction.startBidAmount;
-      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+      console.log('latestBidAmount : ', latestBidAmount);
+      console.log('bidAmount : ', bidAmount);
+      console.log(
+        'latestBidAmount >= new Prisma.Decimal(bidAmount) : ',
+        latestBidAmount >= new Prisma.Decimal(bidAmount),
+      );
+      // Convert both to Decimal or both to number for proper comparison
+      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+      const newBid = new Prisma.Decimal(bidAmount.toString());
+      if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
           en: 'Bid Amount Must Be Greater Than Current Amount2',
@@ -1973,14 +1993,22 @@ export class UserAuctionsService {
     const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
     if (isAuctionHasBidders) {
       latestBidAmount = await this._findLatestBidForAuction(auctionId);
-      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+      console.log('latestBidAmount : ', latestBidAmount);
+      console.log('bidAmount : ', bidAmount);
+      // Convert both to Decimal or both to number for proper comparison
+      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+      const newBid = new Prisma.Decimal(bidAmount.toString());
+      if (currentBid.gte(newBid)) {
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount3',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
         });
+      }
     } else {
       latestBidAmount = auction.startBidAmount;
-      if (latestBidAmount >= new Prisma.Decimal(bidAmount))
+      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+      const newBid = new Prisma.Decimal(bidAmount.toString());
+      if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
           en: 'Bid Amount Must Be Greater Than Current Amount4',
@@ -2552,6 +2580,21 @@ export class UserAuctionsService {
       throw new MethodNotAllowedResponse({
         ar: 'حدث خطأ أثناء تأكيد التسليم',
         en: 'An error occurred during delivery confirmation',
+      });
+    }
+  }
+
+  async setDeliveryType(auctionId: number, deliveryType: DeliveryType) {
+    try {
+      return await this.prismaService.auction.update({
+        where: { id: auctionId },
+        data: { deliveryType },
+      });
+    } catch (error) {
+      console.log('setDeliveryType error : ', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'حدث خطأ أثناء تغيير نوع التسليم',
+        en: 'An error occurred during delivery type change',
       });
     }
   }
@@ -3401,7 +3444,7 @@ export class UserAuctionsService {
       console.log(error);
 
       throw new MethodNotAllowedResponse({
-        ar: 'خطأ في عملية إضافة المنتج',
+        ar: 'خطأ في عملية إضافة الم��تج',
         en: 'Something Went Wrong While Adding Your Product',
       });
     }

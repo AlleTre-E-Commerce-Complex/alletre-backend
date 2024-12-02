@@ -42,6 +42,7 @@ import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { WalletPayDto } from '../dtos/walletPay.dto';
 import { PaymentType } from '@prisma/client';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
+import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -683,6 +684,22 @@ export class AuctionsController {
         Number(account.id),
         auctionId,
         body.message,
+      ),
+    };
+  }
+  @Put('/user/:auctionId/set-delivery-type')
+  @UseGuards(AuthGuard)
+  async setDeliveryType(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Body() body: DeliveryTypeDTO,
+  ) {
+    console.log('auctionId : ', auctionId);
+    console.log('body : ', body);
+    return {
+      success: true,
+      data: await this.userAuctionsService.setDeliveryType(
+        auctionId,
+        body.deliveryType,
       ),
     };
   }

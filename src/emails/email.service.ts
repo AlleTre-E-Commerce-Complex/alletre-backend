@@ -210,6 +210,9 @@ export class EmailSerivce extends EmailBody {
           to: email,
           subject: body.subject,
           html: this.emailBody(body, token),
+          attachments: body.attachment
+            ? [{ filename: 'invoice.pdf', content: body.attachment }]
+            : [],
         };
     }
   }
@@ -219,7 +222,7 @@ export class EmailSerivce extends EmailBody {
     emailType: EmailsType,
     body?: any,
   ) {
-    console.log('email ==================**********>', email);
+    console.log('body ==================**********>', body);
     const mailOptions = this.mailOptionsGenerator(
       email,
       token,
