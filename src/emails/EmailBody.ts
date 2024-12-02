@@ -55,7 +55,7 @@ export class EmailBody {
             max-width: 80px;
             margin: 0 auto 20px;
             position: absolute;
-            top: 65px; /* Moves the icon above the top edge of the container */
+            top: 75px; /* Moves the icon above the top edge of the container */
             left: 50%;
             transform: translateX(-50%); /* Centers the icon horizontally */
           "
