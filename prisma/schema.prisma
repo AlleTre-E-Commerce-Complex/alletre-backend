@@ -220,10 +220,11 @@ model Auction {
   durationInHours              Int?
   startBidAmount               Decimal?
   isBuyNowAllowed              Boolean          @default(false)
-  isItemSendForDelivery        Boolean?   @default(false)
+  isItemSendForDelivery        Boolean?        @default(false)
   IsDelivery                   Boolean?         @default(false)
   deliveryPolicyDescription    String?
   numOfDaysOfExpecetdDelivery  Int?
+  deliveryType                 DeliveryType?    @default(NOT_SPECIFIED)
   DeliveryFees                 Decimal?
   IsReturnPolicy               Boolean?         @default(false)
   returnPolicyDescription      String?
@@ -453,4 +454,10 @@ enum PaymentType {
   BIDDER_DEPOSIT
   AUCTION_PURCHASE
   BUY_NOW_PURCHASE
+}
+
+enum DeliveryType {
+  NOT_SPECIFIED
+  PICKUP
+  DELIVERY
 }

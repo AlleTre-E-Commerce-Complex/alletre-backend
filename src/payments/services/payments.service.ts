@@ -19,6 +19,7 @@ import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
 import { EmailSerivce } from 'src/emails/email.service';
+import { generateInvoicePDF } from 'src/emails/invoice';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
 
@@ -1293,6 +1294,7 @@ export class PaymentsService {
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
               };
+              const invoicePDF = await generateInvoicePDF(paymentSuccessData);
               const emailBodyToWinner = {
                 subject: 'Payment successful',
                 title: 'Payment successful',
@@ -1306,6 +1308,7 @@ export class PaymentsService {
                           If you would like to participate another auction, Please click the button below. Thank you. `,
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
+                attachment: invoicePDF,
               };
               await Promise.all([
                 this.emailService.sendEmail(
