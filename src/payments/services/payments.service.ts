@@ -1100,6 +1100,7 @@ export class PaymentsService {
     );
     switch (status) {
       case PaymentStatus.CANCELLED:
+        console.log('Webhook CANCELLED ...', status);
         // const auctionCancelPaymentTransaction =
         await this.prismaService.payment.update({
           where: { paymentIntentId: paymentIntent.id },
@@ -1705,6 +1706,7 @@ export class PaymentsService {
         if (auction.type === AuctionType.ON_TIME) {
           // Set ON_TIME hours auction ACTIVE
           const today = new Date();
+          console.log('auction duration in hours :', auction.durationInHours);
           const expiryDate = this.addHours(new Date(), auction.durationInHours);
 
           const updatedAuction = await this.prismaService.auction.update({
@@ -1737,7 +1739,7 @@ export class PaymentsService {
 
   addHours(date: Date, hours: number) {
     const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    // const newDate = new Date(date.getTime() + 10 * 60 * 1000); // Add 10 minutes
+    // const newDate = new Date(date.getTime() + 15 * 60 * 1000); // Add 15 minutes
 
     return newDate;
   }

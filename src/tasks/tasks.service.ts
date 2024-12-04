@@ -644,6 +644,10 @@ export class TasksService {
                     loser.auctionId,
                     PaymentType.BIDDER_DEPOSIT,
                   );
+                console.log(
+                  'lostBidderPaymentData ===>',
+                  lostBidderPaymentData,
+                );
                 if (!lostBidderPaymentData.isWalletPayment) {
                   await this.stripeService.cancelDepositPaymentIntent(
                     lostBidderPaymentData.paymentIntentId,

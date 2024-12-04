@@ -76,7 +76,7 @@ export class ProductDTO {
 
   @IsOptional()
   @IsString()
-  @IsIn(['digital', 'compact', 'mirror', 'less interchangeable lens'])
+  @IsIn(['digital', 'compact', 'mirrorless interchangeable lens'])
   cameraType: string;
 
   @IsOptional()
