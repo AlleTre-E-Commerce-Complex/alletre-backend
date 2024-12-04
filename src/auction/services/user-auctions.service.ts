@@ -3434,13 +3434,14 @@ export class UserAuctionsService {
       if (imagesHolder?.length) {
         console.log('imagesHolder ===>', imagesHolder);
         imagesHolder.forEach(async (image) => {
-          await this.prismaService.image.create({
+          const createdImage = await this.prismaService.image.create({
             data: {
               productId: createdProduct.id,
               imageLink: image.fileLink,
               imagePath: image.filePath,
             },
           });
+          console.log('createdImage ===>', createdImage);
         });
       }
     } catch (error) {
