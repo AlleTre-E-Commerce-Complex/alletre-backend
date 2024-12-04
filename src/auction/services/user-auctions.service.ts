@@ -1904,6 +1904,8 @@ export class UserAuctionsService {
       // Convert both to Decimal or both to number for proper comparison
       const currentBid = new Prisma.Decimal(latestBidAmount.toString());
       const newBid = new Prisma.Decimal(bidAmount.toString());
+      console.log('currentBid : ', currentBid);
+      console.log('newBid : ', newBid);
       if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
@@ -3430,6 +3432,7 @@ export class UserAuctionsService {
       }
 
       if (imagesHolder?.length) {
+        console.log('imagesHolder ===>', imagesHolder);
         imagesHolder.forEach(async (image) => {
           await this.prismaService.image.create({
             data: {

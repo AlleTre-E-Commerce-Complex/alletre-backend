@@ -43,7 +43,7 @@ export class StripeService {
     let paymentIntent: any;
     try {
       paymentIntent = await this.stripe.paymentIntents.create({
-        customer: stripeCustomerId,
+        // customer: stripeCustomerId,
         amount: Math.ceil(amountInSmallestUnit),
         currency: currency,
         capture_method: 'manual', // Authorize only, don't capture immediately
@@ -54,6 +54,7 @@ export class StripeService {
         metadata,
       });
     } catch (error) {
+      console.log('Error in createDepositPaymentIntent:', error);
       throw new MethodNotAllowedResponse({
         ar: 'قيمة عملية الدفع غير صالحة',
         en: 'Invalid Payment Amount',
