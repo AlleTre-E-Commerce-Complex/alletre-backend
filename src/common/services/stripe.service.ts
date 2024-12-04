@@ -145,6 +145,13 @@ export class StripeService {
     return await this.stripe.paymentIntents.retrieve(paymentIntentId);
   }
 
+  async updatePaymentIntent(paymentIntentId: string, metadata: any) {
+    console.log('updatePaymentIntent :', paymentIntentId, metadata);
+    return await this.stripe.paymentIntents.update(paymentIntentId, {
+      metadata,
+    });
+  }
+
   async createConfirmedPaymentIntent(
     stripeCustomerId: string,
     amount: number,

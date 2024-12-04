@@ -417,12 +417,15 @@ export class PaymentsService {
       const paymentIntent = await this.stripeService.retrievePaymentIntent(
         bidderPaymentForAuction.paymentIntentId,
       );
-      console.log('pay deposite by bidder===>', bidderPaymentForAuction);
-
       if (paymentIntent.status === 'succeeded') {
         throw new MethodNotAllowedException('already paid');
       }
-
+      if (paymentIntent.metadata.bidAmount !== bidAmount.toString()) {
+        await this.stripeService.updatePaymentIntent(
+          bidderPaymentForAuction.paymentIntentId,
+          { bidAmount: bidAmount.toString() },
+        );
+      }
       return {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
