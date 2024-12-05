@@ -2688,17 +2688,15 @@ export class UserAuctionsService {
       }
 
       if (imagesHolder?.length) {
-        console.log('imagesHolder ===>', imagesHolder);
-        for (const image of imagesHolder) {
-          const createdImage = await this.prismaService.image.create({
+        imagesHolder.forEach(async (image) => {
+          await this.prismaService.complaintImages.create({
             data: {
-              productId: createdProduct.id,
+              complaintId: newComplaintData.id,
               imageLink: image.fileLink,
               imagePath: image.filePath,
             },
           });
-          console.log('createdImage ===>', createdImage);
-        }
+        });
       }
       console.log('result');
       return 'result';
@@ -3435,7 +3433,7 @@ export class UserAuctionsService {
 
       if (imagesHolder?.length) {
         console.log('imagesHolder ===>', imagesHolder);
-        imagesHolder.forEach(async (image) => {
+        for (const image of imagesHolder) {
           const createdImage = await this.prismaService.image.create({
             data: {
               productId: createdProduct.id,
@@ -3444,7 +3442,7 @@ export class UserAuctionsService {
             },
           });
           console.log('createdImage ===>', createdImage);
-        });
+        }
       }
     } catch (error) {
       console.log(error);
