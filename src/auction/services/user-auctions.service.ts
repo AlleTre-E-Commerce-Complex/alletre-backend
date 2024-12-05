@@ -2688,15 +2688,17 @@ export class UserAuctionsService {
       }
 
       if (imagesHolder?.length) {
-        imagesHolder.forEach(async (image) => {
-          await this.prismaService.complaintImages.create({
+        console.log('imagesHolder ===>', imagesHolder);
+        for (const image of imagesHolder) {
+          const createdImage = await this.prismaService.image.create({
             data: {
-              complaintId: newComplaintData.id,
+              productId: createdProduct.id,
               imageLink: image.fileLink,
               imagePath: image.filePath,
             },
           });
-        });
+          console.log('createdImage ===>', createdImage);
+        }
       }
       console.log('result');
       return 'result';
