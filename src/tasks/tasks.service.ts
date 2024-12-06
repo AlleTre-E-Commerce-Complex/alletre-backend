@@ -505,11 +505,7 @@ export class TasksService {
               title: 'Your acution is Expired',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
-              message: ` Hi, ${isAcutionUpdated.user.userName}, 
-                      your Auction of ${isAcutionUpdated.product.title}
-                     (Model:${isAcutionUpdated.product.model}) has been expired. Please wait until the winner pay the full amount.
-                     Once the winner pay the full amount, you need to delevery the product with in two days
-                     If you would like to do another auction, Please click the button below. Thank you. `,
+              message: `Hi, ${isAcutionUpdated.user.userName}, We would like to inform you that your auction for ${isAcutionUpdated.product.title} (Model: ${isAcutionUpdated.product.model}) has expired. The security deposit associated with this auction has been successfully refunded to your account. If you wish to participate in another auction, please click the button below to proceed.`,
               Button_text: 'Click here to create another Auction',
               Button_URL: process.env.FRONT_URL,
             };
