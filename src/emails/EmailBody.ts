@@ -26,26 +26,17 @@ export class EmailBody {
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
   </head>
-    <body style="margin: 0; padding: 0; background-color: #ffffff">
-    <div
-      style="
-        font-family: Arial, sans-serif;
-        line-height: 1.6;
-        text-align: center;
-        color: #333;
-      "
-    >
+  <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="padding: 20px; text-align: center;">
       <div
         style="
           background-color: #a91d3a;
-          padding: 350px;
-          color: white;
-          margin: 50px auto; /* Adds top margin and centers horizontally */
-          text-align: center; /* Ensures the icon is centered */
-          position: relative; /* Allows positioning of the image */
           padding: 20px;
-          max-width: 600px; /* Sets the width of the container */
-          border-radius: 12px;
+          color: white;
+          margin: 20px auto;
+          text-align: center;
+          position: relative;
+          max-width: 100%;
         "
       >
         <img
@@ -53,90 +44,134 @@ export class EmailBody {
           alt="Alletre Logo"
           style="
             max-width: 80px;
-            margin: 0 auto 20px;
             position: absolute;
-            top: 75px; /* Moves the icon above the top edge of the container */
+            top: 30px;
             left: 50%;
-            transform: translateX(-50%); /* Centers the icon horizontally */
+            transform: translateX(-50%);
           "
         />
+        <h2 style="margin: 30px 0 20px; font-size: 24px; font-weight: bold;">${body.title}</h2>
+      
+        <div style="margin: 50px auto; text-align: center;">
+           <img
+               src="${process.env.FRONT_URL}"
+             alt="Product Image"
+            style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; display: inline-block;"
+            />
+<h1 style="font-size: min(24px, 5vw);margin-top: 50px;">
+${body.Product_Name}
+</h1>
 
-        <h2
+       </div>
+          <div style="max-width: 600px; margin: 0 auto;">
+      <p style="margin: 0; padding: 0; font-size: 14px; font-size: min(16px, 3.5vw); line-height: 1.2;">
+     ${message}
+     
+    </div>
+      </div>
+      <a
+          href="https://www.alletre.com/"
           style="
-            margin: 120px 0 0; /* Moves it upwards slightly */
-            font-weight: bold; /* Makes the text bolder */
-            font-size: 36px;
-            text-align: center;
-          "
-        >
-          Your Auction has been expired
-        </h2>
-
-        <div
-          style="
-            background: white;
-            padding: 10px;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: inline-block;
-            border: 1px solid #eee;
-          "
-        >
-          <img
-            src="${imgSrc}"
-            alt="Product Image"
-            style="
-              width: 300px;
-              height: auto;
-              border-radius: 8px;
-              display: block;
-              max-width: 100%;
-            "
-          />
-        </div>
-        <h1
-          style="
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 28px;
+            padding: 12px 20px;
+            background-color: #a91d3a;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-          "
-        >
-          ${body.title}
-        </h1>
-        <p>Message : <span>${message}</span></p>
-        <a
-          href="${process.env.FRONT_URL}"
-          style="
-            display: inline-block;
-            padding: 12px 10px;
-            background-color: rgb(158, 151, 151);
-            color: #a91d3a !important;
             text-decoration: none;
-            border-radius: 10px; /* Increased border-radius for a more rounded button */
+            border-radius: 10px;
             font-weight: bold;
-            mso-line-height-rule: exactly;
-            width: 250px; /* Button width */
-            text-align: center; /* Center the text */
-            max-width: 100%;
-            white-space: nowrap;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
           "
         >
-          <span
-            style="
-              display: block;
-              width: 100%;
-              text-align: center;
-              letter-spacing: 3px;
-              font-size: 19px;
-              line-height: 30px; /* Increased line height to make text appear taller */
-            "
-          >
-            View Auction Now!
-          </span>
+          Create Auction Now!
+        </a>
+      <h3
+        style="
+          margin-top: 30px;
+          font-size: min(24px, 5vw);
+          font-weight: bold;
+          color: #a91d3a;
+        "
+      >
+     Ecommerce and Online Auctions: Revolutionizing the Digital 
+Marketplace
+      </h3>
+      <p
+        style="
+          margin: 20px auto;
+          font-size: 16px;
+          line-height: 1.5;
+          max-width: 80%;
+        "
+      >
+    The world of ecommerce and online auctions has 
+significantly transformed the way people buy and sell goods 
+and services. As technology continues to evolve, both of these 
+models have shaped the digital economy, offering convenience, 
+access, and new opportunities for both consumers and sellers 
+alike. Let's dive deeper into how ecommerce and online 
+auctions work, their benefits, challenges, and how they continue 
+to shape the future of retail.
+      </p>
+
+      <div style="margin: 20px 0;">
+        <!-- Instagram Icon -->
+        <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
+          <img
+            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/instagram%20Icon.png?alt=media&token=4ca91fcd-2e6f-476c-a0e6-fb6c81c0ac47"
+            alt="Instagram"
+            style="width: 30px; height: 30px;"
+          />
+        </a>
+
+        <!-- Facebook Icon -->
+        <a href="https://www.facebook.com/alletr.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
+          <img
+            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Facebook%20Icon.png?alt=media&token=15e160e4-1bfb-4e81-9a12-1c41f83edabb"
+            alt="Facebook"
+            style="width: 30px; height: 30px;"
+          />
+        </a>
+
+        <!-- Snapchat Icon -->
+        <a href="https://www.snapchat.com/add/alletre" target="_blank" style="margin: 0 5px; display: inline-block;">
+          <img
+            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Snapchat%20Icon.png?alt=media&token=1a20756e-84f5-4e33-bf1a-f935e626e9b7"
+            alt="Snapchat"
+            style="width: 30px; height: 30px;"
+          />
+        </a>
+
+        <!-- TikTok Icon -->
+        <a href="https://www.tiktok.com/@alletre.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
+          <img
+            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Tick%20Tok%20Icon.png?alt=media&token=6bb9d534-2031-4bf2-870d-a867be937d83"
+            alt="TikTok"
+            style="width: 30px; height: 30px;"
+          />
+        </a>
+
+        <!-- YouTube Icon -->
+        <a href="https://www.youtube.com/@Alletre_ae" target="_blank" style="margin: 0 5px; display: inline-block;">
+          <img
+            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Youtube%20Icon.png?alt=media&token=ccb87278-f063-4838-9b02-7ceffae7c710"
+            alt="YouTube"
+            style="width: 30px; height: 30px;"
+          />
         </a>
       </div>
+
+      <p
+        style="
+          font-size: 16px;
+          margin-top: 20px;
+          color: #333;
+          letter-spacing: 5px
+        "
+      >
+        www.alletre.com
+      </p>
     </div>
   </body>
   </html>`;

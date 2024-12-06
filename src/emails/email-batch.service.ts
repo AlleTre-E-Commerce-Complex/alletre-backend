@@ -60,24 +60,14 @@ export class EmailBatchService {
             />
         </div>
        <h1
-         style="
-           text-align: center;
-    margin-bottom: 2rem;
-    font-size: 4vw;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-   max-width: 100%; 
-            "
+         style="font-size: min(24px, 5vw);"
       >
          ${updatedAuction.product.title}
       </h1>
       
       </div>
       <a
-          href="${process.env.FRONT_URL}"
+          href="https://www.alletre.com/alletre/home/${updatedAuction.id}/details"
           style="
             display: inline-block;
             padding: 12px 20px;
@@ -93,15 +83,16 @@ export class EmailBatchService {
         >
           View Auction Now!
         </a>
-      <h3
+       <h3
         style="
           margin-top: 30px;
-          font-size: 24px;
+          font-size: min(24px, 5vw);
           font-weight: bold;
           color: #a91d3a;
         "
       >
-        Ecommerce and Online Auctions
+     Ecommerce and Online Auctions: Revolutionizing the Digital 
+    Marketplace
       </h3>
       <p
         style="
