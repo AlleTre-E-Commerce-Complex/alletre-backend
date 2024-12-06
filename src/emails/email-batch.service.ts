@@ -1,4 +1,3 @@
-// src/email/email-batch.service.ts
 import { Injectable } from '@nestjs/common';
 import { Worker } from 'worker_threads';
 import * as path from 'path';

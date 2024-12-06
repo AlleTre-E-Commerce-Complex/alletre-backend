@@ -54,7 +54,7 @@ export class EmailBody {
       
         <div style="margin: 50px auto; text-align: center;">
            <img
-               src="${process.env.FRONT_URL}"
+               src="${imgSrc}"
              alt="Product Image"
             style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; display: inline-block;"
             />
