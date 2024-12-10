@@ -182,6 +182,21 @@ to shape the future of retail.
       >
         www.alletre.com
       </p>
+        <a
+      href="https://www.alletre.com"
+      style="
+        display: inline-block;
+        padding: 2px 8px;
+        background-color: #a91d3a;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 12px;
+        margin-top: 10px;
+      "
+    >
+      Unsubscribe
+    </a>
     </div>
   </body>
 </html>
@@ -344,6 +359,21 @@ to shape the future of retail.
       >
         www.alletre.com
       </p>
+        <a
+      href="https://www.alletre.com"
+      style="
+        display: inline-block;
+        padding: 2px 8px;
+        background-color: #a91d3a;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 12px;
+        margin-top: 10px;
+      "
+    >
+      Unsubscribe
+    </a>
     </div>
   </body>
 </html>
