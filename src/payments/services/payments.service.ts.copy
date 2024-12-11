@@ -14,6 +14,7 @@ import {
   WalletStatus,
   WalletTransactionType,
 } from '@prisma/client';
+import { retry } from 'rxjs';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
@@ -21,8 +22,7 @@ import { EmailSerivce } from 'src/emails/email.service';
 import { generateInvoicePDF } from 'src/emails/invoice';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
-import { NotificationsService } from 'src/notificatons/notifications.service';
-import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -31,7 +31,6 @@ export class PaymentsService {
     private readonly emailService: EmailSerivce,
     private readonly walletService: WalletService,
     private readonly emailBatchService: EmailBatchService,
-    private readonly notificationsService: NotificationsService,
   ) {}
 
   async walletPayDepositBySeller(
@@ -115,29 +114,18 @@ export class PaymentsService {
         async (prisma) => {
           //checking again the wallet balance to avoid issues
           const lastWalletTransactionBalanceOfSeller =
-            await this.walletService.findLastTransaction(user.id, prisma);
+            await this.walletService.findLastTransaction(user.id);
           if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
             throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
           }
           //crete new transaction in seller wallet
-          const sellerWallet = await this.walletService.create(
-            user.id,
-            SellerWalletData,
-            prisma,
-          );
+          await this.walletService.create(user.id, SellerWalletData);
           //crete new transaction in alletre wallet
-          const alletreWallet = await this.walletService.addToAlletreWallet(
+          await this.walletService.addToAlletreWallet(
             user.id,
             alletreWalletData,
-            prisma,
           );
           // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
-
           const paymentData = await prisma.payment.create({
             data: {
               userId: user.id,
@@ -147,43 +135,20 @@ export class PaymentsService {
               isWalletPayment: true,
               status: 'SUCCESS',
             },
-            include: {
-              auction: {
-                include: { product: { include: { images: true } } },
-              },
-            },
           });
+
+          if (paymentData) {
+            await this.publishAuction(auctionId);
+          } else {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
+
           return { paymentData };
         },
       );
 
-      if (paymentData) {
-        await this.publishAuction(auctionId);
-        const usersId = await this.notificationsService.getAllRegisteredUsers(
-          user.id,
-        );
-        await this.prismaService.notification.create({
-          data: {
-            userId: user.id,
-            message:
-              'Congratulations! Your auction has been successfully published.',
-            html: auctionCreationMessage(paymentData.auction),
-            auctionId: paymentData.auctionId,
-          },
-        });
-        const html = auctionCreationMessage(paymentData.auction);
-        const message = 'New Auction has been published.';
-        await this.notificationsService.sendNotifications(
-          usersId,
-          message,
-          html,
-          paymentData.auctionId,
-        );
-      } else {
-        throw new InternalServerErrorException(
-          'Failed to process wallet payment',
-        );
-      }
       return paymentData;
     } catch (error) {
       console.log('wallet pay deposit by seller error :', error);
@@ -350,19 +315,18 @@ export class PaymentsService {
 
             //checking again the wallet balance to avoid issues
             const lastWalletTransactionBalanceOfBidder =
-              await this.walletService.findLastTransaction(user.id, prisma);
+              await this.walletService.findLastTransaction(user.id);
             if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
               throw new MethodNotAllowedException(
                 'Sorry, Insufficient Balance.',
               );
             }
             //crete new transaction in bidder wallet
-            await this.walletService.create(user.id, BidderWalletData, prisma);
+            await this.walletService.create(user.id, BidderWalletData);
             //crete new transaction in alletre wallet
             await this.walletService.addToAlletreWallet(
               user.id,
               alletreWalletData,
-              prisma,
             );
             // Join user to auction
             await prisma.joinedAuction.create({
@@ -585,19 +549,18 @@ export class PaymentsService {
 
             //checking again the wallet balance to avoid issues
             const lastWalletTransactionBalanceOfBidder =
-              await this.walletService.findLastTransaction(user.id, prisma);
+              await this.walletService.findLastTransaction(user.id);
             if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
               throw new MethodNotAllowedException(
                 'Sorry, Insufficient Balance.',
               );
             }
             //crete new transaction in bidder wallet
-            await this.walletService.create(user.id, BidderWalletData, prisma);
+            await this.walletService.create(user.id, BidderWalletData);
             //crete new transaction in alletre wallet
             await this.walletService.addToAlletreWallet(
               user.id,
               alletreWalletData,
-              prisma,
             );
 
             // Update joinedAuction for bidder to WAITING_DELIVERY
@@ -783,17 +746,16 @@ export class PaymentsService {
 
           //checking again the wallet balance to avoid issues
           const lastWalletTransactionBalanceOfBidder =
-            await this.walletService.findLastTransaction(user.id, prisma);
+            await this.walletService.findLastTransaction(user.id);
           if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
             throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
           }
           //crete new transaction in bidder wallet
-          await this.walletService.create(user.id, buyerWalletData, prisma);
+          await this.walletService.create(user.id, buyerWalletData);
           //crete new transaction in alletre wallet
           await this.walletService.addToAlletreWallet(
             user.id,
             alletreWalletData,
-            prisma,
           );
           // Update auction status to sold
 
@@ -1153,9 +1115,6 @@ export class PaymentsService {
         const auctionHoldPaymentTransaction =
           await this.prismaService.payment.findUnique({
             where: { paymentIntentId: paymentIntent.id },
-            include: {
-              auction: { include: { product: { include: { images: true } } } },
-            },
           });
 
         switch (auctionHoldPaymentTransaction.type) {
@@ -1192,41 +1151,13 @@ export class PaymentsService {
             console.log('Webhook SELLER_DEPOSIT ...');
 
             // Update Auction
+            await this.publishAuction(auctionHoldPaymentTransaction.auctionId);
 
             // Update payment transaction
             await this.prismaService.payment.update({
               where: { paymentIntentId: paymentIntent.id },
               data: { status: PaymentStatus.HOLD },
             });
-
-            await this.publishAuction(auctionHoldPaymentTransaction.auctionId);
-
-            await this.prismaService.notification.create({
-              data: {
-                userId: auctionHoldPaymentTransaction.userId,
-                message:
-                  'Congratulations! Your auction has been successfully published.',
-                html: auctionCreationMessage(
-                  auctionHoldPaymentTransaction.auction,
-                ),
-                auctionId: auctionHoldPaymentTransaction.auctionId,
-              },
-            });
-            const currentUserId = auctionHoldPaymentTransaction.userId;
-            const usersId =
-              await this.notificationsService.getAllRegisteredUsers(
-                currentUserId,
-              );
-            const html = auctionCreationMessage(
-              auctionHoldPaymentTransaction.auction,
-            );
-            const message = 'New Auction has been published.';
-            await this.notificationsService.sendNotifications(
-              usersId,
-              message,
-              html,
-              auctionHoldPaymentTransaction.auctionId,
-            );
             break;
           default:
             break;
@@ -1810,8 +1741,8 @@ export class PaymentsService {
   }
 
   addHours(date: Date, hours: number) {
-    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    // const newDate = new Date(date.getTime() + 3 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    const newDate = new Date(date.getTime() + 3 * 60 * 1000); // Add 1 minute
 
     return newDate;
   }

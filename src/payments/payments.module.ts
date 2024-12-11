@@ -6,9 +6,10 @@ import { PaymentsController } from './payments.controller';
 import { EmailSerivce } from 'src/emails/email.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
-
+import { NotificationsService } from 'src/notificatons/notifications.service';
+import { NotificationsModule } from 'src/notificatons/notifications.module';
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationsModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,
@@ -16,6 +17,7 @@ import { EmailBatchService } from 'src/emails/email-batch.service';
     EmailSerivce,
     WalletService,
     EmailBatchService,
+    NotificationsService,
   ],
   exports: [PaymentsService],
 })

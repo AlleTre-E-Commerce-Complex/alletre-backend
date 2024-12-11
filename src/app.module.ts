@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { WalletModule } from './wallet/wallet.module';
+import { NotificationsModule } from './notificatons/notifications.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { WalletModule } from './wallet/wallet.module';
     PaymentsModule,
     AdminModule,
     WalletModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {

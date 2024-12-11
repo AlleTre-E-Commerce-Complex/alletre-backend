@@ -215,12 +215,14 @@ export class TasksService {
               await this.walletService.create(
                 joinedAuction.auction.userId,
                 walletData,
+                prisma,
               );
 
               // Transfer to the alletre wallet
               await this.walletService.addToAlletreWallet(
                 joinedAuction.userId,
                 alletreWalletData,
+                prisma,
               );
 
               // Update auction and joined auction statuses
