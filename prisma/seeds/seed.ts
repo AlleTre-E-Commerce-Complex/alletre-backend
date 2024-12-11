@@ -94,7 +94,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -144,7 +144,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -194,7 +194,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -258,7 +258,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -301,7 +301,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -350,7 +350,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -372,7 +372,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -394,7 +394,7 @@ async function main() {
                 {
                   key: 'brandId',
                   resKey: 'brand',
-                  type: 'array',
+                  type: 'text',
                   labelAr: 'ماركة',
                   labelEn: 'Brand',
                 },
@@ -737,7 +737,7 @@ async function main() {
           {
             key: 'brandId',
             resKey: 'brand',
-            type: 'array',
+            type: 'text',
             labelAr: 'ماركة',
             labelEn: 'Brand',
           },

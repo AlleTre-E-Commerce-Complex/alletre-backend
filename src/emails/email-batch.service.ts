@@ -83,33 +83,25 @@ export class EmailBatchService {
           View Auction Now!
         </a>
        <h3
-        style="
-          margin-top: 30px;
-          font-size: min(24px, 5vw);
-          font-weight: bold;
-          color: #a91d3a;
-        "
-      >
-     Ecommerce and Online Auctions: Revolutionizing the Digital 
-    Marketplace
-      </h3>
-      <p
-        style="
-          margin: 20px auto;
-          font-size: 16px;
-          line-height: 1.5;
-          max-width: 80%;
-        "
-      >
-    The world of ecommerce and online auctions has 
-significantly transformed the way people buy and sell goods 
-and services. As technology continues to evolve, both of these 
-models have shaped the digital economy, offering convenience, 
-access, and new opportunities for both consumers and sellers 
-alike. Let's dive deeper into how ecommerce and online 
-auctions work, their benefits, challenges, and how they continue 
-to shape the future of retail.
-      </p>
+  style="
+    margin-top: 30px;
+    font-size: min(20px, 4vw); /* Smaller size for mobile */
+    font-weight: bold;
+    color: #a91d3a;
+  "
+>
+  Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
+</h3>
+<p
+  style="
+    margin: 20px auto;
+    font-size: min(14px, 4vw); /* Adjust font size for mobile */
+    line-height: 1.4; /* Slightly tighter line height for mobile */
+    max-width: 90%; /* Ensure proper fit on smaller screens */
+  "
+>
+  The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
+</p>
 
       <div style="margin: 20px 0;">
         <!-- Instagram Icon -->
