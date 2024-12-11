@@ -37,6 +37,8 @@ model User {
   auctionComplaints         AuctionComplaints[]
   bankAccount               BankAccount[]
   withdrawalRequests        WithdrawalRequests[]
+  notifications             Notification[]
+  pushSubscriptions         PushSubscription[]
 }
 
 model SubscribedUser {
@@ -208,6 +210,15 @@ model Image {
   product   Product  @relation(fields: [productId], references: [id])
 }
 
+model PushSubscription {
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  subscription String // Store subscription as a string (JSON)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
 model Auction {
   id                           Int             @id @default(autoincrement())
   userId                       Int
@@ -369,6 +380,15 @@ model ComplaintImages {
   imageLink   String
   createdAt   DateTime @default(now())
   complaint   AuctionComplaints       @relation(fields: [complaintId], references: [id])
+}
+model Notification {
+  id              Int             @id @default(autoincrement())
+  userId          Int
+  auctionId       Int?
+  message         String          
+  html            String?         @db.Text
+  createdAt       DateTime        @default(now())
+  user            User            @relation(fields: [userId], references: [id])
 }
 
 enum ProblemStatus {

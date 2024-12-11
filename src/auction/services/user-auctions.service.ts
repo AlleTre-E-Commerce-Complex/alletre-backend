@@ -401,6 +401,7 @@ export class UserAuctionsService {
               await this.walletService.create(
                 highestBidderId,
                 highestBidderWalletData,
+                prisma,
               );
 
               //transfer to the  alletre wallet
@@ -408,6 +409,7 @@ export class UserAuctionsService {
               await this.walletService.addToAlletreWallet(
                 userId,
                 alletreWalletData,
+                prisma,
               );
 
               await prisma.auction.update({
@@ -2496,6 +2498,7 @@ export class UserAuctionsService {
           const walletCreationData = await this.walletService.create(
             auction.userId,
             walletData,
+            prisma,
           );
 
           //sending the full amount from alle tre wallet to seller wallet
@@ -2504,6 +2507,7 @@ export class UserAuctionsService {
             await this.walletService.addToAlletreWallet(
               auction.userId,
               walletDataToAlletre,
+              prisma,
             );
           const confirmDeliveryResult = await prisma.joinedAuction.update({
             where: { id: auctionWinner.id },

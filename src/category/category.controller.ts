@@ -79,6 +79,8 @@ export class CategoryController {
     @Query('categoryId') categoryId: number,
     @Query('subCategoryId') subCategoryId: number,
   ) {
+    console.log('categoryId***', categoryId);
+    console.log('subCategoryId***', subCategoryId);
     return {
       success: true,
       data: await this.categoryService.getCustomFields(

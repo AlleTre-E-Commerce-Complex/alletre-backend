@@ -12,7 +12,7 @@ async function sendBatchEmails(
 ) {
   const msg = {
     to: users,
-    from: 'alletre.auctions@gmail.com',
+    from: 'auctions@alletre.com',
     subject,
     text,
     html,
