@@ -764,7 +764,7 @@ export class UserAuctionsService {
         product: {
           include: {
             category: true,
-            // brand: true,
+            // // brand: true,
             subCategory: true,
             city: true,
             country: true,
@@ -3355,7 +3355,7 @@ export class UserAuctionsService {
       model,
       categoryId,
       subCategoryId,
-      brandId,
+      // brandId,
       description,
       usageStatus,
       color,
@@ -3377,6 +3377,7 @@ export class UserAuctionsService {
       cityId,
       isOffer,
       offerAmount,
+      brand,
     } = productBody;
 
     console.log('offer price :', offerAmount, 'isoffer:', isOffer);
@@ -3394,8 +3395,8 @@ export class UserAuctionsService {
       landType,
       model,
       isOffer,
+      brand,
     };
-
     let createdProduct: Product;
     try {
       createdProduct = await this.prismaService.product.create({
@@ -3405,7 +3406,6 @@ export class UserAuctionsService {
           description,
           ...(age ? { age: Number(age) } : {}),
           ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
-          ...(brandId ? { brandId: Number(brandId) } : {}),
           ...(screenSize ? { screenSize: Number(screenSize) } : {}),
           ...(ramSize ? { ramSize: Number(ramSize) } : {}),
           ...(totalArea ? { totalArea: Number(totalArea) } : {}),
@@ -3453,7 +3453,7 @@ export class UserAuctionsService {
       console.log(error);
 
       throw new MethodNotAllowedResponse({
-        ar: 'خطأ في عملية إضافة الم��تج',
+        ar: 'خطأ في عملية إضافة الم  تج',
         en: 'Something Went Wrong While Adding Your Product',
       });
     }
@@ -3467,7 +3467,7 @@ export class UserAuctionsService {
       model,
       categoryId,
       subCategoryId,
-      brandId,
+      brand,
       description,
       usageStatus,
       color,
@@ -3501,7 +3501,7 @@ export class UserAuctionsService {
           ...(subCategoryId
             ? { subCategoryId: Number(subCategoryId) }
             : { subCategoryId: null }),
-          ...(brandId ? { brandId: Number(brandId) } : { brandId: null }),
+          ...(brand ? { brand } : { brand: null }),
           ...(screenSize
             ? { screenSize: Number(screenSize) }
             : { screenSize: null }),
