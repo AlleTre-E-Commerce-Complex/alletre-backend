@@ -27,9 +27,8 @@ export class ProductDTO {
   categoryId: number;
 
   @IsOptional()
-  @Transform(({ value }): number => parseInt(value))
-  @IsNumber()
-  brandId: number;
+  @IsString()
+  brand: string;
 
   @IsNotEmpty()
   @IsString()
