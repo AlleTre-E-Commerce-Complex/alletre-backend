@@ -764,7 +764,7 @@ export class UserAuctionsService {
         product: {
           include: {
             category: true,
-            brand: true,
+            // brand: true,
             subCategory: true,
             city: true,
             country: true,
@@ -832,7 +832,7 @@ export class UserAuctionsService {
         product: {
           include: {
             category: true,
-            brand: true,
+            // brand: true,
             subCategory: true,
             city: true,
             country: true,
@@ -1570,7 +1570,7 @@ export class UserAuctionsService {
         product: {
           include: {
             category: true,
-            brand: true,
+            // brand: true,
             subCategory: true,
             city: true,
             country: true,
@@ -1622,7 +1622,7 @@ export class UserAuctionsService {
         product: {
           include: {
             category: true,
-            brand: true,
+            // brand: true,
             subCategory: true,
             city: true,
             country: true,
@@ -2068,7 +2068,7 @@ export class UserAuctionsService {
             product: {
               include: {
                 category: true,
-                brand: true,
+                // brand: true,
                 subCategory: true,
                 city: true,
                 country: true,
@@ -3380,6 +3380,7 @@ export class UserAuctionsService {
     } = productBody;
 
     console.log('offer price :', offerAmount, 'isoffer:', isOffer);
+    console.log('productBody :', productBody);
     const nonNumericOptionalFields = {
       usageStatus,
       color,

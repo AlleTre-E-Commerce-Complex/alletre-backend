@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Worker } from 'worker_threads';
 import * as path from 'path';
-import * as webPush from 'web-push';
+import * as admin from 'firebase-admin';
 import { NotificationGateway } from './notifications.gateway';
 
 @Injectable()
@@ -11,44 +11,36 @@ export class NotificationsService {
     private prismaService: PrismaService,
     private notificationGateway: NotificationGateway,
   ) {
-    // Initialize VAPID keys
-    webPush.setVapidDetails(
-      'mailto:alletre.auctions@gmail.com', // Use your email here
-      process.env.VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY,
-    );
-  }
-
-  // Method for saving subscriptions to DB
-  async saveSubscription(userId: string, subscription: any) {
-    try {
-      // Save the subscription to the database
-      await this.prismaService.pushSubscription.create({
-        data: {
-          userId: Number(userId),
-          subscription: JSON.stringify(subscription),
-        },
+    // Initialize Firebase Admin
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
       });
-      console.log('Saved subscription for user:', userId);
-    } catch (error) {
-      console.log('Error saving subscription:', error);
-      throw new InternalServerErrorException('Failed to save subscription');
     }
   }
 
-  // // Method for sending notifications to a single user
-  // async sendNotificationToUser(subscription: any, notification: any) {
-  //   try {
-  //     // Send the push notification to the user
-  //     const payload = JSON.stringify(notification);
-  //     await webPush.sendNotification(subscription, payload);
-  //     console.log('Notification sent to user');
-  //   } catch (error) {
-  //     console.log('Error sending notification:', error);
-  //     throw new InternalServerErrorException('Failed to send notification');
-  //   }
-  // }
-  // Method for sending notifications to all users
+  // Save FCM token
+  async saveFCMToken(userId: string, fcmToken: string) {
+    try {
+      await this.prismaService.pushSubscription.upsert({
+        where: { userId: Number(userId) },
+        update: { fcmToken },
+        create: {
+          userId: Number(userId),
+          fcmToken,
+        },
+      });
+      console.log('Saved FCM token for user:', userId);
+    } catch (error) {
+      console.log('Error saving FCM token:', error);
+      throw new InternalServerErrorException('Failed to save FCM token');
+    }
+  }
+
   async sendNotificationsToAll(userId: string, notification: any) {
     try {
       console.log('Users to notify: ', userId);
@@ -83,29 +75,44 @@ export class NotificationsService {
     auctionId: number,
   ) {
     try {
-      console.log('sendNotifications : ', usersId, message);
       const batchSize = 100;
       const userBatches = this.chunkArray(usersId, batchSize);
+
       // Send real-time notifications to online users
       usersId.forEach((userId) => {
         const notification = { message, html, auctionId };
-        // this.emitNotification(userId, notification);
-        this.sendNotificationsToAll(userId, notification);
+        // Changed from sendNotificationsToAll to sendNotificationToUser
+        this.notificationGateway.sendNotificationToAll(notification);
       });
+
       const workers = [];
+      const results = [];
 
       for (const batch of userBatches) {
         const worker = new Worker(
           path.resolve(__dirname, 'notifications.worker.js'),
           {
-            workerData: { usersId: batch, message, html, auctionId },
+            workerData: {
+              usersId: batch,
+              message,
+              html,
+              auctionId,
+              // Add Firebase config to worker data
+              firebaseConfig: {
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY,
+              },
+            },
           },
         );
 
         worker.on('message', (result) => {
-          console.log('worker message : ', result);
+          results.push(result);
           if (result.success) {
-            console.log(`Batch sent successfully`);
+            console.log(
+              `Batch sent successfully: ${result.notifications.count} notifications`,
+            );
           } else {
             console.error(`Batch failed:`, result.error);
           }
@@ -113,6 +120,7 @@ export class NotificationsService {
 
         worker.on('error', (error) => {
           console.error('Worker error:', error);
+          results.push({ success: false, error });
         });
 
         workers.push(worker);
@@ -123,9 +131,33 @@ export class NotificationsService {
           (worker) => new Promise((resolve) => worker.on('exit', resolve)),
         ),
       );
+
+      return results;
     } catch (error) {
-      console.log('sendNotifications error : ', error);
+      console.error('sendNotifications error:', error);
+      throw new InternalServerErrorException('Failed to send notifications');
     }
+  }
+
+  async markNotificationsAsRead(userId: number, notificationIds: number[]) {
+    return this.prismaService.notification.updateMany({
+      where: {
+        id: { in: notificationIds },
+        userId: userId,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+  }
+
+  async getUnreadNotificationCount(userId: number) {
+    return this.prismaService.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    });
   }
 
   private chunkArray(array: string[], size: number): string[][] {
