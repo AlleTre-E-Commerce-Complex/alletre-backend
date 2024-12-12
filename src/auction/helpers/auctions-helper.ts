@@ -190,11 +190,11 @@ export class AuctionsHelper {
   }
 
   _reformatAuctionObject(userLang: string, auction: Auction) {
-    if (auction['product']['brand']) {
-      const brandName = auction['product']['brand']['name'];
-      delete auction['product']['brand'];
-      auction['product']['brand'] = brandName;
-    }
+    // if (auction['product']['brand']) {
+    //   const brandName = auction['product']['brand']['name'];
+    //   delete auction['product']['brand'];
+    //   auction['product']['brand'] = brandName;
+    // }
     if (auction['product']['city']) {
       const cityName =
         userLang === 'en'
