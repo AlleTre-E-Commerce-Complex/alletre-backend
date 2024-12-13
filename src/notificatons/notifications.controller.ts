@@ -5,6 +5,7 @@ import {
   Post,
   UseGuards,
   BadRequestException,
+  Put,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
@@ -62,7 +63,7 @@ export class NotificationsController {
   }
 
   // Add endpoint to mark notifications as read
-  @Post('/mark-read')
+  @Put('/mark-read')
   @UseGuards(AuthGuard)
   async markNotificationsAsRead(
     @Account() account: any,
@@ -92,7 +93,7 @@ export class NotificationsController {
       const count = await this.notificationsService.getUnreadNotificationCount(
         account.id,
       );
-
+      console.log('count : ', count);
       return {
         success: true,
         count,

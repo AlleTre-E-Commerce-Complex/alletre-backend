@@ -19,11 +19,11 @@ export class NotificationGateway
 
   handleConnection(client: any) {
     const userId = client.handshake.query.userId;
-    console.log(`Client connected: ${client.id} with userId: ${userId}`);
+    // console.log(`Client connected: ${client.id} with userId: ${userId}`);
   }
 
   handleDisconnect(client: any) {
-    console.log(`Client disconnected: ${client.id}`);
+    // console.log(`Client disconnected: ${client.id}`);
   }
 
   sendNotificationToAll(notification: any) {
