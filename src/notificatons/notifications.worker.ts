@@ -55,7 +55,7 @@ async function sendNotifications(
         },
         data: {
           auctionId: auctionId.toString(),
-          url: `/auction/${auctionId}`,
+          url: `/alletre/home/${auctionId}/details`,
           html,
         },
         android: {

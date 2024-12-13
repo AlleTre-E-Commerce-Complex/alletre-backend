@@ -52,13 +52,11 @@ export class NotificationsService {
 
   async getAllNotifications(userId: number) {
     try {
-      console.log('userId : ', userId);
       const notifications = await this.prismaService.notification.findMany({
         where: {
           userId,
         },
       });
-      console.log('notifications : ', notifications);
       return notifications;
     } catch (error) {
       console.log('getAllNotifications error : ', error);
@@ -140,9 +138,10 @@ export class NotificationsService {
   }
 
   async markNotificationsAsRead(userId: number, notificationIds: number[]) {
+    // console.log('notificationIds : ', notificationIds);
     return this.prismaService.notification.updateMany({
       where: {
-        id: { in: notificationIds },
+        // id: { in: notificationIds },
         userId: userId,
       },
       data: {
