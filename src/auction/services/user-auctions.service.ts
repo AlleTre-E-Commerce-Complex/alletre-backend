@@ -955,6 +955,11 @@ export class UserAuctionsService {
           },
         },
         _count: { select: { bids: true } },
+        bids: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       skip: skip,
       take: limit,
