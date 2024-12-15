@@ -78,6 +78,12 @@ export class WatchListService {
                 images: true,
               },
             },
+            bids: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
+            _count: { select: { bids: true } },
           },
         },
       },

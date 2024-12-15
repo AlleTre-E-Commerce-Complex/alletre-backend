@@ -522,7 +522,7 @@ export class TasksService {
             //sendEmailToHighestBidder
             const body = {
               subject: 'Auction Expired',
-              title: 'Your acution is Expired',
+              title: 'Your won the auction',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
               message: ` Hi, ${isHighestBidder_J_auctionUpdated.user.userName}, 
@@ -530,7 +530,7 @@ export class TasksService {
                       (Model:${isAcutionUpdated.product.model}). Please pay the full amount within 48 hours.
                       Otherwise, you will lose you security deposit.
                       If you would like to do another bid, Please click the button below. Thank you. `,
-              Button_text: 'Click here to create another Auction',
+              Button_text: 'Pay the full amount',
               Button_URL: process.env.FRONT_URL,
             };
             await this.emailService.sendEmail(
@@ -559,7 +559,7 @@ export class TasksService {
                     img: isAcutionUpdated.product.images[0].imageLink,
                     message: ` Hi, ${data.user.userName}, 
                         We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title}
-                       (Model:${isAcutionUpdated.product.model}). Thank you for choosing the Alle Tre for your Auction.
+                       (Model:${isAcutionUpdated.product.model}). Thank you for choosing the Alletre for your Auction.
                        If you would like to do another Bid, Please click the button below. Thank you. `,
                     Button_text: 'Click here to create another Auction',
                     Button_URL: process.env.FRONT_URL,
