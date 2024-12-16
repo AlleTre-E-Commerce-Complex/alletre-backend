@@ -1278,6 +1278,11 @@ export class UserAuctionsService {
           },
         },
         _count: { select: { bids: true } },
+        bids: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       // skip: skip,
@@ -1373,6 +1378,11 @@ export class UserAuctionsService {
           },
         },
         _count: { select: { bids: true } },
+        bids: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       take: 8,
     });
