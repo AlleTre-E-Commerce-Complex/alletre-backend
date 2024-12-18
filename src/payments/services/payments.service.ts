@@ -1903,8 +1903,8 @@ export class PaymentsService {
   }
 
   addHours(date: Date, hours: number) {
-    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
   }
