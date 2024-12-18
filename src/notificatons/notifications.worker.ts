@@ -50,7 +50,7 @@ async function sendNotifications(
       const fcmMessages = userTokens.map((userToken) => ({
         token: userToken.fcmToken,
         notification: {
-          title: 'New Notification',
+          title: 'New Notification---**---',
           body: message,
         },
         data: {

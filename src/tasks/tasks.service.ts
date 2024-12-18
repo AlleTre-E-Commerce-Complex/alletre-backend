@@ -13,6 +13,8 @@ import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
 import { EmailSerivce } from 'src/emails/email.service';
+import { NotificationsService } from 'src/notificatons/notifications.service';
+import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
@@ -29,6 +31,7 @@ export class TasksService {
     private walletService: WalletService,
     private emailService: EmailSerivce,
     private emailBatchService: EmailBatchService,
+    private notificationService: NotificationsService,
   ) {}
 
   /**
@@ -500,8 +503,15 @@ export class TasksService {
             };
           });
 
+          console.log('------->',
+            isAcutionUpdated,
+            isHighestBidder_J_auctionUpdated,
+            isLostBidders_J_auctionUpdated,
+          )
+
           if (isAcutionUpdated) {
             //sendEmailtoSeller
+            console.log('isAuctionUpdated');
             const body = {
               subject: 'Auction Expired',
               title: 'Your acution is Expired',
@@ -517,6 +527,37 @@ export class TasksService {
               EmailsType.OTHER,
               body,
             );
+
+            // create notification for seller
+            const isCreateNotificationToSeller =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: isAcutionUpdated.userId,
+                  message: `Mr. ${isAcutionUpdated.user.userName},We would like to inform you that your auction for ${isAcutionUpdated.product.title} (Model: ${isAcutionUpdated.product.model}) has expired.`,
+                  html: auctionCreationMessage(isAcutionUpdated),
+                  auctionId: isAcutionUpdated.id,
+                },
+              });
+            if (isCreateNotificationToSeller) {
+              // Send notification to seller when auction expire
+              const sellerUserId = isCreateNotificationToSeller.userId;
+
+              const notification = {
+                status: 'ON_AUCTION_EXPIRE_WITH_BIDDER',
+                userType: 'FOR_SELLER',
+                usersId: sellerUserId,
+                message: isCreateNotificationToSeller.message,
+                html: isCreateNotificationToSeller.html,
+                auctionId: isCreateNotificationToSeller.auctionId,
+              };
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
           }
           if (isHighestBidder_J_auctionUpdated) {
             //sendEmailToHighestBidder
@@ -539,6 +580,37 @@ export class TasksService {
               EmailsType.OTHER,
               body,
             );
+            // create notification for winner
+            const isCreateNotificationToWinner =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: isHighestBidder_J_auctionUpdated.userId,
+                  message: `Mr. ${isHighestBidder_J_auctionUpdated.user.userName}, Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title}
+                      (Model:${isAcutionUpdated.product.model}).`,
+                  html: auctionCreationMessage(isAcutionUpdated),
+                  auctionId: isAcutionUpdated.id,
+                },
+              });
+            if (isCreateNotificationToWinner) {
+              // Send notification to winner when auction expire
+              const sellerUserId = isCreateNotificationToWinner.userId;
+
+              const notification = {
+                status: 'ON_AUCTION_EXPIRE_WITH_BIDDER',
+                userType: 'FOR_WINNER',
+                usersId: sellerUserId,
+                message: isCreateNotificationToWinner.message,
+                html: isCreateNotificationToWinner.html,
+                auctionId: isCreateNotificationToWinner.auctionId,
+              };
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
           }
           if (isLostBidders_J_auctionUpdated) {
             //sendEmailToLostBidders
@@ -570,6 +642,39 @@ export class TasksService {
                     EmailsType.OTHER,
                     body,
                   );
+                  // create notification for winner
+                  const isCreateNotificationToLoser =
+                    await this.prismaService.notification.create({
+                      data: {
+                        userId: data.userId,
+                        message: `Mr. ${data.user.userName},We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title} (Model:${isAcutionUpdated.product.model}).`,
+                        html: auctionCreationMessage(isAcutionUpdated),
+                        auctionId: isAcutionUpdated.id,
+                      },
+                    });
+                  if (isCreateNotificationToLoser) {
+                    // Send notification to seller when auction expire
+                    const sellerUserId = isCreateNotificationToLoser.userId;
+
+                    const notification = {
+                      status: 'ON_AUCTION_EXPIRE_WITH_BIDDER',
+                      userType: 'FOR_LOSERS',
+                      usersId: sellerUserId,
+                      message: isCreateNotificationToLoser.message,
+                      html: isCreateNotificationToLoser.html,
+                      auctionId: isCreateNotificationToLoser.auctionId,
+                    };
+                    try {
+                      this.notificationService.sendNotificationToSpecificUsers(
+                        notification,
+                      );
+                    } catch (error) {
+                      console.log(
+                        'sendNotificationToSpecificUsers error',
+                        error,
+                      );
+                    }
+                  }
                 }),
               );
             }
@@ -715,6 +820,7 @@ export class TasksService {
         // Set auction to EXPIRED
         else {
           //if there are zero bidders
+
           const auctionExpairyData = await this.prismaService.auction.update({
             where: {
               id: auction.id,
@@ -730,6 +836,7 @@ export class TasksService {
               },
             },
           });
+          console.log('auction____', auctionExpairyData)
           if (auctionExpairyData) {
             //send email here
             const sellerPaymentData =
@@ -818,6 +925,35 @@ export class TasksService {
                 EmailsType.OTHER,
                 body,
               );
+            }
+            const auctionExpireNotificationData =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auctionExpairyData.userId,
+                  message: `Your ${auctionExpairyData.product.title} (Model: ${auctionExpairyData.product.model}) has been expired with Zero Bidderes.`,
+                  html: auctionCreationMessage(auctionExpairyData),
+                  auctionId: auction.id,
+                },
+              });
+            if (auctionExpireNotificationData) {
+              // Send notification to seller
+              console.log('auction____', auctionExpireNotificationData)
+              const sellerUserId = auctionExpireNotificationData.userId;
+              const notification = {
+                status: 'ON_AUCTION_EXPIRE_WITH_ZERO_BIDDER',
+                userType: 'FOR_SELLER',
+                usersId: sellerUserId,
+                message: auctionExpireNotificationData.message,
+                html: auctionExpireNotificationData.html,
+                auctionId: auctionExpireNotificationData.auctionId,
+              };
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
             }
           }
         }
