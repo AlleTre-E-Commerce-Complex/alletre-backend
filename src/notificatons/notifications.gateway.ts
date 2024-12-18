@@ -4,7 +4,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ cors: true })
 export class NotificationGateway
@@ -17,9 +17,9 @@ export class NotificationGateway
   private auctionRooms = new Map(); // Track which users are listening to each auction
   private registeredUsers = new Set(); // Set of all registered userIds
 
-  handleConnection(client: any) {
+  handleConnection(client: Socket) {
     const userId = client.handshake.query.userId;
-    // console.log(`Client connected: ${client.id} with userId: ${userId}`);
+    console.log(`Client connected: ${client.id} with userId: ${userId}`);
   }
 
   handleDisconnect(client: any) {
@@ -27,6 +27,8 @@ export class NotificationGateway
   }
 
   sendNotificationToAll(notification: any) {
+    console.log('sendNotificationToAll', notification);
+
     this.server.emit('notification', notification); // This sends to all connected clients
   }
 }

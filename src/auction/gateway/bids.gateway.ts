@@ -35,6 +35,8 @@ export class BidsWebSocketGateway
   }
   async handleConnection(socket: Socket, ...args: any[]) {
     const { auctionId } = socket.handshake.query;
+    // console.log(`auction connected: ${socket.id} with auctionId: ${auctionId}`);
+
     socket.join(String(auctionId));
 
     if (socket.handshake.headers['authorization']) {

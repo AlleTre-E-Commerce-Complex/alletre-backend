@@ -56,6 +56,9 @@ export class NotificationsService {
         where: {
           userId,
         },
+        orderBy: {
+          createdAt: 'asc',
+        },
       });
       return notifications;
     } catch (error) {
@@ -66,22 +69,94 @@ export class NotificationsService {
     }
   }
 
+  // async sendNotificationsToBidders(
+  //   joinedAuctionUsers: string[],
+  //   currentBidderMessage: string,
+  //   otherBiddersMessage: string,
+  //   html: string,
+  //   auctionId: number,
+  //   currentUserId: string,
+  // ) {
+  //   try {
+  //     //sending notification to current bidder
+  //     const notification = {
+  //       status: 'ON_BIDDING',
+  //       userType: 'CURRENT_BIDDER',
+  //       userId: currentUserId,
+  //       message: currentBidderMessage,
+  //       html,
+  //       auctionId,
+  //     };
+  //     await this.prismaService.notification.create({
+  //       data: {
+  //         userId: Number(currentUserId),
+  //         message: currentBidderMessage,
+  //         html,
+  //         auctionId,
+  //       },
+  //     });
+  //     this.notificationGateway.sendNotificationToAll(notification);
+  //     // this.sendNotificationToSpecificUsers(notification, currentUserId);
+  //     const isBidders = true;
+  //     await this.sendNotifications(
+  //       joinedAuctionUsers,
+  //       otherBiddersMessage,
+  //       html,
+  //       auctionId,
+  //       isBidders,
+  //     );
+  //   } catch (error) {
+  //     console.log('sendNotificationsToBidders error:', error);
+  //     throw new InternalServerErrorException('Failed to send notifications');
+  //   }
+  // }
+
+  async sendNotificationToSpecificUsers(notification: any) {
+    this.notificationGateway.sendNotificationToAll(notification);
+  }
+
   async sendNotifications(
     usersId: string[],
     message: string,
     html: string,
     auctionId: number,
+    isBidders?: boolean,
   ) {
     try {
       const batchSize = 100;
       const userBatches = this.chunkArray(usersId, batchSize);
 
-      // Send real-time notifications to online users
-      usersId.forEach((userId) => {
-        const notification = { message, html, auctionId };
-        // Changed from sendNotificationsToAll to sendNotificationToUser
+      // // Send real-time notifications to online users
+      // usersId.forEach((userId) => {
+      //   const notification = { message, html, auctionId };
+
+      //   // Changed from sendNotificationsToAll to sendNotificationToUser
+      //   this.notificationGateway.sendNotificationToAll(notification);
+      // });
+
+      if (isBidders) {
+        //here the usersId will be a set of array
+        const notification = {
+          status: 'ON_BIDDING',
+          userType: 'OTHER_BIDDERS',
+          usersId: usersId,
+          message: message,
+          html,
+          auctionId,
+        };
         this.notificationGateway.sendNotificationToAll(notification);
-      });
+      } else {
+        //here the usersId will be only one userId
+        const notification = {
+          status: 'ON_SELLING',
+          userType: 'ALL_USERS',
+          usersId: usersId,
+          message: message,
+          html,
+          auctionId,
+        };
+        this.notificationGateway.sendNotificationToAll(notification);
+      }
 
       const workers = [];
       const results = [];
@@ -201,6 +276,26 @@ export class NotificationsService {
         'Error while fetching user email address for bulk email:',
         error,
       );
+    }
+  }
+
+  async getAllJoinedAuctionUsers(auctionId: number, currentUserId: number) {
+    try {
+      const allJoinedUserIds = await this.prismaService.joinedAuction.findMany({
+        where: {
+          auctionId: auctionId,
+          userId: {
+            not: currentUserId, // Exclude the current user ID
+          },
+        },
+        select: {
+          userId: true, // Only select userId
+        },
+      });
+      return allJoinedUserIds.map((user) => user.userId.toString());
+    } catch (error) {
+      console.error('getAllJoinedAuctionUsers error:', error);
+      throw error; // Optionally rethrow the error
     }
   }
 }

@@ -1154,7 +1154,10 @@ export class PaymentsService {
           await this.prismaService.payment.findUnique({
             where: { paymentIntentId: paymentIntent.id },
             include: {
-              auction: { include: { product: { include: { images: true } } } },
+              auction: {
+                include: { product: { include: { images: true } }, user: true },
+              },
+              user: true,
             },
           });
 
@@ -1186,6 +1189,94 @@ export class PaymentsService {
                 },
               }),
             ]);
+
+            // create notification for seller
+            const isCreateNotificationToSeller =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auctionHoldPaymentTransaction.auction.user.id,
+                  message: `Mr. ${auctionHoldPaymentTransaction.user.userName} has been placed new bid on your auction ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
+                  html: auctionCreationMessage(
+                    auctionHoldPaymentTransaction.auction,
+                  ),
+                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                },
+              });
+
+            const isCreateNotificationToCurrentBidder =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auctionHoldPaymentTransaction.userId,
+                  message: `You have successfully placed a bid on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
+                  html: auctionCreationMessage(
+                    auctionHoldPaymentTransaction.auction,
+                  ),
+                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                },
+              });
+
+            if (isCreateNotificationToSeller) {
+              // Send notification to seller
+              const sellerUserId =
+                auctionHoldPaymentTransaction.auction.user.id;
+
+              const notification = {
+                status: 'ON_BIDDING',
+                userType: 'FOR_SELLER',
+                usersId: sellerUserId,
+                message: isCreateNotificationToSeller.message,
+                html: isCreateNotificationToSeller.html,
+                auctionId: isCreateNotificationToSeller.auctionId,
+              };
+              try {
+                this.notificationsService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
+
+            if (isCreateNotificationToCurrentBidder) {
+              try {
+                // Send notification to seller
+                const currentBidderId = auctionHoldPaymentTransaction.userId;
+
+                const notification = {
+                  status: 'ON_BIDDING',
+                  userType: 'CURRENT_BIDDER',
+                  usersId: currentBidderId,
+                  message: isCreateNotificationToCurrentBidder.message,
+                  html: isCreateNotificationToCurrentBidder.html,
+                  auctionId: isCreateNotificationToCurrentBidder.auctionId,
+                };
+                this.notificationsService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+
+                // Send notification other bidders
+                const currentUserId = auctionHoldPaymentTransaction.userId;
+                const joinedAuctionUsers =
+                  await this.notificationsService.getAllJoinedAuctionUsers(
+                    auctionHoldPaymentTransaction.auctionId,
+                    currentUserId,
+                  );
+                const html = auctionCreationMessage(
+                  auctionHoldPaymentTransaction.auction,
+                );
+                const otherBidderMessage = `${auctionHoldPaymentTransaction.user.userName} has placed a bid (AED ${paymentIntent.metadata.bidAmount}) on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`;
+                const isBidders = true;
+                await this.notificationsService.sendNotifications(
+                  joinedAuctionUsers,
+                  otherBidderMessage,
+                  html,
+                  auctionHoldPaymentTransaction.auctionId,
+                  isBidders,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
 
             break;
           case PaymentType.SELLER_DEPOSIT:
@@ -1221,11 +1312,13 @@ export class PaymentsService {
               auctionHoldPaymentTransaction.auction,
             );
             const message = 'New Auction has been published.';
+            const isBidders = false;
             await this.notificationsService.sendNotifications(
               usersId,
               message,
               html,
               auctionHoldPaymentTransaction.auctionId,
+              isBidders,
             );
             break;
           default:
@@ -1810,8 +1903,8 @@ export class PaymentsService {
   }
 
   addHours(date: Date, hours: number) {
-    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    // const newDate = new Date(date.getTime() + 3 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
   }
