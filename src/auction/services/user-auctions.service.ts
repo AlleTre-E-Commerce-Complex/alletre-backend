@@ -1237,7 +1237,11 @@ export class UserAuctionsService {
 
     const auctions = await this.prismaService.auction.findMany({
       where: {
-        status: AuctionStatus.EXPIRED,
+        status: {
+          not: {
+            in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+          },
+        },
       },
       select: {
         id: true,
@@ -1599,7 +1603,7 @@ export class UserAuctionsService {
         _count: { select: { bids: true } },
       },
     });
-
+    
     if (!auction)
       throw new NotFoundResponse({
         ar: 'لا يوجد هذا الاعلان',
