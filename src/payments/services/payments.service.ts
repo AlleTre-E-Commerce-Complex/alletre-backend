@@ -23,6 +23,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -1189,7 +1190,59 @@ export class PaymentsService {
                 },
               }),
             ]);
+            const joinedBidders = await this.prismaService.bids.findMany({
+              where: {
+                auctionId: auctionHoldPaymentTransaction.auctionId,
+              },
+              include: {
+                user: true,
+                auction: {
+                  include: {
+                    product: { include: { images: true } },
+                    user: true,
+                  },
+                },
+              },
+              orderBy: {
+                id: 'desc',
+              },
+            });
+            const emailBodyToSecondLastBidder = {
+              subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
+              title: 'Your Bid Just Got Beaten!',
+              Product_Name: auctionHoldPaymentTransaction.auction.product.title,
+              img: auctionHoldPaymentTransaction.auction.product.images[0]
+                .imageLink,
+              message: `Hi, ${auctionHoldPaymentTransaction.user.userName}, 
+                        Exciting things are happening on ${
+                          auctionHoldPaymentTransaction.auction.product.title
+                        }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.
+                        Here’s the current standing:
+                        • Current Highest Bid: ${
+                          joinedBidders.length > 1
+                            ? joinedBidders[0].amount
+                            : 'No bids yet'
+                        }
+                        • Your Last Bid: ${joinedBidders[1]?.amount}  
+                        Don’t miss your chance to claim this one-of-a-kind auction item. The clock is ticking, and every second counts!
+                        Reclaim Your Spot as the Top Bidder Now!
+                        Stay ahead of the competition and secure your win!
+                        Good luck,
+                        The Alletre Team`,
+              Button_text: 'View Auction',
+              Button_URL: process.env.FRONT_URL,
+            };
 
+            console.log('joinedBidders1111111111111', joinedBidders);
+            if (joinedBidders[1]) {
+              console.log('joinedBidders222222', joinedBidders[1]);
+              this.emailService.sendEmail(
+                joinedBidders[1].user.email,
+                'token',
+                EmailsType.OTHER,
+                emailBodyToSecondLastBidder,
+              );
+            }
             // create notification for seller
             const isCreateNotificationToSeller =
               await this.prismaService.notification.create({

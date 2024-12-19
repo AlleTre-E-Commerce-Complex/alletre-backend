@@ -1603,7 +1603,7 @@ export class UserAuctionsService {
         _count: { select: { bids: true } },
       },
     });
-    
+
     if (!auction)
       throw new NotFoundResponse({
         ar: 'لا يوجد هذا الاعلان',
@@ -2340,6 +2340,11 @@ export class UserAuctionsService {
         },
         Payment: { select: { createdAt: true, type: true } },
         _count: { select: { bids: true } },
+        bids: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       skip: skip,
       take: limit,
