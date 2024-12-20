@@ -1,170 +1,82 @@
-import * as path from 'path';
-const PdfPrinter = require('pdfmake');
-
-// Define fonts
-const fonts = {
-  Roboto: {
-    normal: path.join(
-      __dirname,
-      '../../node_modules/pdfmake/build/vfs_fonts.js',
-    ),
-    bold: path.join(__dirname, '../../node_modules/pdfmake/build/vfs_fonts.js'),
-    italics: path.join(
-      __dirname,
-      '../../node_modules/pdfmake/build/vfs_fonts.js',
-    ),
-    bolditalics: path.join(
-      __dirname,
-      '../../node_modules/pdfmake/build/vfs_fonts.js',
-    ),
-  },
-};
-
-// Create the printer
-const printer = new PdfPrinter(fonts);
+import puppeteer from 'puppeteer';
 
 export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
-  console.log('invoiceData ===>', invoiceData);
-  const docDefinition = {
-    content: [
-      {
-        columns: [
-          {
-            image:
-              'https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/1.png?alt=media&token=3d538116-bf6d-45d9-83e0-7f0076c43077',
-            width: 70,
-            margin: [0, 0, 0, 10],
-          },
-          {
-            text: 'Alletre Ecommerce Complex',
-            style: 'header',
-            margin: [10, 10, 0, 0],
-          },
-        ],
-      },
-      {
-        text: 'Authorized Invoice',
-        style: 'subheader',
-      },
-      {
-        text: `Date: ${new Date().toLocaleDateString()}`,
-        alignment: 'right',
-        margin: [0, 0, 0, 15],
-      },
-      {
-        columns: [
-          {
-            width: '*',
-            stack: [
-              {
-                text: `Seller Name: ${
-                  invoiceData?.auction?.user?.userName || 'N/A'
-                }`,
-              },
-              {
-                text: `Seller Email: ${
-                  invoiceData?.auction?.user?.email || 'N/A'
-                }`,
-              },
-            ],
-            margin: [0, 0, 0, 15],
-          },
-        ],
-      },
-      {
-        text: 'Auction Details',
-        style: 'tableHeader',
-        margin: [0, 20, 0, 8],
-      },
-      {
-        table: {
-          headerRows: 1,
-          widths: ['auto', '*', 'auto'],
-          body: [
-            [
-              { text: 'Index', style: 'tableCell' },
-              { text: 'Product Name', style: 'tableCell' },
-              { text: 'Auction Price (AED)', style: 'tableCell' },
-            ],
-            [
-              '1',
-              invoiceData?.auction?.product?.title || 'N/A',
-              invoiceData?.amount || 'N/A',
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: (i) => 1,
-          vLineWidth: (i) => 1,
-          hLineColor: (i) => '#E5E7EB',
-          vLineColor: (i) => '#E5E7EB',
-          paddingLeft: (i) => 10,
-          paddingRight: (i) => 10,
-          paddingTop: (i) => 8,
-          paddingBottom: (i) => 8,
-        },
-      },
-      {
-        text: 'This is an authorized invoice from Alletre Ecommerce Complex. Thank you for your business!',
-        style: 'footer',
-        margin: [0, 30, 0, 20],
-      },
-      {
-        columns: [
-          { width: '*', text: '' },
-          {
-            width: 'auto',
-            stack: [
-              { text: '________________________', alignment: 'right' },
-              { text: 'Manager', alignment: 'right', margin: [0, 5] },
-            ],
-          },
-        ],
-      },
-    ],
-    styles: {
-      header: {
-        fontSize: 20,
-        bold: true,
-        margin: [0, 0, 0, 10],
-      },
-      subheader: {
-        fontSize: 16,
-        alignment: 'center',
-        margin: [0, 0, 0, 20],
-      },
-      tableHeader: {
-        bold: true,
-        fontSize: 14,
-        color: 'black',
-      },
-      tableCell: {
-        bold: true,
-        fontSize: 12,
-        fillColor: '#f8f9fa',
-      },
-      footer: {
-        fontSize: 12,
-        alignment: 'center',
-        color: '#666666',
-      },
-    },
-    defaultStyle: {
-      fontSize: 11,
-      lineHeight: 1.2,
-    },
-  };
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Invoice</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+        }
+        .header {
+          text-align: center;
+        }
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        .table th, .table td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
+        }
+        .table th {
+          background-color: #f4f4f4;
+          font-weight: bold;
+        }
+        .footer {
+          margin-top: 20px;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Alletre Ecommerce Complex</h1>
+        <h2>Authorized Invoice</h2>
+        <p>Date: ${new Date().toLocaleDateString()}</p>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Index</th>
+            <th>Product Name</th>
+            <th>Auction Price (AED)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>${invoiceData?.auction?.product?.title || 'N/A'}</td>
+            <td>${invoiceData?.amount || 'N/A'}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <p>This is an authorized invoice from Alletre Ecommerce Complex. Thank you for your business!</p>
+      </div>
+    </body>
+    </html>
+  `;
 
-  return new Promise((resolve, reject) => {
-    try {
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-      const chunks: any[] = [];
+  try {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-      pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
-      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-      pdfDoc.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+    const pdfBuffer: Uint8Array = await page.pdf({ format: 'A4' });
+
+    await browser.close();
+    // Cast the Uint8Array to a Buffer and return it
+    return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
 };

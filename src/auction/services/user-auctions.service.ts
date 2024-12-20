@@ -41,6 +41,8 @@ import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { EmailSerivce } from 'src/emails/email.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
+import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+import { NotificationsService } from 'src/notificatons/notifications.service';
 
 @Injectable()
 export class UserAuctionsService {
@@ -55,6 +57,7 @@ export class UserAuctionsService {
     private paymentService: PaymentsService,
     private auctionStatusValidator: AuctionStatusValidator,
     private emailService: EmailSerivce,
+    private notificationService: NotificationsService,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -225,6 +228,36 @@ export class UserAuctionsService {
             body,
           );
 
+          //create notification to seller
+          const auctionCancelNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: auction.user.id,
+                message: `Your auction ${auction.product.title} (Model: ${auction.product.model}) has been successfully cancelled. You have lost your security deposit due to there are bidders on your auction.`,
+                html: auctionCreationMessage(auction),
+                auctionId: auction.id,
+              },
+            });
+          if (auctionCancelNotificationData) {
+            // Send notification to seller
+            console.log('auction____', auctionCancelNotificationData);
+            const sellerUserId = auctionCancelNotificationData.userId;
+            const notification = {
+              status: 'ON_AUCTION_CANCELLED_WITH_BIDDER',
+              userType: 'FOR_SELLER',
+              usersId: sellerUserId,
+              message: auctionCancelNotificationData.message,
+              html: auctionCancelNotificationData.html,
+              auctionId: auctionCancelNotificationData.auctionId,
+            };
+            try {
+              this.notificationService.sendNotificationToSpecificUsers(
+                notification,
+              );
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
           //here we need to send messages to all bidders that this auction is cancelled by the seller.
           const BiddersPaymentData = await this.prismaService.payment.findMany({
             where: { auctionId, type: 'BIDDER_DEPOSIT' },
@@ -260,11 +293,19 @@ export class UserAuctionsService {
                               data?.user.id === highestBidderId
                                 ? 'And also you will get a compansation to your wallet due to you are the highest Bidder.'
                                 : ''
-                            }. 
-                          If you would like to do another auction, 
-                          Please click the button below. Thank you. `,
+                            }.`,
               Button_text: 'Click here to create another Auction',
               Button_URL: process.env.FRONT_URL,
+            };
+            //send notification to bidders
+            const notificationForBidders = {
+              status: 'ON_AUCTION_CANCELLED_WITH_BIDDER',
+              userType:
+                data.userId === highestBidderId ? 'FOR_WINNER' : 'FOR_LOSERS',
+              usersId: data.userId,
+              message: body.message,
+              html: auctionCreationMessage(auction),
+              auctionId: auction.id,
             };
             if (auction.status === 'ACTIVE') {
               console.log('Auction cancellation with bidders BEFORE expiry');
@@ -332,6 +373,24 @@ export class UserAuctionsService {
                   EmailsType.OTHER,
                   body,
                 );
+                try {
+                  const isCreateNotificationToBidders =
+                    await this.prismaService.notification.create({
+                      data: {
+                        userId: data.userId,
+                        message: notificationForBidders.message,
+                        html: notificationForBidders.html,
+                        auctionId: notificationForBidders.auctionId,
+                      },
+                    });
+                  if (isCreateNotificationToBidders) {
+                    this.notificationService.sendNotificationToSpecificUsers(
+                      notificationForBidders,
+                    );
+                  }
+                } catch (error) {
+                  console.log('sendNotificationToSpecificUsers error', error);
+                }
               }
             } else if (
               auction.status === 'WAITING_FOR_PAYMENT' &&
@@ -345,6 +404,25 @@ export class UserAuctionsService {
                 EmailsType.OTHER,
                 body,
               );
+              //send notification to bidders
+              try {
+                const isCreateNotificationToBidders =
+                  await this.prismaService.notification.create({
+                    data: {
+                      userId: data.userId,
+                      message: notificationForBidders.message,
+                      html: notificationForBidders.html,
+                      auctionId: notificationForBidders.auctionId,
+                    },
+                  });
+                if (isCreateNotificationToBidders) {
+                  this.notificationService.sendNotificationToSpecificUsers(
+                    notificationForBidders,
+                  );
+                }
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
             }
           });
 
@@ -616,6 +694,35 @@ export class UserAuctionsService {
               EmailsType.OTHER,
               body,
             );
+            const auctionCancelNotificationData =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: updatedDataOfCancellAuction.user.id,
+                  message: `Your auction ${updatedDataOfCancellAuction.product.title} (Model: ${updatedDataOfCancellAuction.product.model}) has been cancelled with Zero Bidderes.`,
+                  html: auctionCreationMessage(updatedDataOfCancellAuction),
+                  auctionId: updatedDataOfCancellAuction.id,
+                },
+              });
+            if (auctionCancelNotificationData) {
+              // Send notification to seller
+              console.log('auction____', auctionCancelNotificationData);
+              const sellerUserId = auctionCancelNotificationData.userId;
+              const notification = {
+                status: 'ON_AUCTION_CANCELLED_WITH_ZERO_BIDDER',
+                userType: 'FOR_SELLER',
+                usersId: sellerUserId,
+                message: auctionCancelNotificationData.message,
+                html: auctionCancelNotificationData.html,
+                auctionId: auctionCancelNotificationData.auctionId,
+              };
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
           }
           return {
             success: true,

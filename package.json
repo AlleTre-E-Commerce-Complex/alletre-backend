@@ -52,15 +52,17 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdfkit": "^0.15.1",
-    "pdfmake": "^0.2.15",
+    "pdfmake": "^0.2.16",
     "pino-http": "^8.3.3",
     "pino-pretty": "^9.4.0",
+    "puppeteer": "^23.11.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
     "socket.io": "^4.6.1",
     "stripe": "^12.6.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "wkhtmltopdf": "^0.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",

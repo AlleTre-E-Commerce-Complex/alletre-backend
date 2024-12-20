@@ -503,11 +503,12 @@ export class TasksService {
             };
           });
 
-          console.log('------->',
+          console.log(
+            '------->',
             isAcutionUpdated,
             isHighestBidder_J_auctionUpdated,
             isLostBidders_J_auctionUpdated,
-          )
+          );
 
           if (isAcutionUpdated) {
             //sendEmailtoSeller
@@ -836,7 +837,7 @@ export class TasksService {
               },
             },
           });
-          console.log('auction____', auctionExpairyData)
+          console.log('auction____', auctionExpairyData);
           if (auctionExpairyData) {
             //send email here
             const sellerPaymentData =
@@ -937,7 +938,7 @@ export class TasksService {
               });
             if (auctionExpireNotificationData) {
               // Send notification to seller
-              console.log('auction____', auctionExpireNotificationData)
+              console.log('auction____', auctionExpireNotificationData);
               const sellerUserId = auctionExpireNotificationData.userId;
               const notification = {
                 status: 'ON_AUCTION_EXPIRE_WITH_ZERO_BIDDER',

@@ -12,9 +12,17 @@ import { AuctionStatusValidator } from './validations/auction-validator';
 import { WalletService } from 'src/wallet/wallet.service';
 import { StripeService } from 'src/common/services/stripe.service';
 import { EmailSerivce } from 'src/emails/email.service';
+import { NotificationsService } from 'src/notificatons/notifications.service';
+import { NotificationsModule } from 'src/notificatons/notifications.module';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, AuthModule, PaymentsModule],
+  imports: [
+    PrismaModule,
+    FirebaseModule,
+    AuthModule,
+    PaymentsModule,
+    NotificationsModule,
+  ],
   providers: [
     UserAuctionsService,
     PaginationService,
@@ -24,6 +32,7 @@ import { EmailSerivce } from 'src/emails/email.service';
     WalletService,
     StripeService,
     EmailSerivce,
+    NotificationsService,
   ],
   controllers: [AuctionsController],
   exports: [UserAuctionsService],

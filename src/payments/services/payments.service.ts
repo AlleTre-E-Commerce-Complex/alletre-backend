@@ -391,6 +391,15 @@ export class PaymentsService {
                 isWalletPayment: true,
                 status: 'SUCCESS',
               },
+              include: {
+                auction: {
+                  include: {
+                    product: { include: { images: true } },
+                    user: true,
+                  },
+                },
+                user: true,
+              },
             });
 
             return { paymentData };
@@ -405,6 +414,86 @@ export class PaymentsService {
           }
         },
       );
+      // create notification for seller
+      const isCreateNotificationToSeller =
+        await this.prismaService.notification.create({
+          data: {
+            userId: user.id,
+            message: `Mr. ${paymentData.user.userName} has been placed new bid on your auction ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
+            html: auctionCreationMessage(paymentData.auction),
+            auctionId: paymentData.auctionId,
+          },
+        });
+
+      const isCreateNotificationToCurrentBidder =
+        await this.prismaService.notification.create({
+          data: {
+            userId: paymentData.userId,
+            message: `You have successfully placed a bid on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
+            html: auctionCreationMessage(paymentData.auction),
+            auctionId: paymentData.auctionId,
+          },
+        });
+
+      if (isCreateNotificationToSeller) {
+        // Send notification to seller
+        const sellerUserId = paymentData.auction.user.id;
+
+        const notification = {
+          status: 'ON_BIDDING',
+          userType: 'FOR_SELLER',
+          usersId: sellerUserId,
+          message: isCreateNotificationToSeller.message,
+          html: isCreateNotificationToSeller.html,
+          auctionId: isCreateNotificationToSeller.auctionId,
+        };
+        try {
+          this.notificationsService.sendNotificationToSpecificUsers(
+            notification,
+          );
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+      }
+
+      if (isCreateNotificationToCurrentBidder) {
+        try {
+          // Send notification to current bidder
+          const currentBidderId = paymentData.userId;
+
+          const notification = {
+            status: 'ON_BIDDING',
+            userType: 'CURRENT_BIDDER',
+            usersId: currentBidderId,
+            message: isCreateNotificationToCurrentBidder.message,
+            html: isCreateNotificationToCurrentBidder.html,
+            auctionId: isCreateNotificationToCurrentBidder.auctionId,
+          };
+          this.notificationsService.sendNotificationToSpecificUsers(
+            notification,
+          );
+
+          // Send notification other bidders
+          const currentUserId = paymentData.userId;
+          const joinedAuctionUsers =
+            await this.notificationsService.getAllJoinedAuctionUsers(
+              paymentData.auctionId,
+              currentUserId,
+            );
+          const html = auctionCreationMessage(paymentData.auction);
+          const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${paymentData.amount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
+          const isBidders = true;
+          await this.notificationsService.sendNotifications(
+            joinedAuctionUsers,
+            otherBidderMessage,
+            html,
+            paymentData.auctionId,
+            isBidders,
+          );
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+      }
       console.log('test of wallet pay of bidder deposite 4');
       return paymentData;
     } catch (error) {
@@ -623,6 +712,15 @@ export class PaymentsService {
                 isWalletPayment: true,
                 status: 'SUCCESS',
               },
+              include: {
+                user: true,
+                auction: {
+                  include: {
+                    user: true,
+                    product: { include: { images: true } },
+                  },
+                },
+              },
             });
 
             console.log(
@@ -641,6 +739,110 @@ export class PaymentsService {
           }
         },
       );
+      if (paymentData) {
+        //send an email to the buyer
+        const emailBodyToBuyer = {
+          subject: 'Congratulations on Your Purchase - Auction Concluded!',
+          title: 'Purchase Successful',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          message: `Hi ${paymentData.user.userName}, 
+                        Congratulations! You have successfully purchased the ${paymentData.auction.product.title} 
+                        (Model: ${paymentData.auction.product.model}) . 
+                        The item is now yours, and we are excited to finalize the process for you.
+                        The seller has been notified and will begin preparing the item for delivery. 
+                        If you have any questions, feel free to reach out to us. 
+                        Thank you for your purchase, and we hope you enjoy your new product!`,
+          Button_text: 'View Your Purchase',
+          Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
+        };
+        //send notification to the winner
+        const notificationBodyToWinner = {
+          status: 'ON_AUCTION_PURCHASE_SUCCESS',
+          userType: 'FOR_WINNER',
+          usersId: joinedAuction.userId,
+          message: emailBodyToBuyer.message,
+          html: auctionCreationMessage(paymentData.auction),
+          auctionId: paymentData.auctionId,
+        };
+        //send email to the seller
+        const emailBodyToSeller = {
+          subject: 'Payment successful',
+          title: 'Your auction winner has paid the full amount',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          message: ` Hi, ${paymentData.auction.user.userName}, 
+                    The winner of your Auction of ${paymentData.auction.product.title}
+                   (Model:${paymentData.auction.product.model}) has been paid the full amount. 
+                   We would like to let you know that you can hand over the item to the winner. once the winner
+                   confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
+                   there is a chance to lose your security deposite.`,
+          Button_text: 'Click here to create another Auction',
+          Button_URL: process.env.FRONT_URL,
+        };
+        //send notification to the seller
+        const notificationBodyToSeller = {
+          status: 'ON_AUCTION_PURCHASE_SUCCESS',
+          userType: 'FOR_SELLER',
+          usersId: paymentData.auction.user.id,
+          message: emailBodyToSeller.message,
+          html: auctionCreationMessage(paymentData.auction),
+          auctionId: paymentData.auctionId,
+        };
+
+        await Promise.all([
+          this.emailService.sendEmail(
+            paymentData.auction.user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToSeller,
+          ),
+          this.emailService.sendEmail(
+            joinedAuction.user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToBuyer,
+          ),
+        ]);
+        //send notification to the seller
+        try {
+          const isCreateNotificationToSeller =
+            await this.prismaService.notification.create({
+              data: {
+                userId: paymentData.auction.user.id,
+                message: notificationBodyToSeller.message,
+                html: notificationBodyToSeller.html,
+                auctionId: notificationBodyToSeller.auctionId,
+              },
+            });
+          if (isCreateNotificationToSeller) {
+            this.notificationsService.sendNotificationToSpecificUsers(
+              notificationBodyToSeller,
+            );
+          }
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+        //send notification to the winner
+        try {
+          const isCreateNotificationToWinner =
+            await this.prismaService.notification.create({
+              data: {
+                userId: joinedAuction.userId,
+                message: notificationBodyToWinner.message,
+                html: notificationBodyToWinner.html,
+                auctionId: notificationBodyToWinner.auctionId,
+              },
+            });
+          if (isCreateNotificationToWinner) {
+            this.notificationsService.sendNotificationToSpecificUsers(
+              notificationBodyToWinner,
+            );
+          }
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+      }
       return paymentData;
     } catch (error) {
       console.log('wallet pay deposit error at prisma.$transaction() :', error);
@@ -1292,7 +1494,7 @@ export class PaymentsService {
 
             if (isCreateNotificationToCurrentBidder) {
               try {
-                // Send notification to seller
+                // Send notification to current bidder
                 const currentBidderId = auctionHoldPaymentTransaction.userId;
 
                 const notification = {
@@ -1436,7 +1638,7 @@ export class PaymentsService {
 
           case PaymentType.AUCTION_PURCHASE:
             console.log('Webhook AUCTION_PURCHASE ...');
-
+            console.log('purchase test1');
             const joinedAuction =
               await this.prismaService.joinedAuction.findFirst({
                 where: {
@@ -1447,7 +1649,7 @@ export class PaymentsService {
                   user: true,
                 },
               });
-
+            console.log('purchase test2');
             const { paymentSuccessData } =
               await this.prismaService.$transaction(async (prisma) => {
                 // Update payment transaction
@@ -1479,7 +1681,9 @@ export class PaymentsService {
                 });
                 return { paymentSuccessData };
               });
+            console.log('purchase test3');
             if (paymentSuccessData) {
+              console.log('purchase test4');
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
               const alletreWalletData = {
@@ -1508,12 +1712,24 @@ export class PaymentsService {
                          (Model:${paymentSuccessData.auction.product.model}) has been paid the full amount. 
                          We would like to let you know that you can hand over the item to the winner. once the winner
                          confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
-                         there is a chance to lose your security deposite.
-                         If you would like to participate another auction, Please click the button below. Thank you. `,
+                         there is a chance to lose your security deposite.`,
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
               };
+              //send notification to the seller
+              const notificationBodyToSeller = {
+                status: 'ON_AUCTION_PURCHASE_SUCCESS',
+                userType: 'FOR_SELLER',
+                usersId: paymentSuccessData.auction.user.id,
+                message: emailBodyToSeller.message,
+                html: auctionCreationMessage(paymentSuccessData.auction),
+                auctionId: paymentSuccessData.auctionId,
+              };
+              console.log('purchase test5');
               const invoicePDF = await generateInvoicePDF(paymentSuccessData);
+              console.log('purchase test5 2');
+
+              //create  email body to the winner
               const emailBodyToWinner = {
                 subject: 'Payment successful',
                 title: 'Payment successful',
@@ -1523,12 +1739,21 @@ export class PaymentsService {
                           You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
                          (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
                          by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
-                          We would like to thank you and appreciate you for choosing Alle Tre.  
-                          If you would like to participate another auction, Please click the button below. Thank you. `,
+                          We would like to thank you and appreciate you for choosing Alle Tre.`,
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
-                attachment: invoicePDF,
+                attachment: invoicePDF ? invoicePDF : '',
               };
+              //send notification to the winner
+              const notificationBodyToWinner = {
+                status: 'ON_AUCTION_PURCHASE_SUCCESS',
+                userType: 'FOR_WINNER',
+                usersId: joinedAuction.userId,
+                message: emailBodyToWinner.message,
+                html: auctionCreationMessage(paymentSuccessData.auction),
+                auctionId: paymentSuccessData.auctionId,
+              };
+              console.log('purchase test5 3');
               await Promise.all([
                 this.emailService.sendEmail(
                   paymentSuccessData.auction.user.email,
@@ -1543,7 +1768,49 @@ export class PaymentsService {
                   emailBodyToWinner,
                 ),
               ]);
+              console.log('purchase test5 4');
+
+              //send notification to the seller
+              try {
+                const isCreateNotificationToSeller =
+                  await this.prismaService.notification.create({
+                    data: {
+                      userId: paymentSuccessData.auction.user.id,
+                      message: notificationBodyToSeller.message,
+                      html: notificationBodyToSeller.html,
+                      auctionId: notificationBodyToSeller.auctionId,
+                    },
+                  });
+                if (isCreateNotificationToSeller) {
+                  this.notificationsService.sendNotificationToSpecificUsers(
+                    notificationBodyToSeller,
+                  );
+                }
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+              //send notification to the winner
+              console.log('purchase test6');
+              try {
+                const isCreateNotificationToWinner =
+                  await this.prismaService.notification.create({
+                    data: {
+                      userId: joinedAuction.userId,
+                      message: notificationBodyToWinner.message,
+                      html: notificationBodyToWinner.html,
+                      auctionId: notificationBodyToWinner.auctionId,
+                    },
+                  });
+                if (isCreateNotificationToWinner) {
+                  this.notificationsService.sendNotificationToSpecificUsers(
+                    notificationBodyToWinner,
+                  );
+                }
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
             }
+            console.log('purchase test7');
             break;
           case PaymentType.BUY_NOW_PURCHASE:
             console.log('Webhook BUY_NOW_PURCHASE ...');
@@ -1956,8 +2223,8 @@ export class PaymentsService {
   }
 
   addHours(date: Date, hours: number) {
-    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
   }
