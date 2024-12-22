@@ -234,7 +234,8 @@ export class UserAuctionsService {
               data: {
                 userId: auction.user.id,
                 message: `Your auction ${auction.product.title} (Model: ${auction.product.model}) has been successfully cancelled. You have lost your security deposit due to there are bidders on your auction.`,
-                html: auctionCreationMessage(auction),
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
                 auctionId: auction.id,
               },
             });
@@ -247,7 +248,8 @@ export class UserAuctionsService {
               userType: 'FOR_SELLER',
               usersId: sellerUserId,
               message: auctionCancelNotificationData.message,
-              html: auctionCancelNotificationData.html,
+              imageLink: auctionCancelNotificationData.imageLink,
+              productTitle: auctionCancelNotificationData.productTitle,
               auctionId: auctionCancelNotificationData.auctionId,
             };
             try {
@@ -304,7 +306,8 @@ export class UserAuctionsService {
                 data.userId === highestBidderId ? 'FOR_WINNER' : 'FOR_LOSERS',
               usersId: data.userId,
               message: body.message,
-              html: auctionCreationMessage(auction),
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
               auctionId: auction.id,
             };
             if (auction.status === 'ACTIVE') {
@@ -379,7 +382,8 @@ export class UserAuctionsService {
                       data: {
                         userId: data.userId,
                         message: notificationForBidders.message,
-                        html: notificationForBidders.html,
+                        imageLink: notificationForBidders.imageLink,
+                        productTitle: notificationForBidders.productTitle,
                         auctionId: notificationForBidders.auctionId,
                       },
                     });
@@ -411,7 +415,8 @@ export class UserAuctionsService {
                     data: {
                       userId: data.userId,
                       message: notificationForBidders.message,
-                      html: notificationForBidders.html,
+                      imageLink: notificationForBidders.imageLink,
+                      productTitle: notificationForBidders.productTitle,
                       auctionId: notificationForBidders.auctionId,
                     },
                   });
@@ -699,7 +704,9 @@ export class UserAuctionsService {
                 data: {
                   userId: updatedDataOfCancellAuction.user.id,
                   message: `Your auction ${updatedDataOfCancellAuction.product.title} (Model: ${updatedDataOfCancellAuction.product.model}) has been cancelled with Zero Bidderes.`,
-                  html: auctionCreationMessage(updatedDataOfCancellAuction),
+                  imageLink:
+                    updatedDataOfCancellAuction.product.images[0].imageLink,
+                  productTitle: updatedDataOfCancellAuction.product.title,
                   auctionId: updatedDataOfCancellAuction.id,
                 },
               });
@@ -712,7 +719,8 @@ export class UserAuctionsService {
                 userType: 'FOR_SELLER',
                 usersId: sellerUserId,
                 message: auctionCancelNotificationData.message,
-                html: auctionCancelNotificationData.html,
+                imageLink: auctionCancelNotificationData.imageLink,
+                productTitle: auctionCancelNotificationData.productTitle,
                 auctionId: auctionCancelNotificationData.auctionId,
               };
               try {
@@ -2687,6 +2695,63 @@ export class UserAuctionsService {
             Button_text: 'Click here to create another Auction',
             Button_URL: process.env.FRONT_URL,
           };
+          const auction = sellerPaymentData.auction;
+          const notificationBodyToSeller = {
+            status: 'ON_CONFIRM_DELIVERY',
+            userType: 'FOR_SELLER',
+            usersId: sellerPaymentData.userId,
+            message: emailBodyToSeller.message,
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
+            auctionId: sellerPaymentData.auctionId,
+          };
+          const notificationBodyToBidder = {
+            status: 'ON_CONFIRM_DELIVERY',
+            userType: 'FOR_WINNER',
+            usersId: confirmDeliveryResult.userId,
+            message: emailBodyToWinner.message,
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
+            auctionId: sellerPaymentData.auctionId,
+          };
+          const createSellerNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: sellerPaymentData.userId,
+                message: notificationBodyToSeller.message,
+                imageLink: notificationBodyToSeller.imageLink,
+                productTitle: notificationBodyToSeller.productTitle,
+                auctionId: sellerPaymentData.auctionId,
+              },
+            });
+          const createWinnerNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: confirmDeliveryResult.userId,
+                message: notificationBodyToBidder.message,
+                imageLink: notificationBodyToBidder.imageLink,
+                productTitle: notificationBodyToBidder.productTitle,
+                auctionId: notificationBodyToBidder.auctionId,
+              },
+            });
+          if (createSellerNotificationData) {
+            try {
+              this.notificationService.sendNotificationToSpecificUsers(
+                notificationBodyToSeller,
+              );
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
+          if (createWinnerNotificationData) {
+            try {
+              this.notificationService.sendNotificationToSpecificUsers(
+                notificationBodyToBidder,
+              );
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
           await Promise.all([
             this.emailService.sendEmail(
               sellerPaymentData.user.email,
@@ -2776,6 +2841,35 @@ export class UserAuctionsService {
           Button_text: 'Click here ',
           Button_URL: process.env.FRONT_URL,
         };
+        const auction = IsItemSend;
+        const notificationBodyToBidder = {
+          status: 'ON_ITEM_SEND_FOR_DELIVERY',
+          userType: 'FOR_WINNER',
+          usersId: highestBidder.id,
+          message: emailBodyToWinner.message,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
+          auctionId: IsItemSend.id,
+        };
+        const createWinnerNotificationData =
+          await this.prismaService.notification.create({
+            data: {
+              userId: highestBidder.id,
+              message: notificationBodyToBidder.message,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: notificationBodyToBidder.auctionId,
+            },
+          });
+        if (createWinnerNotificationData) {
+          try {
+            this.notificationService.sendNotificationToSpecificUsers(
+              notificationBodyToBidder,
+            );
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
+        }
         await this.emailService.sendEmail(
           highestBidder.email,
           'token',

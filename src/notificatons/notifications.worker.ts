@@ -5,7 +5,8 @@ import * as admin from 'firebase-admin';
 async function sendNotifications(
   users: string[],
   message: string,
-  html: string,
+  imageLink: string,
+  productTitle: string,
   auctionId: number,
   firebaseConfig: any,
 ) {
@@ -24,7 +25,8 @@ async function sendNotifications(
       data: users.map((usersId) => ({
         userId: Number(usersId),
         message,
-        html,
+        imageLink,
+        productTitle,
         auctionId,
       })),
     });
@@ -56,7 +58,8 @@ async function sendNotifications(
         data: {
           auctionId: auctionId.toString(),
           url: `/alletre/home/${auctionId}/details`,
-          html,
+          imageLink,
+          productTitle,
         },
         android: {
           priority: 'high',
@@ -115,7 +118,8 @@ async function sendNotifications(
 sendNotifications(
   workerData.usersId,
   workerData.message,
-  workerData.html,
+  workerData.imageLink,
+  workerData.productTitle,
   workerData.auctionId,
   workerData.firebaseConfig,
 );

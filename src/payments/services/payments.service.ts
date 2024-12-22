@@ -163,21 +163,25 @@ export class PaymentsService {
         const usersId = await this.notificationsService.getAllRegisteredUsers(
           user.id,
         );
+        const auction = paymentData.auction;
         await this.prismaService.notification.create({
           data: {
             userId: user.id,
             message:
               'Congratulations! Your auction has been successfully published.',
-            html: auctionCreationMessage(paymentData.auction),
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
             auctionId: paymentData.auctionId,
           },
         });
-        const html = auctionCreationMessage(paymentData.auction);
         const message = 'New Auction has been published.';
+        const imageLink = auction.product.images[0].imageLink;
+        const productTitle = auction.product.title;
         await this.notificationsService.sendNotifications(
           usersId,
           message,
-          html,
+          imageLink,
+          productTitle,
           paymentData.auctionId,
         );
       } else {
@@ -415,12 +419,14 @@ export class PaymentsService {
         },
       );
       // create notification for seller
+      const auction = paymentData.auction;
       const isCreateNotificationToSeller =
         await this.prismaService.notification.create({
           data: {
             userId: user.id,
             message: `Mr. ${paymentData.user.userName} has been placed new bid on your auction ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
-            html: auctionCreationMessage(paymentData.auction),
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
             auctionId: paymentData.auctionId,
           },
         });
@@ -430,7 +436,8 @@ export class PaymentsService {
           data: {
             userId: paymentData.userId,
             message: `You have successfully placed a bid on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
-            html: auctionCreationMessage(paymentData.auction),
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
             auctionId: paymentData.auctionId,
           },
         });
@@ -444,7 +451,8 @@ export class PaymentsService {
           userType: 'FOR_SELLER',
           usersId: sellerUserId,
           message: isCreateNotificationToSeller.message,
-          html: isCreateNotificationToSeller.html,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
           auctionId: isCreateNotificationToSeller.auctionId,
         };
         try {
@@ -466,7 +474,8 @@ export class PaymentsService {
             userType: 'CURRENT_BIDDER',
             usersId: currentBidderId,
             message: isCreateNotificationToCurrentBidder.message,
-            html: isCreateNotificationToCurrentBidder.html,
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
             auctionId: isCreateNotificationToCurrentBidder.auctionId,
           };
           this.notificationsService.sendNotificationToSpecificUsers(
@@ -480,13 +489,15 @@ export class PaymentsService {
               paymentData.auctionId,
               currentUserId,
             );
-          const html = auctionCreationMessage(paymentData.auction);
+          const imageLink = auction.product.images[0].imageLink;
+          const productTitle = auction.product.title;
           const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${paymentData.amount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
           const isBidders = true;
           await this.notificationsService.sendNotifications(
             joinedAuctionUsers,
             otherBidderMessage,
-            html,
+            imageLink,
+            productTitle,
             paymentData.auctionId,
             isBidders,
           );
@@ -757,12 +768,14 @@ export class PaymentsService {
           Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
         };
         //send notification to the winner
+        const auction = paymentData.auction;
         const notificationBodyToWinner = {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_WINNER',
           usersId: joinedAuction.userId,
           message: emailBodyToBuyer.message,
-          html: auctionCreationMessage(paymentData.auction),
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
         };
         //send email to the seller
@@ -786,7 +799,8 @@ export class PaymentsService {
           userType: 'FOR_SELLER',
           usersId: paymentData.auction.user.id,
           message: emailBodyToSeller.message,
-          html: auctionCreationMessage(paymentData.auction),
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
         };
 
@@ -811,7 +825,8 @@ export class PaymentsService {
               data: {
                 userId: paymentData.auction.user.id,
                 message: notificationBodyToSeller.message,
-                html: notificationBodyToSeller.html,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
                 auctionId: notificationBodyToSeller.auctionId,
               },
             });
@@ -830,7 +845,8 @@ export class PaymentsService {
               data: {
                 userId: joinedAuction.userId,
                 message: notificationBodyToWinner.message,
-                html: notificationBodyToWinner.html,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
                 auctionId: notificationBodyToWinner.auctionId,
               },
             });
@@ -1076,6 +1092,35 @@ export class PaymentsService {
           EmailsType.OTHER,
           emailBodyToBuyer,
         );
+        const auction = paymentData.auction;
+        const notificationBodyToBuyer = {
+          status: 'ON_ITEM_BUY_NOW',
+          userType: 'FOR_WINNER',
+          usersId: paymentData.userId,
+          message: emailBodyToBuyer.message,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
+          auctionId: paymentData.auctionId,
+        };
+        const createBuyerNotificationData =
+          await this.prismaService.notification.create({
+            data: {
+              userId: paymentData.userId,
+              message: notificationBodyToBuyer.message,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: paymentData.auctionId,
+            },
+          });
+        if (createBuyerNotificationData) {
+          try {
+            this.notificationsService.sendNotificationToSpecificUsers(
+              notificationBodyToBuyer,
+            );
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
+        }
 
         //check is there any bidders on this auction
         const auctionPaymentData = await this.prismaService.payment.findMany({
@@ -1172,6 +1217,35 @@ export class PaymentsService {
                   EmailsType.OTHER,
                   emailBodyToLostBidders,
                 );
+                const auction = payment.auction;
+                const notificationBodyToLosers = {
+                  status: 'ON_ITEM_BUY_NOW',
+                  userType: 'FOR_LOSERS',
+                  usersId: payment.userId,
+                  message: emailBodyToLostBidders.message,
+                  imageLink: auction.product.images[0].imageLink,
+                  productTitle: auction.product.title,
+                  auctionId: payment.auctionId,
+                };
+                const createLosersNotificationData =
+                  await this.prismaService.notification.create({
+                    data: {
+                      userId: payment.userId,
+                      message: notificationBodyToLosers.message,
+                      imageLink: auction.product.images[0].imageLink,
+                      productTitle: auction.product.title,
+                      auctionId: payment.auctionId,
+                    },
+                  });
+                if (createLosersNotificationData) {
+                  try {
+                    this.notificationsService.sendNotificationToSpecificUsers(
+                      notificationBodyToLosers,
+                    );
+                  } catch (error) {
+                    console.log('sendNotificationToSpecificUsers error', error);
+                  }
+                }
               }
             } else if (payment.type === 'SELLER_DEPOSIT') {
               //email to the seller
@@ -1250,6 +1324,35 @@ export class PaymentsService {
                 EmailsType.OTHER,
                 emailBodyToSeller,
               );
+              const auction = payment.auction;
+              const notificationBodyToSeller = {
+                status: 'ON_ITEM_BUY_NOW',
+                userType: 'FOR_SELLER',
+                usersId: payment.userId,
+                message: emailBodyToSeller.message,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
+                auctionId: payment.auctionId,
+              };
+              const createLosersNotificationData =
+                await this.prismaService.notification.create({
+                  data: {
+                    userId: payment.userId,
+                    message: notificationBodyToSeller.message,
+                    imageLink: auction.product.images[0].imageLink,
+                    productTitle: auction.product.title,
+                    auctionId: payment.auctionId,
+                  },
+                });
+              if (createLosersNotificationData) {
+                try {
+                  this.notificationsService.sendNotificationToSpecificUsers(
+                    notificationBodyToSeller,
+                  );
+                } catch (error) {
+                  console.log('sendNotificationToSpecificUsers error', error);
+                }
+              }
             }
           }),
         );
@@ -1446,14 +1549,14 @@ export class PaymentsService {
               );
             }
             // create notification for seller
+            const auction = auctionHoldPaymentTransaction.auction;
             const isCreateNotificationToSeller =
               await this.prismaService.notification.create({
                 data: {
                   userId: auctionHoldPaymentTransaction.auction.user.id,
                   message: `Mr. ${auctionHoldPaymentTransaction.user.userName} has been placed new bid on your auction ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
-                  html: auctionCreationMessage(
-                    auctionHoldPaymentTransaction.auction,
-                  ),
+                  imageLink: auction.product.images[0].imageLink,
+                  productTitle: auction.product.title,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
                 },
               });
@@ -1463,9 +1566,8 @@ export class PaymentsService {
                 data: {
                   userId: auctionHoldPaymentTransaction.userId,
                   message: `You have successfully placed a bid on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
-                  html: auctionCreationMessage(
-                    auctionHoldPaymentTransaction.auction,
-                  ),
+                  imageLink: auction.product.images[0].imageLink,
+                  productTitle: auction.product.title,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
                 },
               });
@@ -1480,7 +1582,8 @@ export class PaymentsService {
                 userType: 'FOR_SELLER',
                 usersId: sellerUserId,
                 message: isCreateNotificationToSeller.message,
-                html: isCreateNotificationToSeller.html,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
                 auctionId: isCreateNotificationToSeller.auctionId,
               };
               try {
@@ -1502,7 +1605,8 @@ export class PaymentsService {
                   userType: 'CURRENT_BIDDER',
                   usersId: currentBidderId,
                   message: isCreateNotificationToCurrentBidder.message,
-                  html: isCreateNotificationToCurrentBidder.html,
+                  imageLink: auction.product.images[0].imageLink,
+                  productTitle: auction.product.title,
                   auctionId: isCreateNotificationToCurrentBidder.auctionId,
                 };
                 this.notificationsService.sendNotificationToSpecificUsers(
@@ -1516,15 +1620,15 @@ export class PaymentsService {
                     auctionHoldPaymentTransaction.auctionId,
                     currentUserId,
                   );
-                const html = auctionCreationMessage(
-                  auctionHoldPaymentTransaction.auction,
-                );
+                const imageLink = auction.product.images[0].imageLink;
+                const productTitle = auction.product.title;
                 const otherBidderMessage = `${auctionHoldPaymentTransaction.user.userName} has placed a bid (AED ${paymentIntent.metadata.bidAmount}) on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`;
                 const isBidders = true;
                 await this.notificationsService.sendNotifications(
                   joinedAuctionUsers,
                   otherBidderMessage,
-                  html,
+                  imageLink,
+                  productTitle,
                   auctionHoldPaymentTransaction.auctionId,
                   isBidders,
                 );
@@ -1552,9 +1656,11 @@ export class PaymentsService {
                 userId: auctionHoldPaymentTransaction.userId,
                 message:
                   'Congratulations! Your auction has been successfully published.',
-                html: auctionCreationMessage(
-                  auctionHoldPaymentTransaction.auction,
-                ),
+                imageLink:
+                  auctionHoldPaymentTransaction.auction.product.images[0]
+                    .imageLink,
+                productTitle:
+                  auctionHoldPaymentTransaction.auction.product.title,
                 auctionId: auctionHoldPaymentTransaction.auctionId,
               },
             });
@@ -1563,15 +1669,17 @@ export class PaymentsService {
               await this.notificationsService.getAllRegisteredUsers(
                 currentUserId,
               );
-            const html = auctionCreationMessage(
-              auctionHoldPaymentTransaction.auction,
-            );
+            const imageLink =
+              auctionHoldPaymentTransaction.auction.product.images[0].imageLink;
+            const productTitle =
+              auctionHoldPaymentTransaction.auction.product.title;
             const message = 'New Auction has been published.';
             const isBidders = false;
             await this.notificationsService.sendNotifications(
               usersId,
               message,
-              html,
+              imageLink,
+              productTitle,
               auctionHoldPaymentTransaction.auctionId,
               isBidders,
             );
@@ -1722,7 +1830,9 @@ export class PaymentsService {
                 userType: 'FOR_SELLER',
                 usersId: paymentSuccessData.auction.user.id,
                 message: emailBodyToSeller.message,
-                html: auctionCreationMessage(paymentSuccessData.auction),
+                imageLink:
+                  paymentSuccessData.auction.product.images[0].imageLink,
+                productTitle: paymentSuccessData.auction.product.title,
                 auctionId: paymentSuccessData.auctionId,
               };
               console.log('purchase test5');
@@ -1750,7 +1860,9 @@ export class PaymentsService {
                 userType: 'FOR_WINNER',
                 usersId: joinedAuction.userId,
                 message: emailBodyToWinner.message,
-                html: auctionCreationMessage(paymentSuccessData.auction),
+                imageLink:
+                  paymentSuccessData.auction.product.images[0].imageLink,
+                productTitle: paymentSuccessData.auction.product.title,
                 auctionId: paymentSuccessData.auctionId,
               };
               console.log('purchase test5 3');
@@ -1777,7 +1889,8 @@ export class PaymentsService {
                     data: {
                       userId: paymentSuccessData.auction.user.id,
                       message: notificationBodyToSeller.message,
-                      html: notificationBodyToSeller.html,
+                      imageLink: notificationBodyToSeller.imageLink,
+                      productTitle: notificationBodyToSeller.productTitle,
                       auctionId: notificationBodyToSeller.auctionId,
                     },
                   });
@@ -1797,7 +1910,8 @@ export class PaymentsService {
                     data: {
                       userId: joinedAuction.userId,
                       message: notificationBodyToWinner.message,
-                      html: notificationBodyToWinner.html,
+                      imageLink: notificationBodyToWinner.imageLink,
+                      productTitle: notificationBodyToWinner.productTitle,
                       auctionId: notificationBodyToWinner.auctionId,
                     },
                   });
@@ -1917,6 +2031,34 @@ export class PaymentsService {
                 Button_text: 'View Your Purchase',
                 Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
               };
+              const notificationBodyToBuyer = {
+                status: 'ON_ITEM_BUY_NOW',
+                userType: 'FOR_WINNER',
+                usersId: isPaymentSuccess.userId,
+                message: emailBodyToBuyer.message,
+                imageLink: isPaymentSuccess.auction.product.images[0].imageLink,
+                productTitle: isPaymentSuccess.auction.product.title,
+                auctionId: isPaymentSuccess.auctionId,
+              };
+              const createBuyerNotificationData =
+                await this.prismaService.notification.create({
+                  data: {
+                    userId: isPaymentSuccess.userId,
+                    message: notificationBodyToBuyer.message,
+                    imageLink: notificationBodyToBuyer.imageLink,
+                    productTitle: notificationBodyToBuyer.productTitle,
+                    auctionId: isPaymentSuccess.auctionId,
+                  },
+                });
+              if (createBuyerNotificationData) {
+                try {
+                  this.notificationsService.sendNotificationToSpecificUsers(
+                    notificationBodyToBuyer,
+                  );
+                } catch (error) {
+                  console.log('sendNotificationToSpecificUsers error', error);
+                }
+              }
               await this.emailService.sendEmail(
                 isPaymentSuccess.user.email,
                 'token',
@@ -2028,6 +2170,37 @@ export class PaymentsService {
                         EmailsType.OTHER,
                         emailBodyToLostBidders,
                       );
+                      const notificationBodyToLosers = {
+                        status: 'ON_ITEM_BUY_NOW',
+                        userType: 'FOR_LOSERS',
+                        usersId: payment.userId,
+                        message: emailBodyToLostBidders.message,
+                        imageLink: payment.auction.product.images[0].imageLink,
+                        productTitle: payment.auction.product.title,
+                        auctionId: payment.auctionId,
+                      };
+                      const createLosersNotificationData =
+                        await this.prismaService.notification.create({
+                          data: {
+                            userId: payment.userId,
+                            message: notificationBodyToLosers.message,
+                            imageLink: notificationBodyToLosers.imageLink,
+                            productTitle: notificationBodyToLosers.productTitle,
+                            auctionId: payment.auctionId,
+                          },
+                        });
+                      if (createLosersNotificationData) {
+                        try {
+                          this.notificationsService.sendNotificationToSpecificUsers(
+                            notificationBodyToLosers,
+                          );
+                        } catch (error) {
+                          console.log(
+                            'sendNotificationToSpecificUsers error',
+                            error,
+                          );
+                        }
+                      }
                     }
                   } else if (payment.type === 'SELLER_DEPOSIT') {
                     //email to the seller
@@ -2106,6 +2279,38 @@ export class PaymentsService {
                       EmailsType.OTHER,
                       emailBodyToSeller,
                     );
+                    const notificationBodyToSeller = {
+                      status: 'ON_ITEM_BUY_NOW',
+                      userType: 'FOR_SELLER',
+                      usersId: payment.userId,
+                      message: emailBodyToSeller.message,
+                      imageLink:
+                        paymentSuccessData.auction.product.images[0].imageLink,
+                      productTitle: paymentSuccessData.auction.product.title,
+                      auctionId: payment.auctionId,
+                    };
+                    const createLosersNotificationData =
+                      await this.prismaService.notification.create({
+                        data: {
+                          userId: payment.userId,
+                          message: notificationBodyToSeller.message,
+                          imageLink: notificationBodyToSeller.imageLink,
+                          productTitle: notificationBodyToSeller.productTitle,
+                          auctionId: payment.auctionId,
+                        },
+                      });
+                    if (createLosersNotificationData) {
+                      try {
+                        this.notificationsService.sendNotificationToSpecificUsers(
+                          notificationBodyToSeller,
+                        );
+                      } catch (error) {
+                        console.log(
+                          'sendNotificationToSpecificUsers error',
+                          error,
+                        );
+                      }
+                    }
                   }
                 }),
               );
@@ -2223,8 +2428,8 @@ export class PaymentsService {
   }
 
   addHours(date: Date, hours: number) {
-    // const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
-    const newDate = new Date(date.getTime() + 6 * 60 * 1000);
+    const newDate = new Date(date.getTime() + hours * 60 * 60 * 1000);
+    // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
   }

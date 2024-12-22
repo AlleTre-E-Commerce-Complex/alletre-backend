@@ -384,16 +384,16 @@ model ComplaintImages {
 
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  message   String
-  html      String?
-  auctionId Int?
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id])
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  message          String
+  productTitle     String?
+  imageLink        String?
+  auctionId        Int?
+  isRead           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt @default(now())
+  user      User   @relation(fields: [userId], references: [id])
   @@index([userId])
 }
 
