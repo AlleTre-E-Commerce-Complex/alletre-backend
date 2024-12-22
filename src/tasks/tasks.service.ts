@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Body, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
 import {
   AuctionStatus,
@@ -67,6 +67,29 @@ export class TasksService {
       });
       if (updatedAuction) {
         await this.emailBatchService.sendBulkEmails(updatedAuction);
+        const usersId = await this.notificationService.getAllRegisteredUsers(
+          updatedAuction.userId,
+        );
+        await this.prismaService.notification.create({
+          data: {
+            userId: updatedAuction.userId,
+            message:
+              'Congratulations! Your auction has been successfully published.',
+            imageLink: updatedAuction.product.images[0].imageLink,
+            productTitle: updatedAuction.product.title,
+            auctionId: updatedAuction.id,
+          },
+        });
+        const imageLink = updatedAuction.product.images[0].imageLink;
+        const productTitle = updatedAuction.product.title;
+        const message = 'New Auction has been published.';
+        await this.notificationService.sendNotifications(
+          usersId,
+          message,
+          imageLink,
+          productTitle,
+          updatedAuction.id,
+        );
       }
     }
 
@@ -251,8 +274,7 @@ export class TasksService {
                                  We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
                                 (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
                                 So we are giving you an amount as a compensation to your wallet and your security deposit has
-                                been sent back to your bank account. 
-                                If you would like to do another auction, Please click the button below. Thank you. `,
+                                been sent back to your bank account. `,
               Button_text: 'Click here to create another Auction',
               Button_URL: process.env.FRONT_URL,
             };
@@ -270,6 +292,62 @@ export class TasksService {
               Button_text: 'Click here',
               Button_URL: process.env.FRONT_URL,
             };
+            const notificationBodyToSeller = {
+              status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
+              userType: 'FOR_SELLER',
+              usersId: sellerPaymentData.userId,
+              message: emailBodyForSeller.message,
+              imageLink: sellerPaymentData.auction.product.images[0].imageLink,
+              productTitle: sellerPaymentData.auction.product.title,
+              auctionId: sellerPaymentData.auctionId,
+            };
+            const notificationBodyToBidder = {
+              status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
+              userType: 'FOR_WINNER',
+              usersId: winnerSecurityDeposit.userId,
+              message: emailBodyForBidder.message,
+              imageLink: sellerPaymentData.auction.product.images[0].imageLink,
+              productTitle: sellerPaymentData.auction.product.title,
+              auctionId: sellerPaymentData.auctionId,
+            };
+            const createSellerNotificationData =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: sellerPaymentData.userId,
+                  message: emailBodyForSeller.message,
+                  imageLink: notificationBodyToSeller.imageLink,
+                  productTitle: notificationBodyToSeller.productTitle,
+                  auctionId: sellerPaymentData.auctionId,
+                },
+              });
+            const createWinnerNotificationData =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: winnerSecurityDeposit.userId,
+                  message: emailBodyForBidder.message,
+                  imageLink: notificationBodyToBidder.imageLink,
+                  productTitle: notificationBodyToBidder.productTitle,
+                  auctionId: winnerSecurityDeposit.auctionId,
+                },
+              });
+            if (createSellerNotificationData) {
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notificationBodyToSeller,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
+            if (createWinnerNotificationData) {
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notificationBodyToBidder,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
             await Promise.all([
               this.emailService.sendEmail(
                 sellerPaymentData.user.email,
@@ -351,6 +429,36 @@ export class TasksService {
               EmailsType.OTHER,
               emailBodyForSeller,
             );
+            const deliveryDelayNotificationData =
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auction.userId,
+                  message: emailBodyForSeller.message,
+                  imageLink: auction.product.images[0].imageLink,
+                  productTitle: auction.product.title,
+                  auctionId: auction.id,
+                },
+              });
+            if (deliveryDelayNotificationData) {
+              // Send notification to seller
+              const sellerUserId = deliveryDelayNotificationData.userId;
+              const notification = {
+                status: 'ON_DELIVERY_DELAY',
+                userType: 'FOR_SELLER',
+                usersId: sellerUserId,
+                message: deliveryDelayNotificationData.message,
+                imageLink: deliveryDelayNotificationData.imageLink,
+                productTitle: deliveryDelayNotificationData.productTitle,
+                auctionId: deliveryDelayNotificationData.auctionId,
+              };
+              try {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notification,
+                );
+              } catch (error) {
+                console.log('sendNotificationToSpecificUsers error', error);
+              }
+            }
           }
         }),
       );
@@ -391,8 +499,7 @@ export class TasksService {
             message: ` Hi, ${data.user.userName}, 
                       Your pending payment on your Auction of ${data.auction.product.title}
                      (Model:${data.auction.product.model}) is going to be expired soon.
-                      Notice : If you are refuce to pay, you will lose the security deposite.
-                     If you would like to do another auction, Please click the button below. Thank you. `,
+                      Notice : If you are refuce to pay, you will lose the security deposite. Thank you. `,
             Button_text: 'Click here to continue your payment',
             Button_URL: process.env.FRONT_URL,
           };
@@ -406,6 +513,36 @@ export class TasksService {
             where: { id: data.id },
             data: { isWarningMessageSent: true },
           });
+          //create notificaion to winner
+          const pendingPaymentNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: data.userId,
+                message: body.message,
+                imageLink: data.auction.product.images[0].imageLink,
+                productTitle: data.auction.product.title,
+                auctionId: data.auctionId,
+              },
+            });
+          if (pendingPaymentNotificationData) {
+            // Send notification to winner
+            const notification = {
+              status: 'ON_PENDING_PAYMENT_OF_WINNER',
+              userType: 'FOR_WINNER',
+              usersId: data.userId,
+              message: pendingPaymentNotificationData.message,
+              imageLink: pendingPaymentNotificationData.imageLink,
+              productTitle: pendingPaymentNotificationData.productTitle,
+              auctionId: pendingPaymentNotificationData.auctionId,
+            };
+            try {
+              this.notificationService.sendNotificationToSpecificUsers(
+                notification,
+              );
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
         }),
       );
     }
@@ -535,7 +672,8 @@ export class TasksService {
                 data: {
                   userId: isAcutionUpdated.userId,
                   message: `Mr. ${isAcutionUpdated.user.userName},We would like to inform you that your auction for ${isAcutionUpdated.product.title} (Model: ${isAcutionUpdated.product.model}) has expired.`,
-                  html: auctionCreationMessage(isAcutionUpdated),
+                  imageLink: isAcutionUpdated.product.images[0].imageLink,
+                  productTitle: isAcutionUpdated.product.title,
                   auctionId: isAcutionUpdated.id,
                 },
               });
@@ -548,7 +686,8 @@ export class TasksService {
                 userType: 'FOR_SELLER',
                 usersId: sellerUserId,
                 message: isCreateNotificationToSeller.message,
-                html: isCreateNotificationToSeller.html,
+                imageLink: isCreateNotificationToSeller.imageLink,
+                productTitle: isCreateNotificationToSeller.productTitle,
                 auctionId: isCreateNotificationToSeller.auctionId,
               };
               try {
@@ -588,7 +727,8 @@ export class TasksService {
                   userId: isHighestBidder_J_auctionUpdated.userId,
                   message: `Mr. ${isHighestBidder_J_auctionUpdated.user.userName}, Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title}
                       (Model:${isAcutionUpdated.product.model}).`,
-                  html: auctionCreationMessage(isAcutionUpdated),
+                  imageLink: isAcutionUpdated.product.images[0].imageLink,
+                  productTitle: isAcutionUpdated.product.title,
                   auctionId: isAcutionUpdated.id,
                 },
               });
@@ -601,7 +741,8 @@ export class TasksService {
                 userType: 'FOR_WINNER',
                 usersId: sellerUserId,
                 message: isCreateNotificationToWinner.message,
-                html: isCreateNotificationToWinner.html,
+                imageLink: isCreateNotificationToWinner.imageLink,
+                productTitle: isCreateNotificationToWinner.productTitle,
                 auctionId: isCreateNotificationToWinner.auctionId,
               };
               try {
@@ -649,7 +790,8 @@ export class TasksService {
                       data: {
                         userId: data.userId,
                         message: `Mr. ${data.user.userName},We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title} (Model:${isAcutionUpdated.product.model}).`,
-                        html: auctionCreationMessage(isAcutionUpdated),
+                        imageLink: isAcutionUpdated.product.images[0].imageLink,
+                        productTitle: isAcutionUpdated.product.title,
                         auctionId: isAcutionUpdated.id,
                       },
                     });
@@ -662,7 +804,8 @@ export class TasksService {
                       userType: 'FOR_LOSERS',
                       usersId: sellerUserId,
                       message: isCreateNotificationToLoser.message,
-                      html: isCreateNotificationToLoser.html,
+                      imageLink: isCreateNotificationToLoser.imageLink,
+                      productTitle: isCreateNotificationToLoser.productTitle,
                       auctionId: isCreateNotificationToLoser.auctionId,
                     };
                     try {
@@ -932,7 +1075,8 @@ export class TasksService {
                 data: {
                   userId: auctionExpairyData.userId,
                   message: `Your ${auctionExpairyData.product.title} (Model: ${auctionExpairyData.product.model}) has been expired with Zero Bidderes.`,
-                  html: auctionCreationMessage(auctionExpairyData),
+                  imageLink: auctionExpairyData.product.images[0].imageLink,
+                  productTitle: auctionExpairyData.product.title,
                   auctionId: auction.id,
                 },
               });
@@ -945,7 +1089,8 @@ export class TasksService {
                 userType: 'FOR_SELLER',
                 usersId: sellerUserId,
                 message: auctionExpireNotificationData.message,
-                html: auctionExpireNotificationData.html,
+                imageLink: auctionExpireNotificationData.imageLink,
+                productTitle: auctionExpireNotificationData.productTitle,
                 auctionId: auctionExpireNotificationData.auctionId,
               };
               try {

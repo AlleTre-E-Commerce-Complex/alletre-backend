@@ -118,7 +118,8 @@ export class NotificationsService {
   async sendNotifications(
     usersId: string[],
     message: string,
-    html: string,
+    imageLink: string,
+    productTitle: string,
     auctionId: number,
     isBidders?: boolean,
   ) {
@@ -141,7 +142,8 @@ export class NotificationsService {
           userType: 'OTHER_BIDDERS',
           usersId: usersId,
           message: message,
-          html,
+          imageLink,
+          productTitle,
           auctionId,
         };
         this.notificationGateway.sendNotificationToAll(notification);
@@ -152,7 +154,8 @@ export class NotificationsService {
           userType: 'ALL_USERS',
           usersId: usersId,
           message: message,
-          html,
+          imageLink,
+          productTitle,
           auctionId,
         };
         this.notificationGateway.sendNotificationToAll(notification);
@@ -168,7 +171,8 @@ export class NotificationsService {
             workerData: {
               usersId: batch,
               message,
-              html,
+              imageLink,
+              productTitle,
               auctionId,
               // Add Firebase config to worker data
               firebaseConfig: {
