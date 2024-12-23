@@ -2081,7 +2081,7 @@ export class PaymentsService {
                     },
                   },
                 });
-                console.log('auctionPaymentData', auctionPaymentData)
+              console.log('auctionPaymentData', auctionPaymentData);
               await Promise.all(
                 auctionPaymentData.map(async (payment) => {
                   if (payment.type === 'BIDDER_DEPOSIT') {
@@ -2413,7 +2413,7 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: {user:true, product: { include: { images: true } } },
+            include: { user: true, product: { include: { images: true } } },
           });
           if (updatedAuction) {
             await this.emailBatchService.sendBulkEmails(

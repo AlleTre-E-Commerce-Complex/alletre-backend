@@ -4,6 +4,7 @@ export class EmailBody {
   emailBody(body: any, token?: any) {
     const imgSrc = body.img ? body.img : '';
     const message = body.message ? body.message : '';
+    const Product_Name = body.Product_Name ? body.Product_Name : '';
     console.log('emial body :', body);
     let data: any;
     for (const [key, value] of Object.entries(body)) {
@@ -55,11 +56,10 @@ export class EmailBody {
         <div style="margin: 50px auto; text-align: center;">
            <img
                src="${imgSrc}"
-             alt="Product Image"
             style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; display: inline-block;"
             />
 <h1 style="font-size: min(24px, 5vw);margin-top: 50px;">
-${body.Product_Name}
+${Product_Name}
 </h1>
 
        </div>
