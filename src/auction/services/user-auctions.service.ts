@@ -2861,6 +2861,15 @@ export class UserAuctionsService {
           productTitle: auction.product.title,
           auctionId: IsItemSend.id,
         };
+        const notificationBodyToSeller = {
+          status: 'ON_ITEM_SEND_FOR_DELIVERY',
+          userType: 'FOR_SELLER',
+          usersId: auction.userId,
+          message: `It is happy to here that you have send the item for delivery successfully`,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
+          auctionId: IsItemSend.id,
+        };
         const createWinnerNotificationData =
           await this.prismaService.notification.create({
             data: {
@@ -2871,10 +2880,29 @@ export class UserAuctionsService {
               auctionId: notificationBodyToBidder.auctionId,
             },
           });
+        const createSellerNotificationData =
+          await this.prismaService.notification.create({
+            data: {
+              userId: auction.userId,
+              message: notificationBodyToSeller.message,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: notificationBodyToSeller.auctionId,
+            },
+          });
         if (createWinnerNotificationData) {
           try {
             this.notificationService.sendNotificationToSpecificUsers(
               notificationBodyToBidder,
+            );
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
+        }
+        if (createSellerNotificationData) {
+          try {
+            this.notificationService.sendNotificationToSpecificUsers(
+              notificationBodyToSeller,
             );
           } catch (error) {
             console.log('sendNotificationToSpecificUsers error', error);
