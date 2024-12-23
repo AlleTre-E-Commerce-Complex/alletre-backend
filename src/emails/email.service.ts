@@ -489,15 +489,17 @@ The <b>Alletre</b> Team
     body?: any,
     userName?: string,
   ) {
-    console.log('body ==================**********>', body);
+    console.log('body ==================**********>', body, emailType, email);
     const mailOptions = this.mailOptionsGenerator(
       email,
       token,
       emailType,
       body,
+      userName,
     );
     try {
-      await this.transporter.sendMail(mailOptions);
+     const sendEmailresult =  await this.transporter.sendMail(mailOptions);
+     console.log(sendEmailresult)
     } catch (error) {
       console.log(error);
     }

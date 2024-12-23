@@ -159,7 +159,10 @@ export class AuthService {
 
     let user: any;
     let addedBonus: any;
+    console.log('new user register 1');
+
     if (email) {
+      console.log('new user register 2');
       user = await this.userService.findUserByEmail(email);
       if (user) await this.userService.verifyUserEmail(email);
     } else if (phone) user = await this.userService.findUserByPhone(phone);
@@ -266,6 +269,30 @@ export class AuthService {
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
     );
+    if (verificationResult.status === 'SUCCESS') {
+      const emailBodyToNewUser = {
+        subject: 'Welcome to Alle Tre!',
+        title: 'We’re Excited to Have You Onboard!',
+        message: `
+          Hi ${verificationResult.user.userName},
+          
+          Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
+      
+          Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
+          
+          If you ever have questions or need assistance, our team is just a click away. 
+        `,
+        Button_text: 'Get Started',
+        Button_URL: process.env.FRONT_URL,
+      };
+      await this.emailSerivce.sendEmail(
+        payload.email,
+        'token',
+        EmailsType.OTHER,
+        emailBodyToNewUser,
+        verificationResult.user.userName,
+      );
+    }
 
     const successMessage = `
       <html>
@@ -383,7 +410,7 @@ export class AuthService {
         </body>
       </html>`;
 
-    if (verificationResult === 'SUCCESS') {
+    if (verificationResult.status === 'SUCCESS') {
       return successMessage;
     } else {
       return failureMessage;

@@ -63,7 +63,7 @@ export class TasksService {
       const updatedAuction = await this.prismaService.auction.update({
         where: { id: auction.id },
         data: { status: AuctionStatus.ACTIVE },
-        include: { user:true, product: { include: { images: true } } },
+        include: { user: true, product: { include: { images: true } } },
       });
       if (updatedAuction) {
         await this.emailBatchService.sendBulkEmails(updatedAuction);

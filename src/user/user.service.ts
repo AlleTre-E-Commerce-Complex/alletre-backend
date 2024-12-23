@@ -9,6 +9,8 @@ import { OAuthType, WalletStatus, WalletTransactionType } from '@prisma/client';
 import { PaginationDTO } from 'src/auction/dtos';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { WalletService } from 'src/wallet/wallet.service';
+import { EmailsType } from 'src/auth/enums/emails-type.enum';
+import { EmailSerivce } from 'src/emails/email.service';
 
 @Injectable()
 export class UserService {
@@ -17,6 +19,7 @@ export class UserService {
     private firebaseService: FirebaseService,
     private walletService: WalletService,
     private paginationService: PaginationService,
+    private emailService: EmailSerivce,
   ) {}
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
@@ -50,6 +53,7 @@ export class UserService {
     oAuthType: OAuthType,
   ) {
     // Create User
+    console.log('new user register 2');
     const user = await this.prismaService.user.create({
       data: {
         ...(email ? { email: email } : {}),
@@ -60,6 +64,30 @@ export class UserService {
         oAuthType,
       },
     });
+    if (user) {
+      //send a welcome email
+      const emailBodyToNewUser = {
+        subject: 'Welcome to Alle Tre!',
+        title: 'We’re Excited to Have You Onboard!',
+        message: `
+          Hi ${userName},
+          
+          Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
+      
+          Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
+          
+          If you ever have questions or need assistance, our team is just a click away. 
+        `,
+        Button_text: 'Get Started',
+        Button_URL: process.env.FRONT_URL,
+      };
+      this.emailService.sendEmail(
+        email,
+        'token',
+        EmailsType.OTHER,
+        emailBodyToNewUser,
+      );
+    }
     if (user && user.id <= 100) {
       const newUserWalletData = {
         status: WalletStatus.DEPOSIT,
@@ -150,14 +178,15 @@ export class UserService {
 
   async verifyUserEmail(email: string) {
     try {
-      await this.prismaService.user.update({
+      console.log('verify user');
+      const user = await this.prismaService.user.update({
         where: { email: email },
         data: { isVerified: true },
       });
 
-      return 'SUCCESS';
+      return { status: 'SUCCESS', user };
     } catch (error) {
-      return 'FAILED';
+      return { status: 'FAILED' };
     }
   }
   async updateUserIpAddress(userId: number, ipAddress: string) {
