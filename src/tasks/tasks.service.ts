@@ -612,7 +612,11 @@ export class TasksService {
                 status: AuctionStatus.WAITING_FOR_PAYMENT, // Update the status of the auction to 'WAITING_FOR_PAYMENT'
                 endDate: new Date(), // Set the endDate to the current date and time
               },
-              include: { user: true, product: { include: { images: true } } },
+              include: {
+                bids: { orderBy: { amount: 'desc' } },
+                user: true,
+                product: { include: { images: true } },
+              },
             });
 
             const isHighestBidder_J_auctionUpdated =
@@ -671,7 +675,7 @@ export class TasksService {
               await this.prismaService.notification.create({
                 data: {
                   userId: isAcutionUpdated.userId,
-                  message: `Mr. ${isAcutionUpdated.user.userName},We would like to inform you that your auction for ${isAcutionUpdated.product.title} (Model: ${isAcutionUpdated.product.model}) has expired.`,
+                  message: `We would like to inform you that your auction for "${isAcutionUpdated.product.title}" (Model: ${isAcutionUpdated.product.model}) has expired.`,
                   imageLink: isAcutionUpdated.product.images[0].imageLink,
                   productTitle: isAcutionUpdated.product.title,
                   auctionId: isAcutionUpdated.id,
@@ -725,8 +729,7 @@ export class TasksService {
               await this.prismaService.notification.create({
                 data: {
                   userId: isHighestBidder_J_auctionUpdated.userId,
-                  message: `Mr. ${isHighestBidder_J_auctionUpdated.user.userName}, Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title}
-                      (Model:${isAcutionUpdated.product.model}).`,
+                  message: `Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title} (Model:${isAcutionUpdated.product.model}) at AED ${isAcutionUpdated.bids[0].amount}.`,
                   imageLink: isAcutionUpdated.product.images[0].imageLink,
                   productTitle: isAcutionUpdated.product.title,
                   auctionId: isAcutionUpdated.id,
@@ -789,7 +792,7 @@ export class TasksService {
                     await this.prismaService.notification.create({
                       data: {
                         userId: data.userId,
-                        message: `Mr. ${data.user.userName},We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title} (Model:${isAcutionUpdated.product.model}).`,
+                        message: `We regret to inform you that you have lost the auction for "${isAcutionUpdated.product.title}" (Model: ${isAcutionUpdated.product.model}).`,
                         imageLink: isAcutionUpdated.product.images[0].imageLink,
                         productTitle: isAcutionUpdated.product.title,
                         auctionId: isAcutionUpdated.id,
@@ -1074,7 +1077,7 @@ export class TasksService {
               await this.prismaService.notification.create({
                 data: {
                   userId: auctionExpairyData.userId,
-                  message: `Your ${auctionExpairyData.product.title} (Model: ${auctionExpairyData.product.model}) has been expired with Zero Bidderes.`,
+                  message: `The auction for your product "${auctionExpairyData.product.title}" (Model: ${auctionExpairyData.product.model}) has expired with zero bidders.`,
                   imageLink: auctionExpairyData.product.images[0].imageLink,
                   productTitle: auctionExpairyData.product.title,
                   auctionId: auction.id,

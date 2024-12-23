@@ -25,6 +25,7 @@ export class EmailSerivce extends EmailBody {
     token: string,
     emailType: string,
     body?: any,
+    userName?: string,
   ) {
     switch (emailType) {
       case EmailsType.VERIFICATION:
@@ -34,7 +35,7 @@ export class EmailSerivce extends EmailBody {
             address: process.env.EMAIL_FROM,
           },
           to: email,
-          subject: `Alletre Email Verification`,
+          subject: `📨 Please Verify Your Email to Get Started`,
           html: `
           <!DOCTYPE html>
   <html>
@@ -42,66 +43,124 @@ export class EmailSerivce extends EmailBody {
     <meta charset="UTF-8">
     <title>Email Verification </title>
   </head>
- <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Arial, sans-serif; line-height: 1.6; color: #333; ">
-    <div style="padding: 20px; text-align: center; ">
-      <div
+<body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
+  <div style="padding: 20px; text-align: center;">
+    <div
+      style="
+        background-color: #F9F9F9;
+        padding: 20px;
+        color: white;
+        margin: 40px auto;
+        text-align: center;
+        position: relative;
+        max-width: 100%;
+        border-radius: 15px;
+      "
+    >
+      <img
+        src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
+        alt="Alletre Logo"
         style="
-          background-color: #a91d3a;
-          padding: 20px;
-          color: white;
-          margin: 20px auto;
-          text-align: center;
-          position: relative;
-          max-width: 100%;
-           border-radius: 15px;
+          max-width: 80px;
+          position: absolute;
+          padding-top: 20px;
+          display: block;
+        "
+      />
+      <h3
+        style="
+          margin-top: 30px;
+          font-size: min(22px, 4vw); /* Smaller size for mobile */
+          font-weight: bold;
+          color: #a91d3a;
         "
       >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/10.png?alt=media&token=38270fdb-8c83-4fb1-b51b-4ba4682ae827"
-          alt="Alletre Logo"
-          style="
-            max-width: 80px;
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-          "
-        />
-        <h2 style="margin: 30px 0 20px; font-size: 24px; font-weight: bold;">Verify Your Email Address</h2>
+       Welcome to Alletre – Verify Your Email
+      </h3>
+      <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
+        Hi, ${userName}
+      </h2>
+
+      <div
+        style="
+          margin: 20px auto;
+          font-size: min(15px, 3vw); /* Adjust font size for mobile */
+          line-height: 1.2; /* Slightly tighter line height for mobile */
+          max-width: 90%; /* Ensure proper fit on smaller screens */
+          color:  #333;
+          text-align: left;
+        "
+      >
+        <p>
+         Thank you for joining <b>Alletre</b>! To complete your registration and start bidding, we just need you to verify your email address.
+        </p>
+      <p>Please click the button below to verify your email:</p>
+
+
+       
+
+        <div style="text-align: center;">
+          <a
+            href="${process.env.CLIENT_URL}/auth/activate?token=${token}"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+            Verify My Email 
+          </a>
       
-     
-          <div style="max-width: 600px; margin: 0 auto;">
-      <p style="margin: 0;margin-top: 40px; padding: 0; font-size: 16px; font-size: min(18px, 3.5vw); line-height: 1.6;">
-    Thank you for signing up. To complete your registration, please click the button below to verify your email address:
-     
-    </div>
-    <a
-          href="${process.env.CLIENT_URL}/auth/activate?token=${token}"
-          title="Click to verify your email"
-          style="
-            display: inline-block;
-            padding: 12px 20px;
-            background-color: #6F6F6F;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            margin: 60px 0;
-            text-align: center;
-            font-size: 18px;
-             letter-spacing: 2px
-          "
-        >
-      Verify Email
-        </a>
+    
       </div>
-      
-      <h3
+     
+         
+     
+
+        <h3>Why Verify Your Email?</h3>
+       <p style="color: #707070; font-size: min(13px, 3vw);">
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Secure your account and protect your bids<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Receive important updates and notifications<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative;"> 
+  Get ready to start bidding and listing items
+</p>
+
+
+
+        
+ <p style="font-size: min(13px, 3vw);  color: #707070;">If you didn’t sign up for an account with us, please ignore this email.</p>
+   
+     
+        <p>Thank you for choosing  <b>Alletre</b> . We’re excited to have you as part of our community!</p>
+       <p>Best regards,<br>
+The <b>Alletre</b> Team
+</p>
+        <p>If you need assistance, feel free to reach out to our support team anytime!</p>
+         </div>
+       <h3
   style="
-    margin-top: 30px;
-    font-size: min(20px, 4vw); /* Smaller size for mobile */
+    margin: 30px auto 20px auto; /* Matches auto margins of the p element */
+    font-size: min(16px, 4vw); /* Smaller size for mobile */
     font-weight: bold;
     color: #a91d3a;
+    text-align: left; /* Align text to the left */
+    max-width: 90%; /* Ensure proper fit and alignment */
   "
 >
   Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
@@ -109,15 +168,20 @@ export class EmailSerivce extends EmailBody {
 <p
   style="
     margin: 20px auto;
-    font-size: min(14px, 4vw); /* Adjust font size for mobile */
+    font-size: min(13px, 3vw); /* Adjust font size for mobile */
     line-height: 1.4; /* Slightly tighter line height for mobile */
     max-width: 90%; /* Ensure proper fit on smaller screens */
+    text-align: left;
+    color: 707070;
   "
 >
   The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
 </p>
 
-      <div style="margin: 20px 0;">
+
+
+<p style = "font-size: min(16px, 4vw); color:#707070">FOLLOW US!</p>
+      <div style="margin: 20px 0 ;">
         <!-- Instagram Icon -->
         <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
           <img
@@ -167,28 +231,14 @@ export class EmailSerivce extends EmailBody {
       <p
         style="
           font-size: 16px;
-          margin-top: 20px;
+          margin-top: -20px;
           color: #333;
-          letter-spacing: 5px
+          letter-spacing: 4px
         "
       >
         www.alletre.com
       </p>
-        <a
-      href="https://www.alletre.com"
-      style="
-        display: inline-block;
-        padding: 2px 8px;
-        background-color: #a91d3a;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        font-size: 12px;
-        margin-top: 10px;
-      "
-    >
-      Unsubscribe
-    </a>
+
     </div>
   </body>
 </html>
@@ -203,73 +253,134 @@ export class EmailSerivce extends EmailBody {
             address: process.env.EMAIL_FROM,
           },
           to: email,
-          subject: `Alletre Reset Password`,
+          subject: `🔒 Reset Your Password for Alletre`,
           html: `
           <!DOCTYPE html>
   <html>
   <head>
     <meta charset="UTF-8">
-    <title>Reset Password </title>
+    <title>🔒 Reset Your Password for Alletre </title>
   </head>
- <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Arial, sans-serif; line-height: 1.6; color: #333; ">
-    <div style="padding: 20px; text-align: center; ">
-      <div
+ 
+  <html>
+    <head>
+   
+    </head>
+<body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
+  <div style="padding: 20px; text-align: center;">
+    <div
+      style="
+        background-color: #F9F9F9;
+        padding: 20px;
+        color: white;
+        margin: 40px auto;
+        text-align: center;
+        position: relative;
+        max-width: 100%;
+        border-radius: 15px;
+      "
+    >
+      <img
+        src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
+        alt="Alletre Logo"
         style="
-          background-color: #a91d3a;
-          padding: 20px;
-          color: white;
-          margin: 20px auto;
-          text-align: center;
-          position: relative;
-          max-width: 100%;
-           border-radius: 15px;
+          max-width: 80px;
+          position: absolute;
+          padding-top: 20px;
+          display: block;
+        "
+      />
+      <h3
+        style="
+          margin-top: 30px;
+          font-size: min(22px, 4vw); /* Smaller size for mobile */
+          font-weight: bold;
+          color: #a91d3a;
         "
       >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/10.png?alt=media&token=38270fdb-8c83-4fb1-b51b-4ba4682ae827"
-          alt="Alletre Logo"
-          style="
-            max-width: 80px;
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-          "
-        />
-        <h2 style="margin: 30px 0 20px; font-size: 24px; font-weight: bold;">Reset Your Password</h2>
+      Forgot Your Password? Let’s Get You Back On Track!
+      </h3>
+      <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
+        Hi, ${userName}
+      </h2>
+
+      <div
+        style="
+          margin: 20px auto;
+          font-size: min(15px, 3vw); /* Adjust font size for mobile */
+          line-height: 1.2; /* Slightly tighter line height for mobile */
+          max-width: 90%; /* Ensure proper fit on smaller screens */
+          color:  #333;
+          text-align: left;
+        "
+      >
+        <p>
+        We received a request to reset the password for your  <b>Alletre</b>  account. If you didn’t request this, please ignore this email. Otherwise, click the button below to securely reset your password.
+        </p>
+        
+        <div style="text-align: center;">
+          <a
+            href="${process.env.FRONT_URL}/credentials-update/change-password?token=${token}"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+           Reset My Password  
+          </a>
       
-     
-          <div style="max-width: 600px; margin: 0 auto;">
-      <p style="margin: 0;margin-top: 40px; padding: 0; font-size: 16px; font-size: min(18px, 3.5vw); line-height: 1.6;">
-  Please click the button below to reset your password:
-     
-    </div>
-    <a
-          href="${process.env.FRONT_URL}/credentials-update/change-password?token=${token}"
-          title="Click to reset your password"
-          style="
-            display: inline-block;
-            padding: 12px 20px;
-            background-color: #6F6F6F;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            margin: 60px 0;
-            text-align: center;
-            font-size: 18px;
-          "
-        >
-    Reset Password
-        </a>
+    
       </div>
-      
-      <h3
+     
+         
+     
+
+        <h3>Why Reset Your Password?</h3>
+       <p style="color: #707070; font-size: min(13px, 3vw);">
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Quickly regain access to your account<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Keep your account secure<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative;"> 
+  Start bidding and listing items without delay
+</p>
+
+
+
+        
+ <p style="font-size: min(13px, 3vw);  color: #707070;">The link will expire in 7 minutes, so be sure to reset your password as soon as possible.</p>
+   
+     
+      <p>  If you need further assistance, feel free to reach out to our support team. We’re here to help!</p>
+       <p>Thank you for being part of <b>Alletre</b>  </p>
+       <p>Best regards,<br>
+The <b>Alletre</b> Team
+</p>
+        <p>P.S. Stay secure! Make sure your new password is strong and unique.</p>
+         </div>
+       <h3
   style="
-    margin-top: 30px;
-    font-size: min(20px, 4vw); /* Smaller size for mobile */
+    margin: 30px auto 20px auto; /* Matches auto margins of the p element */
+    font-size: min(16px, 4vw); /* Smaller size for mobile */
     font-weight: bold;
     color: #a91d3a;
+    text-align: left; /* Align text to the left */
+    max-width: 90%; /* Ensure proper fit and alignment */
   "
 >
   Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
@@ -277,15 +388,20 @@ export class EmailSerivce extends EmailBody {
 <p
   style="
     margin: 20px auto;
-    font-size: min(14px, 4vw); /* Adjust font size for mobile */
+    font-size: min(13px, 3vw); /* Adjust font size for mobile */
     line-height: 1.4; /* Slightly tighter line height for mobile */
     max-width: 90%; /* Ensure proper fit on smaller screens */
+    text-align: left;
+    color: 707070;
   "
 >
   The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
 </p>
 
-      <div style="margin: 20px 0;">
+
+
+<p style = "font-size: min(16px, 4vw); color:#707070">FOLLOW US!</p>
+      <div style="margin: 20px 0 ;">
         <!-- Instagram Icon -->
         <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
           <img
@@ -335,30 +451,18 @@ export class EmailSerivce extends EmailBody {
       <p
         style="
           font-size: 16px;
-          margin-top: 20px;
+          margin-top: -20px;
           color: #333;
-          letter-spacing: 5px
+          letter-spacing: 4px
         "
       >
         www.alletre.com
       </p>
-        <a
-      href="https://www.alletre.com"
-      style="
-        display: inline-block;
-        padding: 2px 8px;
-        background-color: #a91d3a;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        font-size: 12px;
-        margin-top: 10px;
-      "
-    >
-      Unsubscribe
-    </a>
+
     </div>
   </body>
+  </html>
+
 </html>
           `,
         };
@@ -383,6 +487,7 @@ export class EmailSerivce extends EmailBody {
     token: string,
     emailType: EmailsType,
     body?: any,
+    userName?: string,
   ) {
     console.log('body ==================**********>', body);
     const mailOptions = this.mailOptionsGenerator(

@@ -233,7 +233,7 @@ export class UserAuctionsService {
             await this.prismaService.notification.create({
               data: {
                 userId: auction.user.id,
-                message: `Your auction ${auction.product.title} (Model: ${auction.product.model}) has been successfully cancelled. You have lost your security deposit due to there are bidders on your auction.`,
+                message: `Your auction for "${auction.product.title}" (Model: ${auction.product.model}) has been successfully canceled. Unfortunately, you have lost your security deposit as there were bidders on your auction.`,
                 imageLink: auction.product.images[0].imageLink,
                 productTitle: auction.product.title,
                 auctionId: auction.id,
@@ -305,7 +305,17 @@ export class UserAuctionsService {
               userType:
                 data.userId === highestBidderId ? 'FOR_WINNER' : 'FOR_LOSERS',
               usersId: data.userId,
-              message: body.message,
+              message: `We regret to inform you that your auction for "${
+                auction.product.title
+              }" (Model: ${
+                auction.product.model
+              }) has been canceled by the product owner. Your security deposit has been returned to your ${
+                data.isWalletPayment ? 'wallet' : 'bank account'
+              }. ${
+                data?.user.id === highestBidderId
+                  ? 'As the highest bidder, you will also receive compensation in your wallet.'
+                  : ''
+              }`,
               imageLink: auction.product.images[0].imageLink,
               productTitle: auction.product.title,
               auctionId: auction.id,
@@ -703,7 +713,7 @@ export class UserAuctionsService {
               await this.prismaService.notification.create({
                 data: {
                   userId: updatedDataOfCancellAuction.user.id,
-                  message: `Your auction ${updatedDataOfCancellAuction.product.title} (Model: ${updatedDataOfCancellAuction.product.model}) has been cancelled with Zero Bidderes.`,
+                  message: `Your auction for "${updatedDataOfCancellAuction.product.title}" (Model: ${updatedDataOfCancellAuction.product.model}) has been canceled with zero bidders.`,
                   imageLink:
                     updatedDataOfCancellAuction.product.images[0].imageLink,
                   productTitle: updatedDataOfCancellAuction.product.title,
