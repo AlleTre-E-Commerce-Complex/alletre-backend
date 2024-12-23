@@ -8,7 +8,7 @@ export class EmailBatchService {
   constructor(private readonly prismaService: PrismaService) {}
   private batchSize = 100; // Customize batch size as needed
 
-  async sendBulkEmails(updatedAuction: any, currentUserEmail: string) {
+  async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
     console.log('send bulk email test 1', updatedAuction);
     const users = await this.getAllRegisteredUsers();
     console.log('send bulk email test 2', users);
