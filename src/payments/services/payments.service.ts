@@ -1648,7 +1648,10 @@ export class PaymentsService {
               data: { status: PaymentStatus.HOLD },
             });
 
-            await this.publishAuction(auctionHoldPaymentTransaction.auctionId,auctionHoldPaymentTransaction.auction.user.email);
+            await this.publishAuction(
+              auctionHoldPaymentTransaction.auctionId,
+              auctionHoldPaymentTransaction.auction.user.email,
+            );
 
             await this.prismaService.notification.create({
               data: {
@@ -2347,7 +2350,7 @@ export class PaymentsService {
       },
     });
   }
-  async publishAuction(auctionId: number,currentUserEmail:string) {
+  async publishAuction(auctionId: number, currentUserEmail?: string) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
@@ -2367,11 +2370,14 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { product: { include: { images: true } } },
+            include: { user: true, product: { include: { images: true } } },
           });
 
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction,currentUserEmail);
+            await this.emailBatchService.sendBulkEmails(
+              updatedAuction,
+              currentUserEmail,
+            );
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule Daily auction
@@ -2405,7 +2411,10 @@ export class PaymentsService {
             include: { product: { include: { images: true } } },
           });
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction,currentUserEmail);
+            await this.emailBatchService.sendBulkEmails(
+              updatedAuction,
+              currentUserEmail,
+            );
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
