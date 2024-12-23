@@ -63,7 +63,7 @@ export class TasksService {
       const updatedAuction = await this.prismaService.auction.update({
         where: { id: auction.id },
         data: { status: AuctionStatus.ACTIVE },
-        include: { product: { include: { images: true } } },
+        include: { user:true, product: { include: { images: true } } },
       });
       if (updatedAuction) {
         await this.emailBatchService.sendBulkEmails(updatedAuction);
@@ -595,8 +595,8 @@ export class TasksService {
 
           // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
           const today = new Date();
-          const newDate = new Date(today.setDate(today.getDate() + 3));
-          // const newDate = new Date(today.getTime() + 10 * 60 * 1000); // Adds 10 minutes
+          // const newDate = new Date(today.setDate(today.getDate() + 3));
+          const newDate = new Date(today.getTime() + 5 * 60 * 1000); // Adds 5 minutes
 
           const {
             isAcutionUpdated,
@@ -967,7 +967,7 @@ export class TasksService {
         // Set auction to EXPIRED
         else {
           //if there are zero bidders
-
+          console.log('found zero bidder auction expire');
           const auctionExpairyData = await this.prismaService.auction.update({
             where: {
               id: auction.id,
@@ -995,6 +995,7 @@ export class TasksService {
               });
             let isSendBackS_D: any;
             if (!sellerPaymentData.isWalletPayment) {
+              console.log('canceldeposit*******');
               isSendBackS_D =
                 await this.stripeService.cancelDepositPaymentIntent(
                   sellerPaymentData.paymentIntentId,

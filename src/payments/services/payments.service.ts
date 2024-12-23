@@ -159,30 +159,32 @@ export class PaymentsService {
 
       if (paymentData) {
         await this.publishAuction(auctionId);
-        const usersId = await this.notificationsService.getAllRegisteredUsers(
-          user.id,
-        );
-        const auction = paymentData.auction;
-        await this.prismaService.notification.create({
-          data: {
-            userId: user.id,
-            message:
-              'Congratulations! Your auction has been published successfully.',
-            imageLink: auction.product.images[0].imageLink,
-            productTitle: auction.product.title,
-            auctionId: paymentData.auctionId,
-          },
-        });
-        const message = 'New Auction has been published.';
-        const imageLink = auction.product.images[0].imageLink;
-        const productTitle = auction.product.title;
-        await this.notificationsService.sendNotifications(
-          usersId,
-          message,
-          imageLink,
-          productTitle,
-          paymentData.auctionId,
-        );
+        if (paymentData.auction.type !== 'SCHEDULED') {
+          const usersId = await this.notificationsService.getAllRegisteredUsers(
+            user.id,
+          );
+          const auction = paymentData.auction;
+          await this.prismaService.notification.create({
+            data: {
+              userId: user.id,
+              message:
+                'Congratulations! Your auction has been published successfully.',
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: paymentData.auctionId,
+            },
+          });
+          const message = 'New Auction has been published.';
+          const imageLink = auction.product.images[0].imageLink;
+          const productTitle = auction.product.title;
+          await this.notificationsService.sendNotifications(
+            usersId,
+            message,
+            imageLink,
+            productTitle,
+            paymentData.auctionId,
+          );
+        }
       } else {
         throw new InternalServerErrorException(
           'Failed to process wallet payment',
@@ -1652,39 +1654,42 @@ export class PaymentsService {
               auctionHoldPaymentTransaction.auctionId,
               auctionHoldPaymentTransaction.auction.user.email,
             );
-
-            await this.prismaService.notification.create({
-              data: {
-                userId: auctionHoldPaymentTransaction.userId,
-                message:
-                  'Congratulations! Your auction has been published successfully.',
-                imageLink:
-                  auctionHoldPaymentTransaction.auction.product.images[0]
-                    .imageLink,
-                productTitle:
-                  auctionHoldPaymentTransaction.auction.product.title,
-                auctionId: auctionHoldPaymentTransaction.auctionId,
-              },
-            });
-            const currentUserId = auctionHoldPaymentTransaction.userId;
-            const usersId =
-              await this.notificationsService.getAllRegisteredUsers(
-                currentUserId,
+            if (auctionHoldPaymentTransaction.auction.type !== 'SCHEDULED') {
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auctionHoldPaymentTransaction.userId,
+                  message:
+                    'Congratulations! Your auction has been published successfully.',
+                  imageLink:
+                    auctionHoldPaymentTransaction.auction.product.images[0]
+                      .imageLink,
+                  productTitle:
+                    auctionHoldPaymentTransaction.auction.product.title,
+                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                },
+              });
+              const currentUserId = auctionHoldPaymentTransaction.userId;
+              const usersId =
+                await this.notificationsService.getAllRegisteredUsers(
+                  currentUserId,
+                );
+              const imageLink =
+                auctionHoldPaymentTransaction.auction.product.images[0]
+                  .imageLink;
+              const productTitle =
+                auctionHoldPaymentTransaction.auction.product.title;
+              const message = 'New Auction has been published.';
+              const isBidders = false;
+              await this.notificationsService.sendNotifications(
+                usersId,
+                message,
+                imageLink,
+                productTitle,
+                auctionHoldPaymentTransaction.auctionId,
+                isBidders,
               );
-            const imageLink =
-              auctionHoldPaymentTransaction.auction.product.images[0].imageLink;
-            const productTitle =
-              auctionHoldPaymentTransaction.auction.product.title;
-            const message = 'New Auction has been published.';
-            const isBidders = false;
-            await this.notificationsService.sendNotifications(
-              usersId,
-              message,
-              imageLink,
-              productTitle,
-              auctionHoldPaymentTransaction.auctionId,
-              isBidders,
-            );
+            }
+
             break;
           default:
             break;
@@ -2076,6 +2081,7 @@ export class PaymentsService {
                     },
                   },
                 });
+                console.log('auctionPaymentData', auctionPaymentData)
               await Promise.all(
                 auctionPaymentData.map(async (payment) => {
                   if (payment.type === 'BIDDER_DEPOSIT') {
@@ -2283,9 +2289,8 @@ export class PaymentsService {
                       userType: 'FOR_SELLER',
                       usersId: payment.userId,
                       message: emailBodyToSeller.message,
-                      imageLink:
-                        paymentSuccessData.auction.product.images[0].imageLink,
-                      productTitle: paymentSuccessData.auction.product.title,
+                      imageLink: payment.auction.product.images[0].imageLink,
+                      productTitle: payment.auction.product.title,
                       auctionId: payment.auctionId,
                     };
                     const createLosersNotificationData =
@@ -2408,7 +2413,7 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { product: { include: { images: true } } },
+            include: {user:true, product: { include: { images: true } } },
           });
           if (updatedAuction) {
             await this.emailBatchService.sendBulkEmails(
