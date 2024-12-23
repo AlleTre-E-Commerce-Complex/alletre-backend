@@ -23,7 +23,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
-
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -168,7 +167,7 @@ export class PaymentsService {
           data: {
             userId: user.id,
             message:
-              'Congratulations! Your auction has been successfully published.',
+              'Congratulations! Your auction has been published successfully.',
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
             auctionId: paymentData.auctionId,
@@ -1554,7 +1553,7 @@ export class PaymentsService {
               await this.prismaService.notification.create({
                 data: {
                   userId: auctionHoldPaymentTransaction.auction.user.id,
-                  message: `Mr. ${auctionHoldPaymentTransaction.user.userName} has been placed new bid on your auction ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
+                  message: `Mr. ${auctionHoldPaymentTransaction.user.userName} has placed a new bid on your auction for the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
@@ -1565,7 +1564,7 @@ export class PaymentsService {
               await this.prismaService.notification.create({
                 data: {
                   userId: auctionHoldPaymentTransaction.userId,
-                  message: `You have successfully placed a bid on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`,
+                  message: `You have successfully placed a bid on the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
@@ -1597,7 +1596,7 @@ export class PaymentsService {
 
             if (isCreateNotificationToCurrentBidder) {
               try {
-                // Send notification to current bidder
+                // Send notification to seller
                 const currentBidderId = auctionHoldPaymentTransaction.userId;
 
                 const notification = {
@@ -1622,7 +1621,7 @@ export class PaymentsService {
                   );
                 const imageLink = auction.product.images[0].imageLink;
                 const productTitle = auction.product.title;
-                const otherBidderMessage = `${auctionHoldPaymentTransaction.user.userName} has placed a bid (AED ${paymentIntent.metadata.bidAmount}) on ${auctionHoldPaymentTransaction.auction.product.title} (Model: ${auctionHoldPaymentTransaction.auction.product.model})`;
+                const otherBidderMessage = `${auctionHoldPaymentTransaction.user.userName} has placed a bid of AED ${paymentIntent.metadata.bidAmount} on the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`;
                 const isBidders = true;
                 await this.notificationsService.sendNotifications(
                   joinedAuctionUsers,
@@ -1649,13 +1648,13 @@ export class PaymentsService {
               data: { status: PaymentStatus.HOLD },
             });
 
-            await this.publishAuction(auctionHoldPaymentTransaction.auctionId);
+            await this.publishAuction(auctionHoldPaymentTransaction.auctionId,auctionHoldPaymentTransaction.auction.user.email);
 
             await this.prismaService.notification.create({
               data: {
                 userId: auctionHoldPaymentTransaction.userId,
                 message:
-                  'Congratulations! Your auction has been successfully published.',
+                  'Congratulations! Your auction has been published successfully.',
                 imageLink:
                   auctionHoldPaymentTransaction.auction.product.images[0]
                     .imageLink,
@@ -1746,7 +1745,7 @@ export class PaymentsService {
 
           case PaymentType.AUCTION_PURCHASE:
             console.log('Webhook AUCTION_PURCHASE ...');
-            console.log('purchase test1');
+
             const joinedAuction =
               await this.prismaService.joinedAuction.findFirst({
                 where: {
@@ -1757,7 +1756,7 @@ export class PaymentsService {
                   user: true,
                 },
               });
-            console.log('purchase test2');
+
             const { paymentSuccessData } =
               await this.prismaService.$transaction(async (prisma) => {
                 // Update payment transaction
@@ -1789,9 +1788,7 @@ export class PaymentsService {
                 });
                 return { paymentSuccessData };
               });
-            console.log('purchase test3');
             if (paymentSuccessData) {
-              console.log('purchase test4');
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
               const alletreWalletData = {
@@ -1820,7 +1817,8 @@ export class PaymentsService {
                          (Model:${paymentSuccessData.auction.product.model}) has been paid the full amount. 
                          We would like to let you know that you can hand over the item to the winner. once the winner
                          confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
-                         there is a chance to lose your security deposite.`,
+                         there is a chance to lose your security deposite.
+                         If you would like to participate another auction, Please click the button below. Thank you. `,
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
               };
@@ -1837,9 +1835,6 @@ export class PaymentsService {
               };
               console.log('purchase test5');
               const invoicePDF = await generateInvoicePDF(paymentSuccessData);
-              console.log('purchase test5 2');
-
-              //create  email body to the winner
               const emailBodyToWinner = {
                 subject: 'Payment successful',
                 title: 'Payment successful',
@@ -1849,10 +1844,11 @@ export class PaymentsService {
                           You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
                          (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
                          by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
-                          We would like to thank you and appreciate you for choosing Alle Tre.`,
+                          We would like to thank you and appreciate you for choosing Alle Tre.  
+                          If you would like to participate another auction, Please click the button below. Thank you. `,
                 Button_text: 'Click here to create another Auction',
                 Button_URL: process.env.FRONT_URL,
-                attachment: invoicePDF ? invoicePDF : '',
+                attachment: invoicePDF,
               };
               //send notification to the winner
               const notificationBodyToWinner = {
@@ -2351,7 +2347,7 @@ export class PaymentsService {
       },
     });
   }
-  async publishAuction(auctionId: number) {
+  async publishAuction(auctionId: number,currentUserEmail:string) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
@@ -2375,7 +2371,7 @@ export class PaymentsService {
           });
 
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction);
+            await this.emailBatchService.sendBulkEmails(updatedAuction,currentUserEmail);
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule Daily auction
@@ -2409,7 +2405,7 @@ export class PaymentsService {
             include: { product: { include: { images: true } } },
           });
           if (updatedAuction) {
-            await this.emailBatchService.sendBulkEmails(updatedAuction);
+            await this.emailBatchService.sendBulkEmails(updatedAuction,currentUserEmail);
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
