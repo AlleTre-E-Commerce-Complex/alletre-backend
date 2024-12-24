@@ -23,4 +23,8 @@ export class LocationDTO {
   @IsOptional()
   @IsString()
   zipCode: string;
+
+  @IsOptional()
+  @IsNumber()
+  phone: number;
 }

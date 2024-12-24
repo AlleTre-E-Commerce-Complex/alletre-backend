@@ -53,7 +53,7 @@ export class EmailBatchService {
         A New Auction Just Went Live!
       </h3>
       <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
-        Hi, ${updatedAuction.user.userName}
+        Hi Alle Tre member,
       </h2>
 
       <div
