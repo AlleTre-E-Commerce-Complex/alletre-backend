@@ -1056,16 +1056,27 @@ export class TasksService {
             }
             if (isSendBackS_D) {
               const body = {
-                subject: 'Auction Expired',
-                title: 'Your Auction has been expired',
+                subject: "Your Auction Has Ended – Let’s Try Again!",
+                title: `Your Auction for ${auctionExpairyData.product.title} Has Ended`,
                 Product_Name: auctionExpairyData.product.title,
                 img: auctionExpairyData.product.images[0].imageLink,
-                message: ` Hi ${auctionExpairyData.user.userName}, Your Acution of ${auctionExpairyData.product.title}
-                     (Model:${auctionExpairyData.product.model}) has been expired. 
-                     Your Security Deposit has been sent back to you account. 
-                     If you would like to do another auction, Please click the button below. Thank you. `,
-                Button_text: 'Click here to create another Auction',
-                Button_URL: process.env.FRONT_URL,
+                welcomeMessage: `Hi, ${auctionExpairyData.user.userName}`,
+                message1: ` 
+                We noticed your auction for ${auctionExpairyData.product.title} has ended without any bids. While this can happen occasionally, don’t worry – we’re here to help!
+                Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.
+                Here’s what you can do to improve your chances next time:
+                 •	Adjust Your Starting Bid: A lower starting bid might attract more interest.
+                 •	Enhance Your Listing: Add more photos or improve your item description.
+                 •	Promote Your Auction: Share your listing on social media to reach a wider audience.
+                 •	Refine Your Description: A detailed and appealing description can make a big difference.
+                Would you like to relist your auction with ease?`,
+                message2: `Thank you for choosing <b>Alletre</b>. Let’s turn this into an opportunity to find the right buyer!
+Best regards,
+The <b>Alletre</b> Team
+P.S. Need help improving your listing? Check out our tips for creating successful auctions: <a href="https://www.alletre.com/">Auction Tips</a>
+`,
+                Button_text: 'Create Auction ',
+                Button_URL: ' https://www.alletre.com/',
               };
               await this.emailService.sendEmail(
                 auctionExpairyData.user.email,
