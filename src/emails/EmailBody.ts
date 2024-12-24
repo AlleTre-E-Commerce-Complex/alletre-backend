@@ -21,77 +21,147 @@ export class EmailBody {
     }
 
     return `<html>
-     <head>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    />
-  </head>
-  <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <div style="padding: 20px; text-align: center;">
-      <div
+   
+  <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
+  <div style="padding: 20px; text-align: center;">
+    <div
+      style="
+        background-color: #F9F9F9;
+        padding: 20px;
+        color: white;
+        margin: 40px auto;
+        text-align: center;
+        position: relative;
+        max-width: 100%;
+        border-radius: 15px;
+      "
+    >
+      <img
+        src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
+        alt="Alletre Logo"
         style="
-          background-color: #a91d3a;
-          padding: 20px;
-          color: white;
-          margin: 20px auto;
-          text-align: center;
-          position: relative;
-          max-width: 100%;
+          max-width: 80px;
+          position: absolute;
+          padding-top: 20px;
+          display: block;
+        "
+      />
+      <h3
+        style="
+          margin-top: 30px;
+          font-size: min(22px, 4vw); /* Smaller size for mobile */
+          font-weight: bold;
+          color: #a91d3a;
         "
       >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/10.png?alt=media&token=38270fdb-8c83-4fb1-b51b-4ba4682ae827"
-          alt="Alletre Logo"
-          style="
-            max-width: 80px;
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-          "
-        />
-        <h2 style="margin: 30px 0 20px; font-size: 24px; font-weight: bold;">${body.title}</h2>
+      ${body.title}
+      </h3>
+      <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
+         ${body.welcomeMessage}
+      </h2>
+
+      <div
+        style="
+          margin: 20px auto;
+          font-size: min(15px, 3vw); /* Adjust font size for mobile */
+          line-height: 1.2; /* Slightly tighter line height for mobile */
+          max-width: 90%; /* Ensure proper fit on smaller screens */
+          color:  #333;
+          text-align: left;
+        "
+      >
+        ${body.message1}
+
+        <div style="text-align: center;">
+          <a
+            href="${body.Button_URL}"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+            ${body.Button_text}
+          </a>
       
-        <div style="margin: 50px auto; text-align: center;">
+    
+      </div>
+     
+         
+     
+
+      <div style="margin: 50px auto; text-align: center;">
            <img
                src="${imgSrc}"
+             alt="Product Image"
             style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; display: inline-block;"
             />
-<h1 style="font-size: min(24px, 5vw);margin-top: 50px;">
-${Product_Name}
-</h1>
+        </div>
+        <h3>${body.message2}</h3>
+       <p style="color: #707070; font-size: min(13px, 3vw);">
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Unique items from trusted sellers<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative; "> 
+  Safe and secure bidding<br>
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+       alt="tick" 
+       style="width: 16px; position: relative;"> 
+  Exciting deals and discounts
+</p>
 
-       </div>
-          <div style="max-width: 600px; margin: 0 auto;">
-      <p style="margin: 0; padding: 0; font-size: 14px; font-size: min(16px, 3.5vw); line-height: 1.2;">
-     ${message}
-     
-    </div>
+
+
+        
+ <p style="font-size: min(13px, 3vw);  color: #707070;">Get in on the action before it’s too late. Visit <b>Alletre</b> now to explore this auction and others like it!.</p>
+   
+       <div style="text-align: center;">
+          <a
+            href="https://www.alletre.com/"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+           Explore Auctions 
+          </a>
+      
+    
       </div>
-      <a
-          href="https://www.alletre.com/"
-          style="
-            display: inline-block;
-            padding: 12px 20px;
-            background-color: #a91d3a;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-            font-size: 18px;
-          "
-        >
-          Create Auction Now!
-        </a>
-     <h3
+      <p>Thank you for being part of the <b>Alletre</b> community. We’re thrilled to bring you opportunities like this every day!</p>
+       <p>Happy bidding,<br>
+The <b>Alletre</b> Team
+</p>
+        <p>P.S. Keep your eyes on your inbox for more exclusive auction updates!</p>
+         </div>
+       <h3
   style="
-    margin-top: 30px;
-    font-size: min(20px, 4vw); /* Smaller size for mobile */
+    margin: 30px auto 20px auto; /* Matches auto margins of the p element */
+    font-size: min(16px, 4vw); /* Smaller size for mobile */
     font-weight: bold;
     color: #a91d3a;
+    text-align: left; /* Align text to the left */
+    max-width: 90%; /* Ensure proper fit and alignment */
   "
 >
   Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
@@ -99,15 +169,20 @@ ${Product_Name}
 <p
   style="
     margin: 20px auto;
-    font-size: min(14px, 4vw); /* Adjust font size for mobile */
+    font-size: min(13px, 3vw); /* Adjust font size for mobile */
     line-height: 1.4; /* Slightly tighter line height for mobile */
     max-width: 90%; /* Ensure proper fit on smaller screens */
+    text-align: left;
+    color: #707070;
   "
 >
   The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
 </p>
 
-      <div style="margin: 20px 0;">
+
+
+<p style = "font-size: min(16px, 4vw); color:#707070">FOLLOW US!</p>
+      <div style="margin: 20px 0 ;">
         <!-- Instagram Icon -->
         <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
           <img
@@ -157,30 +232,41 @@ ${Product_Name}
       <p
         style="
           font-size: 16px;
-          margin-top: 20px;
+          margin-top: -20px;
           color: #333;
-          letter-spacing: 5px
+          letter-spacing: 4px
         "
       >
         www.alletre.com
       </p>
-        <a
-      href="https://www.alletre.com"
-      style="
-        display: inline-block;
-        padding: 2px 8px;
-        background-color: #a91d3a;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        font-size: 12px;
-        margin-top: 10px;
-      "
-    >
-      Unsubscribe
-    </a>
+ <p
+  style="
+    margin: 20px auto;
+    font-size: min(10px, 3vw); /* Adjust font size for mobile */
+    line-height: 1.4; /* Slightly tighter line height for mobile */
+    max-width: 90%; /* Ensure proper fit on smaller screens */
+    color: #ACACAC;
+  "
+>
+  This email was sent to 
+  Islamtawfik.dxb@gmail.com
+  because you indicated that you'd like to receive new, Auctions, and updates from Alletre. If you don't want to receive such emails in the future, please 
+  <a 
+    href="unsubscribe-link-here" 
+    style="
+      display: inline-block;
+      color: blue; /* Text color */
+      text-decoration: underline; /* Add underline */
+      background: none; /* No background */
+      border: none; /* No border */
+      padding: 0; /* Remove padding */
+      font-size: inherit; /* Match the paragraph font size */
+    "
+  >
+    Unsubscribe Here
+  </a>.
+</p>
     </div>
-      
   </body>
   </html>`;
   }

@@ -180,7 +180,7 @@ The <b>Alletre</b> Team
     line-height: 1.4; /* Slightly tighter line height for mobile */
     max-width: 90%; /* Ensure proper fit on smaller screens */
     text-align: left;
-    color: 707070;
+    color: #707070;
   "
 >
   The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
