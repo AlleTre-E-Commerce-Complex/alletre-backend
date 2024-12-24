@@ -1755,6 +1755,49 @@ export class UserAuctionsService {
     };
   }
 
+  async getSellerLocation(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: {
+        location: { include: { city: true, country: true } },
+        user: true,
+      },
+    });
+    const sellerContactDetails = auction?.location;
+    Object.assign(sellerContactDetails, {
+      phone: auction.user.phone,
+      userName: auction.user.userName,
+      email: auction.user.email,
+    });
+    return sellerContactDetails;
+  }
+
+  async getBuyerDetails(auctionId: number) {
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
+      include: { bids: { orderBy: { amount: 'desc' } } },
+    });
+    if (auction.bids.length) {
+      const buyerData = await this.prismaService.user.findUnique({
+        where: { id: auction.bids[0].userId },
+        include: {
+          locations: {
+            where: { isMain: true },
+            include: { city: true, country: true },
+          },
+        },
+      });
+      const buyerContactDetails = buyerData?.locations[0];
+      Object.assign(buyerContactDetails, {
+        phone: buyerData.phone,
+        userName: buyerData.userName,
+        email: buyerData.email,
+      });
+      return buyerContactDetails;
+    }
+    return null;
+  }
+
   async findAuctionByIdOr404(
     auctionId: number,
     roles: Role[],

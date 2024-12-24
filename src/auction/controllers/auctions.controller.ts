@@ -466,6 +466,24 @@ export class AuctionsController {
     };
   }
 
+  @Get('/user/:auctionId/buyer-location-details')
+  @UseGuards(AuthOrGuestGuard)
+  async getBuyerDetails(@Param('auctionId', ParseIntPipe) auctionId: number) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.getBuyerDetails(auctionId),
+    };
+  }
+
+  @Get('/user/:auctionId/location')
+  @UseGuards(AuthGuard)
+  async getSellerLocation(@Param('auctionId', ParseIntPipe) auctionId: number) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.getSellerLocation(auctionId),
+    };
+  }
+
   @Put('/user/:auctionId/details')
   @UseGuards(AuthGuard, OwnerGuard)
   @UseInterceptors(AnyFilesInterceptor())

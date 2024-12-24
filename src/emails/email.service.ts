@@ -498,8 +498,8 @@ The <b>Alletre</b> Team
       userName,
     );
     try {
-     const sendEmailresult =  await this.transporter.sendMail(mailOptions);
-     console.log(sendEmailresult)
+      const sendEmailresult = await this.transporter.sendMail(mailOptions);
+      console.log(sendEmailresult);
     } catch (error) {
       console.log(error);
     }
