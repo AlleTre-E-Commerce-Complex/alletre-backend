@@ -613,7 +613,12 @@ export class TasksService {
                 endDate: new Date(), // Set the endDate to the current date and time
               },
               include: {
-                bids: { orderBy: { amount: 'desc' } },
+                bids: {
+                  orderBy: { amount: 'desc' },
+                  include: {
+                    user: true,
+                  },
+                },
                 user: true,
                 product: { include: { images: true } },
               },
@@ -651,17 +656,60 @@ export class TasksService {
             isLostBidders_J_auctionUpdated,
           );
 
+          const auctionEndDate = new Date(isAcutionUpdated.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+
           if (isAcutionUpdated) {
             //sendEmailtoSeller
             console.log('isAuctionUpdated');
             const body = {
-              subject: 'Auction Expired',
-              title: 'Your acution is Expired',
+              subject: '🏆 Auction Closed: Congratulations, You Have a Winner!',
+              title: `: Your Auction Has Ended Successfully!`,
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
-              message: `Hi, ${isAcutionUpdated.user.userName}, We would like to inform you that your auction for ${isAcutionUpdated.product.title} (Model: ${isAcutionUpdated.product.model}) has expired. The security deposit associated with this auction has been successfully refunded to your account. If you wish to participate in another auction, please click the button below to proceed.`,
-              Button_text: 'Click here to create another Auction',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${isAcutionUpdated.user.userName}`,
+              message1: ` 
+            <p>Exciting news! Your auction for ${isAcutionUpdated.product.title} has officially ended, and we have a winner!</p>
+                    <p>Here are the final details:</p>
+            <ul>
+            <li>•	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
+              <li>•	Winner: ${isAcutionUpdated.bids[0].user} </li>
+              <li>• Auction Ended On: ${formattedEndDate} & ${formattedEndTime} </li>
+            </ul>
+            <h3>What’s Next? </h3>
+            <ul>
+              <li>1. Contact the Winner: Our team Coordinate with [Winner’s Username] to finalize payment and delivery details.</li>
+              <li>2. The winning bid amount and your security deposit will be credit to your wallet after the item delivery.</li>           </ul>
+            `,
+              message2: `<p>We’re thrilled about your successful auction and appreciate your trust in <b>Alletre</b>! If you need assistance, our support team is just a click away.</p>
+                <div style="text-align: center">
+          <a
+            href="https://www.alletre.com/"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+            Contact Support 
+          </a>
+        </div>
+         <p>Thank you for being part of our community. Here's to more successful auctions!</p>
+              <p>Warm regards,</p>
+                        <p>The <b>Alletre</b> Team </p>
+                        <p>P.S. Encourage buyers to leave feedback—it helps build trust and improve future experiences!</p>`,
+              Button_text: 'View Auction Summary   ',
+              Button_URL:
+                ' https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details',
             };
             await this.emailService.sendEmail(
               isAcutionUpdated.user.email,
@@ -1056,24 +1104,26 @@ export class TasksService {
             }
             if (isSendBackS_D) {
               const body = {
-                subject: "Your Auction Has Ended – Let’s Try Again!",
+                subject: 'Your Auction Has Ended – Let’s Try Again!',
                 title: `Your Auction for ${auctionExpairyData.product.title} Has Ended`,
                 Product_Name: auctionExpairyData.product.title,
                 img: auctionExpairyData.product.images[0].imageLink,
-                welcomeMessage: `Hi, ${auctionExpairyData.user.userName}`,
+                userName: `${auctionExpairyData.user.userName}`,
                 message1: ` 
-                We noticed your auction for ${auctionExpairyData.product.title} has ended without any bids. While this can happen occasionally, don’t worry – we’re here to help!
-                Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.
-                Here’s what you can do to improve your chances next time:
-                 •	Adjust Your Starting Bid: A lower starting bid might attract more interest.
-                 •	Enhance Your Listing: Add more photos or improve your item description.
-                 •	Promote Your Auction: Share your listing on social media to reach a wider audience.
-                 •	Refine Your Description: A detailed and appealing description can make a big difference.
-                Would you like to relist your auction with ease?`,
-                message2: `Thank you for choosing <b>Alletre</b>. Let’s turn this into an opportunity to find the right buyer!
-Best regards,
-The <b>Alletre</b> Team
-P.S. Need help improving your listing? Check out our tips for creating successful auctions: <a href="https://www.alletre.com/">Auction Tips</a>
+                <p>We noticed your auction for ${auctionExpairyData.product.title} has ended without any bids. While this can happen occasionally, don’t worry – we’re here to help!</p>
+                <p>Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.</p>
+                <p>Here’s what you can do to improve your chances next time:</p>
+                <ul>
+                  <li>•	Adjust Your Starting Bid: A lower starting bid might attract more interest.</li>
+                  <li>•	Enhance Your Listing: Add more photos or improve your item description.</li>
+                  <li>•	Promote Your Auction: Share your listing on social media to reach a wider audience.</li>
+                  <li>•	Refine Your Description: A detailed and appealing description can make a big difference.</li>
+                </ul>
+                <p>Would you like to relist your auction with ease?</p>`,
+                message2: `<p>Thank you for choosing <b>Alletre</b>. Let’s turn this into an opportunity to find the right buyer!</p>
+                            <p>Best regards,</p>
+                            <p>The <b>Alletre</b> Team </p>
+                            <p>P.S. Need help improving your listing? Check out our tips for creating successful auctions: <a href="https://www.alletre.com/">Auction Tips</a></p>
 `,
                 Button_text: 'Create Auction ',
                 Button_URL: ' https://www.alletre.com/',
