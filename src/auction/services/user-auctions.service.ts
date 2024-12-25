@@ -145,8 +145,9 @@ export class UserAuctionsService {
       const auction = await this.prismaService.auction.findUnique({
         where: { id: auctionId },
         include: {
+          bids: { orderBy: { amount: 'desc' } },
           product: {
-            include: { images: true },
+            include: { images: true, category: true },
           },
           user: true,
         },
@@ -201,24 +202,35 @@ export class UserAuctionsService {
             alletreWalletData,
           );
         }
-
+        const auctionEndDate = new Date(auction.expiryDate);
+        const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
         //find highest Bidder
         if (isSellerPaymentCaptured) {
           //send mail to seller
           const body = {
-            subject: 'Auction Cancelled',
-            title: 'Your acution is cancelled',
+            subject: '⚠️ Auction Cancelled – Security Deposit Forfeited',
+            title: `Your Auction Has Been Cancelled`,
             Product_Name: auction.product.title,
             img: auction.product.images[0].imageLink,
-            message: ` Hi ${auction.user.userName}, 
-                Your Acution of ${auction.product.title}
-                (Model:${auction.product.model})
-                has been successfully cancelled. 
-                You have lost your security deposit due to there are bidders on your auction.
-                If you would like to do another auction, 
-                Please click the button below. Thank you. `,
-            Button_text: 'Click here to create another Auction',
-            Button_URL: process.env.FRONT_URL,
+            userName: `${auction.user.userName}`,
+            message1: ` 
+            <p>You have successfully cancelled your auction for ${auction.product.title}. However, since there were active bidders on this auction, the security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our cancellation policy.</p>
+                    <p>Auction Details:</p>
+            <ul>
+              <li>•	Title: ${auction.product.title} </li>
+              <li>•	Category: ${auction.product.category.nameEn}</li>
+              <li>•	Highest Bid: ${auction.bids[0].amount}</li>
+              <li>• Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+            </ul>
+            <p>We understand circumstances can change, but cancelling an auction with bidders can affect their experience and trust in the platform.</p>
+            `,
+            message2: `<p>We value your participation in our community and are here to support you. If you have any questions about this policy or need assistance, please don’t hesitate to contact our support team.</p>
+                        <p>Best regards,</p>
+                        <p>The <b>Alletre</b> Team </p>
+                        <p>P.S. Avoid future deposit forfeitures by reviewing our auction policies before cancelling active auctions.</p>`,
+            Button_text: 'View My Account  ',
+            Button_URL: ' https://www.alletre.com/',
           };
           //calling send email function
           await this.emailService.sendEmail(
@@ -278,26 +290,39 @@ export class UserAuctionsService {
             }
             //send email to bidders
             const body = {
-              subject: 'Auction Cancelled',
-              title: 'Your acution is cancelled',
+              subject: '⚠️ Auction Cancelled – Security Deposit Refunded',
+              title: 'The Auction You Participated In Has Been Cancelled',
               Product_Name: auction.product.title,
               img: auction.product.images[0].imageLink,
-              message: ` Hi, ${data.user.userName}, 
-                            We are really sorry to say that your Acution of ${
-                              auction.product.title
-                            }
-                          (Model:${auction.product.model})
-                          has been cancelled by the owner of the product. 
-                          Your Security Deposit has been sent back to your ${
-                            data.isWalletPayment ? 'wallet.' : 'banck account.'
-                          } 
-                            ${
-                              data?.user.id === highestBidderId
-                                ? 'And also you will get a compansation to your wallet due to you are the highest Bidder.'
-                                : ''
-                            }.`,
-              Button_text: 'Click here to create another Auction',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${auction.user.userName}`,
+              message1: ` 
+              <p>We regret to inform you that the auction for the product titled ${
+                auction.product.title
+              } has been cancelled by the owner of the product. </p>
+                      <p>Cancelled Auction Details:</p>
+              <ul>
+                <li>•	Title: ${auction.product.title} </li>
+                <li>•	Category: ${auction.product.category.nameEn}</li>
+                <li>•	Your Bid Amount: ${
+                  auction.bids.find((bid) => bid.userId === auction.user.id)
+                    ?.amount
+                }</li>
+                <li>• Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+              </ul>
+              <p>Your security deposit has been successfully sent back to your ${
+                data.isWalletPayment ? 'wallet.' : 'bank account.'
+              } </p>
+              <p>${
+                data?.user.id === highestBidderId
+                  ? 'Additionally, since you were the highest bidder, a compensation amount has been credited to your wallet as a gesture of goodwill.'
+                  : ''
+              } </p>`,
+              message2: `<p>We deeply value your participation and apologize for any inconvenience this cancellation may have caused. If you have any further questions or concerns, please feel free to contact our support team.</p>
+                          <p>Best regards,</p>
+                          <p>The <b>Alletre</b> Team </p>
+                          <p>P.S. Bid with other similar , auctions are waiting for you</p>`,
+              Button_text: 'View My Account  ',
+              Button_URL: ' https://www.alletre.com/',
             };
             //send notification to bidders
             const notificationForBidders = {
@@ -682,25 +707,35 @@ export class UserAuctionsService {
           if (isSendBackS_D) {
             //Email Data
             const body = {
-              subject: 'Auction Cancelled',
-              title: 'Your acution is cancelled',
-              Product_Name: updatedDataOfCancellAuction.product.title,
-              img: updatedDataOfCancellAuction.product.images[0].imageLink,
-              message: ` Hi ${updatedDataOfCancellAuction.user.userName}, 
-                          Your Acution of ${
-                            updatedDataOfCancellAuction.product.title
-                          }
-                         (Model:${updatedDataOfCancellAuction.product.model})
-                         has been successfully cancelled. 
-                         Your Security Deposit has been sent back to your ${
-                           sellerPaymentData.isWalletPayment
-                             ? 'wallet.'
-                             : 'account.'
-                         } . 
-                         If you would like to do another auction, 
-                         Please click the button below. Thank you. `,
-              Button_text: 'Click here to create another Auction',
-              Button_URL: process.env.FRONT_URL,
+              subject: '✅ Auction Cancelled – Security Deposit Refunded',
+              title: `Your Auction Has Been Cancelled`,
+              Product_Name: auction.product.title,
+              img: auction.product.images[0].imageLink,
+              userName: `${auction.user.userName}`,
+              message1: ` 
+              <p>Your auction for ${auction.product.title}  has been successfully cancelled. Since there were no bidders on this auction, your security deposit of [Deposit Amount] will be fully refunded to your account.</p>
+              <p>Auction Details:</p>
+              <ul>
+                <li>•	Title: ${auction.product.title} </li>
+                <li>•	Category: ${auction.product.category.nameEn}</li>
+                <li>•	Starting Bid: ${auction.acceptedAmount}</li>
+                <li>•	Auction End Date:${auction.expiryDate}</li>
+              </ul>
+              <p>We’re sorry to see this auction cancelled but understand that plans can change.</p>
+              <p><b>Ready to Try Again?</b></p>
+              <p>We’d love to help you relist your item and attract the right bidders!</p>
+                          <ul>
+                <li>•	Optimize Your Listing: Add more details or photos to make your auction stand out. </li>
+                <li>•	Choose the Right Timing: Schedule your auction for peak buyer activity.
+                
+              </ul>`,
+
+              message2: `<p>Thank you for choosing <b>Alletre</b>. We’re here to help you succeed in all your future auctions!</p>
+                          <p>Best regards,</p>
+                          <p>The <b>Alletre</b> Team </p>
+                          <p>P.S. If you have questions about the refund process, feel free to contact us anytime.</p>`,
+              Button_text: 'Create Auction ',
+              Button_URL: ' https://www.alletre.com/',
             };
             //calling send email function
             await this.emailService.sendEmail(
