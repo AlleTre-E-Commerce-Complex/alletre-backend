@@ -258,8 +258,7 @@ The <b>Alletre</b> Team
     color: #ACACAC;
   "
 >
-  This email was sent to 
-  ${updatedAuction.user.email}
+  This email was sent to you
   because you indicated that you'd like to receive new, Auctions, and updates from Alletre. If you don't want to receive such emails in the future, please 
   <a 
     href="unsubscribe-link-here" 

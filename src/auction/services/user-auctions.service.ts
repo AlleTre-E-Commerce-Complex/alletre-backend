@@ -624,7 +624,7 @@ export class UserAuctionsService {
             include: {
               user: true,
               product: {
-                include: { images: true },
+                include: { images: true, category: true },
               },
               Payment: {
                 where: {
@@ -704,35 +704,39 @@ export class UserAuctionsService {
               sellerPaymentData.paymentIntentId,
             );
           }
+          const auctionEndDate = new Date(
+            updatedDataOfCancellAuction.expiryDate,
+          );
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
           if (isSendBackS_D) {
             //Email Data
             const body = {
               subject: '✅ Auction Cancelled – Security Deposit Refunded',
               title: `Your Auction Has Been Cancelled`,
-              Product_Name: auction.product.title,
-              img: auction.product.images[0].imageLink,
-              userName: `${auction.user.userName}`,
+              Product_Name: updatedDataOfCancellAuction.product.title,
+              img: updatedDataOfCancellAuction.product.images[0].imageLink,
+              userName: `${updatedDataOfCancellAuction.user.userName}`,
               message1: ` 
-              <p>Your auction for ${auction.product.title}  has been successfully cancelled. Since there were no bidders on this auction, your security deposit of [Deposit Amount] will be fully refunded to your account.</p>
+              <p>Your auction for ${updatedDataOfCancellAuction.product.title}  has been successfully cancelled. Since there were no bidders on this auction, your security deposit of ${updatedDataOfCancellAuction.product.category.sellerDepositFixedAmount} will be fully refunded to your account.</p>
               <p>Auction Details:</p>
               <ul>
-                <li>•	Title: ${auction.product.title} </li>
-                <li>•	Category: ${auction.product.category.nameEn}</li>
-                <li>•	Starting Bid: ${auction.acceptedAmount}</li>
-                <li>•	Auction End Date:${auction.expiryDate}</li>
+                <li>Title: ${updatedDataOfCancellAuction.product.title} </li>
+                <li>Category: ${updatedDataOfCancellAuction.product.category.nameEn}</li>
+                <li>Starting Bid: ${updatedDataOfCancellAuction.acceptedAmount}</li>
+                <li>Auction End Date:${formattedEndDate}</li>
               </ul>
               <p>We’re sorry to see this auction cancelled but understand that plans can change.</p>
               <p><b>Ready to Try Again?</b></p>
               <p>We’d love to help you relist your item and attract the right bidders!</p>
                           <ul>
-                <li>•	Optimize Your Listing: Add more details or photos to make your auction stand out. </li>
-                <li>•	Choose the Right Timing: Schedule your auction for peak buyer activity.
+                <li>Optimize Your Listing: Add more details or photos to make your auction stand out. </li>
+                <li>Choose the Right Timing: Schedule your auction for peak buyer activity.
                 
               </ul>`,
 
               message2: `<p>Thank you for choosing <b>Alletre</b>. We’re here to help you succeed in all your future auctions!</p>
-                          <p>Best regards,</p>
-                          <p>The <b>Alletre</b> Team </p>
+                           <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                           <p>P.S. If you have questions about the refund process, feel free to contact us anytime.</p>`,
               Button_text: 'Create Auction ',
               Button_URL: ' https://www.alletre.com/',
