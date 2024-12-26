@@ -2788,11 +2788,20 @@ export class UserAuctionsService {
             Button_URL: process.env.FRONT_URL,
           };
           const auction = sellerPaymentData.auction;
+          const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
+                   Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
+                   (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
+                   The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
+                   From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. `
+        
+          const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
+                   (Model:${sellerPaymentData.auction.product.model}). 
+                    We would like to thank you and appreciate you for choosing Alle Tre.`
           const notificationBodyToSeller = {
             status: 'ON_CONFIRM_DELIVERY',
             userType: 'FOR_SELLER',
             usersId: sellerPaymentData.userId,
-            message: emailBodyToSeller.message,
+            message: notificationMessageToSeller,
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
             auctionId: sellerPaymentData.auctionId,
@@ -2801,7 +2810,7 @@ export class UserAuctionsService {
             status: 'ON_CONFIRM_DELIVERY',
             userType: 'FOR_WINNER',
             usersId: confirmDeliveryResult.userId,
-            message: emailBodyToWinner.message,
+            message: notificationMessageToBidder,
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
             auctionId: sellerPaymentData.auctionId,
@@ -2810,7 +2819,7 @@ export class UserAuctionsService {
             await this.prismaService.notification.create({
               data: {
                 userId: sellerPaymentData.userId,
-                message: notificationBodyToSeller.message,
+                message: notificationMessageToSeller,
                 imageLink: notificationBodyToSeller.imageLink,
                 productTitle: notificationBodyToSeller.productTitle,
                 auctionId: sellerPaymentData.auctionId,
@@ -2820,7 +2829,7 @@ export class UserAuctionsService {
             await this.prismaService.notification.create({
               data: {
                 userId: confirmDeliveryResult.userId,
-                message: notificationBodyToBidder.message,
+                message: notificationMessageToBidder,
                 imageLink: notificationBodyToBidder.imageLink,
                 productTitle: notificationBodyToBidder.productTitle,
                 auctionId: notificationBodyToBidder.auctionId,
@@ -2934,11 +2943,19 @@ export class UserAuctionsService {
           Button_URL: process.env.FRONT_URL,
         };
         const auction = IsItemSend;
+        const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. The seller has been sent the product  of Auction of ${
+                     IsItemSend.product.title
+                   }
+                   (Model:${
+                     IsItemSend.product.model
+                   }) for delivery. Once the item delivered, please confirm the delivery by cliking the "confirm delivery" button.
+                   ${message ? `Seller Message : ${message}` : ' '} 
+                    We would like to thank you and appreciate you for choosing Alle Tre.`
         const notificationBodyToBidder = {
           status: 'ON_ITEM_SEND_FOR_DELIVERY',
           userType: 'FOR_WINNER',
           usersId: highestBidder.id,
-          message: emailBodyToWinner.message,
+          message: notificationMessageToBidder,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: IsItemSend.id,

@@ -324,20 +324,29 @@ export class TasksService {
               Button_text: 'Click here',
               Button_URL: process.env.FRONT_URL,
             };
+            const notificationMessageToSeller =` 
+                                We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
+                                (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
+                                So we are giving you an amount as a compensation to your wallet and your security deposit has
+                                been sent back to your bank account.`
             const notificationBodyToSeller = {
               status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
               userType: 'FOR_SELLER',
               usersId: sellerPaymentData.userId,
-              message: emailBodyForSeller.message,
+              message: notificationMessageToSeller,
               imageLink: sellerPaymentData.auction.product.images[0].imageLink,
               productTitle: sellerPaymentData.auction.product.title,
               auctionId: sellerPaymentData.auctionId,
             };
+            const notificationMessageToBidder =`
+             We are really sorry to say that, the time to pay the pending amount of Auction of ${sellerPaymentData.auction.product.title}
+                        (Model:${sellerPaymentData.auction.product.model}) has been expired. Due to the delay of the payment you have lost
+                        your security deposite`
             const notificationBodyToBidder = {
               status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
               userType: 'FOR_WINNER',
               usersId: winnerSecurityDeposit.userId,
-              message: emailBodyForBidder.message,
+              message: notificationMessageToBidder,
               imageLink: sellerPaymentData.auction.product.images[0].imageLink,
               productTitle: sellerPaymentData.auction.product.title,
               auctionId: sellerPaymentData.auctionId,
@@ -346,7 +355,7 @@ export class TasksService {
               await this.prismaService.notification.create({
                 data: {
                   userId: sellerPaymentData.userId,
-                  message: emailBodyForSeller.message,
+                  message: notificationBodyToSeller.message,
                   imageLink: notificationBodyToSeller.imageLink,
                   productTitle: notificationBodyToSeller.productTitle,
                   auctionId: sellerPaymentData.auctionId,
@@ -356,7 +365,7 @@ export class TasksService {
               await this.prismaService.notification.create({
                 data: {
                   userId: winnerSecurityDeposit.userId,
-                  message: emailBodyForBidder.message,
+                  message: notificationBodyToBidder.message,
                   imageLink: notificationBodyToBidder.imageLink,
                   productTitle: notificationBodyToBidder.productTitle,
                   auctionId: winnerSecurityDeposit.auctionId,
@@ -461,11 +470,15 @@ export class TasksService {
               EmailsType.OTHER,
               emailBodyForSeller,
             );
+            const notificationMessageToSeller =`
+            It appears that the delivery of your product from the auction "${auction.product.title}"
+                  (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
+                  Please take action to fulfill the delivery.`
             const deliveryDelayNotificationData =
               await this.prismaService.notification.create({
                 data: {
                   userId: auction.userId,
-                  message: emailBodyForSeller.message,
+                  message: notificationMessageToSeller,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: auction.id,
@@ -550,7 +563,9 @@ export class TasksService {
             await this.prismaService.notification.create({
               data: {
                 userId: data.userId,
-                message: body.message,
+                message: ` Your pending payment on your Auction of ${data.auction.product.title}
+                     (Model:${data.auction.product.model}) is going to be expired soon.
+                      Notice : If you are refuce to pay, you will lose the security deposite. Thank you.`,
                 imageLink: data.auction.product.images[0].imageLink,
                 productTitle: data.auction.product.title,
                 auctionId: data.auctionId,
