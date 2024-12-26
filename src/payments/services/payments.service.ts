@@ -22,7 +22,8 @@ import { generateInvoicePDF } from 'src/emails/invoice';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
-import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+// import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -32,6 +33,7 @@ export class PaymentsService {
     private readonly walletService: WalletService,
     private readonly emailBatchService: EmailBatchService,
     private readonly notificationsService: NotificationsService,
+    private readonly auctionGateway: AuctionWebSocketGateway,
   ) {}
 
   async walletPayDepositBySeller(
@@ -2548,10 +2550,12 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { user: true, product: { include: { images: true } } },
+            include: { bids:true, user: true, product: { include: { images: true } } },
           });
 
           if (updatedAuction) {
+            //emiting the new auction to all online users
+            this.auctionGateway.listingNewAuction(updatedAuction);
             const emailBodyToSeller = {
               subject: 'Your Auction Has Been Successfully Listed!',
               title: 'Your Auction is Live!',
@@ -2616,9 +2620,11 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { user: true, product: { include: { images: true } } },
+            include: { bids:true ,user: true, product: { include: { images: true } } },
           });
           if (updatedAuction) {
+            //emiting the new auction to all online users
+            this.auctionGateway.listingNewAuction(updatedAuction);
             const emailBodyToSeller = {
               subject: 'Your Auction Has Been Successfully Listed!',
               title: 'Your Auction is Live!',

@@ -6,6 +6,7 @@ import { FirebaseModule } from 'src/firebase/firebase.module';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { EmailSerivce } from 'src/emails/email.service';
+import { AuctionModule } from 'src/auction/auction.module';
 
 @Module({
   imports: [PrismaModule, FirebaseModule],
