@@ -56,7 +56,7 @@ export class EmailBatchService {
         A New Auction Just Went Live!
       </h3>
       <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
-        Hi Alle Tre member,
+        Hi Alletre member,
       </h2>
 
       <div
@@ -75,16 +75,16 @@ export class EmailBatchService {
       <p>Auction Details:</p>
 <ul style="margin: 0; padding-left: 20px; color:  #333; font-size: min(13px, 3vw);">
   <li>Title: ${updatedAuction.product.title}</li>
-  <li>Category: ${updatedAuction.product.category}</li>
-  <li>Starting Bid: ${updatedAuction.product.startingBid}</li>
-  <li>Ends On: ${updatedAuction.product.endDate}</li>
+  <li>Category: ${updatedAuction.product.category.nameEn}</li>
+  <li>Starting Bid: ${updatedAuction.startingBid}</li>
+  <li>Ends On: ${updatedAuction.endDate}</li>
 </ul>
 
         <p>This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!</p>
 
         <div style="text-align: center;">
           <a
-            href=" https://www.alletre.com/alletre/home/${updatedAuction.product.id}/details"
+            href=" https://www.alletre.com/alletre/home/${updatedAuction.id}/details"
             style="
               display: inline-block;
               padding: 12px 20px;

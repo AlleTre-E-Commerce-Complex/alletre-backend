@@ -697,7 +697,7 @@ export class TasksService {
             console.log('isAuctionUpdated');
             const body = {
               subject: '🏆 Auction Closed: Congratulations, You Have a Winner!',
-              title: `: Your Auction Has Ended Successfully!`,
+              title: ': Your Auction Has Ended Successfully!',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
               userName: `${isAcutionUpdated.user.userName}`,
@@ -783,20 +783,83 @@ export class TasksService {
               }
             }
           }
+
+          auctionEndDate.setDate(auctionEndDate.getDate() + 3);
+          const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
           if (isHighestBidder_J_auctionUpdated) {
             //sendEmailToHighestBidder
             const body = {
-              subject: 'Auction Expired',
-              title: 'Your won the auction',
+              subject: '🏆 Congratulations! You Won the Auction!',
+              title:
+                ': Your Winning Bid is Confirmed – Complete Your Purchase Now',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
-              message: ` Hi, ${isHighestBidder_J_auctionUpdated.user.userName}, 
-                      Congratulations.. You have won the Auction of ${isAcutionUpdated.product.title}
-                      (Model:${isAcutionUpdated.product.model}). Please pay the full amount within 48 hours.
-                      Otherwise, you will lose you security deposit.
-                      If you would like to do another bid, Please click the button below. Thank you. `,
-              Button_text: 'Pay the full amount',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${isAcutionUpdated.bids[0].user}`,
+              message1: ` 
+                <p>Congratulations on winning the auction for ${isAcutionUpdated.product.title}! It’s time to complete the payment and finalize your purchase.</p>
+                        <p>Auction Details:</p>
+                <ul>
+                  <li>•	Item: ${isAcutionUpdated.product.title}</li>
+                  <li>•	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
+                  <li>•	Seller: ${isAcutionUpdated.user.userName}</li>
+                  <li>•	Payment Due By:${PaymentEndDate}& ${formattedEndTime}</li>
+                </ul>
+                <h3>What’s Next? </h3>
+                <p>1️⃣<b> Complete Payment:</b></p>
+                <p>Secure your item by completing the payment now</p>`,
+              message2: ` <p>2️⃣<b> Choose Delivery or Pickup:</b></p>
+                <ul>
+                  <li>•	<b>Delivery</b>: The item will be shipped to your address after payment. (additional shipping charges may apply).</li>
+                  <li>•	<b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address. (Details will be provided after payment).</li>
+                </ul>
+                     <div style="text-align: center">
+            <a
+              href="https://www.alletre.com/alletre/profile/my-bids/pending"
+              style="
+                display: inline-block;
+                padding: 12px 20px;
+                background-color: #a91d3a !important;
+                -webkit-background-color: #a91d3a !important;
+                -moz-background-color: #a91d3a !important;
+                color: #ffffff !important;
+                text-decoration: none;
+                border-radius: 10px;
+                font-weight: bold;
+                margin: 20px 0;
+                font-size: 18px;
+              "
+            >
+             Select Delivery Option 
+            </a>
+            </div>
+            <p>3️⃣ <b> Confirm Item Collection:</b></p>
+                
+                 <p>If you choose to pick up the item, don’t forget to confirm that you’ve collected it. This ensures a smooth transaction for both you and the seller.</p>
+                           <div style="text-align: center">
+            <a
+              href="https://www.alletre.com/alletre/profile/my-bids/pending"
+              style="
+                display: inline-block;
+                padding: 12px 20px;
+                background-color: #a91d3a !important;
+                -webkit-background-color: #a91d3a !important;
+                -moz-background-color: #a91d3a !important;
+                color: #ffffff !important;
+                text-decoration: none;
+                border-radius: 10px;
+                font-weight: bold;
+                margin: 20px 0;
+                font-size: 18px;
+              "
+            >
+             Confirm Collection  
+            </a>
+            </div>
+                 <p>Warm regards,</p>
+                <p>The <b>Alletre</b> Team </p>`,
+              Button_text: 'Complete Payment ',
+              Button_URL:
+                'https://www.alletre.com/alletre/profile/my-bids/pending',
             };
             await this.emailService.sendEmail(
               isHighestBidder_J_auctionUpdated.user.email,
@@ -850,17 +913,36 @@ export class TasksService {
               await Promise.all(
                 loserData.map(async (data) => {
                   const body = {
-                    subject: 'Auction Expired',
-                    title: 'Your acution is Expired',
+                    subject: '❌ Auction Ended: You Didn’t Win This Time',
+                    title: 'The Auction Has Ended',
                     Product_Name: isAcutionUpdated.product.title,
                     img: isAcutionUpdated.product.images[0].imageLink,
-                    message: ` Hi, ${data.user.userName}, 
-                        We are really sorry to say that you have lost the Auction of ${isAcutionUpdated.product.title}
-                       (Model:${isAcutionUpdated.product.model}). Thank you for choosing the Alletre for your Auction.
-                       If you would like to do another Bid, Please click the button below. Thank you. `,
-                    Button_text: 'Click here to create another Auction',
-                    Button_URL: process.env.FRONT_URL,
+                    userName: `${isAcutionUpdated.user.userName}`,
+                    message1: ` 
+                    <p>Thank you for participating in the auction for ${
+                      isAcutionUpdated.product.title
+                    }. While your bid was competitive, the auction has now ended, and unfortunately, you didn’t win this time. </p>
+                            <p>Auction Summary:</p>
+                    <ul>
+                      <li>•	Item: ${isAcutionUpdated.product.title}</li>
+                      <li>•	Your Highest Bid: [Your Bid Amount]:${
+                        isAcutionUpdated.bids.find(
+                          (bid) => bid.userId === isAcutionUpdated.user.id,
+                        )?.amount
+                      }</li>
+                      <li>•	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
+                    </ul>
+                    <h3>Don’t Give Up! </h3>
+                    <p>There are many more exciting auctions waiting for you on [Website Name]. Check here for more exciting auctions:</p>
+                    `,
+                    message2: `<p>We appreciate your enthusiasm and look forward to seeing you succeed in your next auction. Keep bidding and keep winning!</p>
+                                <p>Warm regards,</p>
+                                <p>The <b>Alletre</b> Team </p>
+                                <p>P.S. Have questions or need assistance? Contact us anytime.</p>`,
+                    Button_text: 'Live Auctions',
+                    Button_URL: ' https://www.alletre.com/alletre/',
                   };
+
                   await this.emailService.sendEmail(
                     data.user.email,
                     'token',

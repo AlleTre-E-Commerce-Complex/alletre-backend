@@ -1116,7 +1116,17 @@ export class PaymentsService {
             },
             include: {
               user: true,
-              auction: { include: { product: { include: { images: true } } } },
+              auction: {
+                include: {
+                  product: { include: { images: true, category: true } },
+                  bids: {
+                    orderBy: { amount: 'desc' },
+                    include: {
+                      user: true,
+                    },
+                  },
+                },
+              },
             },
           });
 
@@ -1216,7 +1226,17 @@ export class PaymentsService {
           where: { auctionId: auctionId },
           include: {
             user: true,
-            auction: { include: { product: { include: { images: true } } } },
+            auction: {
+              include: {
+                product: { include: { images: true, category: true } },
+                bids: {
+                  orderBy: { amount: 'desc' },
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
           },
         });
         await Promise.all(
@@ -1277,7 +1297,7 @@ export class PaymentsService {
                 if (isPaymentIntentCancelled) is_SD_SendBackToBidder = true;
               }
               if (is_SD_SendBackToBidder) {
-                //send email to the seller
+                //send email to the lostBidder
                 const emailBodyToLostBidders = {
                   subject: 'Auction Concluded - Buy Now Option Used',
                   title: 'Auction Concluded',
@@ -1383,29 +1403,34 @@ export class PaymentsService {
 
               //send email to the seller
               const emailBodyToSeller = {
-                subject: 'Auction Concluded - Buy Now Option Used',
-                title: 'Auction Concluded',
+                subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
+                title: 'Congratulations – Your Item Has Been Sold!',
                 Product_Name: payment.auction.product.title,
                 img: payment.auction.product.images[0].imageLink,
-                message: `Hi ${payment.user.userName}, 
-                              We are glad to inform you that the auction for ${
-                                payment.auction.product.title
-                              } 
-                              (Model: ${
-                                payment.auction.product.model
-                              }) has concluded. 
-                              One user has successfully purchased the item using the "Buy Now" option. 
-                              We will send back the security deopsit to your ${
-                                payment.isWalletPayment
-                                  ? 'wallet '
-                                  : 'bank account '
-                              }
-                              and we send the full amount to the your wallet once you delevered the item to the buyer.
-                              We appreciate your interest in the auction and encourage you to participate in future auctions. 
-                              You can find more auctions listed on our platform. 
-                              Thank you for being a valued member of our community!`,
-                Button_text: 'Click here to view more Auctions',
-                Button_URL: process.env.FRONT_URL, // Link to the auction page
+                message: `${payment.user.userName}`,
+                message1: ` 
+                  <p>Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.</p>
+                          <p>Here are the details:</p>
+                  <ul>
+                  <li>•	Auction Title: ${payment.auction.product.title}</li>
+                  <li>•	Category: ${payment.auction.product.category}</li>
+                  <li>•	Sold For:${payment.auction.bids[0].amount} </li>
+                  <li>•	Buyer: ${payment.auction.bids[0].user} </li>
+                  </ul>
+                  <p>The buyer has completed the payment, and the funds will be processed and transferred to your account shortly.</p>             
+                  `,
+                message2: ` <h3>What’s Next? </h3>
+                  <ul>
+                  <li>1.<b>	Ship Your Item</b>: Make sure to package your item securely and ship it to the buyer’s provided address as soon as possible.</li>
+                  <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
+                  </ul>
+               <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
+                    <p>Best regards,</p>
+                              <p>The <b>Alletre</b> Team </p>
+                              <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
+                Button_text: 'Manage My Sales',
+                Button_URL:
+                  ' https://www.alletre.com/alletre/profile/my-auctions/sold',
               };
               await this.emailService.sendEmail(
                 payment.user.email,
@@ -2082,7 +2107,15 @@ export class PaymentsService {
                   include: {
                     user: true,
                     auction: {
-                      include: { product: { include: { images: true } } },
+                      include: {
+                        product: { include: { images: true, category: true } },
+                        bids: {
+                          orderBy: { amount: 'desc' },
+                          include: {
+                            user: true,
+                          },
+                        },
+                      },
                     },
                   },
                 });
@@ -2146,20 +2179,34 @@ export class PaymentsService {
 
               //send an email to the buyer
               const emailBodyToBuyer = {
-                subject:
-                  'Congratulations on Your Purchase - Auction Concluded!',
-                title: 'Purchase Successful',
+                subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
+                title: 'Congratulations – Your Item Has Been Sold!',
                 Product_Name: isPaymentSuccess.auction.product.title,
                 img: isPaymentSuccess.auction.product.images[0].imageLink,
-                message: `Hi ${isPaymentSuccess.user.userName}, 
-                          Congratulations! You have successfully purchased the ${isPaymentSuccess.auction.product.title} 
-                          (Model: ${isPaymentSuccess.auction.product.model}) using the "Buy Now" option. 
-                          The item is now yours, and we are excited to finalize the process for you.
-                          The seller has been notified and will begin preparing the item for delivery. 
-                          If you have any questions, feel free to reach out to us. 
-                          Thank you for your purchase, and we hope you enjoy your new product!`,
-                Button_text: 'View Your Purchase',
-                Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
+                message: `${isPaymentSuccess.user.userName}`,
+                message1: ` 
+                  <p>Great news! Your auction ${isPaymentSuccess.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.</p>
+                          <p>Here are the details:</p>
+                  <ul>
+                  <li>•	Auction Title: ${isPaymentSuccess.auction.product.title}</li>
+                  <li>•	Category: ${isPaymentSuccess.auction.product.category.nameEn}</li>
+                  <li>•	Sold For:${isPaymentSuccess.auction.bids[0].amount} </li>
+                  <li>•	Buyer: ${isPaymentSuccess.auction.bids[0].user} </li>
+                  </ul>
+                  <p>The buyer has completed the payment, and the funds will be processed and transferred to your account shortly.</p>             
+                  `,
+                message2: ` <h3>What’s Next? </h3>
+                  <ul>
+                  <li>1.<b>	Ship Your Item</b>: Make sure to package your item securely and ship it to the buyer’s provided address as soon as possible.</li>
+                  <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
+                  </ul>
+               <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
+                    <p>Best regards,</p>
+                              <p>The <b>Alletre</b> Team </p>
+                              <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
+                Button_text: 'Manage My Sales',
+                Button_URL:
+                  ' https://www.alletre.com/alletre/profile/my-auctions/sold',
               };
               const notificationBodyToBuyer = {
                 status: 'ON_ITEM_BUY_NOW',
