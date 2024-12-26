@@ -521,19 +521,60 @@ export class UserService {
         where: { email: email },
       });
       if (isEmailExist) {
-        throw new MethodNotAllowedResponse({
-          ar: 'البريد الالكتروني مسجل من قبل',
-          en: 'Email is already exist',
-        });
+        if (isEmailExist.isActive) {
+          throw new MethodNotAllowedResponse({
+            ar: 'البريد الالكتروني مسجل من قبل',
+            en: 'Email is already exist',
+          });
+        } else {
+          return await this.prismaService.subscribedUser.update({
+            where: {
+              email: email,
+            },
+            data: {
+              isActive: true,
+            },
+          });
+        }
       }
       return await this.prismaService.subscribedUser.create({
-        data: { email },
+        data: { email, isActive: true },
       });
     } catch (error) {
       console.log('addNewSubscriber===========>', error.response.message);
       throw new MethodNotAllowedResponse({
         ar: error.response.message.ar || 'خطأ في إضافة المشترك',
         en: error.response.message.en || 'Failed while adding new subscriber',
+      });
+    }
+  }
+  async unSubscribeUser(email: string) {
+    try {
+      const isEmailExist = await this.prismaService.subscribedUser.findFirst({
+        where: { email: email },
+      });
+      console.log('is email exist ', isEmailExist);
+      if (!isEmailExist.isActive) {
+        console.log('is email exist 2', isEmailExist);
+        throw new MethodNotAllowedResponse({
+          ar: 'هذا البريد الإلكتروني غير موجود',
+          en: 'This email does not exist',
+        });
+      }
+      const isUnSubscribeUser = await this.prismaService.subscribedUser.update({
+        where: {
+          email: email,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+      return isUnSubscribeUser;
+    } catch (error) {
+      console.log('Error at unsubscribe user :', error);
+      throw new MethodNotAllowedResponse({
+        ar: error.response.message.ar,
+        en: error.response.message.en,
       });
     }
   }
