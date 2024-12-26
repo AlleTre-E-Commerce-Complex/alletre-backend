@@ -401,8 +401,11 @@ export class PaymentsService {
               include: {
                 auction: {
                   include: {
-                    product: { include: { images: true } },
-                    user: true,
+                    bids: {
+                      include: { user: true },
+                      orderBy: { amount: 'desc' },
+                    },
+                    product: { include: { images: true, category: true } },
                   },
                 },
                 user: true,
@@ -430,8 +433,11 @@ export class PaymentsService {
           user: true,
           auction: {
             include: {
-              product: { include: { images: true } },
-              user: true,
+              bids: {
+                include: { user: true },
+                orderBy: { amount: 'desc' },
+              },
+              product: { include: { images: true, category: true } },
             },
           },
         },
@@ -444,7 +450,7 @@ export class PaymentsService {
         title: 'Congratulations, Your Item is Getting Attention!',
         Product_Name: joinedBidders[0].auction.product.title,
         img: joinedBidders[0].auction.product.images[0].imageLink,
-        message: `Hi, ${joinedBidders[0].auction.user.userName}, 
+        message: `Hi, ${joinedBidders[0].user.userName}, 
       
       Your auction for ${
         joinedBidders[0].auction.product.title
@@ -535,7 +541,7 @@ export class PaymentsService {
 
       if (isCreateNotificationToSeller) {
         // Send notification to seller
-        const sellerUserId = paymentData.auction.user.id;
+        const sellerUserId = paymentData.auction.userId;
 
         const notification = {
           status: 'ON_BIDDING',
@@ -818,8 +824,14 @@ export class PaymentsService {
                 user: true,
                 auction: {
                   include: {
+                    bids: {
+                      include: { user: true },
+                      orderBy: { amount: 'desc' },
+                    },
+                    product: {
+                      include: { images: true, category: true },
+                    },
                     user: true,
-                    product: { include: { images: true } },
                   },
                 },
               },
@@ -842,21 +854,37 @@ export class PaymentsService {
         },
       );
       if (paymentData) {
-        //send an email to the buyer
-        const emailBodyToBuyer = {
-          subject: 'Congratulations on Your Purchase - Auction Concluded!',
-          title: 'Purchase Successful',
+        //Email to winning bidder paid amount (wallet)
+        const emailBodyToWinner = {
+          subject: '🎉 Congratulations! You Won the Auction',
+          title: 'Your Bid Was Successful!',
           Product_Name: paymentData.auction.product.title,
           img: paymentData.auction.product.images[0].imageLink,
-          message: `Hi ${paymentData.user.userName}, 
-                        Congratulations! You have successfully purchased the ${paymentData.auction.product.title} 
-                        (Model: ${paymentData.auction.product.model}) . 
-                        The item is now yours, and we are excited to finalize the process for you.
-                        The seller has been notified and will begin preparing the item for delivery. 
-                        If you have any questions, feel free to reach out to us. 
-                        Thank you for your purchase, and we hope you enjoy your new product!`,
-          Button_text: 'View Your Purchase',
-          Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
+          userName: `${paymentData.auction.bids[0].user}`,
+          message1: `
+            <p>We’re excited to inform you that you have won the auction for ${paymentData.auction.product.title}!</p>
+            <p>Here are the details of your purchase:</p>
+            <ul>
+              <li>• Auction Title: ${paymentData.auction.product.title}</li>
+              <li>• Category: ${paymentData.auction.product.category}</li>
+              <li>• Winning Bid: ${paymentData.auction.bids[0].amount}</li>
+            </ul>
+            <p>Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.</p>
+          `,
+          message2: `
+            <h3>What’s Next?</h3>
+            <ul>
+              <li>1. <b>Await Shipment</b>: The seller will ship the item to your provided address soon.</li>
+              <li>2. <b>Track Your Delivery</b>: Once shipped, track your delivery status from your account.</li>
+            </ul>
+            <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
+            
+             <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+            <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+          `,
+          Button_text: 'View My Purchase',
+          Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
         };
         //send notification to the winner
         const auction = paymentData.auction;
@@ -864,12 +892,12 @@ export class PaymentsService {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_WINNER',
           usersId: joinedAuction.userId,
-          message: emailBodyToBuyer.message,
+          message: emailBodyToWinner.message1,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
         };
-        //send email to the seller
+        //Email to seller when bidder pays amount (wallet)
         const emailBodyToSeller = {
           subject: 'Payment successful',
           title: 'Your auction winner has paid the full amount',
@@ -906,7 +934,7 @@ export class PaymentsService {
             joinedAuction.user.email,
             'token',
             EmailsType.OTHER,
-            emailBodyToBuyer,
+            emailBodyToWinner,
           ),
         ]);
         //send notification to the seller
@@ -1171,34 +1199,50 @@ export class PaymentsService {
       console.log('test 5');
 
       if (paymentData) {
-        //send an email to the buyer
-        const emailBodyToBuyer = {
-          subject: 'Congratulations on Your Purchase - Auction Concluded!',
-          title: 'Purchase Successful',
+        //Email to winner (buy now option used - stripe)
+        const emailBodyToWinner = {
+          subject: '🎉 Congratulations! You Won the Auction',
+          title: 'Your Bid Was Successful!',
           Product_Name: paymentData.auction.product.title,
           img: paymentData.auction.product.images[0].imageLink,
-          message: `Hi ${paymentData.user.userName}, 
-                        Congratulations! You have successfully purchased the ${paymentData.auction.product.title} 
-                        (Model: ${paymentData.auction.product.model}) using the "Buy Now" option. 
-                        The item is now yours, and we are excited to finalize the process for you.
-                        The seller has been notified and will begin preparing the item for delivery. 
-                        If you have any questions, feel free to reach out to us. 
-                        Thank you for your purchase, and we hope you enjoy your new product!`,
-          Button_text: 'View Your Purchase',
-          Button_URL: process.env.FRONT_URL, // Link to the buyer's purchase history or auction page
+          userName: `${paymentData.auction.bids[0].user}`,
+          message1: `
+            <p>We’re excited to inform you that you have won the auction for ${paymentData.auction.product.title}!</p>
+            <p>Here are the details of your purchase:</p>
+            <ul>
+              <li>• Auction Title: ${paymentData.auction.product.title}</li>
+              <li>• Category: ${paymentData.auction.product.category}</li>
+              <li>• Winning Bid: ${paymentData.auction.bids[0].amount}</li>
+            </ul>
+            <p>Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.</p>
+          `,
+          message2: `
+            <h3>What’s Next?</h3>
+            <ul>
+              <li>1. <b>Await Shipment</b>: The seller will ship the item to your provided address soon.</li>
+              <li>2. <b>Track Your Delivery</b>: Once shipped, track your delivery status from your account.</li>
+            </ul>
+            <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
+         
+             <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+            <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+          `,
+          Button_text: 'View My Purchase',
+          Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
         };
         await this.emailService.sendEmail(
           paymentData.user.email,
           'token',
           EmailsType.OTHER,
-          emailBodyToBuyer,
+          emailBodyToWinner,
         );
         const auction = paymentData.auction;
         const notificationBodyToBuyer = {
           status: 'ON_ITEM_BUY_NOW',
           userType: 'FOR_WINNER',
           usersId: paymentData.userId,
-          message: emailBodyToBuyer.message,
+          message: emailBodyToWinner.message1,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -1299,28 +1343,37 @@ export class PaymentsService {
                 if (isPaymentIntentCancelled) is_SD_SendBackToBidder = true;
               }
               if (is_SD_SendBackToBidder) {
-                //send email to the lostBidder
+                //Email to lost bidder (buy now option used - stripe)
                 const emailBodyToLostBidders = {
-                  subject: 'Auction Concluded - Buy Now Option Used',
-                  title: 'Auction Concluded',
+                  subject: '⏳ Auction Ended – You Missed Out!',
+                  title: 'The Auction Has Closed',
                   Product_Name: payment.auction.product.title,
                   img: payment.auction.product.images[0].imageLink,
-                  message: `Hi ${payment.user.userName}, 
-                          We regret to inform you that the auction for ${
-                            payment.auction.product.title
-                          } 
-                          (Model: ${
-                            payment.auction.product.model
-                          }) has concluded. 
-                          Another user has successfully purchased the item using the "Buy Now" option. 
-                          We will send back the security deopsit to your ${
-                            payment.isWalletPayment ? 'wallet' : 'bank account'
-                          }
-                          We appreciate your interest in the auction and encourage you to participate in future auctions. 
-                          You can find more auctions listed on our platform. 
-                          Thank you for being a valued member of our community!`,
-                  Button_text: 'Click here to view more Auctions',
-                  Button_URL: process.env.FRONT_URL, // Link to the auction page
+                  userName: `${payment.user.userName}`,
+                  message1: `
+                    <p>The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.</p>
+                    <p>Here’s a quick recap:</p>
+                    <ul>
+                      <li>Auction Title: ${payment.auction.product.title}</li>
+                      <li>Category: ${payment.auction.product.category}</li>
+                      <li>Winning Bid: ${payment.auction.bids[0].amount}</li>
+                      <li>Winner: ${payment.auction.bids[0].user}</li>
+                    </ul>
+                    <p>We know it’s disappointing, but there are always more exciting auctions to explore on <b>Alletre</b>.</p>
+                  `,
+                  message2: `
+                    <h3>What’s Next?</h3>
+                    <ul>
+                      <li><b>Explore More Auctions</b>: Browse our platform for more items you’ll love.</li>
+                      <li><b>Bid Smarter</b>: Use the “Buy Now” feature or set higher auto-bids to secure your favorite items next time.</li>
+                    </ul>
+                    <p>Thank you for participating in the auction. We look forward to seeing you in future bids!</p>
+                    <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+                  `,
+                  Button_text: 'Browse Auctions',
+                  Button_URL: 'https://www.alletre.com/alletre/',
                 };
                 await this.emailService.sendEmail(
                   payment.user.email,
@@ -1333,7 +1386,7 @@ export class PaymentsService {
                   status: 'ON_ITEM_BUY_NOW',
                   userType: 'FOR_LOSERS',
                   usersId: payment.userId,
-                  message: emailBodyToLostBidders.message,
+                  message: emailBodyToLostBidders.message1,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: payment.auctionId,
@@ -1359,65 +1412,21 @@ export class PaymentsService {
                 }
               }
             } else if (payment.type === 'SELLER_DEPOSIT') {
-              //email to the seller
-              // let is_SD_SendBackToSeller : boolean = false
-              // if(payment.isWalletPayment){
-              //   //implement return security deposit funconality to wallet of seller
-              //   //finding the last transaction balance of the Seller
-              //   const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(payment.user.id)
-              //   //finding the last transaction balance of the alletreWallet
-              //   const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
-
-              //   //wallet data for deposit to seller wallet
-              //   let sellerWalletData = {
-              //     status:WalletStatus.DEPOSIT,
-              //     transactionType:WalletTransactionType.By_AUCTION,
-              //     description:`Auction ended; item purchased via Buy Now option.`,
-              //     amount:Number(payment.amount),
-              //     auctionId:Number(payment.auctionId),
-              //     balance:Number(lastWalletTransactionBalanceOfBidder) ?
-              //     Number(lastWalletTransactionBalanceOfBidder) + Number(payment.amount) : Number(payment.amount)
-
-              //   }
-              //   // wallet data for WITHDRAWAL to alletre wallet
-
-              //   let alletreWalletData = {
-              //     status:WalletStatus.WITHDRAWAL,
-              //     transactionType:WalletTransactionType.By_AUCTION,
-              //     description:`Auction ended; item purchased via Buy Now option.`,
-              //     amount:Number(payment.amount),
-              //     auctionId:Number(payment.auctionId),
-              //     balance:(Number(lastBalanceOfAlletre) - Number(payment.amount))
-              //   }
-              //    //crete new transaction in bidder wallet
-              //    const bidderWalletReuslt =  await this.walletService.create(payment.user.id,sellerWalletData)
-              //    //crete new transaction in alletre wallet
-              //  const alletreWalletResult =  await this.walletService.addToAlletreWallet(payment.user.id,alletreWalletData)
-              //    if(bidderWalletReuslt && alletreWalletResult)
-              //      is_SD_SendBackToSeller = true
-              // }else{
-              //   //implement return security deposit funconality to stripe of seller
-              //   const isPaymentIntentCancelled = await this.stripeService.cancelDepositPaymentIntent(payment.paymentIntentId)
-              //   if(isPaymentIntentCancelled)
-              //     is_SD_SendBackToSeller = true
-              // }
-              // if(is_SD_SendBackToSeller){}
-
-              //send email to the seller
+              //Email to seller (buy now option used - stripe)
               const emailBodyToSeller = {
                 subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
                 title: 'Congratulations – Your Item Has Been Sold!',
                 Product_Name: payment.auction.product.title,
                 img: payment.auction.product.images[0].imageLink,
-                message: `${payment.user.userName}`,
+                userName: `${payment.user.userName}`,
                 message1: ` 
                   <p>Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.</p>
                           <p>Here are the details:</p>
                   <ul>
-                  <li>•	Auction Title: ${payment.auction.product.title}</li>
-                  <li>•	Category: ${payment.auction.product.category}</li>
-                  <li>•	Sold For:${payment.auction.bids[0].amount} </li>
-                  <li>•	Buyer: ${payment.auction.bids[0].user} </li>
+                  <li> Auction Title: ${payment.auction.product.title}</li>
+                  <li> Category: ${payment.auction.product.category}</li>
+                  <li> Sold For:${payment.auction.bids[0].amount} </li>
+                  <li> Buyer: ${payment.auction.bids[0].user} </li>
                   </ul>
                   <p>The buyer has completed the payment, and the funds will be processed and transferred to your account shortly.</p>             
                   `,
@@ -1427,8 +1436,9 @@ export class PaymentsService {
                   <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
                   </ul>
                <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
-                    <p>Best regards,</p>
-                              <p>The <b>Alletre</b> Team </p>
+                   
+                               <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
                 Button_text: 'Manage My Sales',
                 Button_URL:
@@ -1445,7 +1455,7 @@ export class PaymentsService {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_SELLER',
                 usersId: payment.userId,
-                message: emailBodyToSeller.message,
+                message: emailBodyToSeller.message1,
                 imageLink: auction.product.images[0].imageLink,
                 productTitle: auction.product.title,
                 auctionId: payment.auctionId,
@@ -1628,60 +1638,85 @@ export class PaymentsService {
                 id: 'desc',
               },
             });
+            const auctionEndDate = new Date(
+              auctionHoldPaymentTransaction.auction.expiryDate,
+            );
+            const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+            const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
             const emailBodyToSeller = {
-              subject: 'Your Auction Just Got Its First Bid! 🎉',
-              title: 'Congratulations, Your Item is Getting Attention!',
+              subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
+              title: 'Your Auction is Officially in Motion!',
               Product_Name: auctionHoldPaymentTransaction.auction.product.title,
-              img: auctionHoldPaymentTransaction.auction.product.images[0]
-                .imageLink,
-              message: `Hi, ${
-                auctionHoldPaymentTransaction.auction.user.userName
-              }, 
-            
-            Your auction for ${
-              auctionHoldPaymentTransaction.auction.product.title
-            } has received its first bid! This is an exciting moment, and it’s only the beginning.
-            
-            Here’s what’s happening:
-            • Current Highest Bid: ${
-              joinedBidders.length > 0 ? joinedBidders[0].amount : 'No bids yet'
-            }
-            • Total Bidders: ${joinedBidders.length}
-            
-            Keep an eye on your auction as more bids roll in. This could be the start of an intense bidding war!
-            
-            Thank you for choosing Alletre to showcase your product. We’re here to help you achieve the best results for your auction.
-            
-            Good luck,
-            The Alletre Team`,
-              Button_text: 'View Your Auction',
-              Button_URL: process.env.FRONT_URL,
+              img: auctionHoldPaymentTransaction.auction.product.images[0],
+              userName: `${auctionHoldPaymentTransaction.user.userName}`,
+              message1: ` 
+                  <p>Congratulations! Your auction ${
+                    auctionHoldPaymentTransaction.auction.product.title
+                  } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
+                  <p>Here’s the latest update:/p>
+                  <ul>
+                  <li>First Bid Amount: ${
+                    joinedBidders[joinedBidders.length - 1].amount
+                  }</li>
+                  <li>Bidder’s Username: ${
+                    joinedBidders[joinedBidders.length - 1].user
+                  } </li>
+                    <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                  </ul>
+                     <p>This is just the beginning—more bidders could be on their way!<p>       
+                    <h3>What can you do now?</h3>
+                      <ul>
+                  <li>Share your auction to attract even more bids.</li>
+                  <li>Keep an eye on the activity to stay informed about the progress.</li>
+                  </ul>
+                  `,
+              message2: ` 
+                               <p>Thank you for choosing <b>Alletre</b>. We can’t wait to see how this unfolds!</p>
+                  
+             
+                               <p style="margin-bottom: 0;">Good luck,</p>
+                              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                              <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
+              Button_text: 'View My Auction ',
+              Button_URL:
+                'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
             };
 
             const emailBodyToSecondLastBidder = {
               subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
               title: 'Your Bid Just Got Beaten!',
               Product_Name: auctionHoldPaymentTransaction.auction.product.title,
-              img: auctionHoldPaymentTransaction.auction.product.images[0]
-                .imageLink,
-              message: `Hi, ${auctionHoldPaymentTransaction.user.userName}, 
-                        Exciting things are happening on ${
-                          auctionHoldPaymentTransaction.auction.product.title
-                        }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.
-                        Here’s the current standing:
-                        • Current Highest Bid: ${
-                          joinedBidders.length > 1
-                            ? joinedBidders[0].amount
-                            : 'No bids yet'
-                        }
-                        • Your Last Bid: ${joinedBidders[1]?.amount}  
-                        Don’t miss your chance to claim this one-of-a-kind auction item. The clock is ticking, and every second counts!
-                        Reclaim Your Spot as the Top Bidder Now!
-                        Stay ahead of the competition and secure your win!
-                        Good luck,
-                        The Alletre Team`,
-              Button_text: 'View Auction',
-              Button_URL: process.env.FRONT_URL,
+              img: auctionHoldPaymentTransaction.auction.product.images[0],
+              userName: `${joinedBidders[1]?.user}`,
+              message1: ` 
+                  <p>Exciting things are happening on ${
+                    auctionHoldPaymentTransaction.auction.product.title
+                  }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.</p>
+                  <p>Here’s the current standing:</p>
+                  <ul>
+                  <li> Current Highest Bid: ${
+                    joinedBidders.length > 1
+                      ? joinedBidders[0].amount
+                      : 'No bids yet'
+                  }</li>
+                  <li>Your Last Bid: ${joinedBidders[1]?.amount}  </li>
+                
+                  </ul>
+                     <p>Don’t miss your chance to claim this one-of-a-kind ${
+                       auctionHoldPaymentTransaction.auction.product.title
+                     } . The clock is ticking, and every second counts!</p>       
+                     <p><b>Reclaim Your Spot as the Top Bidder Now!</b></p>
+                  `,
+              message2: ` 
+                               <p>Stay ahead of the competition and secure your win!</p>
+                  
+             
+                               <p style="margin-bottom: 0;">Good luck,</p>
+                              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                              <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
+              Button_text: 'Place a Higher Bid',
+              Button_URL:
+                'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
             };
 
             console.log('joinedBidders1111111111111', joinedBidders);
@@ -1967,7 +2002,7 @@ export class PaymentsService {
                 paymentSuccessData.auction.user.id,
                 alletreWalletData,
               );
-              //send email to the seller
+              // when the winner pays the full amount - to seller
               const emailBodyToSeller = {
                 subject: 'Payment successful',
                 title: 'Your auction winner has paid the full amount',
@@ -1996,6 +2031,7 @@ export class PaymentsService {
               };
               console.log('purchase test5');
               const invoicePDF = await generateInvoicePDF(paymentSuccessData);
+              // when the winner pays the full amount - to winner
               const emailBodyToWinner = {
                 subject: 'Payment successful',
                 title: 'Payment successful',
@@ -2179,42 +2215,44 @@ export class PaymentsService {
                 walletDataToAlletre,
               );
 
-              //send an email to the buyer
-              const emailBodyToBuyer = {
-                subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
-                title: 'Congratulations – Your Item Has Been Sold!',
+              //Email to winner (buy now option used - stripe)
+              const emailBodyToWinner = {
+                subject: '🎉 Congratulations! You Won the Auction',
+                title: 'Your Bid Was Successful!',
                 Product_Name: isPaymentSuccess.auction.product.title,
                 img: isPaymentSuccess.auction.product.images[0].imageLink,
-                message: `${isPaymentSuccess.user.userName}`,
-                message1: ` 
-                  <p>Great news! Your auction ${isPaymentSuccess.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.</p>
-                          <p>Here are the details:</p>
+                userName: `${isPaymentSuccess.auction.bids[0].user}`,
+                message1: `
+                  <p>We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!</p>
+                  <p>Here are the details of your purchase:</p>
                   <ul>
-                  <li>•	Auction Title: ${isPaymentSuccess.auction.product.title}</li>
-                  <li>•	Category: ${isPaymentSuccess.auction.product.category.nameEn}</li>
-                  <li>•	Sold For:${isPaymentSuccess.auction.bids[0].amount} </li>
-                  <li>•	Buyer: ${isPaymentSuccess.auction.bids[0].user} </li>
+                    <li>• Auction Title: ${isPaymentSuccess.auction.product.title}</li>
+                    <li>• Category: ${isPaymentSuccess.auction.product.category}</li>
+                    <li>• Winning Bid: ${isPaymentSuccess.auction.bids[0].amount}</li>
                   </ul>
-                  <p>The buyer has completed the payment, and the funds will be processed and transferred to your account shortly.</p>             
-                  `,
-                message2: ` <h3>What’s Next? </h3>
+                  <p>Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.</p>
+                `,
+                message2: `
+                  <h3>What’s Next?</h3>
                   <ul>
-                  <li>1.<b>	Ship Your Item</b>: Make sure to package your item securely and ship it to the buyer’s provided address as soon as possible.</li>
-                  <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
+                    <li>1. <b>Await Shipment</b>: The seller will ship the item to your provided address soon.</li>
+                    <li>2. <b>Track Your Delivery</b>: Once shipped, track your delivery status from your account.</li>
                   </ul>
-               <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
-                    <p>Best regards,</p>
-                              <p>The <b>Alletre</b> Team </p>
-                              <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
-                Button_text: 'Manage My Sales',
-                Button_URL:
-                  ' https://www.alletre.com/alletre/profile/my-auctions/sold',
+                  <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
+                
+                   <p style="margin-bottom: 0;">Best regards,</p>
+      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                  <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+                `,
+                Button_text: 'View My Purchase',
+                Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
               };
+
               const notificationBodyToBuyer = {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_WINNER',
                 usersId: isPaymentSuccess.userId,
-                message: emailBodyToBuyer.message,
+                message: emailBodyToWinner.message1,
                 imageLink: isPaymentSuccess.auction.product.images[0].imageLink,
                 productTitle: isPaymentSuccess.auction.product.title,
                 auctionId: isPaymentSuccess.auctionId,
@@ -2242,7 +2280,7 @@ export class PaymentsService {
                 isPaymentSuccess.user.email,
                 'token',
                 EmailsType.OTHER,
-                emailBodyToBuyer,
+                emailBodyToWinner,
               );
 
               //check is there any bidders on this auction
@@ -2252,7 +2290,16 @@ export class PaymentsService {
                   include: {
                     user: true,
                     auction: {
-                      include: { product: { include: { images: true } } },
+                      include: {
+                        bids: {
+                          include: { user: true },
+                          orderBy: { amount: 'desc' },
+                        },
+                        product: {
+                          include: { images: true, category: true },
+                        },
+                        user: true,
+                      },
                     },
                   },
                 });
@@ -2319,30 +2366,37 @@ export class PaymentsService {
                         is_SD_SendBackToBidder = true;
                     }
                     if (is_SD_SendBackToBidder) {
-                      //send email to the seller
+                      //Email to lost bidder (buy now option used - stripe)
                       const emailBodyToLostBidders = {
-                        subject: 'Auction Concluded - Buy Now Option Used',
-                        title: 'Auction Concluded',
+                        subject: '⏳ Auction Ended – You Missed Out!',
+                        title: 'The Auction Has Closed',
                         Product_Name: payment.auction.product.title,
                         img: payment.auction.product.images[0].imageLink,
-                        message: `Hi ${payment.user.userName}, 
-                              We regret to inform you that the auction for ${
-                                payment.auction.product.title
-                              } 
-                              (Model: ${
-                                payment.auction.product.model
-                              }) has concluded. 
-                              Another user has successfully purchased the item using the "Buy Now" option. 
-                              We will send back the security deopsit to your ${
-                                payment.isWalletPayment
-                                  ? 'wallet'
-                                  : 'bank account'
-                              }
-                              We appreciate your interest in the auction and encourage you to participate in future auctions. 
-                              You can find more auctions listed on our platform. 
-                              Thank you for being a valued member of our community!`,
-                        Button_text: 'Click here to view more Auctions',
-                        Button_URL: process.env.FRONT_URL, // Link to the auction page
+                        userName: `${payment.user.userName}`,
+                        message1: `
+                          <p>The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.</p>
+                          <p>Here’s a quick recap:</p>
+                          <ul>
+                            <li>• Auction Title: ${payment.auction.product.title}</li>
+                            <li>• Category: ${payment.auction.product.category}</li>
+                            <li>• Winning Bid: ${payment.auction.bids[0].amount}</li>
+                            <li>• Winner: ${payment.auction.bids[0].user}</li>
+                          </ul>
+                          <p>We know it’s disappointing, but there are always more exciting auctions to explore on <b>Alletre</b>.</p>
+                        `,
+                        message2: `
+                          <h3>What’s Next?</h3>
+                          <ul>
+                            <li>1. <b>Explore More Auctions</b>: Browse our platform for more items you’ll love.</li>
+                            <li>2. <b>Bid Smarter</b>: Use the “Buy Now” feature or set higher auto-bids to secure your favorite items next time.</li>
+                          </ul>
+                          <p>Thank you for participating in the auction. We look forward to seeing you in future bids!</p>
+                           <p style="margin-bottom: 0;">Best regards,</p>
+      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                          <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+                        `,
+                        Button_text: 'Browse Auctions',
+                        Button_URL: 'https://www.alletre.com/alletre/',
                       };
                       await this.emailService.sendEmail(
                         payment.user.email,
@@ -2354,7 +2408,7 @@ export class PaymentsService {
                         status: 'ON_ITEM_BUY_NOW',
                         userType: 'FOR_LOSERS',
                         usersId: payment.userId,
-                        message: emailBodyToLostBidders.message,
+                        message: emailBodyToLostBidders.message1,
                         imageLink: payment.auction.product.images[0].imageLink,
                         productTitle: payment.auction.product.title,
                         auctionId: payment.auctionId,
@@ -2383,75 +2437,36 @@ export class PaymentsService {
                       }
                     }
                   } else if (payment.type === 'SELLER_DEPOSIT') {
-                    //email to the seller
-                    // let is_SD_SendBackToSeller : boolean = false
-                    // if(payment.isWalletPayment){
-                    //   //implement return security deposit funconality to wallet of seller
-                    //   //finding the last transaction balance of the Seller
-                    //   const lastWalletTransactionBalanceOfBidder = await this.walletService.findLastTransaction(payment.user.id)
-                    //   //finding the last transaction balance of the alletreWallet
-                    //   const lastBalanceOfAlletre = await this.walletService.findLastTransactionOfAlletre()
-
-                    //   //wallet data for deposit to seller wallet
-                    //   let sellerWalletData = {
-                    //     status:WalletStatus.DEPOSIT,
-                    //     transactionType:WalletTransactionType.By_AUCTION,
-                    //     description:`Auction ended; item purchased via Buy Now option.`,
-                    //     amount:Number(payment.amount),
-                    //     auctionId:Number(payment.auctionId),
-                    //     balance:Number(lastWalletTransactionBalanceOfBidder) ?
-                    //     Number(lastWalletTransactionBalanceOfBidder) + Number(payment.amount) : Number(payment.amount)
-
-                    //   }
-                    //   // wallet data for WITHDRAWAL to alletre wallet
-
-                    //   let alletreWalletData = {
-                    //     status:WalletStatus.WITHDRAWAL,
-                    //     transactionType:WalletTransactionType.By_AUCTION,
-                    //     description:`Auction ended; item purchased via Buy Now option.`,
-                    //     amount:Number(payment.amount),
-                    //     auctionId:Number(payment.auctionId),
-                    //     balance:(Number(lastBalanceOfAlletre) - Number(payment.amount))
-                    //   }
-                    //    //crete new transaction in bidder wallet
-                    //    const bidderWalletReuslt =  await this.walletService.create(payment.user.id,sellerWalletData)
-                    //    //crete new transaction in alletre wallet
-                    //  const alletreWalletResult =  await this.walletService.addToAlletreWallet(payment.user.id,alletreWalletData)
-                    //    if(bidderWalletReuslt && alletreWalletResult)
-                    //      is_SD_SendBackToSeller = true
-                    // }else{
-                    //   //implement return security deposit funconality to stripe of seller
-                    //   const isPaymentIntentCancelled = await this.stripeService.cancelDepositPaymentIntent(payment.paymentIntentId)
-                    //   if(isPaymentIntentCancelled)
-                    //     is_SD_SendBackToSeller = true
-                    // }
-                    // if(is_SD_SendBackToSeller){}
-
-                    //send email to the seller
+                    //Email to seller (buy now option used - stripe)
                     const emailBodyToSeller = {
-                      subject: 'Auction Concluded - Buy Now Option Used',
-                      title: 'Auction Concluded',
+                      subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
+                      title: 'Congratulations – Your Item Has Been Sold!',
                       Product_Name: payment.auction.product.title,
                       img: payment.auction.product.images[0].imageLink,
-                      message: `Hi ${payment.user.userName}, 
-                                  We are glad to inform you that the auction for ${
-                                    payment.auction.product.title
-                                  } 
-                                  (Model: ${
-                                    payment.auction.product.model
-                                  }) has concluded. 
-                                  One user has successfully purchased the item using the "Buy Now" option. 
-                                  We will send back the security deopsit to your ${
-                                    payment.isWalletPayment
-                                      ? 'wallet '
-                                      : 'bank account '
-                                  }
-                                  and we send the full amount to the your wallet once you delevered the item to the buyer.
-                                  We appreciate your interest in the auction and encourage you to participate in future auctions. 
-                                  You can find more auctions listed on our platform. 
-                                  Thank you for being a valued member of our community!`,
-                      Button_text: 'Click here to view more Auctions',
-                      Button_URL: process.env.FRONT_URL, // Link to the auction page
+                      userName: `${payment.user.userName}`,
+                      message1: ` 
+                  <p>Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.</p>
+                          <p>Here are the details:</p>
+                  <ul>
+                  <li>•	Auction Title: ${payment.auction.product.title}</li>
+                  <li>•	Category: ${payment.auction.product.category}</li>
+                  <li>•	Sold For:${payment.auction.bids[0].amount} </li>
+                  <li>•	Buyer: ${payment.auction.bids[0].user} </li>
+                  </ul>
+                  <p>The buyer has completed the payment, and the funds will be processed and transferred to your account shortly.</p>             
+                  `,
+                      message2: ` <h3>What’s Next? </h3>
+                  <ul>
+                  <li>1.<b>	Ship Your Item</b>: Make sure to package your item securely and ship it to the buyer’s provided address as soon as possible.</li>
+                  <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
+                  </ul>
+               <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
+                     <p style="margin-bottom: 0;">Best regards,</p>
+      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                              <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
+                      Button_text: 'Manage My Sales',
+                      Button_URL:
+                        ' https://www.alletre.com/alletre/profile/my-auctions/sold',
                     };
                     await this.emailService.sendEmail(
                       payment.user.email,
@@ -2463,7 +2478,7 @@ export class PaymentsService {
                       status: 'ON_ITEM_BUY_NOW',
                       userType: 'FOR_SELLER',
                       usersId: payment.userId,
-                      message: emailBodyToSeller.message,
+                      message: emailBodyToSeller.message1,
                       imageLink: payment.auction.product.images[0].imageLink,
                       productTitle: payment.auction.product.title,
                       auctionId: payment.auctionId,
@@ -2550,34 +2565,66 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { bids:true, user: true, product: { include: { images: true } } },
-          });
 
+            include: {
+              bids: true,
+              user: true,
+              product: { include: { images: true } },
+            },
+          });
+          const auctionEndDate = new Date(updatedAuction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
           if (updatedAuction) {
             //emiting the new auction to all online users
             this.auctionGateway.listingNewAuction(updatedAuction);
+
             const emailBodyToSeller = {
-              subject: 'Your Auction Has Been Successfully Listed!',
-              title: 'Your Auction is Live!',
+              subject: '🎉 Your Auction is Live! Let the Bidding Begin!',
+              title: 'Your Listing is Now Live!',
               Product_Name: updatedAuction.product.title,
               img: updatedAuction.product.images[0].imageLink,
-              message: `Hi ${updatedAuction.user.userName}, 
-            
-            Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
-            
-            Your item is now live and available for bidding. Here are the details:
-            • Product: ${updatedAuction.product.title} 
-            • Model: ${updatedAuction.product.model}
-            
-            We encourage you to keep an eye on your auction as bids start coming in. 
-            You can view and manage your auction through the link below. 
-            
-            Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
-            
-            Good luck,
-            The Alletre Team`,
-              Button_text: 'Click here to view your Auction',
-              Button_URL: process.env.FRONT_URL, // Link to the auction management page
+              userName: `${updatedAuction.user.userName}`,
+              message1: `
+                    <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
+                    <p>Here’s a summary of your listing:</p>
+                    <ul>
+                      <li>Title: ${updatedAuction.product.title}</li>                      <li>Category: ${updatedAuction.product.category}</li>
+                      <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                      <li>•	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                    </ul>
+                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p>
+                  `,
+              message2: `
+                  
+                    <p>You can track bids and view your auction here:</p>
+                    <div style="text-align: center">
+          <a
+            href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+            View My Auction 
+          </a>
+        </div>
+
+                    <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
+                  `,
+              Button_text: 'Share My Auction ',
+              Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
             };
             await this.emailService.sendEmail(
               updatedAuction.user.email,
@@ -2620,33 +2667,65 @@ export class PaymentsService {
               startDate: today,
               expiryDate: expiryDate,
             },
-            include: { bids:true ,user: true, product: { include: { images: true } } },
+
+            include: {
+              bids: true,
+              user: true,
+              product: { include: { images: true } },
+            },
           });
+          const auctionEndDate = new Date(updatedAuction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
           if (updatedAuction) {
             //emiting the new auction to all online users
             this.auctionGateway.listingNewAuction(updatedAuction);
             const emailBodyToSeller = {
-              subject: 'Your Auction Has Been Successfully Listed!',
-              title: 'Your Auction is Live!',
+              subject: '🎉 Your Auction is Live! Let the Bidding Begin!',
+              title: 'Your Listing is Now Live!',
               Product_Name: updatedAuction.product.title,
               img: updatedAuction.product.images[0].imageLink,
-              message: `Hi ${updatedAuction.user.userName}, 
-            
-            Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
-            
-            Your item is now live and available for bidding. Here are the details:
-            • Product: ${updatedAuction.product.title} 
-            • Model: ${updatedAuction.product.model}
-            
-            We encourage you to keep an eye on your auction as bids start coming in. 
-            You can view and manage your auction through the link below. 
-            
-            Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
-            
-            Good luck,
-            The Alletre Team`,
-              Button_text: 'Click here to view your Auction',
-              Button_URL: process.env.FRONT_URL, // Link to the auction management page
+              userName: `${updatedAuction.user.userName}`,
+              message1: `
+                    <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
+                    <p>Here’s a summary of your listing:</p>
+                    <ul>
+                      <li>Title: ${updatedAuction.product.title}</li>                      <li>Category: ${updatedAuction.product.category}</li>
+                      <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                      <li>•	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                    </ul>
+                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p>
+                  `,
+              message2: `
+                   
+                    <p>You can track bids and view your auction here:</p>
+                       <div style="text-align: center">
+          <a
+            href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+            "
+          >
+            View My Auction 
+          </a>
+        </div>
+
+                    <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
+                  `,
+              Button_text: 'Share My Auction ',
+              Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
             };
             await this.emailService.sendEmail(
               updatedAuction.user.email,
