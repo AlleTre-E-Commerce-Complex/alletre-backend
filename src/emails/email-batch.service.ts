@@ -10,7 +10,10 @@ export class EmailBatchService {
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
     console.log('send bulk email test 1', updatedAuction);
-    const users = await this.getAllRegisteredUsers();
+    const users = await this.getAllRegisteredUsers(
+      1000,
+      updatedAuction.user.email,
+    );
     console.log('send bulk email test 2', users);
 
     const subject = `🚨 New Auction Alert: Don’t Miss Out!`;

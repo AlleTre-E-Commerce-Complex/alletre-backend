@@ -419,6 +419,94 @@ export class PaymentsService {
           }
         },
       );
+      //send email to seller and last bidder
+      const joinedBidders = await this.prismaService.bids.findMany({
+        where: {
+          auctionId: auctionId,
+        },
+        include: {
+          user: true,
+          auction: {
+            include: {
+              product: { include: { images: true } },
+              user: true,
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+      });
+      const emailBodyToSeller = {
+        subject: 'Your Auction Just Got Its First Bid! 🎉',
+        title: 'Congratulations, Your Item is Getting Attention!',
+        Product_Name: joinedBidders[0].auction.product.title,
+        img: joinedBidders[0].auction.product.images[0].imageLink,
+        message: `Hi, ${joinedBidders[0].auction.user.userName}, 
+      
+      Your auction for ${
+        joinedBidders[0].auction.product.title
+      } has received its first bid! This is an exciting moment, and it’s only the beginning.
+      
+      Here’s what’s happening:
+      • Current Highest Bid: ${
+        joinedBidders.length > 0 ? joinedBidders[0].amount : 'No bids yet'
+      }
+      • Total Bidders: ${joinedBidders.length}
+      
+      Keep an eye on your auction as more bids roll in. This could be the start of an intense bidding war!
+      
+      Thank you for choosing Alletre to showcase your product. We’re here to help you achieve the best results for your auction.
+      
+      Good luck,
+      The Alletre Team`,
+        Button_text: 'View Your Auction',
+        Button_URL: process.env.FRONT_URL,
+      };
+
+      const emailBodyToSecondLastBidder = {
+        subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
+        title: 'Your Bid Just Got Beaten!',
+        Product_Name: joinedBidders[0].auction.product.title,
+        img: joinedBidders[0].auction.product.images[0].imageLink,
+        message: `Hi, ${joinedBidders[0].user.userName}, 
+                  Exciting things are happening on ${
+                    joinedBidders[0].auction.product.title
+                  }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.
+                  Here’s the current standing:
+                  • Current Highest Bid: ${
+                    joinedBidders.length > 1
+                      ? joinedBidders[0].amount
+                      : 'No bids yet'
+                  }
+                  • Your Last Bid: ${joinedBidders[1]?.amount}  
+                  Don’t miss your chance to claim this one-of-a-kind auction item. The clock is ticking, and every second counts!
+                  Reclaim Your Spot as the Top Bidder Now!
+                  Stay ahead of the competition and secure your win!
+                  Good luck,
+                  The Alletre Team`,
+        Button_text: 'View Auction',
+        Button_URL: process.env.FRONT_URL,
+      };
+
+      console.log('joinedBidders1111111111111', joinedBidders);
+      if (joinedBidders.length === 1) {
+        this.emailService.sendEmail(
+          joinedBidders[0].user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSecondLastBidder,
+        );
+      }
+      if (joinedBidders[1]) {
+        console.log('joinedBidders222222', joinedBidders[1]);
+        this.emailService.sendEmail(
+          joinedBidders[1].user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSeller,
+        );
+      }
       // create notification for seller
       const auction = paymentData.auction;
       const isCreateNotificationToSeller =
@@ -1513,6 +1601,36 @@ export class PaymentsService {
                 id: 'desc',
               },
             });
+            const emailBodyToSeller = {
+              subject: 'Your Auction Just Got Its First Bid! 🎉',
+              title: 'Congratulations, Your Item is Getting Attention!',
+              Product_Name: auctionHoldPaymentTransaction.auction.product.title,
+              img: auctionHoldPaymentTransaction.auction.product.images[0]
+                .imageLink,
+              message: `Hi, ${
+                auctionHoldPaymentTransaction.auction.user.userName
+              }, 
+            
+            Your auction for ${
+              auctionHoldPaymentTransaction.auction.product.title
+            } has received its first bid! This is an exciting moment, and it’s only the beginning.
+            
+            Here’s what’s happening:
+            • Current Highest Bid: ${
+              joinedBidders.length > 0 ? joinedBidders[0].amount : 'No bids yet'
+            }
+            • Total Bidders: ${joinedBidders.length}
+            
+            Keep an eye on your auction as more bids roll in. This could be the start of an intense bidding war!
+            
+            Thank you for choosing Alletre to showcase your product. We’re here to help you achieve the best results for your auction.
+            
+            Good luck,
+            The Alletre Team`,
+              Button_text: 'View Your Auction',
+              Button_URL: process.env.FRONT_URL,
+            };
+
             const emailBodyToSecondLastBidder = {
               subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
               title: 'Your Bid Just Got Beaten!',
@@ -1540,13 +1658,21 @@ export class PaymentsService {
             };
 
             console.log('joinedBidders1111111111111', joinedBidders);
+            if (joinedBidders.length === 1) {
+              this.emailService.sendEmail(
+                joinedBidders[0].user.email,
+                'token',
+                EmailsType.OTHER,
+                emailBodyToSecondLastBidder,
+              );
+            }
             if (joinedBidders[1]) {
               console.log('joinedBidders222222', joinedBidders[1]);
               this.emailService.sendEmail(
                 joinedBidders[1].user.email,
                 'token',
                 EmailsType.OTHER,
-                emailBodyToSecondLastBidder,
+                emailBodyToSeller,
               );
             }
             // create notification for seller
@@ -2379,6 +2505,36 @@ export class PaymentsService {
           });
 
           if (updatedAuction) {
+            const emailBodyToSeller = {
+              subject: 'Your Auction Has Been Successfully Listed!',
+              title: 'Your Auction is Live!',
+              Product_Name: updatedAuction.product.title,
+              img: updatedAuction.product.images[0].imageLink,
+              message: `Hi ${updatedAuction.user.userName}, 
+            
+            Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
+            
+            Your item is now live and available for bidding. Here are the details:
+            • Product: ${updatedAuction.product.title} 
+            • Model: ${updatedAuction.product.model}
+            
+            We encourage you to keep an eye on your auction as bids start coming in. 
+            You can view and manage your auction through the link below. 
+            
+            Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
+            
+            Good luck,
+            The Alletre Team`,
+              Button_text: 'Click here to view your Auction',
+              Button_URL: process.env.FRONT_URL, // Link to the auction management page
+            };
+            await this.emailService.sendEmail(
+              updatedAuction.user.email,
+              'token',
+              EmailsType.OTHER,
+              emailBodyToSeller,
+            );
+
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
               currentUserEmail,
@@ -2416,6 +2572,35 @@ export class PaymentsService {
             include: { user: true, product: { include: { images: true } } },
           });
           if (updatedAuction) {
+            const emailBodyToSeller = {
+              subject: 'Your Auction Has Been Successfully Listed!',
+              title: 'Your Auction is Live!',
+              Product_Name: updatedAuction.product.title,
+              img: updatedAuction.product.images[0].imageLink,
+              message: `Hi ${updatedAuction.user.userName}, 
+            
+            Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
+            
+            Your item is now live and available for bidding. Here are the details:
+            • Product: ${updatedAuction.product.title} 
+            • Model: ${updatedAuction.product.model}
+            
+            We encourage you to keep an eye on your auction as bids start coming in. 
+            You can view and manage your auction through the link below. 
+            
+            Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
+            
+            Good luck,
+            The Alletre Team`,
+              Button_text: 'Click here to view your Auction',
+              Button_URL: process.env.FRONT_URL, // Link to the auction management page
+            };
+            await this.emailService.sendEmail(
+              updatedAuction.user.email,
+              'token',
+              EmailsType.OTHER,
+              emailBodyToSeller,
+            );
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
               currentUserEmail,

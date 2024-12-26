@@ -155,4 +155,11 @@ export class UserController {
       data: await this.userService.addNewSubscriber(subscribeDto.email),
     };
   }
+  @Put('/subscribers/unSubscribe')
+  async unSubscribe(@Body() subscribeDto: SubscribeDto) {
+    return {
+      success: true,
+      data: await this.userService.unSubscribeUser(subscribeDto.email),
+    };
+  }
 }

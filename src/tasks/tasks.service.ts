@@ -14,7 +14,7 @@ import { StripeService } from 'src/common/services/stripe.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
 import { EmailSerivce } from 'src/emails/email.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
-import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+// import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
@@ -66,7 +66,39 @@ export class TasksService {
         include: { user: true, product: { include: { images: true } } },
       });
       if (updatedAuction) {
-        await this.emailBatchService.sendBulkEmails(updatedAuction);
+        const emailBodyToSeller = {
+          subject: 'Your Auction Has Been Successfully Listed!',
+          title: 'Your Auction is Live!',
+          Product_Name: updatedAuction.product.title,
+          img: updatedAuction.product.images[0].imageLink,
+          message: `Hi ${updatedAuction.user.userName}, 
+        
+        Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
+        
+        Your item is now live and available for bidding. Here are the details:
+        • Product: ${updatedAuction.product.title} 
+        • Model: ${updatedAuction.product.model}
+        
+        We encourage you to keep an eye on your auction as bids start coming in. 
+        You can view and manage your auction through the link below. 
+        
+        Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
+        
+        Good luck,
+        The Alletre Team`,
+          Button_text: 'Click here to view your Auction',
+          Button_URL: process.env.FRONT_URL, // Link to the auction management page
+        };
+        await this.emailService.sendEmail(
+          updatedAuction.user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSeller,
+        );
+        await this.emailBatchService.sendBulkEmails(
+          updatedAuction,
+          updatedAuction.userId.toString(),
+        );
         const usersId = await this.notificationService.getAllRegisteredUsers(
           updatedAuction.userId,
         );
@@ -595,8 +627,8 @@ export class TasksService {
 
           // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
           const today = new Date();
-          // const newDate = new Date(today.setDate(today.getDate() + 3));
-          const newDate = new Date(today.getTime() + 5 * 60 * 1000); // Adds 5 minutes
+          const newDate = new Date(today.setDate(today.getDate() + 3));
+          // const newDate = new Date(today.getTime() + 5 * 60 * 1000); // Adds 5 minutes
 
           const {
             isAcutionUpdated,
