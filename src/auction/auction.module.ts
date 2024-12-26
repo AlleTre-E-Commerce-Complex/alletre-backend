@@ -14,6 +14,7 @@ import { StripeService } from 'src/common/services/stripe.service';
 import { EmailSerivce } from 'src/emails/email.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
+import { AuctionWebSocketGateway } from './gateway/auction.gateway';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationsModule } from 'src/notificatons/notifications.module';
     PaginationService,
     AuctionsHelper,
     BidsWebSocketGateway,
+    AuctionWebSocketGateway,
     AuctionStatusValidator,
     WalletService,
     StripeService,
@@ -35,7 +37,7 @@ import { NotificationsModule } from 'src/notificatons/notifications.module';
     NotificationsService,
   ],
   controllers: [AuctionsController],
-  exports: [UserAuctionsService],
+  exports: [UserAuctionsService, AuctionWebSocketGateway],
 })
 export class AuctionModule {
   constructor() {

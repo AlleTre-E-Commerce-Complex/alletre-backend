@@ -8,6 +8,13 @@ import { WalletService } from 'src/wallet/wallet.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
+import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
+import { AuthService } from 'src/auth/auth.service';
+import { UserService } from 'src/user/user.service';
+import { JwtService } from '@nestjs/jwt';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { AdminService } from 'src/admin/admin.service';
+import { PaginationService } from 'src/common/services/pagination.service';
 @Module({
   imports: [PrismaModule, NotificationsModule],
   controllers: [PaymentsController],
@@ -18,6 +25,13 @@ import { NotificationsModule } from 'src/notificatons/notifications.module';
     WalletService,
     EmailBatchService,
     NotificationsService,
+    AuctionWebSocketGateway,
+    AuthService,
+    UserService,
+    JwtService,
+    FirebaseService,
+    AdminService,
+    PaginationService,
   ],
   exports: [PaymentsService],
 })
