@@ -888,11 +888,22 @@ export class PaymentsService {
         };
         //send notification to the winner
         const auction = paymentData.auction;
+        const notificationMessageToWinner = `
+        We’re excited to inform you that you have won the auction for ${paymentData.auction.product.title}!
+        
+        Here are the details of your purchase:
+        - Auction Title: ${paymentData.auction.product.title}
+        - Category: ${paymentData.auction.product.category}
+        - Winning Bid: ${paymentData.auction.bids[0].amount}
+        
+        Your payment has been processed successfully.
+        `;
+        
         const notificationBodyToWinner = {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_WINNER',
           usersId: joinedAuction.userId,
-          message: emailBodyToWinner.message1,
+          message: notificationMessageToWinner,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -913,11 +924,15 @@ export class PaymentsService {
           Button_URL: process.env.FRONT_URL,
         };
         //send notification to the seller
+        const notificationMessageToSeller =`The winner of your Auction of ${paymentData.auction.product.title}
+                   (Model:${paymentData.auction.product.model}) has been paid the full amount. 
+                   We would like to let you know that you can hand over the item to the winner. once the winner
+                   confirmed the delvery, we will send the money to your wallet.`
         const notificationBodyToSeller = {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_SELLER',
           usersId: paymentData.auction.user.id,
-          message: emailBodyToSeller.message,
+          message: notificationMessageToSeller,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -1238,11 +1253,22 @@ export class PaymentsService {
           emailBodyToWinner,
         );
         const auction = paymentData.auction;
+        const notificationMessageToWinner = `
+        We’re excited to inform you that you have won the auction for ${paymentData.auction.product.title}!
+        
+        Here are the details of your purchase:
+        - Auction Title: ${paymentData.auction.product.title}
+        - Category: ${paymentData.auction.product.category}
+        - Winning Bid: ${paymentData.auction.bids[0].amount}
+        
+        Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
+        `;
+        
         const notificationBodyToBuyer = {
           status: 'ON_ITEM_BUY_NOW',
           userType: 'FOR_WINNER',
           usersId: paymentData.userId,
-          message: emailBodyToWinner.message1,
+          message: notificationMessageToWinner,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -1381,12 +1407,23 @@ export class PaymentsService {
                   EmailsType.OTHER,
                   emailBodyToLostBidders,
                 );
+                const notificationMessageToLosers = `
+                The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.
+                
+                Here are the details of your purchase:
+                - Auction Title: ${payment.auction.product.title}
+                - Category: ${payment.auction.product.category}
+                - Winning Bid: ${payment.auction.bids[0].amount}
+                
+                We know it’s disappointing, but there are always more exciting auctions to explore on Alletre.
+                `;
+                
                 const auction = payment.auction;
                 const notificationBodyToLosers = {
                   status: 'ON_ITEM_BUY_NOW',
                   userType: 'FOR_LOSERS',
                   usersId: payment.userId,
-                  message: emailBodyToLostBidders.message1,
+                  message: notificationMessageToLosers,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: payment.auctionId,
@@ -1451,11 +1488,23 @@ export class PaymentsService {
                 emailBodyToSeller,
               );
               const auction = payment.auction;
+              const notificationMessageToSeller = `
+              Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.
+              
+              Here are the details of your purchase:
+              - Auction Title: ${payment.auction.product.title}
+              - Category: ${payment.auction.product.category}
+              - Sold For:${payment.auction.bids[0].amount}
+              - Buyer: ${payment.auction.bids[0].user}
+              
+              Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
+              `;
+                 
               const notificationBodyToSeller = {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_SELLER',
                 usersId: payment.userId,
-                message: emailBodyToSeller.message1,
+                message: notificationMessageToSeller,
                 imageLink: auction.product.images[0].imageLink,
                 productTitle: auction.product.title,
                 auctionId: payment.auctionId,
@@ -2019,11 +2068,17 @@ export class PaymentsService {
                 Button_URL: process.env.FRONT_URL,
               };
               //send notification to the seller
+              const notificationMessageToSeller = ` The winner of your Auction of ${paymentSuccessData.auction.product.title}
+                         (Model:${paymentSuccessData.auction.product.model}) has been paid the full amount. 
+                         We would like to let you know that you can hand over the item to the winner. once the winner
+                         confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
+                         there is a chance to lose your security deposite`;
+              
               const notificationBodyToSeller = {
                 status: 'ON_AUCTION_PURCHASE_SUCCESS',
                 userType: 'FOR_SELLER',
                 usersId: paymentSuccessData.auction.user.id,
-                message: emailBodyToSeller.message,
+                message: notificationMessageToSeller,
                 imageLink:
                   paymentSuccessData.auction.product.images[0].imageLink,
                 productTitle: paymentSuccessData.auction.product.title,
@@ -2048,11 +2103,15 @@ export class PaymentsService {
                 attachment: invoicePDF,
               };
               //send notification to the winner
+              const notificationMessageToWinner =`You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
+                         (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
+                         by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
+                          We would like to thank you and appreciate you for choosing Alle Tre.`
               const notificationBodyToWinner = {
                 status: 'ON_AUCTION_PURCHASE_SUCCESS',
                 userType: 'FOR_WINNER',
                 usersId: joinedAuction.userId,
-                message: emailBodyToWinner.message,
+                message: notificationMessageToWinner,
                 imageLink:
                   paymentSuccessData.auction.product.images[0].imageLink,
                 productTitle: paymentSuccessData.auction.product.title,
@@ -2247,12 +2306,22 @@ export class PaymentsService {
                 Button_text: 'View My Purchase',
                 Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
               };
-
+              const notificationMessageToBuyer = `
+              We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
+              
+              Here are the details of your purchase:
+              - Auction Title: ${isPaymentSuccess.auction.product.title}
+              - Category: ${isPaymentSuccess.auction.product.category}
+              - Winning Bid: ${isPaymentSuccess.auction.bids[0].amount}
+              
+              Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
+              `;
+              
               const notificationBodyToBuyer = {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_WINNER',
                 usersId: isPaymentSuccess.userId,
-                message: emailBodyToWinner.message1,
+                message: notificationMessageToBuyer,
                 imageLink: isPaymentSuccess.auction.product.images[0].imageLink,
                 productTitle: isPaymentSuccess.auction.product.title,
                 auctionId: isPaymentSuccess.auctionId,
@@ -2404,11 +2473,23 @@ export class PaymentsService {
                         EmailsType.OTHER,
                         emailBodyToLostBidders,
                       );
+                      const notificationMessageToLosers = `
+                      The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.
+                      
+                      Here are the details of your purchase:
+                      - Auction Title: ${payment.auction.product.title}
+                      - Category: ${payment.auction.product.category}
+                      - Winning Bid: ${payment.auction.bids[0].amount}
+                      - Winner: ${payment.auction.bids[0].user}
+                      
+                      Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
+                      `;
+                           
                       const notificationBodyToLosers = {
                         status: 'ON_ITEM_BUY_NOW',
                         userType: 'FOR_LOSERS',
                         usersId: payment.userId,
-                        message: emailBodyToLostBidders.message1,
+                        message: notificationMessageToLosers,
                         imageLink: payment.auction.product.images[0].imageLink,
                         productTitle: payment.auction.product.title,
                         auctionId: payment.auctionId,
@@ -2474,11 +2555,23 @@ export class PaymentsService {
                       EmailsType.OTHER,
                       emailBodyToSeller,
                     );
+                    const notificationMessageToSeller = `
+                    Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the <b>Buy now</b> option to purchase your item instantly.
+                    
+                    Here are the details of your purchase:
+                    - Auction Title: ${payment.auction.product.title}
+                    - Category: ${payment.auction.product.category}
+                    - Sold For:${payment.auction.bids[0].amount}
+                    - Buyer: ${payment.auction.bids[0].user}
+                    
+                   The buyer has completed the payment, and the funds will be processed and transferred to your account shortly..
+                    `;
+                    
                     const notificationBodyToSeller = {
                       status: 'ON_ITEM_BUY_NOW',
                       userType: 'FOR_SELLER',
                       usersId: payment.userId,
-                      message: emailBodyToSeller.message1,
+                      message: notificationMessageToSeller,
                       imageLink: payment.auction.product.images[0].imageLink,
                       productTitle: payment.auction.product.title,
                       auctionId: payment.auctionId,
@@ -2569,7 +2662,7 @@ export class PaymentsService {
             include: {
               bids: true,
               user: true,
-              product: { include: { images: true } },
+              product: { include: { images: true, category: true } },
             },
           });
           const auctionEndDate = new Date(updatedAuction.expiryDate);
@@ -2593,7 +2686,7 @@ export class PaymentsService {
                       <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
                       <li>•	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                     </ul>
-                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p>
+                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
                   `,
               message2: `
                   
@@ -2671,7 +2764,7 @@ export class PaymentsService {
             include: {
               bids: true,
               user: true,
-              product: { include: { images: true } },
+              product: { include: { images: true, category: true } },
             },
           });
           const auctionEndDate = new Date(updatedAuction.expiryDate);
