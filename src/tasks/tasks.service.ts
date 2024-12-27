@@ -166,7 +166,18 @@ export class TasksService {
         },
         include: {
           user: true,
-          auction: { include: { product: { include: { images: true } } } },
+          auction: {
+            include: {
+              product: { include: { images: true, category: true } },
+              bids: {
+                orderBy: { amount: 'desc' },
+                include: {
+                  user: true,
+                },
+              },
+              user: true,
+            },
+          },
         },
       });
       if (winnerSecurityDeposit) {
@@ -298,31 +309,78 @@ export class TasksService {
             //sendEmailtoSeller
 
             const emailBodyForSeller = {
-              subject: 'Pending Payment time Expired',
-              title: 'Pending Payment time Expired',
+              subject: '⚠️ Auction Closed: Bidder Failed to Pay',
+              title: `Important Update About Your Auction`,
               Product_Name: sellerPaymentData.auction.product.title,
               img: sellerPaymentData.auction.product.images[0].imageLink,
-              message: ` Hi, ${sellerPaymentData.user.userName}, 
-                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
-                                (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
-                                So we are giving you an amount as a compensation to your wallet and your security deposit has
-                                been sent back to your bank account. `,
-              Button_text: 'Click here to create another Auction',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${sellerPaymentData.auction.user.userName}`,
+              message1: ` 
+            <p>We’re reaching out to inform you that the winning bidder for your auction ${
+              sellerPaymentData.auction.product.title
+            } did not complete the payment within the required timeframe. While we understand this may be disappointing, we’ve taken steps to ensure you’re protected.</p>
+            <p><b>Here’s what happens next:</b></p>
+            <ul>
+              <li>Your Security Deposit: ${
+                sellerPaymentData.auction.product.category
+                  .sellerDepositFixedAmount
+              } </li>
+     <li>Compensation: ${
+       Number(
+         sellerPaymentData.auction.product.category.bidderDepositFixedAmount,
+       ) * 0.5
+     } (50% of the bidder’s security deposit)</li>
+
+
+            </ul>
+            <p>The compensation has been credited to your account and is available for use in future auctions.</p>
+            <h3>What’s Next?</h3>
+            <p>We encourage you to relist your item to attract new bidders and secure a successful sale.</p>
+            `,
+              message2: ` 
+              <p>Thank you for using <b>Alletre</b>. We’re here to support you every step of the way and are confident your next auction will be a success!</p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p>Check out our Seller Tips to optimize your listing and attract more bidders!</p>`,
+              Button_text: 'Create auction',
+              Button_URL: ' https://www.alletre.com/',
             };
             //sendEmailtoBidder
+            const auctionEndDate = new Date(
+              sellerPaymentData.auction.expiryDate,
+            );
+            const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+            const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
             const emailBodyForBidder = {
-              subject: 'Pending Payment time Expired',
-              title: 'Pending Payment time Expired',
+              subject: '⚠️ Auction Cancelled: Payment Not Completed',
+              title: `Auction Cancelled - Payment Not Received`,
               Product_Name: sellerPaymentData.auction.product.title,
               img: sellerPaymentData.auction.product.images[0].imageLink,
-              message: ` Hi, ${winnerSecurityDeposit.user.userName}, 
-                        We are really sorry to say that, the time to pay the pending amount of Auction of ${sellerPaymentData.auction.product.title}
-                        (Model:${sellerPaymentData.auction.product.model}) has been expired. Due to the delay of the payment you have lost
-                        your security deposite. 
-                        If you would like to participate on another auction, Please click the button below. Thank you. `,
-              Button_text: 'Click here',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${sellerPaymentData.auction.bids[0].user}`,
+              message1: ` 
+            <p>We regret to inform you that your winning bid for ${sellerPaymentData.auction.product.title} has been cancelled. Unfortunately, we did not receive your payment within the required time frame.</p>
+            <p>Auction Details:</p>
+            <ul>
+              <li>Title: ${sellerPaymentData.auction.product.title} </li>
+              <li>Winning Bid: ${sellerPaymentData.auction.bids[0].amount}</li>
+              <li>Payment Due By: ${formattedEndDate} & ${formattedEndTime}</li>
+            </ul>
+            <h3>Consequences:</h3>
+            <p>Since payment was not completed on time:</p>
+            <ul>
+              <li>The auction has been cancelled.</li>
+              <li>Your security deposit of ${sellerPaymentData.auction.acceptedAmount} has been confiscated.</li>
+            </ul>
+            <p>We understand this may be disappointing, but we want to ensure smooth and timely transactions for all our users.</p>
+            <h3>Consequences:</h3>
+              <p>We encourage you to explore other exciting auctions that match your interests. If you’d like to participate again, we’re always here to help you get started.</p>
+            `,
+              message2: ` 
+              <p>Thank you for being part of the  <b>Alletre</b> community. We look forward to seeing you in future auctions!</p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p>P.S. Have questions or need assistance? Feel free to contact our support team.</p>`,
+              Button_text: 'Explore Auctions',
+              Button_URL: ' https://www.alletre.com/',
             };
             const notificationMessageToSeller =` 
                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
@@ -436,7 +494,16 @@ export class TasksService {
           status: 'SOLD',
           isItemSendForDelivery: false,
         },
-        include: { user: true, product: { include: { images: true } } },
+        include: {
+          user: true,
+          product: { include: { images: true } },
+          bids: {
+            orderBy: { amount: 'desc' },
+            include: {
+              user: true,
+            },
+          },
+        },
       });
       await Promise.all(
         pendingDeliveryAuction.map(async (auction) => {
@@ -453,16 +520,29 @@ export class TasksService {
             console.log('Sending email to seller, delivery is delayed.');
             // Email body for the seller
             const emailBodyForSeller = {
-              subject: 'Delivery Delay Notification',
-              title: 'Auction Delivery Delayed',
+              subject: '🚚 Action Needed: Delivery Delay Notification',
+              title: 'Delivery Delayed for Auction Purchase',
               Product_Name: auction.product.title,
               img: auction.product.images[0].imageLink,
-              message: `Hi, ${auction.user.userName}, 
-                  It appears that the delivery of your product from the auction "${auction.product.title}"
-                  (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
-                  Please take action to fulfill the delivery.`,
-              Button_text: 'Check Auction',
-              Button_URL: process.env.FRONT_URL,
+              userName: `${auction.user}`,
+              message1: ` 
+            <p>We wanted to bring to your attention that the delivery of  ${auction.product.title} has been delayed.</p>
+            <p>Auction Details:</p>
+            <ul>
+              <li>Title: ${auction.product.title} </li>
+              <li>Winning Bid: ${auction.bids[0].amount}</li>
+              <li>Winning Name: ${auction.bids[0].user}</li>
+            </ul>
+            <h3>What You Should Do Next</h3>
+            <p>Please take immediate action to fulfill the delivery of this product and ensure the buyer receives their purchase promptly.</p>
+                  `,
+              message2: ` 
+              <p>Thank you for your cooperation. If you have any questions or need assistance, feel free to reach out to us.</p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p>P.S. Timely delivery ensures a better experience for everyone. Let us know if there’s anything we can do to help!</p>`,
+              Button_text: 'View Auction Details',
+              Button_URL: ' https://www.alletre.com/',
             };
             await this.emailService.sendEmail(
               auction.user.email,
@@ -515,77 +595,211 @@ export class TasksService {
 
   @Interval(60000)
   async _markUpcomingPendingPayment() {
-    // Get pending payment auctions
-    const pendingPaymentAuction =
-      await this.prismaService.joinedAuction.findMany({
-        where: {
-          paymentExpiryDate: {
-            gte: new Date(), // Expiration date is greater than or equal to the current time (i.e., in the future)
-            lte: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // Expiring within the next two hours
-            // lte: new Date(new Date().getTime() + 10 * 60 * 1000), // Expiring within the next 10 minutes
+    // Get auctions expiring within 24 hours
+    const twentyFourHourPendingPaymentAuctions = await this.prismaService.joinedAuction.findMany({
+      where: {
+        paymentExpiryDate: {
+          gte: new Date(), // Expiration date is greater than or equal to the current time
+          lte: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // Expiring within the next 24 hours
+        },
+        status: JoinedAuctionStatus.PENDING_PAYMENT,
+        isWarningMessageSent24Hours: false, // Add a specific flag for 24-hour warnings
+      },
+      include: {
+        auction: {
+          include: {
+            user: true,
+            product: { include: { images: true, category: true } },
+            bids: {
+              orderBy: { amount: 'desc' },
+              include: { user: true },
+            },
           },
-          status: JoinedAuctionStatus.PENDING_PAYMENT,
-          isWarningMessageSent: false,
         },
-        include: {
-          auction: { include: { product: { include: { images: true } } } },
-          user: true,
-        },
-      });
-
-    if (pendingPaymentAuction.length) {
+        user: true,
+      },
+    });
+  
+    // Send 24-hour reminder emails
+    if (twentyFourHourPendingPaymentAuctions.length) {
       await Promise.all(
-        pendingPaymentAuction.map(async (data) => {
+        twentyFourHourPendingPaymentAuctions.map(async (data) => {
+          const auctionEndDate = new Date(data.auction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
           const body = {
-            subject: 'Warning.. Pending Payment is going to be expired soon',
-            title: 'Pending Payment is going to be expired soon',
+            subject: '⏳ Final Reminder: Complete Your Payment to Secure Your Win',
+            title: 'Your Auction Win is at Risk!',
             Product_Name: data.auction.product.title,
             img: data.auction.product.images[0].imageLink,
-            message: ` Hi, ${data.user.userName}, 
-                      Your pending payment on your Auction of ${data.auction.product.title}
-                     (Model:${data.auction.product.model}) is going to be expired soon.
-                      Notice : If you are refuce to pay, you will lose the security deposite. Thank you. `,
-            Button_text: 'Click here to continue your payment',
-            Button_URL: process.env.FRONT_URL,
+            userName: `${data.user.userName}`,
+            message1: ` 
+              <p>Congratulations on winning the auction for ${data.auction.product.title}! However, we noticed that you haven’t completed the payment yet.</p>
+              <p>Auction Details:</p>
+              <ul>
+                <li>Title: ${data.auction.product.title} </li>
+                <li>Winning Bid: ${data.auction.bids[0].amount}</li>
+                <li>Payment Due By: ${formattedEndDate} & ${formattedEndTime}</li>
+              </ul>
+              <h3>What Happens If You Don’t Pay?</h3>
+              <p>If payment is not completed within the next 24 hours:</p>
+              <ul>
+                <li>The auction will be cancelled. </li>
+                <li>Your security deposit of ${data.auction.product.category.bidderDepositFixedAmount} will be confiscated.</li>
+              </ul>
+              <p>We encourage you to act quickly to avoid losing your deposit and your winning bid!</p>`,
+            message2: ` 
+              <p>Thank you for being part of the <b>Alletre</b> community. Completing your payment ensures a smooth transaction for both you and the seller.</p>
+              <p style="margin-bottom: 0;">Best regards,</p>
+              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+              <p>P.S. Need help or have questions? Contact our support team for assistance.</p>`,
+            Button_text: 'Complete My Payment Now',
+            Button_URL: ' https://www.alletre.com/alletre/profile/my-bids/pending',
           };
-          await this.emailService.sendEmail(
-            data.user.email,
-            'token',
-            EmailsType.OTHER,
-            body,
-          );
+          
+          // Send email
+          await this.emailService.sendEmail(data.user.email, 'token', EmailsType.OTHER, body);
+          
+          // Update flag to indicate 24-hour warning sent
           await this.prismaService.joinedAuction.update({
             where: { id: data.id },
-            data: { isWarningMessageSent: true },
+            data: { isWarningMessageSent24Hours: true },
           });
-          //create notificaion to winner
-          const pendingPaymentNotificationData =
-            await this.prismaService.notification.create({
-              data: {
-                userId: data.userId,
-                message: ` Your pending payment on your Auction of ${data.auction.product.title}
-                     (Model:${data.auction.product.model}) is going to be expired soon.
-                      Notice : If you are refuce to pay, you will lose the security deposite. Thank you.`,
-                imageLink: data.auction.product.images[0].imageLink,
-                productTitle: data.auction.product.title,
-                auctionId: data.auctionId,
-              },
-            });
+  
+          // Create notification
+          const pendingPaymentNotificationData = await this.prismaService.notification.create({
+            data: {
+              userId: data.userId,
+              message: `Your pending payment on your Auction of "${data.auction.product.title}"
+                        (Model: ${data.auction.product.model}) is going to expire soon. 
+                        Notice: If you refuse to pay, you will lose your security deposit. Thank you.`,
+              imageLink: data.auction.product.images[0].imageLink,
+              productTitle: data.auction.product.title,
+              auctionId: data.auctionId,
+            },
+          });
+  
+          // Check if the notification was successfully created
           if (pendingPaymentNotificationData) {
-            // Send notification to winner
             const notification = {
-              status: 'ON_PENDING_PAYMENT_OF_WINNER',
-              userType: 'FOR_WINNER',
+              status: 'ON_PENDING_PAYMENT_OF_BIDDER',
+              userType: 'FOR_BIDDER',
               usersId: data.userId,
               message: pendingPaymentNotificationData.message,
               imageLink: pendingPaymentNotificationData.imageLink,
               productTitle: pendingPaymentNotificationData.productTitle,
               auctionId: pendingPaymentNotificationData.auctionId,
             };
+  
+            // Send the notification to the user (bidder)
             try {
-              this.notificationService.sendNotificationToSpecificUsers(
-                notification,
-              );
+              await this.notificationService.sendNotificationToSpecificUsers(notification);
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
+        }),
+      );
+    }
+  
+    // Get auctions expiring within 1 hour
+    const oneHourPendingPaymentAuctions = await this.prismaService.joinedAuction.findMany({
+      where: {
+        paymentExpiryDate: {
+          gte: new Date(), // Expiration date is greater than or equal to the current time
+          lte: new Date(new Date().getTime() + 1 * 60 * 60 * 1000), // Expiring within the next 1 hour
+        },
+        status: JoinedAuctionStatus.PENDING_PAYMENT,
+        isWarningMessageSent1Hour: false, // Add a specific flag for 1-hour warnings
+      },
+      include: {
+        auction: {
+          include: {
+            product: { include: { images: true, category: true } },
+            bids: {
+              orderBy: { amount: 'desc' },
+              include: { user: true },
+            },
+          },
+        },
+        user: true,
+      },
+    });
+  
+    // Send 1-hour reminder emails
+    if (oneHourPendingPaymentAuctions.length) {
+      await Promise.all(
+        oneHourPendingPaymentAuctions.map(async (data) => {
+          const auctionEndDate = new Date(data.auction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+          const body = {
+            subject: '⏰ Urgent: 1 Hour Left to Complete Your Payment!',
+            title: 'Last Chance to Secure Your Auction Win!',
+            Product_Name: data.auction.product.title,
+            img: data.auction.product.images[0].imageLink,
+            userName: `${data.user.userName}`,
+            message1: ` 
+              <p>This is a final reminder—only 1 hour remains to complete the payment for your winning bid on ${data.auction.product.title}.</p>
+              <p>Auction Details:</p>
+              <ul>
+                <li>Title: ${data.auction.product.title} </li>
+                <li>Winning Bid: ${data.auction.bids[0].amount}</li>
+                <li>Payment Due By: ${formattedEndDate} & ${formattedEndTime}</li>
+              </ul>
+              <h3>What Happens If You Don’t Pay?</h3>
+              <p>If payment is not completed within the next hour:</p>
+              <ul>
+                <li>The auction will be cancelled. </li>
+                <li>Your security deposit of ${data.auction.product.category.bidderDepositFixedAmount} will be confiscated.</li>
+              </ul>
+              <p>Don’t miss out on your chance to secure this item. Complete your payment now to avoid losing your winning bid and deposit!</p>`,
+            message2: ` 
+              <p>Thank you for using <b>Alletre</b>. We’re eager to help you complete this transaction smoothly.</p>
+              <p style="margin-bottom: 0;">Best regards,</p>
+              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+              <p>P.S. Need assistance? Contact us immediately for support.</p>`,
+            Button_text: 'Complete My Payment Now',
+            Button_URL: ' https://www.alletre.com/alletre/profile/my-bids/pending',
+          };
+  
+          // Send email
+          await this.emailService.sendEmail(data.user.email, 'token', EmailsType.OTHER, body);
+  
+          // Update flag to indicate 1-hour warning sent
+          await this.prismaService.joinedAuction.update({
+            where: { id: data.id },
+            data: { isWarningMessageSent1Hour: true },
+          });
+  
+          // Create notification
+          const pendingPaymentNotificationData = await this.prismaService.notification.create({
+            data: {
+              userId: data.userId,
+              message: `Your pending payment on your Auction of "${data.auction.product.title}"
+                        (Model: ${data.auction.product.model}) is going to expire soon. 
+                        Notice: If you refuse to pay, you will lose your security deposit. Thank you.`,
+              imageLink: data.auction.product.images[0].imageLink,
+              productTitle: data.auction.product.title,
+              auctionId: data.auctionId,
+            },
+          });
+  
+          // Check if the notification was successfully created
+          if (pendingPaymentNotificationData) {
+            const notification = {
+              status: 'ON_PENDING_PAYMENT_OF_BIDDER',
+              userType: 'FOR_BIDDER',
+              usersId: data.userId,
+              message: pendingPaymentNotificationData.message,
+              imageLink: pendingPaymentNotificationData.imageLink,
+              productTitle: pendingPaymentNotificationData.productTitle,
+              auctionId: pendingPaymentNotificationData.auctionId,
+            };
+  
+            // Send the notification to the user (bidder)
+            try {
+              await this.notificationService.sendNotificationToSpecificUsers(notification);
             } catch (error) {
               console.log('sendNotificationToSpecificUsers error', error);
             }
@@ -594,6 +808,7 @@ export class TasksService {
       );
     }
   }
+  
 
   /**
    * Function will run every mintue to set all auction expired
@@ -1250,8 +1465,8 @@ export class TasksService {
                 </ul>
                 <p>Would you like to relist your auction with ease?</p>`,
                 message2: `<p>Thank you for choosing <b>Alletre</b>. Let’s turn this into an opportunity to find the right buyer!</p>
-                            <p>Best regards,</p>
-                            <p>The <b>Alletre</b> Team </p>
+                          <p style="margin-bottom: 0;">Best regards,</p>
+                          <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                             <p>P.S. Need help improving your listing? Check out our tips for creating successful auctions: <a href="https://www.alletre.com/">Auction Tips</a></p>
 `,
                 Button_text: 'Create Auction ',

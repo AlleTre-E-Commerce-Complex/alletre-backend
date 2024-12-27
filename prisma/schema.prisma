@@ -313,9 +313,11 @@ model JoinedAuction {
   createdAt            DateTime            @default(now())
   status               JoinedAuctionStatus @default(IN_PROGRESS)
   paymentExpiryDate    DateTime?
-  isWarningMessageSent Boolean             @default(false)
+  isWarningMessageSent24Hours Boolean             @default(false)
   auction              Auction             @relation(fields: [auctionId], references: [id])
   user                 User                @relation(fields: [userId], references: [id])
+  isWarningMessageSent1Hour Boolean        @default(false)
+
 }
 
 model Admin {
