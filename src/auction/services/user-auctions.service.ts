@@ -218,16 +218,16 @@ export class UserAuctionsService {
             <p>You have successfully cancelled your auction for ${auction.product.title}. However, since there were active bidders on this auction, the security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our cancellation policy.</p>
                     <p>Auction Details:</p>
             <ul>
-              <li>•	Title: ${auction.product.title} </li>
-              <li>•	Category: ${auction.product.category.nameEn}</li>
-              <li>•	Highest Bid: ${auction.bids[0].amount}</li>
-              <li>• Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+              <li>Title: ${auction.product.title} </li>
+              <li>Category: ${auction.product.category.nameEn}</li>
+              <li>Highest Bid: ${auction.bids[0].amount}</li>
+              <li>Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
             </ul>
             <p>We understand circumstances can change, but cancelling an auction with bidders can affect their experience and trust in the platform.</p>
             `,
             message2: `<p>We value your participation in our community and are here to support you. If you have any questions about this policy or need assistance, please don’t hesitate to contact our support team.</p>
-                        <p>Best regards,</p>
-                        <p>The <b>Alletre</b> Team </p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                         <p>P.S. Avoid future deposit forfeitures by reviewing our auction policies before cancelling active auctions.</p>`,
             Button_text: 'View My Account  ',
             Button_URL: ' https://www.alletre.com/',
@@ -301,9 +301,9 @@ export class UserAuctionsService {
               } has been cancelled by the owner of the product. </p>
                       <p>Cancelled Auction Details:</p>
               <ul>
-                <li>•	Title: ${auction.product.title} </li>
-                <li>•	Category: ${auction.product.category.nameEn}</li>
-                <li>•	Your Bid Amount: ${
+                <li>Title: ${auction.product.title} </li>
+                <li>Category: ${auction.product.category.nameEn}</li>
+                <li>Your Bid Amount: ${
                   auction.bids.find((bid) => bid.userId === auction.user.id)
                     ?.amount
                 }</li>
@@ -318,8 +318,8 @@ export class UserAuctionsService {
                   : ''
               } </p>`,
               message2: `<p>We deeply value your participation and apologize for any inconvenience this cancellation may have caused. If you have any further questions or concerns, please feel free to contact our support team.</p>
-                          <p>Best regards,</p>
-                          <p>The <b>Alletre</b> Team </p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                           <p>P.S. Bid with other similar , auctions are waiting for you</p>`,
               Button_text: 'View My Account  ',
               Button_URL: ' https://www.alletre.com/',
@@ -735,8 +735,8 @@ export class UserAuctionsService {
               </ul>`,
 
               message2: `<p>Thank you for choosing <b>Alletre</b>. We’re here to help you succeed in all your future auctions!</p>
-                           <p style="margin-bottom: 0;">Best regards,</p>
-<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                           <p>P.S. If you have questions about the refund process, feel free to contact us anytime.</p>`,
               Button_text: 'Create Auction ',
               Button_URL: ' https://www.alletre.com/',
@@ -2616,8 +2616,19 @@ export class UserAuctionsService {
           auctionId: Number(auctionId),
         },
         include: {
+          auction: {
+            include: {
+              user: true,
+              product: { include: { images: true, category: true } },
+              bids: {
+                orderBy: { amount: 'desc' },
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
           user: true,
-          auction: { include: { product: { include: { images: true } } } },
         },
       });
       console.log('sellerPaymentData :', sellerPaymentData);
@@ -2762,31 +2773,59 @@ export class UserAuctionsService {
           );
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
-            subject: 'Delivery successful',
-            title: 'Your Auction winner has confirmed the delivery',
+            subject: '🎉 Success! Your Item Has Been Delivered & Payment Received',
+            title: 'Your Auction Sale is Complete – Payment Credited to Your Wallet!',
             Product_Name: sellerPaymentData.auction.product.title,
             img: sellerPaymentData.auction.product.images[0].imageLink,
-            message: ` Hi, ${sellerPaymentData.user.userName}, 
-                   Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
-                   (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
-                   The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
-                   From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. 
-                   If you would like to Participate another auction, Please click the button below. Thank you. `,
-            Button_text: 'Click here to create another Auction',
-            Button_URL: process.env.FRONT_URL,
-          };
-          const emailBodyToWinner = {
-            subject: 'Delivery successful',
-            title: 'Delivery successful',
-            Product_Name: sellerPaymentData.auction.product.title,
-            img: sellerPaymentData.auction.product.images[0].imageLink,
-            message: ` Hi, ${confirmDeliveryResult.user.userName}, 
-                   Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
-                   (Model:${sellerPaymentData.auction.product.model}). 
-                    We would like to thank you and appreciate you for choosing Alle Tre. If you would like to participate another auction, Please click the button below. Thank you. `,
-            Button_text: 'Click here to create another Auction',
-            Button_URL: process.env.FRONT_URL,
-          };
+            userName: `${sellerPaymentData.auction.user.userName}`,
+            message1: ` 
+            <p>Congratulations! Your item ${sellerPaymentData.auction.product.title} has been successfully received by the buyer, and the selling amount has been credited to your wallet.</p>
+            <p>Auction Details:</p>
+            <ul>
+              <li>Title: ${sellerPaymentData.auction.product.title} </li>
+              <li>Sold For: ${sellerPaymentData.auction.bids[0].amount}</li>
+              <li>Buyer: ${sellerPaymentData.auction.bids[0].user}</li>
+              <li>Payment Status: Payment credited to your wallet</li>
+            </ul>
+            <h3>What’s Next?</h3>
+            <p><b>View Your Balance</b>: You can check your wallet and withdraw the funds whenever you’re ready.</p>
+            <p><b>Ready to Try Again?</b></p>
+            <p>We’d love to help you relist your item and attract the right bidders!</p>`,
+            message2: `<p>We hope you enjoyed the process and that your buyer is satisfied with their purchase. We’re here to help you with future sales—don’t hesitate to list more items with us!</p>
+                      <p>Thank you for choosing <b>Alletre</b>. We look forward to supporting you in your future auctions.</p>
+            <p style="margin-bottom: 0;">Best regards,</p>
+                      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p>P.S. Need help or have any questions? Our support team is just a click away.</p>`,
+            Button_text: 'View Wallet ',
+            Button_URL: ' https://www.alletre.com/alletre/profile/wallet',
+            };
+            const emailBodyToBidder = {
+              subject: '🎉 Congratulations! You’ve Won the Auction & Your Item is On Its Way!',
+              title: 'You’re the Winner – Your Auction Item is Being Delivered!',
+              Product_Name: sellerPaymentData.auction.product.title,
+              img: sellerPaymentData.auction.product.images[0].imageLink,
+              userName: `${sellerPaymentData.auction.bids[0].user}`,
+              message1: `
+                <p>Congratulations, ${sellerPaymentData.auction.bids[0].user.userName}! You are the winning bidder for the auction item: ${sellerPaymentData.auction.product.title}!</p>
+                <p>Auction Details:</p>
+                <ul>
+                  <li>Title: ${sellerPaymentData.auction.product.title} </li>
+                  <li>Winning Bid: ${sellerPaymentData.auction.bids[0].amount}</li>
+                  <li>Seller: ${sellerPaymentData.auction.user}</li>
+                  <li>Payment Status: Payment received successfully</li>
+                </ul>
+                <h3>What’s Next?</h3>
+                <p><b>Track Your Delivery</b>: Your item will be on its way shortly, and you can track its progress.</p>
+                <p><b>Get Ready to Enjoy Your New Item</b>: We hope you’re excited about your win! Don’t forget to check the item once it’s delivered to make sure everything is perfect.</p>`,
+              message2: `
+                <p>We’re thrilled that you chose to bid on this item and are looking forward to your next auction experience with us!</p>
+                <p>Thank you for using <b>Alletre</b>. We hope you continue to find amazing items and exciting auction opportunities!</p>
+                <p style="margin-bottom: 0;">Best regards,</p>
+                <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                <p>P.S. Need help or have any questions? Our support team is just a click away.</p>`,
+              Button_text: 'view Purchases',
+              Button_URL: 'https://www.alletre.com/alletre/profile/purchased', 
+            };
           const auction = sellerPaymentData.auction;
           const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
                    Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
