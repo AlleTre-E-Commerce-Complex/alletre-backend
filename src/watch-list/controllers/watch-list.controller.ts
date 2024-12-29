@@ -32,7 +32,7 @@ export class WatchListController {
 
   @Delete('un-save')
   @UseGuards(AuthGuard)
-  async deleteFromWatchList( 
+  async deleteFromWatchList(
     @Account() account: any,
     @Query('auctionId', ParseIntPipe) auctionId: number,
   ) {

@@ -307,16 +307,16 @@ model Payment {
 }
 
 model JoinedAuction {
-  id                   Int                 @id @default(autoincrement())
-  userId               Int
-  auctionId            Int
-  createdAt            DateTime            @default(now())
-  status               JoinedAuctionStatus @default(IN_PROGRESS)
-  paymentExpiryDate    DateTime?
+  id                          Int                 @id @default(autoincrement())
+  userId                      Int
+  auctionId                   Int
+  createdAt                   DateTime            @default(now())
+  status                      JoinedAuctionStatus @default(IN_PROGRESS)
+  paymentExpiryDate           DateTime?
   isWarningMessageSent24Hours Boolean             @default(false)
-  auction              Auction             @relation(fields: [auctionId], references: [id])
-  user                 User                @relation(fields: [userId], references: [id])
-  isWarningMessageSent1Hour Boolean        @default(false)
+  auction                     Auction             @relation(fields: [auctionId], references: [id])
+  user                        User                @relation(fields: [userId], references: [id])
+  isWarningMessageSent1Hour   Boolean              @default(false)
 
 }
 
