@@ -401,6 +401,7 @@ export class PaymentsService {
               include: {
                 auction: {
                   include: {
+                    user: true,
                     bids: {
                       include: { user: true },
                       orderBy: { amount: 'desc' },
@@ -433,6 +434,7 @@ export class PaymentsService {
           user: true,
           auction: {
             include: {
+              user: true,
               bids: {
                 include: { user: true },
                 orderBy: { amount: 'desc' },
@@ -445,65 +447,92 @@ export class PaymentsService {
           id: 'desc',
         },
       });
+      const auctionEndDate = new Date(paymentData.auction.expiryDate);
+      const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+      const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
       const emailBodyToSeller = {
-        subject: 'Your Auction Just Got Its First Bid! 🎉',
-        title: 'Congratulations, Your Item is Getting Attention!',
-        Product_Name: joinedBidders[0].auction.product.title,
-        img: joinedBidders[0].auction.product.images[0].imageLink,
-        message: `Hi, ${joinedBidders[0].user.userName}, 
-      
-      Your auction for ${
-        joinedBidders[0].auction.product.title
-      } has received its first bid! This is an exciting moment, and it’s only the beginning.
-      
-      Here’s what’s happening:
-      • Current Highest Bid: ${
-        joinedBidders.length > 0 ? joinedBidders[0].amount : 'No bids yet'
-      }
-      • Total Bidders: ${joinedBidders.length}
-      
-      Keep an eye on your auction as more bids roll in. This could be the start of an intense bidding war!
-      
-      Thank you for choosing Alletre to showcase your product. We’re here to help you achieve the best results for your auction.
-      
-      Good luck,
-      The Alletre Team`,
-        Button_text: 'View Your Auction',
-        Button_URL: process.env.FRONT_URL,
+        subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
+        title: 'Your Auction is Officially in Motion!',
+        Product_Name: paymentData.auction.product.title,
+        img: paymentData.auction.product.images[0].imageLink,
+        userName: `${paymentData.auction.user.userName}`,
+        message1: ` 
+                  <p>Congratulations! Your auction ${
+                    paymentData.auction.product.title
+                  } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
+                  <p>Here’s the latest update:/p>
+                  <ul>
+                  <li>First Bid Amount: ${
+                    joinedBidders[joinedBidders.length - 1].amount
+                  }</li>
+                  <li>Bidder’s Username: ${
+                    joinedBidders[joinedBidders.length - 1].user
+                  } </li>
+                    <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                  </ul>
+                     <p>This is just the beginning—more bidders could be on their way!<p>       
+                    <h3>What can you do now?</h3>
+                      <ul>
+                  <li>Share your auction to attract even more bids.</li>
+                  <li>Keep an eye on the activity to stay informed about the progress.</li>
+                  </ul>
+                  `,
+        message2: ` 
+                               <p>Thank you for choosing <b>Alletre</b>. We can’t wait to see how this unfolds!</p>
+                  
+             
+                               <p style="margin-bottom: 0;">Good luck,</p>
+                              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                              <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
+        Button_text: 'View My Auction ',
+        Button_URL:
+          'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
       };
 
       const emailBodyToSecondLastBidder = {
         subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
         title: 'Your Bid Just Got Beaten!',
-        Product_Name: joinedBidders[0].auction.product.title,
-        img: joinedBidders[0].auction.product.images[0].imageLink,
-        message: `Hi, ${joinedBidders[0].user.userName}, 
-                  Exciting things are happening on ${
-                    joinedBidders[0].auction.product.title
-                  }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.
-                  Here’s the current standing:
-                  • Current Highest Bid: ${
+        Product_Name: paymentData.auction.product.title,
+        img: paymentData.auction.product.images[0].imageLink,
+        userName: `${joinedBidders[1]?.user}`,
+        message1: ` 
+                  <p>Exciting things are happening on ${
+                    paymentData.auction.product.title
+                  }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.</p>
+                  <p>Here’s the current standing:</p>
+                  <ul>
+                  <li> Current Highest Bid: ${
                     joinedBidders.length > 1
                       ? joinedBidders[0].amount
                       : 'No bids yet'
-                  }
-                  • Your Last Bid: ${joinedBidders[1]?.amount}  
-                  Don’t miss your chance to claim this one-of-a-kind auction item. The clock is ticking, and every second counts!
-                  Reclaim Your Spot as the Top Bidder Now!
-                  Stay ahead of the competition and secure your win!
-                  Good luck,
-                  The Alletre Team`,
-        Button_text: 'View Auction',
-        Button_URL: process.env.FRONT_URL,
+                  }</li>
+                  <li>Your Last Bid: ${joinedBidders[1]?.amount}  </li>
+                
+                  </ul>
+                     <p>Don’t miss your chance to claim this one-of-a-kind ${
+                       paymentData.auction.product.title
+                     } . The clock is ticking, and every second counts!</p>       
+                     <p><b>Reclaim Your Spot as the Top Bidder Now!</b></p>
+                  `,
+        message2: ` 
+                               <p>Stay ahead of the competition and secure your win!</p>
+                  
+             
+                               <p style="margin-bottom: 0;">Good luck,</p>
+                              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                              <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
+        Button_text: 'Place a Higher Bid',
+        Button_URL:
+          'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
       };
 
       console.log('joinedBidders1111111111111', joinedBidders);
       if (joinedBidders.length === 1) {
         this.emailService.sendEmail(
-          joinedBidders[0].user.email,
+          joinedBidders[0].auction.user.email,
           'token',
           EmailsType.OTHER,
-          emailBodyToSecondLastBidder,
+          emailBodyToSeller,
         );
       }
       if (joinedBidders[1]) {
@@ -512,7 +541,7 @@ export class PaymentsService {
           joinedBidders[1].user.email,
           'token',
           EmailsType.OTHER,
-          emailBodyToSeller,
+          emailBodyToSecondLastBidder,
         );
       }
       // create notification for seller
@@ -858,6 +887,83 @@ export class PaymentsService {
         const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
         auctionEndDate.setDate(auctionEndDate.getDate() + 3);
         const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
+        //here need send the back the security deposit of winner
+        const winnedBidderDepositPaymentData =
+          await this.getAuctionPaymentTransaction(
+            paymentData.userId,
+            paymentData.auctionId,
+            PaymentType.BIDDER_DEPOSIT,
+          );
+
+        // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
+        if (
+          !winnedBidderDepositPaymentData.isWalletPayment &&
+          winnedBidderDepositPaymentData.paymentIntentId
+        ) {
+          try {
+            const is_SD_SendBackToWinner =
+              await this.stripeService.cancelDepositPaymentIntent(
+                winnedBidderDepositPaymentData.paymentIntentId,
+              );
+            if (is_SD_SendBackToWinner) {
+              console.log('SD send back to winner - stripe');
+            }
+          } catch (error) {
+            console.error(
+              'Error when sending back SD  for winning bidder:',
+              error,
+            );
+          }
+        } else {
+          try {
+            //finding the last transaction balance of the winner
+            const lastWalletTransactionBalanceOfWinner =
+              await this.walletService.findLastTransaction(
+                winnedBidderDepositPaymentData.userId,
+              );
+            //finding the last transaction balance of the alletreWallet
+            const lastBalanceOfAlletre =
+              await this.walletService.findLastTransactionOfAlletre();
+            //wallet data for the winner bidder
+            const BidderWalletData = {
+              status: WalletStatus.DEPOSIT,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Return security deposit after auction win`,
+              amount: Number(winnedBidderDepositPaymentData.amount),
+              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              balance: lastWalletTransactionBalanceOfWinner
+                ? Number(lastWalletTransactionBalanceOfWinner) +
+                  Number(winnedBidderDepositPaymentData.amount)
+                : Number(winnedBidderDepositPaymentData.amount),
+            };
+            // wallet data for deposit to alletre wallet
+
+            const alletreWalletData = {
+              status: WalletStatus.WITHDRAWAL,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Return of bidder security deposit after lost win`,
+              amount: Number(winnedBidderDepositPaymentData.amount),
+              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              balance:
+                Number(lastBalanceOfAlletre) -
+                Number(winnedBidderDepositPaymentData.amount),
+            };
+            await this.walletService.create(
+              winnedBidderDepositPaymentData.userId,
+              BidderWalletData,
+            );
+            //crete new transaction in alletre wallet
+            await this.walletService.addToAlletreWallet(
+              winnedBidderDepositPaymentData.userId,
+              alletreWalletData,
+            );
+          } catch (error) {
+            console.error(
+              'Error when sending back SD  for winning bidder:',
+              error,
+            );
+          }
+        }
         //Email to winning bidder paid amount (wallet)
         const emailBodyToWinner = {
             subject: '🏆 Congratulations! You Won the Auction!',
@@ -909,13 +1015,12 @@ export class PaymentsService {
         
         Your payment has been processed successfully.
         `;
-        
+
         const notificationBodyToWinner = {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_WINNER',
           usersId: joinedAuction.userId,
           message: notificationMessageToWinner,
-          message: emailBodyToWinner.message,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -954,10 +1059,10 @@ export class PaymentsService {
                 Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
           };
         //send notification to the seller
-        const notificationMessageToSeller =`The winner of your Auction of ${paymentData.auction.product.title}
+        const notificationMessageToSeller = `The winner of your Auction of ${paymentData.auction.product.title}
                    (Model:${paymentData.auction.product.model}) has been paid the full amount. 
                    We would like to let you know that you can hand over the item to the winner. once the winner
-                   confirmed the delvery, we will send the money to your wallet.`
+                   confirmed the delvery, we will send the money to your wallet.`;
         const notificationBodyToSeller = {
           status: 'ON_AUCTION_PURCHASE_SUCCESS',
           userType: 'FOR_SELLER',
@@ -1293,13 +1398,12 @@ export class PaymentsService {
         
         Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
         `;
-        
+
         const notificationBodyToBuyer = {
           status: 'ON_ITEM_BUY_NOW',
           userType: 'FOR_WINNER',
           usersId: paymentData.userId,
           message: notificationMessageToWinner,
-          message: emailBodyToWinner.message,
           imageLink: auction.product.images[0].imageLink,
           productTitle: auction.product.title,
           auctionId: paymentData.auctionId,
@@ -1448,14 +1552,13 @@ export class PaymentsService {
                 
                 We know it’s disappointing, but there are always more exciting auctions to explore on Alletre.
                 `;
-                
+
                 const auction = payment.auction;
                 const notificationBodyToLosers = {
                   status: 'ON_ITEM_BUY_NOW',
                   userType: 'FOR_LOSERS',
                   usersId: payment.userId,
                   message: notificationMessageToLosers,
-                  message: emailBodyToLostBidders.message,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
                   auctionId: payment.auctionId,
@@ -1531,13 +1634,12 @@ export class PaymentsService {
               
               Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
               `;
-                 
+
               const notificationBodyToSeller = {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_SELLER',
                 usersId: payment.userId,
                 message: notificationMessageToSeller,
-                message: emailBodyToSeller.message,
                 imageLink: auction.product.images[0].imageLink,
                 productTitle: auction.product.title,
                 auctionId: payment.auctionId,
@@ -1713,6 +1815,10 @@ export class PaymentsService {
                   include: {
                     product: { include: { images: true } },
                     user: true,
+                    bids: {
+                      include: { user: true },
+                      orderBy: { amount: 'desc' },
+                    },
                   },
                 },
               },
@@ -1804,10 +1910,10 @@ export class PaymentsService {
             console.log('joinedBidders1111111111111', joinedBidders);
             if (joinedBidders.length === 1) {
               this.emailService.sendEmail(
-                joinedBidders[0].user.email,
+                joinedBidders[0].auction.user.email,
                 'token',
                 EmailsType.OTHER,
-                emailBodyToSecondLastBidder,
+                emailBodyToSeller,
               );
             }
             if (joinedBidders[1]) {
@@ -1816,7 +1922,7 @@ export class PaymentsService {
                 joinedBidders[1].user.email,
                 'token',
                 EmailsType.OTHER,
-                emailBodyToSeller,
+                emailBodyToSecondLastBidder,
               );
             }
             // create notification for seller
@@ -2090,6 +2196,83 @@ export class PaymentsService {
                 paymentSuccessData.auction.user.id,
                 alletreWalletData,
               );
+              //here need send the back the security deposit of winner
+              const winnedBidderDepositPaymentData =
+                await this.getAuctionPaymentTransaction(
+                  paymentSuccessData.userId,
+                  paymentSuccessData.auctionId,
+                  PaymentType.BIDDER_DEPOSIT,
+                );
+
+              // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
+              if (
+                !winnedBidderDepositPaymentData.isWalletPayment &&
+                winnedBidderDepositPaymentData.paymentIntentId
+              ) {
+                try {
+                  const is_SD_SendBackToWinner =
+                    await this.stripeService.cancelDepositPaymentIntent(
+                      winnedBidderDepositPaymentData.paymentIntentId,
+                    );
+                  if (is_SD_SendBackToWinner) {
+                    console.log('SD send back to winner - stripe');
+                  }
+                } catch (error) {
+                  console.error(
+                    'Error when sending back SD  for winning bidder:',
+                    error,
+                  );
+                }
+              } else {
+                try {
+                  //finding the last transaction balance of the winner
+                  const lastWalletTransactionBalanceOfWinner =
+                    await this.walletService.findLastTransaction(
+                      winnedBidderDepositPaymentData.userId,
+                    );
+                  //finding the last transaction balance of the alletreWallet
+                  const lastBalanceOfAlletre =
+                    await this.walletService.findLastTransactionOfAlletre();
+                  //wallet data for the winner bidder
+                  const BidderWalletData = {
+                    status: WalletStatus.DEPOSIT,
+                    transactionType: WalletTransactionType.By_AUCTION,
+                    description: `Return security deposit after auction win`,
+                    amount: Number(winnedBidderDepositPaymentData.amount),
+                    auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+                    balance: lastWalletTransactionBalanceOfWinner
+                      ? Number(lastWalletTransactionBalanceOfWinner) +
+                        Number(winnedBidderDepositPaymentData.amount)
+                      : Number(winnedBidderDepositPaymentData.amount),
+                  };
+                  // wallet data for deposit to alletre wallet
+
+                  const alletreWalletData = {
+                    status: WalletStatus.WITHDRAWAL,
+                    transactionType: WalletTransactionType.By_AUCTION,
+                    description: `Return of bidder security deposit after lost win`,
+                    amount: Number(winnedBidderDepositPaymentData.amount),
+                    auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+                    balance:
+                      Number(lastBalanceOfAlletre) -
+                      Number(winnedBidderDepositPaymentData.amount),
+                  };
+                  await this.walletService.create(
+                    winnedBidderDepositPaymentData.userId,
+                    BidderWalletData,
+                  );
+                  //crete new transaction in alletre wallet
+                  await this.walletService.addToAlletreWallet(
+                    winnedBidderDepositPaymentData.userId,
+                    alletreWalletData,
+                  );
+                } catch (error) {
+                  console.error(
+                    'Error when sending back SD  for winning bidder:',
+                    error,
+                  );
+                }
+              }
               // when the winner pays the full amount - to seller
               const emailBodyToSeller = {
                  subject: '🎉 Payment Received! Next Steps for Your Auction',  
@@ -2129,7 +2312,7 @@ export class PaymentsService {
                          We would like to let you know that you can hand over the item to the winner. once the winner
                          confirmed the delvery, we will send the money to your wallet. If you refuse to hand over the item, 
                          there is a chance to lose your security deposite`;
-              
+
               const notificationBodyToSeller = {
                 status: 'ON_AUCTION_PURCHASE_SUCCESS',
                 userType: 'FOR_SELLER',
@@ -2186,10 +2369,10 @@ export class PaymentsService {
                 Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
               };
               //send notification to the winner
-              const notificationMessageToWinner =`You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
+              const notificationMessageToWinner = `You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
                          (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
                          by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
-                          We would like to thank you and appreciate you for choosing Alle Tre.`
+                          We would like to thank you and appreciate you for choosing Alle Tre.`;
               const notificationBodyToWinner = {
                 status: 'ON_AUCTION_PURCHASE_SUCCESS',
                 userType: 'FOR_WINNER',
@@ -2399,13 +2582,12 @@ export class PaymentsService {
               
               Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
               `;
-              
+
               const notificationBodyToBuyer = {
                 status: 'ON_ITEM_BUY_NOW',
                 userType: 'FOR_WINNER',
                 usersId: isPaymentSuccess.userId,
                 message: notificationMessageToBuyer,
-                message: emailBodyToWinner.message,
                 imageLink: isPaymentSuccess.auction.product.images[0].imageLink,
                 productTitle: isPaymentSuccess.auction.product.title,
                 auctionId: isPaymentSuccess.auctionId,
@@ -2568,13 +2750,12 @@ export class PaymentsService {
                       
                       Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
                       `;
-                           
+
                       const notificationBodyToLosers = {
                         status: 'ON_ITEM_BUY_NOW',
                         userType: 'FOR_LOSERS',
                         usersId: payment.userId,
                         message: notificationMessageToLosers,
-                        message: emailBodyToLostBidders.message,
                         imageLink: payment.auction.product.images[0].imageLink,
                         productTitle: payment.auction.product.title,
                         auctionId: payment.auctionId,
@@ -2651,13 +2832,12 @@ export class PaymentsService {
                     
                    The buyer has completed the payment, and the funds will be processed and transferred to your account shortly..
                     `;
-                    
+
                     const notificationBodyToSeller = {
                       status: 'ON_ITEM_BUY_NOW',
                       userType: 'FOR_SELLER',
                       usersId: payment.userId,
                       message: notificationMessageToSeller,
-                      message: emailBodyToSeller.message,
                       imageLink: payment.auction.product.images[0].imageLink,
                       productTitle: payment.auction.product.title,
                       auctionId: payment.auctionId,
@@ -2749,7 +2929,6 @@ export class PaymentsService {
               bids: true,
               user: true,
               product: { include: { images: true, category: true } },
-              product: { include: { images: true ,category:true} },
             },
           });
           const auctionEndDate = new Date(updatedAuction.expiryDate);
@@ -2939,7 +3118,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 6 * 60 * 1000);
+        : new Date(date.getTime() + 3 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

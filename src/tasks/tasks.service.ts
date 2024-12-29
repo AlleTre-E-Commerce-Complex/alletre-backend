@@ -8,6 +8,7 @@ import {
   WalletStatus,
   WalletTransactionType,
 } from '@prisma/client';
+import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
 import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { StripeService } from 'src/common/services/stripe.service';
@@ -32,6 +33,7 @@ export class TasksService {
     private emailService: EmailSerivce,
     private emailBatchService: EmailBatchService,
     private notificationService: NotificationsService,
+    private auctionWebsocketGateWay: AuctionWebSocketGateway,
   ) {}
 
   /**
@@ -63,9 +65,14 @@ export class TasksService {
       const updatedAuction = await this.prismaService.auction.update({
         where: { id: auction.id },
         data: { status: AuctionStatus.ACTIVE },
-        include: { user: true, product: { include: { images: true } } },
+        include: {
+          bids: true,
+          user: true,
+          product: { include: { images: true, category: true } },
+        },
       });
       if (updatedAuction) {
+        this.auctionWebsocketGateWay.listingNewAuction(updatedAuction);
         const emailBodyToSeller = {
           subject: 'Your Auction Has Been Successfully Listed!',
           title: 'Your Auction is Live!',
@@ -382,11 +389,11 @@ export class TasksService {
               Button_text: 'Explore Auctions',
               Button_URL: ' https://www.alletre.com/',
             };
-            const notificationMessageToSeller =` 
+            const notificationMessageToSeller = ` 
                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
                                 (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
                                 So we are giving you an amount as a compensation to your wallet and your security deposit has
-                                been sent back to your bank account.`
+                                been sent back to your bank account.`;
             const notificationBodyToSeller = {
               status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
               userType: 'FOR_SELLER',
@@ -396,10 +403,10 @@ export class TasksService {
               productTitle: sellerPaymentData.auction.product.title,
               auctionId: sellerPaymentData.auctionId,
             };
-            const notificationMessageToBidder =`
+            const notificationMessageToBidder = `
              We are really sorry to say that, the time to pay the pending amount of Auction of ${sellerPaymentData.auction.product.title}
                         (Model:${sellerPaymentData.auction.product.model}) has been expired. Due to the delay of the payment you have lost
-                        your security deposite`
+                        your security deposite`;
             const notificationBodyToBidder = {
               status: 'ON_PENDING_PAYMENT_TIME_EXPIRED',
               userType: 'FOR_WINNER',
@@ -550,10 +557,10 @@ export class TasksService {
               EmailsType.OTHER,
               emailBodyForSeller,
             );
-            const notificationMessageToSeller =`
+            const notificationMessageToSeller = `
             It appears that the delivery of your product from the auction "${auction.product.title}"
                   (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
-                  Please take action to fulfill the delivery.`
+                  Please take action to fulfill the delivery.`;
             const deliveryDelayNotificationData =
               await this.prismaService.notification.create({
                 data: {
@@ -964,7 +971,7 @@ export class TasksService {
           >
             Contact Support 
           </a>
-        </div>
+         </div>
          <p>Thank you for being part of our community. Here's to more successful auctions!</p>
               <p>Warm regards,</p>
                         <p>The <b>Alletre</b> Team </p>
@@ -1219,52 +1226,52 @@ export class TasksService {
             }
           }
 
-          const winnedBidderPaymentData =
-            await this.paymentService.getAuctionPaymentTransaction(
-              winnedBidderAuction.userId,
-              winnedBidderAuction.auctionId,
-              PaymentType.BIDDER_DEPOSIT,
-            );
+          // const winnedBidderPaymentData =
+          //   await this.paymentService.getAuctionPaymentTransaction(
+          //     winnedBidderAuction.userId,
+          //     winnedBidderAuction.auctionId,
+          //     PaymentType.BIDDER_DEPOSIT,
+          //   );
 
           // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
-          if (
-            !winnedBidderPaymentData.isWalletPayment &&
-            winnedBidderPaymentData.paymentIntentId
-          ) {
-            try {
-              const isSellerPaymentCaptured =
-                await this.stripeService.captureDepositPaymentIntent(
-                  winnedBidderPaymentData.paymentIntentId,
-                );
-              console.log(
-                `Captured payment for winning bidder: ${winnedBidderAuction.userId}`,
-              );
-              //find the last transaction balane of the alletre
-              const lastBalanceOfAlletre =
-                await this.walletService.findLastTransactionOfAlletre();
-              //tranfering data for the alletre fees
-              const alletreWalletData = {
-                status: WalletStatus.DEPOSIT,
-                transactionType: WalletTransactionType.By_AUCTION,
-                description: `Captured payment for winning bidder`,
-                amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-                auctionId: Number(winnedBidderPaymentData.auctionId),
-                balance: lastBalanceOfAlletre
-                  ? Number(lastBalanceOfAlletre) +
-                    Number(isSellerPaymentCaptured.amount) / 100
-                  : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-              };
-              await this.walletService.addToAlletreWallet(
-                winnedBidderPaymentData.userId,
-                alletreWalletData,
-              );
-            } catch (error) {
-              console.error(
-                'Error capturing payment for winning bidder:',
-                error,
-              );
-            }
-          }
+          // if (
+          //   !winnedBidderPaymentData.isWalletPayment &&
+          //   winnedBidderPaymentData.paymentIntentId
+          // ) {
+          //   try {
+          //     const isSellerPaymentCaptured =
+          //       await this.stripeService.captureDepositPaymentIntent(
+          //         winnedBidderPaymentData.paymentIntentId,
+          //       );
+          //     console.log(
+          //       `Captured payment for winning bidder: ${winnedBidderAuction.userId}`,
+          //     );
+          //     //find the last transaction balane of the alletre
+          //     const lastBalanceOfAlletre =
+          //       await this.walletService.findLastTransactionOfAlletre();
+          //     //tranfering data for the alletre fees
+          //     const alletreWalletData = {
+          //       status: WalletStatus.DEPOSIT,
+          //       transactionType: WalletTransactionType.By_AUCTION,
+          //       description: `Captured payment for winning bidder`,
+          //       amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+          //       auctionId: Number(winnedBidderPaymentData.auctionId),
+          //       balance: lastBalanceOfAlletre
+          //         ? Number(lastBalanceOfAlletre) +
+          //           Number(isSellerPaymentCaptured.amount) / 100
+          //         : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+          //     };
+          //     await this.walletService.addToAlletreWallet(
+          //       winnedBidderPaymentData.userId,
+          //       alletreWalletData,
+          //     );
+          //   } catch (error) {
+          //     console.error(
+          //       'Error capturing payment for winning bidder:',
+          //       error,
+          //     );
+          //   }
+          // }
 
           // Cancel payment authorizations for losing bidders
           const losingBidders = await this.prismaService.joinedAuction.findMany(
@@ -1297,7 +1304,7 @@ export class TasksService {
                 } else {
                   //logic to transfer to the wallet
 
-                  //finding the last transaction balance of the Seller
+                  //finding the last transaction balance of the losers
                   const lastWalletTransactionBalanceOfBidder =
                     await this.walletService.findLastTransaction(loser.userId);
                   //finding the last transaction balance of the alletreWallet

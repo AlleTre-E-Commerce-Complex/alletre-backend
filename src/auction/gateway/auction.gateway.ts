@@ -63,14 +63,6 @@ export class AuctionWebSocketGateway
 
   listingNewAuction(auction: any) {
     // Send new listed auction  to all listener sockets (users)
-
     this.server.emit('auction:newAuctionListed', { auction });
-  }
-
-  /**
-   * notify winner user
-   */
-  notifyWinner(socketId: string, userId: number) {
-    this.server.to(socketId).emit('auction:winner', { userId });
   }
 }
