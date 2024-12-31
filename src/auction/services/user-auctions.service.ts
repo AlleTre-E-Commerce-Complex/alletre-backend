@@ -1987,7 +1987,10 @@ export class UserAuctionsService {
         'Check KYC status error at user auctions service file :',
         error,
       );
-      return { kycStatus: false, errorMessage: error.message };
+      return {
+        success: false,
+        message: 'There are some internal issue, please try again later.',
+      };
     }
   }
   async addBankAccount(bankAccountData: addNewBankAccountDto, userId: number) {
@@ -2021,7 +2024,7 @@ export class UserAuctionsService {
     userId: number,
   ) {
     try {
-      console.log('test withdrawal request : ', amount);
+      console.log('test withdrawal request : ', selectedBankAccountId);
       const request = await this.prismaService.withdrawalRequests.create({
         data: {
           amount,
@@ -2045,7 +2048,7 @@ export class UserAuctionsService {
       console.log(error);
       return {
         success: false,
-        message: error.message || 'Failed to process withdrawal request',
+        message:  'Failed to process withdrawal request',
       };
     }
   }
