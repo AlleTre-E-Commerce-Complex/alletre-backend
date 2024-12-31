@@ -44,7 +44,7 @@ model User {
 model SubscribedUser {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  isActive  Boolean     
+  isActive  Boolean
   createdAt DateTime @default(now())
 }
 
@@ -316,8 +316,7 @@ model JoinedAuction {
   isWarningMessageSent24Hours Boolean             @default(false)
   auction                     Auction             @relation(fields: [auctionId], references: [id])
   user                        User                @relation(fields: [userId], references: [id])
-  isWarningMessageSent1Hour   Boolean              @default(false)
-
+  isWarningMessageSent1Hour   Boolean             @default(false)
 }
 
 model Admin {
@@ -384,19 +383,18 @@ model ComplaintImages {
   complaint   AuctionComplaints @relation(fields: [complaintId], references: [id])
 }
 
-
-
 model Notification {
-  id               Int      @id @default(autoincrement())
-  userId           Int
-  message          String
-  productTitle     String?
-  imageLink        String?
-  auctionId        Int?
-  isRead           Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt @default(now())
-  user      User   @relation(fields: [userId], references: [id])
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  message      String
+  productTitle String?
+  imageLink    String?
+  auctionId    Int?
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+
   @@index([userId])
 }
 
@@ -436,6 +434,7 @@ enum WithdrawalStatus {
   FAILED
   HOLD
   CANCELLED
+  IN_PROGRESS
 }
 
 enum AuctionStatus {

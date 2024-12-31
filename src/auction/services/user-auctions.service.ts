@@ -2773,8 +2773,10 @@ export class UserAuctionsService {
           );
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
-            subject: '🎉 Success! Your Item Has Been Delivered & Payment Received',
-            title: 'Your Auction Sale is Complete – Payment Credited to Your Wallet!',
+            subject:
+              '🎉 Success! Your Item Has Been Delivered & Payment Received',
+            title:
+              'Your Auction Sale is Complete – Payment Credited to Your Wallet!',
             Product_Name: sellerPaymentData.auction.product.title,
             img: sellerPaymentData.auction.product.images[0].imageLink,
             userName: `${sellerPaymentData.auction.user.userName}`,
@@ -2798,14 +2800,15 @@ export class UserAuctionsService {
                         <p>P.S. Need help or have any questions? Our support team is just a click away.</p>`,
             Button_text: 'View Wallet ',
             Button_URL: ' https://www.alletre.com/alletre/profile/wallet',
-            };
-            const emailBodyToWinner = {
-              subject: '🎉 Congratulations! You’ve Won the Auction & Your Item is On Its Way!',
-              title: 'You’re the Winner – Your Auction Item is Being Delivered!',
-              Product_Name: sellerPaymentData.auction.product.title,
-              img: sellerPaymentData.auction.product.images[0].imageLink,
-              userName: `${sellerPaymentData.auction.bids[0].user}`,
-              message1: `
+          };
+          const emailBodyToWinner = {
+            subject:
+              '🎉 Congratulations! You’ve Won the Auction & Your Item is On Its Way!',
+            title: 'You’re the Winner – Your Auction Item is Being Delivered!',
+            Product_Name: sellerPaymentData.auction.product.title,
+            img: sellerPaymentData.auction.product.images[0].imageLink,
+            userName: `${sellerPaymentData.auction.bids[0].user}`,
+            message1: `
                 <p>Congratulations, ${sellerPaymentData.auction.bids[0].user.userName}! You are the winning bidder for the auction item: ${sellerPaymentData.auction.product.title}!</p>
                 <p>Auction Details:</p>
                 <ul>
@@ -2817,15 +2820,15 @@ export class UserAuctionsService {
                 <h3>What’s Next?</h3>
                 <p><b>Track Your Delivery</b>: Your item will be on its way shortly, and you can track its progress.</p>
                 <p><b>Get Ready to Enjoy Your New Item</b>: We hope you’re excited about your win! Don’t forget to check the item once it’s delivered to make sure everything is perfect.</p>`,
-              message2: `
+            message2: `
                 <p>We’re thrilled that you chose to bid on this item and are looking forward to your next auction experience with us!</p>
                 <p>Thank you for using <b>Alletre</b>. We hope you continue to find amazing items and exciting auction opportunities!</p>
                 <p style="margin-bottom: 0;">Best regards,</p>
                 <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                 <p>P.S. Need help or have any questions? Our support team is just a click away.</p>`,
-              Button_text: 'view Purchases',
-              Button_URL: 'https://www.alletre.com/alletre/profile/purchased', 
-            };
+            Button_text: 'view Purchases',
+            Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
+          };
           const auction = sellerPaymentData.auction;
           const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
                    Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
