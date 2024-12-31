@@ -222,36 +222,37 @@ model PushSubscription {
 }
 
 model Auction {
-  id                          Int                 @id @default(autoincrement())
-  userId                      Int
-  productId                   Int                 @unique
-  locationId                  Int?
-  status                      AuctionStatus       @default(PENDING_OWNER_DEPOIST)
-  type                        AuctionType?
-  durationUnit                DurationUnits?
-  durationInDays              Int?
-  durationInHours             Int?
-  startBidAmount              Decimal?
-  isBuyNowAllowed             Boolean             @default(false)
-  isItemSendForDelivery       Boolean?            @default(false)
-  IsDelivery                  Boolean?            @default(false)
-  deliveryPolicyDescription   String?
-  numOfDaysOfExpecetdDelivery Int?
-  deliveryType                DeliveryType?       @default(NOT_SPECIFIED)
-  DeliveryFees                Decimal?
-  IsReturnPolicy              Boolean?            @default(false)
-  returnPolicyDescription     String?
-  IsWarranty                  Boolean?            @default(false)
+  id                          Int                    @id @default(autoincrement())
+  userId                      Int  
+  productId                   Int                    @unique
+  locationId                  Int?   
+  status                      AuctionStatus          @default(PENDING_OWNER_DEPOIST)
+  type                        AuctionType?   
+  durationUnit                DurationUnits?   
+  durationInDays              Int?   
+  durationInHours             Int?   
+  startBidAmount              Decimal?   
+  isBuyNowAllowed             Boolean                @default(false)
+  isItemSendForDelivery       Boolean?               @default(false)
+  IsDelivery                  Boolean?               @default(false)
+  deliveryPolicyDescription   String?  
+  numOfDaysOfExpecetdDelivery Int?   
+  deliveryType                DeliveryType?          @default(NOT_SPECIFIED)
+  DeliveryFees                Decimal?   
+  IsReturnPolicy              Boolean?               @default(false)
+  returnPolicyDescription     String?  
+  IsWarranty                  Boolean?               @default(false)
   warrantyPolicyDescription   String?
   acceptedAmount              Decimal?
   startDate                   DateTime?
   expiryDate                  DateTime?
   endDate                     DateTime?
-  createdAt                   DateTime            @default(now())
-  product                     Product             @relation(fields: [productId], references: [id])
-  user                        User                @relation(fields: [userId], references: [id])
-  watchLists                  WatchList[]
-  location                    Location?           @relation(fields: [locationId], references: [id])
+  deliveryRequestsStatus      DeliveryRequestsStatus @default(DELIVERY_PENDING)
+  createdAt                   DateTime               @default(now())
+  product                     Product                @relation(fields: [productId], references: [id])
+  user                        User                   @relation(fields: [userId], references: [id])
+  watchLists                  WatchList[]   
+  location                    Location?              @relation(fields: [locationId], references: [id])
   bids                        Bids[]
   Payment                     Payment[]
   JoinedAuction               JoinedAuction[]
@@ -398,6 +399,13 @@ model Notification {
   @@index([userId])
 }
 
+enum DeliveryRequestsStatus {
+  DELIVERY_PENDING
+  DELIVERY_SUCCESS
+  DELIVERY_IN_PROGRESS
+  DELIVERY_FAILED
+  DELIVERY_HOLD
+}
 enum ProblemStatus {
   PENDING
   SOLVED

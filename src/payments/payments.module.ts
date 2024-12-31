@@ -15,6 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { AdminService } from 'src/admin/admin.service';
 import { PaginationService } from 'src/common/services/pagination.service';
+import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
 @Module({
   imports: [PrismaModule, NotificationsModule],
   controllers: [PaymentsController],
@@ -26,6 +27,7 @@ import { PaginationService } from 'src/common/services/pagination.service';
     EmailBatchService,
     NotificationsService,
     AuctionWebSocketGateway,
+    AdminWebSocketGateway,
     AuthService,
     UserService,
     JwtService,

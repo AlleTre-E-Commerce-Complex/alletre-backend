@@ -9,6 +9,13 @@ import { EmailSerivce } from 'src/emails/email.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
+import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
+import { AuthService } from 'src/auth/auth.service';
+import { UserService } from 'src/user/user.service';
+import { JwtService } from '@nestjs/jwt';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { AdminService } from 'src/admin/admin.service';
+import { PaginationService } from 'src/common/services/pagination.service';
 
 @Module({
   imports: [PrismaModule, AuctionModule, NotificationsModule],
@@ -20,6 +27,13 @@ import { NotificationsModule } from 'src/notificatons/notifications.module';
     EmailSerivce,
     EmailBatchService,
     NotificationsService,
+    AdminWebSocketGateway,
+    AuthService,
+    UserService,
+    JwtService,
+    FirebaseService,
+    AdminService,
+    PaginationService,
   ],
 })
 export class TasksModule {}
