@@ -460,13 +460,13 @@ export class PaymentsService {
                   <p>Congratulations! Your auction ${
                     paymentData.auction.product.title
                   } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
-                  <p>Here’s the latest update:/p>
+                  <p>Here’s the latest update:</p>
                   <ul>
                   <li>First Bid Amount: ${
                     joinedBidders[joinedBidders.length - 1].amount
                   }</li>
                   <li>Bidder’s Username: ${
-                    joinedBidders[joinedBidders.length - 1].user
+                    joinedBidders[joinedBidders.length - 1].user.userName
                   } </li>
                     <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                   </ul>
@@ -966,12 +966,12 @@ export class PaymentsService {
         }
         //Email to winning bidder paid amount (wallet)
         const emailBodyToWinner = {
-            subject: '🏆 Congratulations! You Won the Auction!',
-                title: 'Your Winning Bid is Confirmed – Complete Your Purchase Now',
-                Product_Name: paymentData.auction.product.title,
-                img: paymentData.auction.product.images[0].imageLink,
-                userName: `${paymentData.auction.bids[0].user}`,
-                message1: `
+          subject: '🏆 Congratulations! You Won the Auction!',
+          title: 'Your Winning Bid is Confirmed – Complete Your Purchase Now',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          userName: `${paymentData.auction.bids[0].user}`,
+          message1: `
                   <p>Congratulations on winning the auction for ${paymentData.auction.product.title}! It’s time to complete the payment and finalize your purchase.</p>
                   <p>Auction Details:</p>
                   <ul>
@@ -984,7 +984,7 @@ export class PaymentsService {
                     <h3>Complete Payment:</h3>
                     <p>Secure your item by completing the payment now.</p>
                 `,
-                message2: `
+          message2: `
                   <h3>Choose Delivery or Pickup</h3>
                   <ul>
                     <li>1. <b>Delivery</b>: The item will be shipped to your address after payment (additional shipping charges may apply.</li>
@@ -1000,8 +1000,8 @@ export class PaymentsService {
       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                  
                 `,
-                Button_text: 'Complete Payment ',
-                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+          Button_text: 'Complete Payment ',
+          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
         };
         //send notification to the winner
         const auction = paymentData.auction;
@@ -1027,12 +1027,12 @@ export class PaymentsService {
         };
         //Email to seller when bidder pays amount (wallet)
         const emailBodyToSeller = {
-                subject: '🎉 Payment Received! Next Steps for Your Auction',  
-                title: ' Your Auction Item Has Been Paid For',
-                Product_Name: paymentData.auction.product.title,
-                img: paymentData.auction.product.images[0].imageLink,
-                userName: `${paymentData.auction.user}`,
-                message1: `
+          subject: '🎉 Payment Received! Next Steps for Your Auction',
+          title: ' Your Auction Item Has Been Paid For',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          userName: `${paymentData.auction.user}`,
+          message1: `
                   <p>Great news! The winning bidder for your auction, [Auction Title], has completed the payment in full.</p>
                   <p>Auction Details:</p>
                   <ul>
@@ -1047,7 +1047,7 @@ export class PaymentsService {
                       <h3>If the buyer chose pickup:</h3>
                     <p>• The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over.</p>
                 `,
-                message2: `
+          message2: `
                   <h3>When Will You Get Paid?</h3>                           
                 <p>The winning amount of ${paymentData.auction.bids[0].amount} will be credited to your wallet after the buyer collects the item and confirms receipt.</p>
 
@@ -1055,9 +1055,9 @@ export class PaymentsService {
                 
                 <p style="margin-bottom: 0;">Best regards,</p>
                 <p style="margin-top: 0;">The <b>Alletre</b> Team</p> `,
-                Button_text: 'Pickup/Delivery Details ',
-                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
-          };
+          Button_text: 'Pickup/Delivery Details ',
+          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+        };
         //send notification to the seller
         const notificationMessageToSeller = `The winner of your Auction of ${paymentData.auction.product.title}
                    (Model:${paymentData.auction.product.model}) has been paid the full amount. 
@@ -1841,13 +1841,13 @@ export class PaymentsService {
                   <p>Congratulations! Your auction ${
                     auctionHoldPaymentTransaction.auction.product.title
                   } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
-                  <p>Here’s the latest update:/p>
+                  <p>Here’s the latest update:</p>
                   <ul>
                   <li>First Bid Amount: ${
                     joinedBidders[joinedBidders.length - 1].amount
                   }</li>
                   <li>Bidder’s Username: ${
-                    joinedBidders[joinedBidders.length - 1].user
+                    joinedBidders[joinedBidders.length - 1].user.userName
                   } </li>
                     <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                   </ul>
@@ -2275,7 +2275,7 @@ export class PaymentsService {
               }
               // when the winner pays the full amount - to seller
               const emailBodyToSeller = {
-                 subject: '🎉 Payment Received! Next Steps for Your Auction',  
+                subject: '🎉 Payment Received! Next Steps for Your Auction',
                 title: ' Your Auction Item Has Been Paid For',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
@@ -2304,7 +2304,8 @@ export class PaymentsService {
                 <p style="margin-bottom: 0;">Best regards,</p>
                 <p style="margin-top: 0;">The <b>Alletre</b> Team</p> `,
                 Button_text: 'Pickup/Delivery Details ',
-                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+                Button_URL:
+                  'https://www.alletre.com/alletre/profile/my-bids/pending',
               };
               //send notification to the seller
               const notificationMessageToSeller = ` The winner of your Auction of ${paymentSuccessData.auction.product.title}
@@ -2325,14 +2326,19 @@ export class PaymentsService {
               };
               console.log('purchase test5');
               const invoicePDF = await generateInvoicePDF(paymentSuccessData);
-              const auctionEndDate = new Date(paymentSuccessData.auction.expiryDate);
-              const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+              const auctionEndDate = new Date(
+                paymentSuccessData.auction.expiryDate,
+              );
+              const formattedEndTime = auctionEndDate
+                .toTimeString()
+                .slice(0, 5);
               auctionEndDate.setDate(auctionEndDate.getDate() + 3);
               const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
               // when the winner pays the full amount - to winner
               const emailBodyToWinner = {
                 subject: '🏆 Congratulations! You Won the Auction!',
-                title: 'Your Winning Bid is Confirmed – Complete Your Purchase Now',
+                title:
+                  'Your Winning Bid is Confirmed – Complete Your Purchase Now',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
                 userName: `${paymentSuccessData.auction.bids[0].user}`,
@@ -2366,7 +2372,8 @@ export class PaymentsService {
                  
                 `,
                 Button_text: 'Complete Payment ',
-                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+                Button_URL:
+                  'https://www.alletre.com/alletre/profile/my-bids/pending',
               };
               //send notification to the winner
               const notificationMessageToWinner = `You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}

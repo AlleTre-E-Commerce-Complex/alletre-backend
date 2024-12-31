@@ -15,6 +15,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { WalletModule } from './wallet/wallet.module';
 import { NotificationsModule } from './notificatons/notifications.module';
+import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { NotificationsModule } from './notificatons/notifications.module';
     AdminModule,
     WalletModule,
     NotificationsModule,
+    WithdrawalModule,
   ],
 })
 export class AppModule {

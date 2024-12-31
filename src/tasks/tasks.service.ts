@@ -603,30 +603,31 @@ export class TasksService {
   @Interval(60000)
   async _markUpcomingPendingPayment() {
     // Get auctions expiring within 24 hours
-    const twentyFourHourPendingPaymentAuctions = await this.prismaService.joinedAuction.findMany({
-      where: {
-        paymentExpiryDate: {
-          gte: new Date(), // Expiration date is greater than or equal to the current time
-          lte: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // Expiring within the next 24 hours
+    const twentyFourHourPendingPaymentAuctions =
+      await this.prismaService.joinedAuction.findMany({
+        where: {
+          paymentExpiryDate: {
+            gte: new Date(), // Expiration date is greater than or equal to the current time
+            lte: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // Expiring within the next 24 hours
+          },
+          status: JoinedAuctionStatus.PENDING_PAYMENT,
+          isWarningMessageSent24Hours: false, // Add a specific flag for 24-hour warnings
         },
-        status: JoinedAuctionStatus.PENDING_PAYMENT,
-        isWarningMessageSent24Hours: false, // Add a specific flag for 24-hour warnings
-      },
-      include: {
-        auction: {
-          include: {
-            user: true,
-            product: { include: { images: true, category: true } },
-            bids: {
-              orderBy: { amount: 'desc' },
-              include: { user: true },
+        include: {
+          auction: {
+            include: {
+              user: true,
+              product: { include: { images: true, category: true } },
+              bids: {
+                orderBy: { amount: 'desc' },
+                include: { user: true },
+              },
             },
           },
+          user: true,
         },
-        user: true,
-      },
-    });
-  
+      });
+
     // Send 24-hour reminder emails
     if (twentyFourHourPendingPaymentAuctions.length) {
       await Promise.all(
@@ -635,7 +636,8 @@ export class TasksService {
           const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
           const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
           const body = {
-            subject: '⏳ Final Reminder: Complete Your Payment to Secure Your Win',
+            subject:
+              '⏳ Final Reminder: Complete Your Payment to Secure Your Win',
             title: 'Your Auction Win is at Risk!',
             Product_Name: data.auction.product.title,
             img: data.auction.product.images[0].imageLink,
@@ -661,31 +663,38 @@ export class TasksService {
               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
               <p>P.S. Need help or have questions? Contact our support team for assistance.</p>`,
             Button_text: 'Complete My Payment Now',
-            Button_URL: ' https://www.alletre.com/alletre/profile/my-bids/pending',
+            Button_URL:
+              ' https://www.alletre.com/alletre/profile/my-bids/pending',
           };
-          
+
           // Send email
-          await this.emailService.sendEmail(data.user.email, 'token', EmailsType.OTHER, body);
-          
+          await this.emailService.sendEmail(
+            data.user.email,
+            'token',
+            EmailsType.OTHER,
+            body,
+          );
+
           // Update flag to indicate 24-hour warning sent
           await this.prismaService.joinedAuction.update({
             where: { id: data.id },
             data: { isWarningMessageSent24Hours: true },
           });
-  
+
           // Create notification
-          const pendingPaymentNotificationData = await this.prismaService.notification.create({
-            data: {
-              userId: data.userId,
-              message: `Your pending payment on your Auction of "${data.auction.product.title}"
+          const pendingPaymentNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: data.userId,
+                message: `Your pending payment on your Auction of "${data.auction.product.title}"
                         (Model: ${data.auction.product.model}) is going to expire soon. 
                         Notice: If you refuse to pay, you will lose your security deposit. Thank you.`,
-              imageLink: data.auction.product.images[0].imageLink,
-              productTitle: data.auction.product.title,
-              auctionId: data.auctionId,
-            },
-          });
-  
+                imageLink: data.auction.product.images[0].imageLink,
+                productTitle: data.auction.product.title,
+                auctionId: data.auctionId,
+              },
+            });
+
           // Check if the notification was successfully created
           if (pendingPaymentNotificationData) {
             const notification = {
@@ -697,10 +706,12 @@ export class TasksService {
               productTitle: pendingPaymentNotificationData.productTitle,
               auctionId: pendingPaymentNotificationData.auctionId,
             };
-  
+
             // Send the notification to the user (bidder)
             try {
-              await this.notificationService.sendNotificationToSpecificUsers(notification);
+              await this.notificationService.sendNotificationToSpecificUsers(
+                notification,
+              );
             } catch (error) {
               console.log('sendNotificationToSpecificUsers error', error);
             }
@@ -708,31 +719,32 @@ export class TasksService {
         }),
       );
     }
-  
+
     // Get auctions expiring within 1 hour
-    const oneHourPendingPaymentAuctions = await this.prismaService.joinedAuction.findMany({
-      where: {
-        paymentExpiryDate: {
-          gte: new Date(), // Expiration date is greater than or equal to the current time
-          lte: new Date(new Date().getTime() + 1 * 60 * 60 * 1000), // Expiring within the next 1 hour
+    const oneHourPendingPaymentAuctions =
+      await this.prismaService.joinedAuction.findMany({
+        where: {
+          paymentExpiryDate: {
+            gte: new Date(), // Expiration date is greater than or equal to the current time
+            lte: new Date(new Date().getTime() + 1 * 60 * 60 * 1000), // Expiring within the next 1 hour
+          },
+          status: JoinedAuctionStatus.PENDING_PAYMENT,
+          isWarningMessageSent1Hour: false, // Add a specific flag for 1-hour warnings
         },
-        status: JoinedAuctionStatus.PENDING_PAYMENT,
-        isWarningMessageSent1Hour: false, // Add a specific flag for 1-hour warnings
-      },
-      include: {
-        auction: {
-          include: {
-            product: { include: { images: true, category: true } },
-            bids: {
-              orderBy: { amount: 'desc' },
-              include: { user: true },
+        include: {
+          auction: {
+            include: {
+              product: { include: { images: true, category: true } },
+              bids: {
+                orderBy: { amount: 'desc' },
+                include: { user: true },
+              },
             },
           },
+          user: true,
         },
-        user: true,
-      },
-    });
-  
+      });
+
     // Send 1-hour reminder emails
     if (oneHourPendingPaymentAuctions.length) {
       await Promise.all(
@@ -767,31 +779,38 @@ export class TasksService {
               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
               <p>P.S. Need assistance? Contact us immediately for support.</p>`,
             Button_text: 'Complete My Payment Now',
-            Button_URL: ' https://www.alletre.com/alletre/profile/my-bids/pending',
+            Button_URL:
+              ' https://www.alletre.com/alletre/profile/my-bids/pending',
           };
-  
+
           // Send email
-          await this.emailService.sendEmail(data.user.email, 'token', EmailsType.OTHER, body);
-  
+          await this.emailService.sendEmail(
+            data.user.email,
+            'token',
+            EmailsType.OTHER,
+            body,
+          );
+
           // Update flag to indicate 1-hour warning sent
           await this.prismaService.joinedAuction.update({
             where: { id: data.id },
             data: { isWarningMessageSent1Hour: true },
           });
-  
+
           // Create notification
-          const pendingPaymentNotificationData = await this.prismaService.notification.create({
-            data: {
-              userId: data.userId,
-              message: `Your pending payment on your Auction of "${data.auction.product.title}"
+          const pendingPaymentNotificationData =
+            await this.prismaService.notification.create({
+              data: {
+                userId: data.userId,
+                message: `Your pending payment on your Auction of "${data.auction.product.title}"
                         (Model: ${data.auction.product.model}) is going to expire soon. 
                         Notice: If you refuse to pay, you will lose your security deposit. Thank you.`,
-              imageLink: data.auction.product.images[0].imageLink,
-              productTitle: data.auction.product.title,
-              auctionId: data.auctionId,
-            },
-          });
-  
+                imageLink: data.auction.product.images[0].imageLink,
+                productTitle: data.auction.product.title,
+                auctionId: data.auctionId,
+              },
+            });
+
           // Check if the notification was successfully created
           if (pendingPaymentNotificationData) {
             const notification = {
@@ -803,10 +822,12 @@ export class TasksService {
               productTitle: pendingPaymentNotificationData.productTitle,
               auctionId: pendingPaymentNotificationData.auctionId,
             };
-  
+
             // Send the notification to the user (bidder)
             try {
-              await this.notificationService.sendNotificationToSpecificUsers(notification);
+              await this.notificationService.sendNotificationToSpecificUsers(
+                notification,
+              );
             } catch (error) {
               console.log('sendNotificationToSpecificUsers error', error);
             }
@@ -815,7 +836,6 @@ export class TasksService {
       );
     }
   }
-  
 
   /**
    * Function will run every mintue to set all auction expired
