@@ -1106,6 +1106,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
 
         product: {
           select: {
@@ -1238,6 +1239,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,
@@ -1336,6 +1338,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,
@@ -1434,6 +1437,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,
@@ -1534,6 +1538,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,
@@ -1634,6 +1639,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,
@@ -1720,6 +1726,7 @@ export class UserAuctionsService {
         IsWarranty: true,
         warrantyPolicyDescription: true,
         deliveryType: true,
+        deliveryRequestsStatus: true,
         product: {
           select: {
             id: true,

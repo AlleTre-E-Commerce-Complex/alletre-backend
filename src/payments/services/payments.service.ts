@@ -24,6 +24,7 @@ import { WalletService } from 'src/wallet/wallet.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 // import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
+import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -34,6 +35,7 @@ export class PaymentsService {
     private readonly emailBatchService: EmailBatchService,
     private readonly notificationsService: NotificationsService,
     private readonly auctionGateway: AuctionWebSocketGateway,
+    private readonly adminGateway: AdminWebSocketGateway,
   ) {}
 
   async walletPayDepositBySeller(
@@ -2368,7 +2370,7 @@ export class PaymentsService {
                   <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
                 
                    <p style="margin-bottom: 0;">Best regards,</p>
-      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                   <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                  
                 `,
                 Button_text: 'Complete Payment ',
@@ -2448,6 +2450,11 @@ export class PaymentsService {
               } catch (error) {
                 console.log('sendNotificationToSpecificUsers error', error);
               }
+              //Notifying delivery request to admin
+              this.adminGateway.emitEventToAdmins(
+                'delivery:newNotification',
+                paymentSuccessData,
+              );
             }
             console.log('purchase test7');
             break;
@@ -3125,7 +3132,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 3 * 60 * 1000);
+        : new Date(date.getTime() + 6 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

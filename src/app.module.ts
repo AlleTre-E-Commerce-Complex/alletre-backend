@@ -15,6 +15,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { WalletModule } from './wallet/wallet.module';
 import { NotificationsModule } from './notificatons/notifications.module';
+import { DeliveryRequestModule } from './admin-deliverRequests/deliveryRequests.module';
 import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
 
 @Module({
@@ -50,6 +51,7 @@ import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
     WalletModule,
     NotificationsModule,
     WithdrawalModule,
+    DeliveryRequestModule,
   ],
 })
 export class AppModule {

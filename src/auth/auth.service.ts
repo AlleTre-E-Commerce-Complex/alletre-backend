@@ -430,6 +430,29 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+  async verifyToken(token: string) {
+    if (!token) {
+      throw new ForbiddenResponse({
+        en: 'No token provided',
+        ar: 'لم يتم توفير رمز الدخول',
+      });
+    }
+
+    try {
+      // Verify the token using JWT
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.ACCESS_TOKEN_SECRET, // Replace with the appropriate secret
+      });
+      return payload;
+    } catch (error) {
+      console.log(error);
+      throw new ForbiddenResponse({
+        en: 'Invalid or expired token',
+        ar: 'رمز الدخول غير صالح أو منتهي الصلاحية',
+      });
+    }
+  }
+
   async refreshToken(oldRefreshToken: string) {
     if (!oldRefreshToken)
       throw new NotFoundResponse({ ar: 'لا يوجد', en: 'not found' });
