@@ -999,7 +999,7 @@ export class PaymentsService {
                   <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
                 
                    <p style="margin-bottom: 0;">Best regards,</p>
-      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+            <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                  
                 `,
           Button_text: 'Complete Payment ',
@@ -1129,6 +1129,12 @@ export class PaymentsService {
         } catch (error) {
           console.log('sendNotificationToSpecificUsers error', error);
         }
+        //Notifying delivery request to admin
+        this.adminGateway.emitEventToAdmins(
+          'delivery:newNotification',
+          paymentData,
+        );
+
       }
       return paymentData;
     } catch (error) {
@@ -1300,6 +1306,7 @@ export class PaymentsService {
               user: true,
               auction: {
                 include: {
+                  user: true,
                   product: { include: { images: true, category: true } },
                   bids: {
                     orderBy: { amount: 'desc' },
@@ -1377,7 +1384,7 @@ export class PaymentsService {
             <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
          
              <p style="margin-bottom: 0;">Best regards,</p>
-<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+          <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
             <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
           `,
           Button_text: 'View My Purchase',
@@ -1532,7 +1539,7 @@ export class PaymentsService {
                     </ul>
                     <p>Thank you for participating in the auction. We look forward to seeing you in future bids!</p>
                     <p style="margin-bottom: 0;">Best regards,</p>
-<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                     <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
                   `,
                   Button_text: 'Browse Auctions',
@@ -1584,8 +1591,8 @@ export class PaymentsService {
                     console.log('sendNotificationToSpecificUsers error', error);
                   }
                 }
-              }
-            } else if (payment.type === 'SELLER_DEPOSIT') {
+                 }
+                } else if (payment.type === 'SELLER_DEPOSIT') {
               //Email to seller (buy now option used - stripe)
               const emailBodyToSeller = {
                 subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
@@ -1612,7 +1619,7 @@ export class PaymentsService {
                <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
                    
                                <p style="margin-bottom: 0;">Best regards,</p>
-<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
                 Button_text: 'Manage My Sales',
                 Button_URL:
@@ -1667,6 +1674,11 @@ export class PaymentsService {
               }
             }
           }),
+        );
+        //Notifying delivery request to admin
+        this.adminGateway.emitEventToAdmins(
+          'delivery:newNotification',
+          paymentData,
         );
       } else {
         throw new MethodNotAllowedException(
@@ -2492,6 +2504,7 @@ export class PaymentsService {
                             user: true,
                           },
                         },
+                        user: true,
                       },
                     },
                   },
@@ -2580,7 +2593,7 @@ export class PaymentsService {
                   <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
                 
                    <p style="margin-bottom: 0;">Best regards,</p>
-      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                   <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
                 `,
                 Button_text: 'View My Purchase',
@@ -2741,7 +2754,7 @@ export class PaymentsService {
                           </ul>
                           <p>Thank you for participating in the auction. We look forward to seeing you in future bids!</p>
                            <p style="margin-bottom: 0;">Best regards,</p>
-      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                           <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
                         `,
                         Button_text: 'Browse Auctions',
@@ -2821,9 +2834,9 @@ export class PaymentsService {
                   <li>1.<b>	Ship Your Item</b>: Make sure to package your item securely and ship it to the buyer’s provided address as soon as possible.</li>
                   <li>2.<b> Confirm Shipping</b>:: Update the status in your account once the item has been shipped.</li>
                   </ul>
-               <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
+                  <p>Thank you for choosing <b>Alletre</b>! We’re thrilled to see your success and look forward to helping you with your future auctions.</p>
                      <p style="margin-bottom: 0;">Best regards,</p>
-      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                   <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>`,
                       Button_text: 'Manage My Sales',
                       Button_URL:
@@ -2880,6 +2893,11 @@ export class PaymentsService {
                     }
                   }
                 }),
+              );
+              //Notifying delivery request to admin
+              this.adminGateway.emitEventToAdmins(
+                'delivery:newNotification',
+                isPaymentSuccess,
               );
             } else {
               throw new MethodNotAllowedException(
