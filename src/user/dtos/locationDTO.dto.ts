@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+} from 'class-validator';
 
 export class LocationDTO {
   @IsNotEmpty()
@@ -25,6 +31,6 @@ export class LocationDTO {
   zipCode: string;
 
   @IsOptional()
-  @IsNumber()
-  phone: number;
+  @IsPhoneNumber()
+  phone: string;
 }
