@@ -307,7 +307,7 @@ export class UserAuctionsService {
                   auction.bids.find((bid) => bid.userId === auction.user.id)
                     ?.amount
                 }</li>
-                <li>• Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+                <li> Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
               </ul>
               <p>Your security deposit has been successfully sent back to your ${
                 data.isWalletPayment ? 'wallet.' : 'bank account.'
@@ -2761,11 +2761,19 @@ export class UserAuctionsService {
               walletDataToAlletre,
               prisma,
             );
-          const confirmDeliveryResult = await prisma.joinedAuction.update({
-            where: { id: auctionWinner.id },
-            data: { status: JoinedAuctionStatus.COMPLETED },
-            include: { user: true },
-          });
+            const confirmDeliveryResult = await prisma.joinedAuction.update({
+              where: { id: auctionWinner.id },
+              data: {
+                status: JoinedAuctionStatus.COMPLETED,
+                auction: {
+                  update: {
+                    deliveryRequestsStatus: 'DELIVERY_SUCCESS',
+                  },
+                },
+              },
+              include: { user: true },
+            });
+            
 
           return Promise.all([
             walletCreationData,

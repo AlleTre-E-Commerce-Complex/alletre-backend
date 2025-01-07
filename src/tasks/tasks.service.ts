@@ -73,28 +73,56 @@ export class TasksService {
       });
       if (updatedAuction) {
         this.auctionWebsocketGateWay.listingNewAuction(updatedAuction);
+        const auctionEndDate = new Date(updatedAuction.expiryDate);
+        const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+        const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
         const emailBodyToSeller = {
-          subject: 'Your Auction Has Been Successfully Listed!',
-          title: 'Your Auction is Live!',
+          subject: '🎉 Your Auction is Live! Let the Bidding Begin!',
+          title: 'Your Listing is Now Live!',
           Product_Name: updatedAuction.product.title,
           img: updatedAuction.product.images[0].imageLink,
-          message: `Hi ${updatedAuction.user.userName}, 
-        
-        Congratulations! Your auction for the product ${updatedAuction.product.title} (Model: ${updatedAuction.product.model}) has been successfully listed on Alletre. 
-        
-        Your item is now live and available for bidding. Here are the details:
-        • Product: ${updatedAuction.product.title} 
-        • Model: ${updatedAuction.product.model}
-        
-        We encourage you to keep an eye on your auction as bids start coming in. 
-        You can view and manage your auction through the link below. 
-        
-        Thank you for choosing Alletre to list your auction. We look forward to helping you get the best possible price for your item!
-        
-        Good luck,
-        The Alletre Team`,
-          Button_text: 'Click here to view your Auction',
-          Button_URL: process.env.FRONT_URL, // Link to the auction management page
+          userName: `${updatedAuction.user.userName}`,
+          message1: `
+                <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
+                <p>Here’s a summary of your listing:</p>
+                <ul>
+                  <li>Title: ${updatedAuction.product.title}</li>                     
+                  <li>Category: ${updatedAuction.product.category}</li>
+                  <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                  <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                </ul>
+                <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
+              `,
+          message2: `
+              
+                <p>You can track bids and view your auction here:</p>
+                <div style="text-align: center">
+      <a
+        href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+        style="
+          display: inline-block;
+          padding: 12px 20px;
+          background-color: #a91d3a !important;
+          -webkit-background-color: #a91d3a !important;
+          -moz-background-color: #a91d3a !important;
+          color: #ffffff !important;
+          text-decoration: none;
+          border-radius: 10px;
+          font-weight: bold;
+          margin: 20px 0;
+          font-size: 18px;
+        "
+      >
+        View My Auction 
+      </a>
+    </div>
+
+                <p style="margin-bottom: 0;">Best regards,</p>
+<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
+              `,
+          Button_text: 'Share My Auction ',
+          Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
         };
         await this.emailService.sendEmail(
           updatedAuction.user.email,
@@ -962,9 +990,9 @@ export class TasksService {
             <p>Exciting news! Your auction for ${isAcutionUpdated.product.title} has officially ended, and we have a winner!</p>
                     <p>Here are the final details:</p>
             <ul>
-            <li>•	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
-              <li>•	Winner: ${isAcutionUpdated.bids[0].user} </li>
-              <li>• Auction Ended On: ${formattedEndDate} & ${formattedEndTime} </li>
+            <li>	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
+              <li>	Winner: ${isAcutionUpdated.bids[0].user} </li>
+              <li> Auction Ended On: ${formattedEndDate} & ${formattedEndTime} </li>
             </ul>
             <h3>What’s Next? </h3>
             <ul>
@@ -1056,18 +1084,18 @@ export class TasksService {
                 <p>Congratulations on winning the auction for ${isAcutionUpdated.product.title}! It’s time to complete the payment and finalize your purchase.</p>
                         <p>Auction Details:</p>
                 <ul>
-                  <li>•	Item: ${isAcutionUpdated.product.title}</li>
-                  <li>•	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
-                  <li>•	Seller: ${isAcutionUpdated.user.userName}</li>
-                  <li>•	Payment Due By:${PaymentEndDate}& ${formattedEndTime}</li>
+                  <li>	Item: ${isAcutionUpdated.product.title}</li>
+                  <li>	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
+                  <li>	Seller: ${isAcutionUpdated.user.userName}</li>
+                  <li>	Payment Due By:${PaymentEndDate}& ${formattedEndTime}</li>
                 </ul>
                 <h3>What’s Next? </h3>
                 <p>1️⃣<b> Complete Payment:</b></p>
                 <p>Secure your item by completing the payment now</p>`,
               message2: ` <p>2️⃣<b> Choose Delivery or Pickup:</b></p>
                 <ul>
-                  <li>•	<b>Delivery</b>: The item will be shipped to your address after payment. (additional shipping charges may apply).</li>
-                  <li>•	<b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address. (Details will be provided after payment).</li>
+                  <li>	<b>Delivery</b>: The item will be shipped to your address after payment. (additional shipping charges may apply).</li>
+                  <li>	<b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address. (Details will be provided after payment).</li>
                 </ul>
                      <div style="text-align: center">
             <a
@@ -1181,13 +1209,13 @@ export class TasksService {
                     }. While your bid was competitive, the auction has now ended, and unfortunately, you didn’t win this time. </p>
                             <p>Auction Summary:</p>
                     <ul>
-                      <li>•	Item: ${isAcutionUpdated.product.title}</li>
-                      <li>•	Your Highest Bid: [Your Bid Amount]:${
+                      <li>	Item: ${isAcutionUpdated.product.title}</li>
+                      <li>	Your Highest Bid: [Your Bid Amount]:${
                         isAcutionUpdated.bids.find(
                           (bid) => bid.userId === isAcutionUpdated.user.id,
                         )?.amount
                       }</li>
-                      <li>•	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
+                      <li>	Winning Bid: ${isAcutionUpdated.bids[0].amount}</li>
                     </ul>
                     <h3>Don’t Give Up! </h3>
                     <p>There are many more exciting auctions waiting for you on [Website Name]. Check here for more exciting auctions:</p>
@@ -1485,10 +1513,10 @@ export class TasksService {
                 <p>Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.</p>
                 <p>Here’s what you can do to improve your chances next time:</p>
                 <ul>
-                  <li>•	Adjust Your Starting Bid: A lower starting bid might attract more interest.</li>
-                  <li>•	Enhance Your Listing: Add more photos or improve your item description.</li>
-                  <li>•	Promote Your Auction: Share your listing on social media to reach a wider audience.</li>
-                  <li>•	Refine Your Description: A detailed and appealing description can make a big difference.</li>
+                  <li>	Adjust Your Starting Bid: A lower starting bid might attract more interest.</li>
+                  <li>	Enhance Your Listing: Add more photos or improve your item description.</li>
+                  <li>	Promote Your Auction: Share your listing on social media to reach a wider audience.</li>
+                  <li>	Refine Your Description: A detailed and appealing description can make a big difference.</li>
                 </ul>
                 <p>Would you like to relist your auction with ease?</p>`,
                 message2: `<p>Thank you for choosing <b>Alletre</b>. Let’s turn this into an opportunity to find the right buyer!</p>
