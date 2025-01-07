@@ -15,6 +15,9 @@ export class DeliveryRequestService {
           type: {
             in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'], // Correct way to check for multiple values
           },
+          auction:{
+            deliveryType: 'DELIVERY',
+          }
         },
         include: {
           user: {

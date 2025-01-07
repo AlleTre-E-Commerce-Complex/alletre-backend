@@ -19,6 +19,16 @@ export class EmailBatchService {
     const subject = `🚨 New Auction Alert: Don’t Miss Out!`;
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     console.log('send bulk email test 3', text);
+    const expiryDate = new Date(updatedAuction.expiryDate);
+const formattedDate = expiryDate.toLocaleString('en-US', {
+  weekday: 'short', // "Sun"
+  year: 'numeric',  // "2025"
+  month: 'short',   // "Jan"
+  day: '2-digit',   // "05"
+  hour: '2-digit',  // "08"
+  minute: '2-digit', // "54"
+  second: '2-digit', // "39"
+});
     const html = `
   
    <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
@@ -76,8 +86,8 @@ export class EmailBatchService {
 <ul style="margin: 0; padding-left: 20px; color:  #333; font-size: min(13px, 3vw);">
   <li>Title: ${updatedAuction.product.title}</li>
   <li>Category: ${updatedAuction.product.category.nameEn}</li>
-  <li>Starting Bid: ${updatedAuction.startingBid}</li>
-  <li>Ends On: ${updatedAuction.endDate}</li>
+  <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
+  <li>Ends On: ${formattedDate}</li>
 </ul>
 
         <p>This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!</p>
@@ -117,15 +127,15 @@ export class EmailBatchService {
         </div>
         <h3>Why Bid on Alletre ?</h3>
     <p style="color: #707070; font-size: min(13px, 3vw);">
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Unique items from trusted sellers<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Safe and secure bidding<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative;"> 
   Exciting deals and discounts
