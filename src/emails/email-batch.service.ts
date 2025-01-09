@@ -20,15 +20,15 @@ export class EmailBatchService {
     const text = `A new auction has been listed: ${updatedAuction.product.title}`;
     console.log('send bulk email test 3', text);
     const expiryDate = new Date(updatedAuction.expiryDate);
-const formattedDate = expiryDate.toLocaleString('en-US', {
-  weekday: 'short', // "Sun"
-  year: 'numeric',  // "2025"
-  month: 'short',   // "Jan"
-  day: '2-digit',   // "05"
-  hour: '2-digit',  // "08"
-  minute: '2-digit', // "54"
-  second: '2-digit', // "39"
-});
+    const formattedDate = expiryDate.toLocaleString('en-US', {
+      weekday: 'short', // "Sun"
+      year: 'numeric', // "2025"
+      month: 'short', // "Jan"
+      day: '2-digit', // "05"
+      hour: '2-digit', // "08"
+      minute: '2-digit', // "54"
+      second: '2-digit', // "39"
+    });
     const html = `
   
    <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">

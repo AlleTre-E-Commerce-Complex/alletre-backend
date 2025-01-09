@@ -456,6 +456,7 @@ enum AuctionStatus {
   EXPIRED
   CANCELLED_BEFORE_EXP_DATE
   CANCELLED_AFTER_EXP_DATE
+  CANCELLED_BY_ADMIN
 }
 
 enum AuctionType {
@@ -483,6 +484,7 @@ enum JoinedAuctionStatus {
   COMPLETED
   CANCELLED_BEFORE_EXP_DATE
   CANCELLED_AFTER_EXP_DATE
+  CANCELLED_BY_ADMIN
 }
 
 enum PaymentType {
