@@ -43,6 +43,7 @@ import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { NotificationsService } from 'src/notificatons/notifications.service';
+import { AuctionWebSocketGateway } from '../gateway/auction.gateway';
 
 @Injectable()
 export class UserAuctionsService {
@@ -58,6 +59,7 @@ export class UserAuctionsService {
     private auctionStatusValidator: AuctionStatusValidator,
     private emailService: EmailSerivce,
     private notificationService: NotificationsService,
+    private auctionWebsocketGateway: AuctionWebSocketGateway
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -139,7 +141,294 @@ export class UserAuctionsService {
       },
     });
   }
+  async updateAuctionForCancellationByAdmin(
+    auctionId: number,
+    adminMessage: string,
+  ) {
+    try {
+      const auction = await this.prismaService.$transaction(async (prisma) => {
+        const auction = await prisma.auction.update({
+          where: { id: auctionId },
+          data: {
+            status: 'CANCELLED_BY_ADMIN',
+          },
+          include: {
+            bids: { orderBy: { amount: 'desc' } },
+            product: {
+              include: { images: true, category: true },
+            },
+            user: true,
+          },
+        });
+        await prisma.joinedAuction.updateMany({
+          where: { auctionId },
+          data: {
+            status: JoinedAuctionStatus.CANCELLED_BY_ADMIN,
+          },
+        });
+        return auction;
+      });
+      //Finding the seller security Deposit amount
+      const sellerSecurityDeposit = await this.prismaService.payment.findFirst({
+        where: {
+          auctionId,
+          type: PaymentType.SELLER_DEPOSIT,
+        },
+      });
 
+      //capture SD of seller
+      let isSellerPaymentCaptured: any;
+      if (sellerSecurityDeposit.isWalletPayment) {
+        isSellerPaymentCaptured =
+          sellerSecurityDeposit.status === 'SUCCESS' ? true : false;
+      } else {
+        isSellerPaymentCaptured =
+          await this.stripeService.captureDepositPaymentIntent(
+            sellerSecurityDeposit.paymentIntentId,
+          );
+        //find the last transaction balane of the alletre
+        const lastBalanceOfAlletre =
+          await this.walletService.findLastTransactionOfAlletre();
+        //tranfering data for the alletre fees
+        const alletreWalletData = {
+          status: WalletStatus.DEPOSIT,
+          transactionType: WalletTransactionType.By_AUCTION,
+          description: `Due to admin cancelled the auction`,
+          amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+          auctionId: Number(auctionId),
+          balance: lastBalanceOfAlletre
+            ? Number(lastBalanceOfAlletre) +
+              Number(isSellerPaymentCaptured.amount) / 100
+            : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+        };
+        await this.walletService.addToAlletreWallet(
+          sellerSecurityDeposit.userId,
+          alletreWalletData,
+        );
+      }
+      const auctionEndDate = new Date(auction.expiryDate);
+      const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+      const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+      if (isSellerPaymentCaptured) {
+        const emailBodyToSeller = {
+          subject: '⚠️ Auction Cancelled – Security Deposit Forfeited',
+          title: `Your Auction Has Been Cancelled By Admin`,
+          Product_Name: auction.product.title,
+          img: auction.product.images[0].imageLink,
+          userName: `${auction.user.userName}`,
+          message1: ` 
+          <p>The admin has been cancelled your auction for ${auction.product.title}. The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy.</p>
+          <p>Reason: ${adminMessage}</p>
+                  <p>Auction Details:</p>
+          <ul>
+            <li>Title: ${auction.product.title} </li>
+            <li>Category: ${auction.product.category.nameEn}</li>
+            <li>Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+          </ul>
+          <p>We understand circumstances can change, but cancelling an auction with bidders can affect their experience and trust in the platform.</p>
+          `,
+          message2: `<p>We value your participation in our community and are here to support you. If you have any questions about this policy or need assistance, please don’t hesitate to contact our support team.</p>
+                      <p style="margin-bottom: 0;">Best regards,</p>
+                      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                      <p>P.S. Avoid future deposit forfeitures by reviewing our auction policies before cancelling active auctions.</p>`,
+          Button_text: 'View My Account  ',
+          Button_URL: ' https://www.alletre.com/',
+        };
+        //calling send email function
+        await this.emailService.sendEmail(
+          auction.user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSeller,
+        );
+        //create notification to seller
+        const auctionCancelNotificationDataToSeller =
+          await this.prismaService.notification.create({
+            data: {
+              userId: auction.user.id,
+              message: `Your auction for "${auction.product.title}" (Model: ${auction.product.model}) has been  canceled by admin due to ${adminMessage}. Unfortunately, The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy. .`,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: auction.id,
+            },
+          });
+        if (auctionCancelNotificationDataToSeller) {
+          // Send notification to seller
+          console.log('auction____', auctionCancelNotificationDataToSeller);
+          const sellerUserId = auctionCancelNotificationDataToSeller.userId;
+          const notification = {
+            status: 'ON_AUCTION_CANCELLED_BY_ADMIN',
+            userType: 'FOR_SELLER',
+            usersId: sellerUserId,
+            message: auctionCancelNotificationDataToSeller.message,
+            imageLink: auctionCancelNotificationDataToSeller.imageLink,
+            productTitle: auctionCancelNotificationDataToSeller.productTitle,
+            auctionId: auctionCancelNotificationDataToSeller.auctionId,
+          };
+          try {
+            this.notificationService.sendNotificationToSpecificUsers(
+              notification,
+            );
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
+        }
+      }
+      //sendig back the security deposite of the bidders due to admin cancelled the auction
+      if (auction.bids.length) {
+        const BiddersPaymentData = await this.prismaService.payment.findMany({
+          where: { auctionId, type: 'BIDDER_DEPOSIT' },
+          include: {
+            user: true,
+          },
+        });
+        BiddersPaymentData?.map(async (data) => {
+          //send email to bidders
+          const emailBodyToBidders = {
+            subject:
+              '⚠️ Auction Cancelled By Admin – Security Deposit Refunded',
+            title:
+              'The Auction You Participated In Has Been Cancelled By Admin',
+            Product_Name: auction.product.title,
+            img: auction.product.images[0].imageLink,
+            userName: `${data.user.userName}`,
+            message1: ` 
+            <p>We regret to inform you that the auction for the product titled ${
+              auction.product.title
+            } has been cancelled by the admin. </p>
+            <p>Reason: ${adminMessage}</p>
+                    <p>Cancelled Auction Details:</p>
+            <ul>
+              <li>Title: ${auction.product.title} </li>
+              <li>Category: ${auction.product.category.nameEn}</li>
+              <li>Your Bid Amount: ${
+                auction.bids.find((bid) => bid.userId === data.user.id)?.amount
+              }</li>
+              <li> Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
+            </ul>
+            <p>Your security deposit has been successfully sent back to your ${
+              data.isWalletPayment ? 'wallet.' : 'bank account.'
+            } </p>`,
+            message2: `<p>We deeply value your participation and apologize for any inconvenience this cancellation may have caused. If you have any further questions or concerns, please feel free to contact our support team.</p>
+                      <p style="margin-bottom: 0;">Best regards,</p>
+                      <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                        <p>P.S. Bid with other similar , auctions are waiting for you</p>`,
+            Button_text: 'View My Account  ',
+            Button_URL: ' https://www.alletre.com/',
+          };
+          //send notification to bidders
+          const notificationForBidders = {
+            status: 'ON_AUCTION_CANCELLED_BY_ADMIN',
+            userType: 'FOR_BIDDERS',
+            usersId: data.userId,
+            message: `We regret to inform you that your auction for "${
+              auction.product.title
+            }" (Model: ${
+              auction.product.model
+            }) has been canceled by the admin. Your security deposit has been returned to your ${
+              data.isWalletPayment ? 'wallet' : 'bank account'
+            }.
+            ${`Reason: ${adminMessage}`}`,
+            imageLink: auction.product.images[0].imageLink,
+            productTitle: auction.product.title,
+            auctionId: auction.id,
+          };
+          let cancelDepositResult: any = false;
+          if (data.isWalletPayment) {
+            //here need to create the functionality for sending back the security deposit of the lost bidders to the wallet
+            //finding the last transaction balance of the lost bidder
+            const lastWalletTransactionBalanceOfLostBidder =
+              await this.walletService.findLastTransaction(data.userId);
+            //finding the last transaction balance of the alletreWallet
+            const lastBalanceOfAlletre =
+              await this.walletService.findLastTransactionOfAlletre();
+            //tranfering data for the copensation to the lost bidder wallet.
+            const lostBidderWalletData = {
+              status: WalletStatus.DEPOSIT,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Due to admin cancelled the auction`,
+              amount: Number(data.amount),
+              auctionId: Number(auctionId),
+              balance: lastWalletTransactionBalanceOfLostBidder
+                ? Number(lastWalletTransactionBalanceOfLostBidder) +
+                  Number(data.amount)
+                : Number(data.amount),
+            };
+
+            //tranfering data for the alletre fees
+            const alletreWalletData = {
+              status: WalletStatus.WITHDRAWAL,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Due to admin cancelled the auction`,
+              amount: Number(data.amount),
+              auctionId: Number(auctionId),
+              balance: Number(lastBalanceOfAlletre) - Number(data.amount),
+            };
+            //transfer to the seller wallet
+            const lostBidderWalletTranser = await this.walletService.create(
+              data.userId,
+              lostBidderWalletData,
+            );
+            //transfer to the  alletre wallet
+            const alleTreWalletTranser =
+              await this.walletService.addToAlletreWallet(
+                data.userId,
+                alletreWalletData,
+              );
+
+            if (lostBidderWalletTranser && alleTreWalletTranser)
+              cancelDepositResult = true;
+            else cancelDepositResult = false;
+          } else {
+            cancelDepositResult =
+              await this.stripeService.cancelDepositPaymentIntent(
+                data?.paymentIntentId,
+              );
+          }
+          if (cancelDepositResult) {
+            await this.emailService.sendEmail(
+              data.user.email,
+              'token',
+              EmailsType.OTHER,
+              emailBodyToBidders,
+            );
+            try {
+              const isCreateNotificationToBidders =
+                await this.prismaService.notification.create({
+                  data: {
+                    userId: data.userId,
+                    message: notificationForBidders.message,
+                    imageLink: notificationForBidders.imageLink,
+                    productTitle: notificationForBidders.productTitle,
+                    auctionId: notificationForBidders.auctionId,
+                  },
+                });
+              if (isCreateNotificationToBidders) {
+                this.notificationService.sendNotificationToSpecificUsers(
+                  notificationForBidders,
+                );
+              }
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
+        });
+      }
+      //emiting cancel auction to remove the auction from users screen
+      this.auctionWebsocketGateway.cancelAuction(auctionId);
+      return {
+        success: true,
+        message: 'You have successfully cancelled the auction.',
+        auctionId,
+      };
+    } catch (error) {
+      console.log('cancel auction by admin error:', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'عذرا! لا يمكنك إلغاء هذا المزاد',
+        en: 'Sorry! You cannot cancel this auction',
+      });
+    }
+  }
   async updateAuctionForCancellation(auctionId: number, userId: number) {
     try {
       const auction = await this.prismaService.auction.findUnique({
@@ -294,7 +583,7 @@ export class UserAuctionsService {
               title: 'The Auction You Participated In Has Been Cancelled',
               Product_Name: auction.product.title,
               img: auction.product.images[0].imageLink,
-              userName: `${auction.user.userName}`,
+              userName: `${data.user.userName}`,
               message1: ` 
               <p>We regret to inform you that the auction for the product titled ${
                 auction.product.title
@@ -304,7 +593,7 @@ export class UserAuctionsService {
                 <li>Title: ${auction.product.title} </li>
                 <li>Category: ${auction.product.category.nameEn}</li>
                 <li>Your Bid Amount: ${
-                  auction.bids.find((bid) => bid.userId === auction.user.id)
+                  auction.bids.find((bid) => bid.userId === data.user.id)
                     ?.amount
                 }</li>
                 <li> Auction End Date: ${formattedEndDate} & ${formattedEndTime}</li>
@@ -567,9 +856,12 @@ export class UserAuctionsService {
               });
             }
           });
+          //emiting cancel auction to remove the auction from users screen
+          this.auctionWebsocketGateway.cancelAuction(auctionId);
           return {
             success: true,
             message: 'You have successfully cancelled the auction.',
+            auctionId,
           };
         } else {
           throw new MethodNotAllowedResponse({
@@ -600,9 +892,12 @@ export class UserAuctionsService {
             },
           });
           if (updatedAuctionData) {
+            //emiting cancel auction to remove the auction from users screen
+             this.auctionWebsocketGateway.cancelAuction(auctionId);
             return {
               success: true,
-              message: 'You have successfully cancelled your auction.',
+              message: 'You have successfully cancelled the auction.',
+              auctionId,
             };
           } else {
             throw new MethodNotAllowedResponse({
@@ -781,9 +1076,12 @@ export class UserAuctionsService {
               }
             }
           }
+          //emiting cancel auction to remove the auction from users screen
+           this.auctionWebsocketGateway.cancelAuction(auctionId);
           return {
             success: true,
             message: 'You have successfully cancelled your auction.',
+            auctionId,
           };
         } else {
           throw new MethodNotAllowedResponse({
@@ -909,6 +1207,7 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
+    console.log('getAuctionsByOwnerDTO :', getAuctionsByOwnerDTO);
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -2048,7 +2347,7 @@ export class UserAuctionsService {
       console.log(error);
       return {
         success: false,
-        message:  'Failed to process withdrawal request',
+        message: 'Failed to process withdrawal request',
       };
     }
   }
@@ -2761,19 +3060,18 @@ export class UserAuctionsService {
               walletDataToAlletre,
               prisma,
             );
-            const confirmDeliveryResult = await prisma.joinedAuction.update({
-              where: { id: auctionWinner.id },
-              data: {
-                status: JoinedAuctionStatus.COMPLETED,
-                auction: {
-                  update: {
-                    deliveryRequestsStatus: 'DELIVERY_SUCCESS',
-                  },
+          const confirmDeliveryResult = await prisma.joinedAuction.update({
+            where: { id: auctionWinner.id },
+            data: {
+              status: JoinedAuctionStatus.COMPLETED,
+              auction: {
+                update: {
+                  deliveryRequestsStatus: 'DELIVERY_SUCCESS',
                 },
               },
-              include: { user: true },
-            });
-            
+            },
+            include: { user: true },
+          });
 
           return Promise.all([
             walletCreationData,
@@ -2804,7 +3102,7 @@ export class UserAuctionsService {
             <ul>
               <li>Title: ${sellerPaymentData.auction.product.title} </li>
               <li>Sold For: ${sellerPaymentData.auction.bids[0].amount}</li>
-              <li>Buyer: ${sellerPaymentData.auction.bids[0].user}</li>
+              <li>Buyer: ${sellerPaymentData.auction.bids[0].user.userName}</li>
               <li>Payment Status: Payment credited to your wallet</li>
             </ul>
             <h3>What’s Next?</h3>
@@ -2825,14 +3123,14 @@ export class UserAuctionsService {
             title: 'You’re the Winner – Your Auction Item is Being Delivered!',
             Product_Name: sellerPaymentData.auction.product.title,
             img: sellerPaymentData.auction.product.images[0].imageLink,
-            userName: `${sellerPaymentData.auction.bids[0].user}`,
+            userName: `${sellerPaymentData.auction.bids[0].user.userName}`,
             message1: `
                 <p>Congratulations, ${sellerPaymentData.auction.bids[0].user.userName}! You are the winning bidder for the auction item: ${sellerPaymentData.auction.product.title}!</p>
                 <p>Auction Details:</p>
                 <ul>
                   <li>Title: ${sellerPaymentData.auction.product.title} </li>
                   <li>Winning Bid: ${sellerPaymentData.auction.bids[0].amount}</li>
-                  <li>Seller: ${sellerPaymentData.auction.user}</li>
+                  <li>Seller: ${sellerPaymentData.auction.user.userName}</li>
                   <li>Payment Status: Payment received successfully</li>
                 </ul>
                 <h3>What’s Next?</h3>

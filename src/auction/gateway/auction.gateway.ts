@@ -63,4 +63,8 @@ export class AuctionWebSocketGateway
     // Send new listed auction  to all listener sockets (users)
     this.server.emit('auction:newAuctionListed', { auction });
   }
+  cancelAuction(auctionId: any) {
+    //emit cancelled auction event
+    this.server.emit('auction:cancelled', { auctionId });
+  }
 }

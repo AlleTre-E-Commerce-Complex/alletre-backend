@@ -390,7 +390,7 @@ export class TasksService {
               title: `Auction Cancelled - Payment Not Received`,
               Product_Name: sellerPaymentData.auction.product.title,
               img: sellerPaymentData.auction.product.images[0].imageLink,
-              userName: `${sellerPaymentData.auction.bids[0].user}`,
+              userName: `${sellerPaymentData.auction.bids[0].user.userName}`,
               message1: ` 
             <p>We regret to inform you that your winning bid for ${sellerPaymentData.auction.product.title} has been cancelled. Unfortunately, we did not receive your payment within the required time frame.</p>
             <p>Auction Details:</p>
@@ -559,14 +559,14 @@ export class TasksService {
               title: 'Delivery Delayed for Auction Purchase',
               Product_Name: auction.product.title,
               img: auction.product.images[0].imageLink,
-              userName: `${auction.user}`,
+              userName: `${auction.user.userName}`,
               message1: ` 
             <p>We wanted to bring to your attention that the delivery of  ${auction.product.title} has been delayed.</p>
             <p>Auction Details:</p>
             <ul>
               <li>Title: ${auction.product.title} </li>
               <li>Winning Bid: ${auction.bids[0].amount}</li>
-              <li>Winning Name: ${auction.bids[0].user}</li>
+              <li>Winner Name: ${auction.bids[0].user.userName}</li>
             </ul>
             <h3>What You Should Do Next</h3>
             <p>Please take immediate action to fulfill the delivery of this product and ensure the buyer receives their purchase promptly.</p>
@@ -991,7 +991,7 @@ export class TasksService {
                     <p>Here are the final details:</p>
             <ul>
             <li>	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
-              <li>	Winner: ${isAcutionUpdated.bids[0].user} </li>
+              <li>	Winner: ${isAcutionUpdated.bids[0].user.userName} </li>
               <li> Auction Ended On: ${formattedEndDate} & ${formattedEndTime} </li>
             </ul>
             <h3>What’s Next? </h3>
@@ -1079,7 +1079,7 @@ export class TasksService {
                 ': Your Winning Bid is Confirmed – Complete Your Purchase Now',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
-              userName: `${isAcutionUpdated.bids[0].user}`,
+              userName: `${isAcutionUpdated.bids[0].user.userName}`,
               message1: ` 
                 <p>Congratulations on winning the auction for ${isAcutionUpdated.product.title}! It’s time to complete the payment and finalize your purchase.</p>
                         <p>Auction Details:</p>

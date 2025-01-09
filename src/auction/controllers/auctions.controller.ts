@@ -514,6 +514,19 @@ export class AuctionsController {
     );
   }
 
+  @Put('/admin/:auctionId/cancel-auction')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async cancelAuctionByAmdin(
+    @Param('auctionId', ParseIntPipe) auctionId: number,
+    @Query('adminMessage') adminMessage: string,
+  ) {
+    return await this.userAuctionsService.updateAuctionForCancellationByAdmin(
+      auctionId,
+      adminMessage,
+    );
+  }
+
   @Put('/user/:auctionId/draft-details')
   @UseGuards(AuthGuard, OwnerGuard)
   @UseInterceptors(AnyFilesInterceptor())

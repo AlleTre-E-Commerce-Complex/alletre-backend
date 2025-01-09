@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AuctionStatus" ADD VALUE 'CANCELLED_BY_ADMIN';

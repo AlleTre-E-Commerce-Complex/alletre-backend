@@ -972,14 +972,14 @@ export class PaymentsService {
           title: 'Your Winning Bid is Confirmed – Complete Your Purchase Now',
           Product_Name: paymentData.auction.product.title,
           img: paymentData.auction.product.images[0].imageLink,
-          userName: `${paymentData.auction.bids[0].user}`,
+          userName: `${paymentData.auction.bids[0].user.userName}`,
           message1: `
                   <p>Congratulations on winning the auction for ${paymentData.auction.product.title}! It’s time to complete the payment and finalize your purchase.</p>
                   <p>Auction Details:</p>
                   <ul>
                     <li>Item: ${paymentData.auction.product.title}</li>
                     <li>Winning Bid: ${paymentData.auction.bids[0].amount}</li>
-                    <li>Seller: ${paymentData.auction.user}</li>
+                    <li>Seller: ${paymentData.auction.user.userName}</li>
                     <li>Payment Due By: ${PaymentEndDate} & ${formattedEndTime} </li>
                     </ul>
                     <h2>What’s Next?</h2>
@@ -1033,14 +1033,14 @@ export class PaymentsService {
           title: ' Your Auction Item Has Been Paid For',
           Product_Name: paymentData.auction.product.title,
           img: paymentData.auction.product.images[0].imageLink,
-          userName: `${paymentData.auction.user}`,
+          userName: `${paymentData.auction.user.userName}`,
           message1: `
                   <p>Great news! The winning bidder for your auction, [Auction Title], has completed the payment in full.</p>
                   <p>Auction Details:</p>
                   <ul>
                     <li>Item: ${paymentData.auction.product.title}</li>
                     <li>Winning Bid: ${paymentData.auction.bids[0].amount}</li>
-                    <li>Buyer:  ${paymentData.auction.bids[0].user}</li>
+                    <li>Buyer:  ${paymentData.auction.bids[0].user.userName}</li>
                     <li>Delivery Option Chosen: [Delivery/Pickup] </li>
                     </ul>
                     <h2>What You Need to Do:</h2>
@@ -1134,7 +1134,6 @@ export class PaymentsService {
           'delivery:newNotification',
           paymentData,
         );
-
       }
       return paymentData;
     } catch (error) {
@@ -1293,8 +1292,6 @@ export class PaymentsService {
           );
           // Update auction status to sold
 
-          
-
           await prisma.joinedAuction.updateMany({
             where: {
               auctionId: auctionId,
@@ -1360,7 +1357,7 @@ export class PaymentsService {
       console.log('test 5');
 
       if (paymentData) {
-        console.log('payment data at buy now ', paymentData)
+        console.log('payment data at buy now ', paymentData);
         //Email to winner (buy now option used - stripe)
         const emailBodyToWinner = {
           subject: '🎉 Congratulations! You Won the Auction',
@@ -1530,7 +1527,7 @@ export class PaymentsService {
                       <li>Auction Title: ${payment.auction.product.title}</li>
                       <li>Category: ${payment.auction.product.category}</li>
                       <li>Winning Bid: ${payment.auction.bids[0].amount}</li>
-                      <li>Winner: ${payment.auction.bids[0].user}</li>
+                      <li>Winner: ${payment.auction.bids[0].user.userName}</li>
                     </ul>
                     <p>We know it’s disappointing, but there are always more exciting auctions to explore on <b>Alletre</b>.</p>
                   `,
@@ -1594,8 +1591,8 @@ export class PaymentsService {
                     console.log('sendNotificationToSpecificUsers error', error);
                   }
                 }
-                 }
-                } else if (payment.type === 'SELLER_DEPOSIT') {
+              }
+            } else if (payment.type === 'SELLER_DEPOSIT') {
               //Email to seller (buy now option used - stripe)
               const emailBodyToSeller = {
                 subject: '🎉 Sold! Your Auction Ended with a Direct Buys',
@@ -1852,7 +1849,8 @@ export class PaymentsService {
               subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
               title: 'Your Auction is Officially in Motion!',
               Product_Name: auctionHoldPaymentTransaction.auction.product.title,
-              img: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
+              img: auctionHoldPaymentTransaction.auction.product.images[0]
+                .imageLink,
               userName: `${auctionHoldPaymentTransaction.auction.user.userName}`,
               message1: ` 
                   <p>Congratulations! Your auction ${
@@ -2296,14 +2294,14 @@ export class PaymentsService {
                 title: ' Your Auction Item Has Been Paid For',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
-                userName: `${paymentSuccessData.auction.user}`,
+                userName: `${paymentSuccessData.auction.user.userName}`,
                 message1: `
                   <p>Great news! The winning bidder for your auction, [Auction Title], has completed the payment in full.</p>
                   <p>Auction Details:</p>
                   <ul>
                     <li>Item: ${paymentSuccessData.auction.product.title}</li>
                     <li>Winning Bid: ${paymentSuccessData.auction.bids[0].amount}</li>
-                    <li>Buyer:  ${paymentSuccessData.auction.bids[0].user}</li>
+                    <li>Buyer:  ${paymentSuccessData.auction.bids[0].user.userName}</li>
                     <li>Delivery Option Chosen: [Delivery/Pickup] </li>
                     </ul>
                     <h2>What You Need to Do:</h2>
@@ -2358,14 +2356,14 @@ export class PaymentsService {
                   'Your Winning Bid is Confirmed – Complete Your Purchase Now',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
-                userName: `${paymentSuccessData.auction.bids[0].user}`,
+                userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
                 message1: `
                   <p>Congratulations on winning the auction for ${paymentSuccessData.auction.product.title}! It’s time to complete the payment and finalize your purchase.</p>
                   <p>Auction Details::</p>
                   <ul>
                     <li>Item: ${paymentSuccessData.auction.product.title}</li>
                     <li>Winning Bid: ${paymentSuccessData.auction.bids[0].amount}</li>
-                    <li>Seller: ${paymentSuccessData.auction.user}</li>
+                    <li>Seller: ${paymentSuccessData.auction.user.userName}</li>
                     <li>Payment Due By: ${PaymentEndDate} & ${formattedEndTime} </li>
                     </ul>
                     <h2>What’s Next?</h2>
@@ -2776,7 +2774,7 @@ export class PaymentsService {
                       - Auction Title: ${payment.auction.product.title}
                       - Category: ${payment.auction.product.category}
                       - Winning Bid: ${payment.auction.bids[0].amount}
-                      - Winner: ${payment.auction.bids[0].user}
+                      - Winner: ${payment.auction.bids[0].user.userName}
                       
                       Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
                       `;
@@ -3153,7 +3151,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 60 * 60 * 1000);
+        : new Date(date.getTime() + 2 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
