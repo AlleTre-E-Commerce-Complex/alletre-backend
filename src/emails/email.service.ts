@@ -127,15 +127,15 @@ export class EmailSerivce extends EmailBody {
 
         <h3>Why Verify Your Email?</h3>
        <p style="color: #707070; font-size: min(13px, 3vw);">
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Secure your account and protect your bids<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Receive important updates and notifications<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative;"> 
   Get ready to start bidding and listing items
@@ -346,15 +346,15 @@ The <b>Alletre</b> Team
 
         <h3>Why Reset Your Password?</h3>
        <p style="color: #707070; font-size: min(13px, 3vw);">
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Quickly regain access to your account<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative; "> 
   Keep your account secure<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=e9e42347-0ae2-4ea6-bc36-b1fbf4929456" 
+  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
        alt="tick" 
        style="width: 16px; position: relative;"> 
   Start bidding and listing items without delay

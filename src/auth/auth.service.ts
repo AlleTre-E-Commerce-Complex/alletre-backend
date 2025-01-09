@@ -129,6 +129,8 @@ export class AuthService {
       userSignUpBody.email,
       token,
       EmailsType.VERIFICATION,
+      {},
+      userSignUpBody.userName,
     );
 
     return {
@@ -224,7 +226,13 @@ export class AuthService {
     );
 
     // Send reset-password to 'email'
-    await this.emailSerivce.sendEmail(email, token, EmailsType.RESET_PASSWORD);
+    await this.emailSerivce.sendEmail(
+      email,
+      token,
+      EmailsType.RESET_PASSWORD,
+      {},
+      user.userName,
+    );
   }
 
   async resetPassword(token: string, newPassword: string) {
