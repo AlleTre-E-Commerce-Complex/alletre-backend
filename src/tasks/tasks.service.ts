@@ -87,7 +87,7 @@ export class TasksService {
                 <p>Here’s a summary of your listing:</p>
                 <ul>
                   <li>Title: ${updatedAuction.product.title}</li>                     
-                  <li>Category: ${updatedAuction.product.category}</li>
+                  <li>Category: ${updatedAuction.product.category.nameEn}</li>
                   <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
                   <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                 </ul>
