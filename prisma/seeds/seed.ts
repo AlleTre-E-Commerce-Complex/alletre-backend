@@ -13,7 +13,7 @@ async function main() {
   });
   await prisma.category.create({
     data: {
-      nameAr: 'الأجهزة الكهربائية',
+      nameAr: 'الأجهزة الإلكترونية',
       nameEn: 'Electronic Devices',
       hasUsageCondition: true,
       bidderDepositFixedAmount: 100,
