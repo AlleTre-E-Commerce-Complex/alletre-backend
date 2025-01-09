@@ -1012,7 +1012,7 @@ export class PaymentsService {
         
         Here are the details of your purchase:
         - Auction Title: ${paymentData.auction.product.title}
-        - Category: ${paymentData.auction.product.category}
+        - Category: ${paymentData.auction.product.category.nameEn}
         - Winning Bid: ${paymentData.auction.bids[0].amount}
         
         Your payment has been processed successfully.
@@ -1402,7 +1402,7 @@ export class PaymentsService {
         
         Here are the details of your purchase:
         - Auction Title: ${paymentData.auction.product.title}
-        - Category: ${paymentData.auction.product.category}
+        - Category: ${paymentData.auction.product.category.nameEn}
         - Winning Bid: ${paymentData.auction.bids[0].amount}
         
         Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
@@ -1525,7 +1525,7 @@ export class PaymentsService {
                     <p>Here’s a quick recap:</p>
                     <ul>
                       <li>Auction Title: ${payment.auction.product.title}</li>
-                      <li>Category: ${payment.auction.product.category}</li>
+                      <li>Category: ${payment.auction.product.category.nameEn}</li>
                       <li>Winning Bid: ${payment.auction.bids[0].amount}</li>
                       <li>Winner: ${payment.auction.bids[0].user.userName}</li>
                     </ul>
@@ -1556,7 +1556,7 @@ export class PaymentsService {
                 
                 Here are the details of your purchase:
                 - Auction Title: ${payment.auction.product.title}
-                - Category: ${payment.auction.product.category}
+                - Category: ${payment.auction.product.category.nameEn}
                 - Winning Bid: ${payment.auction.bids[0].amount}
                 
                 We know it’s disappointing, but there are always more exciting auctions to explore on Alletre.
@@ -2605,7 +2605,7 @@ export class PaymentsService {
               
               Here are the details of your purchase:
               - Auction Title: ${isPaymentSuccess.auction.product.title}
-              - Category: ${isPaymentSuccess.auction.product.category}
+              - Category: ${isPaymentSuccess.auction.product.category.nameEn}
               - Winning Bid: ${isPaymentSuccess.amount}
               
               Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.
@@ -2741,9 +2741,9 @@ export class PaymentsService {
                           <p>Here’s a quick recap:</p>
                           <ul>
                             <li> Auction Title: ${payment.auction.product.title}</li>
-                            <li> Category: ${payment.auction.product.category}</li>
+                            <li> Category: ${payment.auction.product.category.nameEn}</li>
                             <li> Winning Bid: ${payment.auction.bids[0].amount}</li>
-                            <li> Winner: ${payment.auction.bids[0].user}</li>
+                            <li> Winner: ${payment.auction.bids[0].user.userName}</li>
                           </ul>
                           <p>We know it’s disappointing, but there are always more exciting auctions to explore on <b>Alletre</b>.</p>
                         `,
@@ -2772,7 +2772,7 @@ export class PaymentsService {
                       
                       Here are the details of your purchase:
                       - Auction Title: ${payment.auction.product.title}
-                      - Category: ${payment.auction.product.category}
+                      - Category: ${payment.auction.product.category.nameEn}
                       - Winning Bid: ${payment.auction.bids[0].amount}
                       - Winner: ${payment.auction.bids[0].user.userName}
                       
@@ -2982,7 +2982,7 @@ export class PaymentsService {
                     <p>Here’s a summary of your listing:</p>
                     <ul>
                       <li>Title: ${updatedAuction.product.title}</li>                     
-                      <li>Category: ${updatedAuction.product.category}</li>
+                      <li>Category: ${updatedAuction.product.category.nameEn}</li>
                       <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
                       <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                     </ul>
@@ -3083,7 +3083,7 @@ export class PaymentsService {
                     <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
                     <p>Here’s a summary of your listing:</p>
                     <ul>
-                      <li>Title: ${updatedAuction.product.title}</li>                      <li>Category: ${updatedAuction.product.category}</li>
+                      <li>Title: ${updatedAuction.product.title}</li>                      <li>Category: ${updatedAuction.product.category.nameEn}</li>
                       <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
                       <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                     </ul>
