@@ -113,7 +113,6 @@ export class EmailBody {
         <div style="margin: 50px auto; text-align: center">
           <img
             src="${imgSrc}"
-            alt="Product Image"
             style="
             width: 100%;
             max-width: 250px; 

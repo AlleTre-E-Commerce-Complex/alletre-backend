@@ -278,20 +278,45 @@ export class AuthService {
       payload.email,
     );
     if (verificationResult.status === 'SUCCESS') {
+      // const emailBodyToNewUser = {
+      //   subject: 'Welcome to Alle Tre!',
+      //   title: 'We’re Excited to Have You Onboard!',
+      //   message: `
+      //     Hi ${verificationResult.user.userName},
+          
+      //     Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
+      
+      //     Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
+          
+      //     If you ever have questions or need assistance, our team is just a click away. 
+      //   `,
+      //   Button_text: 'Get Started',
+      //   Button_URL: process.env.FRONT_URL,
+      // };
       const emailBodyToNewUser = {
         subject: 'Welcome to Alle Tre!',
         title: 'We’re Excited to Have You Onboard!',
-        message: `
-          Hi ${verificationResult.user.userName},
-          
+        userName: `${verificationResult.user.userName}`,
+        message1: `
           Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
       
           Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
           
           If you ever have questions or need assistance, our team is just a click away. 
         `,
-        Button_text: 'Get Started',
-        Button_URL: process.env.FRONT_URL,
+        message2: `
+          <h3>What’s Next?</h3>
+          <ul>
+            <li>1. <b>Explore More Auctions</b>: Browse our platform for more items you’ll love.</li>
+            <li>2. <b>Bid Smarter</b>: Use the “Buy Now” feature or set higher auto-bids to secure your favorite items next time.</li>
+          </ul>
+          <p>Thank you for Joining our platform. We look forward to seeing you in future bids!</p>
+           <p style="margin-bottom: 0;">Best regards,</p>
+       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+          <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+        `,
+        Button_text: 'Browse Auctions',
+        Button_URL: 'https://www.alletre.com/alletre/',
       };
       await this.emailSerivce.sendEmail(
         payload.email,

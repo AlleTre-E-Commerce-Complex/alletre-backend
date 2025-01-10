@@ -520,112 +520,116 @@ export class TasksService {
     }
   }
 
-  //Function to send email when the seller is refuse or has any issue to deliver the item.
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async _markPendingDelivery() {
-    try {
-      const pendingDeliveryAuction = await this.prismaService.auction.findMany({
-        where: {
-          status: 'SOLD',
-          isItemSendForDelivery: false,
-        },
-        include: {
-          user: true,
-          product: { include: { images: true } },
-          bids: {
-            orderBy: { amount: 'desc' },
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-      await Promise.all(
-        pendingDeliveryAuction.map(async (auction) => {
-          // Calculate expected delivery date
-          const expectedDeliveryDate = new Date(auction.expiryDate);
-          expectedDeliveryDate.setDate(
-            expectedDeliveryDate.getDate() +
-              auction.numOfDaysOfExpecetdDelivery,
-          );
-          const currentDate = new Date();
 
-          // Check if the current date is greater than the expected delivery date
-          if (currentDate > expectedDeliveryDate) {
-            console.log('Sending email to seller, delivery is delayed.');
-            // Email body for the seller
-            const emailBodyForSeller = {
-              subject: '🚚 Action Needed: Delivery Delay Notification',
-              title: 'Delivery Delayed for Auction Purchase',
-              Product_Name: auction.product.title,
-              img: auction.product.images[0].imageLink,
-              userName: `${auction.user.userName}`,
-              message1: ` 
-            <p>We wanted to bring to your attention that the delivery of  ${auction.product.title} has been delayed.</p>
-            <p>Auction Details:</p>
-            <ul>
-              <li>Title: ${auction.product.title} </li>
-              <li>Winning Bid: ${auction.bids[0].amount}</li>
-              <li>Winner Name: ${auction.bids[0].user.userName}</li>
-            </ul>
-            <h3>What You Should Do Next</h3>
-            <p>Please take immediate action to fulfill the delivery of this product and ensure the buyer receives their purchase promptly.</p>
-                  `,
-              message2: ` 
-              <p>Thank you for your cooperation. If you have any questions or need assistance, feel free to reach out to us.</p>
-                        <p style="margin-bottom: 0;">Best regards,</p>
-                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-                        <p>P.S. Timely delivery ensures a better experience for everyone. Let us know if there’s anything we can do to help!</p>`,
-              Button_text: 'View Auction Details',
-              Button_URL: ' https://www.alletre.com/',
-            };
-            await this.emailService.sendEmail(
-              auction.user.email,
-              'token',
-              EmailsType.OTHER,
-              emailBodyForSeller,
-            );
-            const notificationMessageToSeller = `
-            It appears that the delivery of your product from the auction "${auction.product.title}"
-                  (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
-                  Please take action to fulfill the delivery.`;
-            const deliveryDelayNotificationData =
-              await this.prismaService.notification.create({
-                data: {
-                  userId: auction.userId,
-                  message: notificationMessageToSeller,
-                  imageLink: auction.product.images[0].imageLink,
-                  productTitle: auction.product.title,
-                  auctionId: auction.id,
-                },
-              });
-            if (deliveryDelayNotificationData) {
-              // Send notification to seller
-              const sellerUserId = deliveryDelayNotificationData.userId;
-              const notification = {
-                status: 'ON_DELIVERY_DELAY',
-                userType: 'FOR_SELLER',
-                usersId: sellerUserId,
-                message: deliveryDelayNotificationData.message,
-                imageLink: deliveryDelayNotificationData.imageLink,
-                productTitle: deliveryDelayNotificationData.productTitle,
-                auctionId: deliveryDelayNotificationData.auctionId,
-              };
-              try {
-                this.notificationService.sendNotificationToSpecificUsers(
-                  notification,
-                );
-              } catch (error) {
-                console.log('sendNotificationToSpecificUsers error', error);
-              }
-            }
-          }
-        }),
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  }
+  // ======> This is comented becuase the delivery is taken by winner or company when we change the method we will activate it <================
+
+
+  //Function to send email when the seller is refuse or has any issue to deliver the item.
+  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  // async _markPendingDelivery() {
+  //   try {
+  //     const pendingDeliveryAuction = await this.prismaService.auction.findMany({
+  //       where: {
+  //         status: 'SOLD',
+  //         isItemSendForDelivery: false,
+  //       },
+  //       include: {
+  //         user: true,
+  //         product: { include: { images: true } },
+  //         bids: {
+  //           orderBy: { amount: 'desc' },
+  //           include: {
+  //             user: true,
+  //           },
+  //         },
+  //       },
+  //     });
+  //     await Promise.all(
+  //       pendingDeliveryAuction.map(async (auction) => {
+  //         // Calculate expected delivery date
+  //         const expectedDeliveryDate = new Date(auction.expiryDate);
+  //         expectedDeliveryDate.setDate(
+  //           expectedDeliveryDate.getDate() +
+  //             auction.numOfDaysOfExpecetdDelivery,
+  //         );
+  //         const currentDate = new Date();
+
+  //         // Check if the current date is greater than the expected delivery date
+  //         if (currentDate > expectedDeliveryDate) {
+  //           console.log('Sending email to seller, delivery is delayed.');
+  //           // Email body for the seller
+  //           const emailBodyForSeller = {
+  //             subject: '🚚 Action Needed: Delivery Delay Notification',
+  //             title: 'Delivery Delayed for Auction Purchase',
+  //             Product_Name: auction.product.title,
+  //             img: auction.product.images[0].imageLink,
+  //             userName: `${auction.user.userName}`,
+  //             message1: ` 
+  //           <p>We wanted to bring to your attention that the delivery of  ${auction.product.title} has been delayed.</p>
+  //           <p>Auction Details:</p>
+  //           <ul>
+  //             <li>Title: ${auction.product.title} </li>
+  //             <li>Winning Bid: ${auction.bids[0].amount}</li>
+  //             <li>Winner Name: ${auction.bids[0].user.userName}</li>
+  //           </ul>
+  //           <h3>What You Should Do Next</h3>
+  //           <p>Please take immediate action to fulfill the delivery of this product and ensure the buyer receives their purchase promptly.</p>
+  //                 `,
+  //             message2: ` 
+  //             <p>Thank you for your cooperation. If you have any questions or need assistance, feel free to reach out to us.</p>
+  //                       <p style="margin-bottom: 0;">Best regards,</p>
+  //                       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+  //                       <p>P.S. Timely delivery ensures a better experience for everyone. Let us know if there’s anything we can do to help!</p>`,
+  //             Button_text: 'View Auction Details',
+  //             Button_URL: ' https://www.alletre.com/',
+  //           };
+  //           await this.emailService.sendEmail(
+  //             auction.user.email,
+  //             'token',
+  //             EmailsType.OTHER,
+  //             emailBodyForSeller,
+  //           );
+  //           const notificationMessageToSeller = `
+  //           It appears that the delivery of your product from the auction "${auction.product.title}"
+  //                 (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
+  //                 Please take action to fulfill the delivery.`;
+  //           const deliveryDelayNotificationData =
+  //             await this.prismaService.notification.create({
+  //               data: {
+  //                 userId: auction.userId,
+  //                 message: notificationMessageToSeller,
+  //                 imageLink: auction.product.images[0].imageLink,
+  //                 productTitle: auction.product.title,
+  //                 auctionId: auction.id,
+  //               },
+  //             });
+  //           if (deliveryDelayNotificationData) {
+  //             // Send notification to seller
+  //             const sellerUserId = deliveryDelayNotificationData.userId;
+  //             const notification = {
+  //               status: 'ON_DELIVERY_DELAY',
+  //               userType: 'FOR_SELLER',
+  //               usersId: sellerUserId,
+  //               message: deliveryDelayNotificationData.message,
+  //               imageLink: deliveryDelayNotificationData.imageLink,
+  //               productTitle: deliveryDelayNotificationData.productTitle,
+  //               auctionId: deliveryDelayNotificationData.auctionId,
+  //             };
+  //             try {
+  //               this.notificationService.sendNotificationToSpecificUsers(
+  //                 notification,
+  //               );
+  //             } catch (error) {
+  //               console.log('sendNotificationToSpecificUsers error', error);
+  //             }
+  //           }
+  //         }
+  //       }),
+  //     );
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
   //Function will run every minute to check the upcoming Pending payment by bidders and will send a warning email
 
   @Interval(60000)
@@ -982,7 +986,7 @@ export class TasksService {
             console.log('isAuctionUpdated');
             const body = {
               subject: '🏆 Auction Closed: Congratulations, You Have a Winner!',
-              title: ': Your Auction Has Ended Successfully!',
+              title: 'Your Auction Has Ended Successfully!',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
               userName: `${isAcutionUpdated.user.userName}`,
@@ -996,7 +1000,7 @@ export class TasksService {
             </ul>
             <h3>What’s Next? </h3>
             <ul>
-              <li>1. Contact the Winner: Our team Coordinate with [Winner’s Username] to finalize payment and delivery details.</li>
+              <li>1. Contact the Winner: Our team Coordinate with ${isAcutionUpdated.bids[0].user.userName} to finalize payment and delivery details.</li>
               <li>2. The winning bid amount and your security deposit will be credit to your wallet after the item delivery.</li>           </ul>
             `,
               message2: `<p>We’re thrilled about your successful auction and appreciate your trust in <b>Alletre</b>! If you need assistance, our support team is just a click away.</p>
