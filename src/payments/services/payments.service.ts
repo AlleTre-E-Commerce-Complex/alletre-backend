@@ -897,7 +897,6 @@ export class PaymentsService {
             PaymentType.BIDDER_DEPOSIT,
           );
 
-        // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
         if (
           !winnedBidderDepositPaymentData.isWalletPayment &&
           winnedBidderDepositPaymentData.paymentIntentId
@@ -943,7 +942,7 @@ export class PaymentsService {
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return of bidder security deposit after lost win`,
+              description: `Return of bidder security deposit after auction win`,
               amount: Number(winnedBidderDepositPaymentData.amount),
               auctionId: Number(winnedBidderDepositPaymentData.auctionId),
               balance:
@@ -2219,7 +2218,6 @@ export class PaymentsService {
                   PaymentType.BIDDER_DEPOSIT,
                 );
 
-              // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
               if (
                 !winnedBidderDepositPaymentData.isWalletPayment &&
                 winnedBidderDepositPaymentData.paymentIntentId
@@ -2265,7 +2263,7 @@ export class PaymentsService {
                   const alletreWalletData = {
                     status: WalletStatus.WITHDRAWAL,
                     transactionType: WalletTransactionType.By_AUCTION,
-                    description: `Return of bidder security deposit after lost win`,
+                    description: `Return of bidder security deposit after aution win`,
                     amount: Number(winnedBidderDepositPaymentData.amount),
                     auctionId: Number(winnedBidderDepositPaymentData.auctionId),
                     balance:
