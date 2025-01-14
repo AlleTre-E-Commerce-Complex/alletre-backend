@@ -15,6 +15,7 @@ import { EmailSerivce } from 'src/emails/email.service';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
 import { AuctionWebSocketGateway } from './gateway/auction.gateway';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuctionWebSocketGateway } from './gateway/auction.gateway';
     AuthModule,
     PaymentsModule,
     NotificationsModule,
+    UserModule,
   ],
   providers: [
     UserAuctionsService,

@@ -520,9 +520,7 @@ export class TasksService {
     }
   }
 
-
   // ======> This is comented becuase the delivery is taken by winner or company when we change the method we will activate it <================
-
 
   //Function to send email when the seller is refuse or has any issue to deliver the item.
   // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -564,7 +562,7 @@ export class TasksService {
   //             Product_Name: auction.product.title,
   //             img: auction.product.images[0].imageLink,
   //             userName: `${auction.user.userName}`,
-  //             message1: ` 
+  //             message1: `
   //           <p>We wanted to bring to your attention that the delivery of  ${auction.product.title} has been delayed.</p>
   //           <p>Auction Details:</p>
   //           <ul>
@@ -575,7 +573,7 @@ export class TasksService {
   //           <h3>What You Should Do Next</h3>
   //           <p>Please take immediate action to fulfill the delivery of this product and ensure the buyer receives their purchase promptly.</p>
   //                 `,
-  //             message2: ` 
+  //             message2: `
   //             <p>Thank you for your cooperation. If you have any questions or need assistance, feel free to reach out to us.</p>
   //                       <p style="margin-bottom: 0;">Best regards,</p>
   //                       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
@@ -591,7 +589,7 @@ export class TasksService {
   //           );
   //           const notificationMessageToSeller = `
   //           It appears that the delivery of your product from the auction "${auction.product.title}"
-  //                 (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days. 
+  //                 (Model: ${auction.product.model}) has been delayed beyond the expected ${auction.numOfDaysOfExpecetdDelivery} days.
   //                 Please take action to fulfill the delivery.`;
   //           const deliveryDelayNotificationData =
   //             await this.prismaService.notification.create({
@@ -1080,7 +1078,7 @@ export class TasksService {
             const body = {
               subject: '🏆 Congratulations! You Won the Auction!',
               title:
-                ': Your Winning Bid is Confirmed – Complete Your Purchase Now',
+                'Your Winning Bid is Confirmed – Complete Your Purchase Now',
               Product_Name: isAcutionUpdated.product.title,
               img: isAcutionUpdated.product.images[0].imageLink,
               userName: `${isAcutionUpdated.bids[0].user.userName}`,

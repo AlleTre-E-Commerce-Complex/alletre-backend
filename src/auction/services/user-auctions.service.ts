@@ -59,7 +59,7 @@ export class UserAuctionsService {
     private auctionStatusValidator: AuctionStatusValidator,
     private emailService: EmailSerivce,
     private notificationService: NotificationsService,
-    private auctionWebsocketGateway: AuctionWebSocketGateway
+    private auctionWebsocketGateway: AuctionWebSocketGateway,
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -893,7 +893,7 @@ export class UserAuctionsService {
           });
           if (updatedAuctionData) {
             //emiting cancel auction to remove the auction from users screen
-             this.auctionWebsocketGateway.cancelAuction(auctionId);
+            this.auctionWebsocketGateway.cancelAuction(auctionId);
             return {
               success: true,
               message: 'You have successfully cancelled the auction.',
@@ -1077,7 +1077,7 @@ export class UserAuctionsService {
             }
           }
           //emiting cancel auction to remove the auction from users screen
-           this.auctionWebsocketGateway.cancelAuction(auctionId);
+          this.auctionWebsocketGateway.cancelAuction(auctionId);
           return {
             success: true,
             message: 'You have successfully cancelled your auction.',

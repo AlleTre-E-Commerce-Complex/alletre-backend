@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
@@ -74,6 +74,8 @@ export class AuthService {
   async signIn(email: string, password: string, userIp: string) {
     // Validate user using validateUser(email,password)
     const { user, addedBonus } = await this.validateUser(email, password);
+    //check user is blocked or not
+    if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
     // Update user ip address
     if (user) await this.userService.updateUserIpAddress(user.id, userIp);
     // Generate tokens
@@ -179,6 +181,9 @@ export class AuthService {
       user = oAuthData.user;
       addedBonus = oAuthData.addedBonus;
     }
+    //check user is blocked or not
+    if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
+    // Update user ip address
     if (user) await this.userService.updateUserIpAddress(user.id, userIp);
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
@@ -283,12 +288,12 @@ export class AuthService {
       //   title: 'We’re Excited to Have You Onboard!',
       //   message: `
       //     Hi ${verificationResult.user.userName},
-          
+
       //     Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
-      
+
       //     Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
-          
-      //     If you ever have questions or need assistance, our team is just a click away. 
+
+      //     If you ever have questions or need assistance, our team is just a click away.
       //   `,
       //   Button_text: 'Get Started',
       //   Button_URL: process.env.FRONT_URL,

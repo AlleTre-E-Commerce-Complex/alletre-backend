@@ -28,7 +28,6 @@ export class AdminWebSocketGateway
   }
 
   async handleConnection(socket: Socket) {
-    console.log('************');
     const token = socket.handshake.headers['authorization']?.split(' ')[1];
     const auctionId = socket.handshake.query.auctionId; // Extract auctionId
     const userId = socket.handshake.query.userId; // Extract userId
@@ -41,7 +40,6 @@ export class AdminWebSocketGateway
 
     try {
       const payload: any = await this.authService.verifyToken(token);
-      console.log('payload :', payload);
       if (!payload.roles.includes('admin')) {
         this.logger.warn(
           `User with ID ${payload.id} is not an admin, disconnecting...`,
