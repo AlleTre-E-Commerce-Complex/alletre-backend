@@ -21,6 +21,7 @@ model User {
   hasCompletedProfile      Boolean              @default(false)
   isVerified               Boolean              @default(false)
   lang                     String               @default("en")
+  isBlocked                Boolean              @default(false)
   oAuthType                OAuthType?
   ipAddress                String?
   socketId                 String?

@@ -966,43 +966,37 @@ export class PaymentsService {
           }
         }
         //Email to winning bidder paid amount (wallet)
+        const paymentSuccessData = paymentData;
+        const invoicePDF = await generateInvoicePDF(paymentSuccessData);
         const emailBodyToWinner = {
-          subject: '🏆 Congratulations! You Won the Auction!',
-          title: 'Your Winning Bid is Confirmed – Complete Your Purchase Now',
-          Product_Name: paymentData.auction.product.title,
-          img: paymentData.auction.product.images[0].imageLink,
-          userName: `${paymentData.auction.bids[0].user.userName}`,
+          subject: '🎉 Payment Confirmation and Next Steps',
+          title: 'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
+          Product_Name: paymentSuccessData.auction.product.title,
+          img: paymentSuccessData.auction.product.images[0].imageLink,
+          userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
           message1: `
-                  <p>Congratulations on winning the auction for ${paymentData.auction.product.title}! It’s time to complete the payment and finalize your purchase.</p>
-                  <p>Auction Details:</p>
-                  <ul>
-                    <li>Item: ${paymentData.auction.product.title}</li>
-                    <li>Winning Bid: ${paymentData.auction.bids[0].amount}</li>
-                    <li>Seller: ${paymentData.auction.user.userName}</li>
-                    <li>Payment Due By: ${PaymentEndDate} & ${formattedEndTime} </li>
-                    </ul>
-                    <h2>What’s Next?</h2>
-                    <h3>Complete Payment:</h3>
-                    <p>Secure your item by completing the payment now.</p>
-                `,
+            <p>We are pleased to inform you that your payment for the auction of <b>${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})</b> has been successfully processed.</p>
+            <p>Here are the auction details for your reference:</p>
+            <ul>
+              <li><b>Item:</b> ${paymentSuccessData.auction.product.title}</li>
+              <li><b>Winning Bid:</b> ${paymentSuccessData.auction.bids[0].amount}</li>
+              <li><b>Seller:</b> ${paymentSuccessData.auction.user.userName}</li>
+            </ul>
+            <p>An invoice for this transaction is attached to this email for your records.</p>
+          `,
           message2: `
-                  <h3>Choose Delivery or Pickup</h3>
-                  <ul>
-                    <li>1. <b>Delivery</b>: The item will be shipped to your address after payment (additional shipping charges may apply.</li>
-                    <li>2. <b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address (Details will be provided after payment).</li>
-                  </ul>
-                  
-                  <h3>Confirm Item Collection:</h3>
-                  <p>If you choose to pick up the item, don’t forget to confirm that you’ve collected it. This ensures a smooth transaction for both you and the seller.</p>
-
-                  <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
-                
-                   <p style="margin-bottom: 0;">Best regards,</p>
-            <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-                 
-                `,
-          Button_text: 'Complete Payment ',
-          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+            <h3>What’s Next?</h3>
+            <ul>
+              <li>Once the delivery is complete, please confirm the delivery by clicking the <b>"Confirm Delivery"</b> button on the <b>MY Bids</b> page under the section <b>"Waiting for Delivery."</b></li>
+              <li>If you encounter any issues during the process, feel free to contact our support team for assistance.</li>
+            </ul>
+            <p>Thank you for choosing <b>Alle Tre</b>. We truly value your trust and look forward to serving you again.</p>
+            <p style="margin-bottom: 0;">Best regards,</p>
+            <p style="margin-top: 0;">The <b>Alle Tre</b> Team</p>
+          `,
+          Button_text: 'Go to MY Bids',
+          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
+          attachment: invoicePDF,
         };
         //send notification to the winner
         const auction = paymentData.auction;
@@ -1358,6 +1352,7 @@ export class PaymentsService {
       if (paymentData) {
         console.log('payment data at buy now ', paymentData);
         //Email to winner (buy now option used - stripe)
+        const invoicePDF = await generateInvoicePDF(paymentData);
         const emailBodyToWinner = {
           subject: '🎉 Congratulations! You Won the Auction',
           title: 'Your Bid Was Successful!',
@@ -1372,7 +1367,7 @@ export class PaymentsService {
               <li> Category: ${paymentData.auction.product.category.nameEn}</li>
               <li> Winning Bid: ${paymentData.auction.bids[0].amount}</li>
             </ul>
-            <p>Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.</p>
+            <p>Your payment has been processed successfully. An invoice for this transaction is attached to this email for your records.</p>
           `,
           message2: `
             <h3>What’s Next?</h3>
@@ -1388,6 +1383,7 @@ export class PaymentsService {
           `,
           Button_text: 'View My Purchase',
           Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
+          attachment: invoicePDF,
         };
         await this.emailService.sendEmail(
           paymentData.user.email,
@@ -2294,7 +2290,7 @@ export class PaymentsService {
                 img: paymentSuccessData.auction.product.images[0].imageLink,
                 userName: `${paymentSuccessData.auction.user.userName}`,
                 message1: `
-                  <p>Great news! The winning bidder for your auction, [Auction Title], has completed the payment in full.</p>
+                  <p>Great news! The winning bidder for your auction, ${paymentSuccessData.auction.product.title}, has completed the payment in full.</p>
                   <p>Auction Details:</p>
                   <ul>
                     <li>Item: ${paymentSuccessData.auction.product.title}</li>
@@ -2339,60 +2335,49 @@ export class PaymentsService {
               };
               console.log('purchase test5');
               const invoicePDF = await generateInvoicePDF(paymentSuccessData);
-              const auctionEndDate = new Date(
-                paymentSuccessData.auction.expiryDate,
-              );
-              const formattedEndTime = auctionEndDate
-                .toTimeString()
-                .slice(0, 5);
-              auctionEndDate.setDate(auctionEndDate.getDate() + 3);
-              const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
+              // const auctionEndDate = new Date(
+              //   paymentSuccessData.auction.expiryDate,
+              // );
+              // const formattedEndTime = auctionEndDate
+              //   .toTimeString()
+              //   .slice(0, 5);
+              // auctionEndDate.setDate(auctionEndDate.getDate() + 3);
+              // const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
               // when the winner pays the full amount - to winner
               const emailBodyToWinner = {
-                subject: '🏆 Congratulations! You Won the Auction!',
-                title:
-                  'Your Winning Bid is Confirmed – Complete Your Purchase Now',
+                subject: '🎉 Payment Confirmation and Next Steps',
+                title: 'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
                 userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
                 message1: `
-                  <p>Congratulations on winning the auction for ${paymentSuccessData.auction.product.title}! It’s time to complete the payment and finalize your purchase.</p>
-                  <p>Auction Details::</p>
+                  <p>We are pleased to inform you that your payment for the auction of <b>${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})</b> has been successfully processed.</p>
+                  <p>Here are the auction details for your reference:</p>
                   <ul>
-                    <li>Item: ${paymentSuccessData.auction.product.title}</li>
-                    <li>Winning Bid: ${paymentSuccessData.auction.bids[0].amount}</li>
-                    <li>Seller: ${paymentSuccessData.auction.user.userName}</li>
-                    <li>Payment Due By: ${PaymentEndDate} & ${formattedEndTime} </li>
-                    </ul>
-                    <h2>What’s Next?</h2>
-                    <h3>Complete Payment:</h3>
-                    <p>Secure your item by completing the payment now.</p>
+                    <li><b>Item:</b> ${paymentSuccessData.auction.product.title}</li>
+                    <li><b>Winning Bid:</b> ${paymentSuccessData.auction.bids[0].amount}</li>
+                    <li><b>Seller:</b> ${paymentSuccessData.auction.user.userName}</li>
+                  </ul>
+                  <p>An invoice for this transaction is attached to this email for your records.</p>
                 `,
                 message2: `
-                  <h3>Choose Delivery or Pickup</h3>
+                  <h3>What’s Next?</h3>
                   <ul>
-                    <li>1. <b>Delivery</b>: The item will be shipped to your address after payment (additional shipping charges may apply.</li>
-                    <li>2. <b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address (Details will be provided after payment).</li>
+                    <li>Once the delivery is complete, please confirm the delivery by clicking the <b>"Confirm Delivery"</b> button on the <b>MY Bids</b> page under the section <b>"Waiting for Delivery."</b></li>
+                    <li>If you encounter any issues during the process, feel free to contact our support team for assistance.</li>
                   </ul>
-                  
-                  <h3>Confirm Item Collection:</h3>
-                  <p>If you choose to pick up the item, don’t forget to confirm that you’ve collected it. This ensures a smooth transaction for both you and the seller.</p>
-
-                  <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
-                
-                   <p style="margin-bottom: 0;">Best regards,</p>
-                   <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-                 
+                  <p>Thank you for choosing <b>Alle Tre</b>. We truly value your trust and look forward to serving you again.</p>
+                  <p style="margin-bottom: 0;">Best regards,</p>
+                  <p style="margin-top: 0;">The <b>Alle Tre</b> Team</p>
                 `,
-                Button_text: 'Complete Payment ',
-                Button_URL:
-                  'https://www.alletre.com/alletre/profile/my-bids/pending',
+                Button_text: 'Go to MY Bids',
+                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
+                attachment: invoicePDF,
               };
               //send notification to the winner
-              const notificationMessageToWinner = `You have successfully paid the full amount of Auction of ${paymentSuccessData.auction.product.title}
-                         (Model:${paymentSuccessData.auction.product.model}). Please confirm the delivery once the delivery is completed 
-                         by clicking the confirm delivery button from the page : MY Bids -> waiting for delivery. 
-                          We would like to thank you and appreciate you for choosing Alle Tre.`;
+              const notificationMessageToWinner = `We are pleased to inform you that your payment for the auction of ${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model}) has been successfully processed.
+              To complete the process, please confirm the delivery once it is completed by clicking the "Confirm Delivery" button on the MY Bids page under the section "Waiting for Delivery."
+              Thank you for choosing Alle Tre. We truly value your trust in us and look forward to serving you again.`;
               const notificationBodyToWinner = {
                 status: 'ON_AUCTION_PURCHASE_SUCCESS',
                 userType: 'FOR_WINNER',
@@ -2565,8 +2550,8 @@ export class PaymentsService {
                 isPaymentSuccess.userId,
                 walletDataToAlletre,
               );
-
               //Email to winner (buy now option used - wallet)
+              const invoicePDF = await generateInvoicePDF(isPaymentSuccess);
               const emailBodyToWinner = {
                 subject: '🎉 Congratulations! You Won the Auction',
                 title: 'Your Bid Was Successful!',
@@ -2581,7 +2566,7 @@ export class PaymentsService {
                     <li> Category: ${isPaymentSuccess.auction.product.category.nameEn}</li>
                     <li> Winning Bid: ${isPaymentSuccess.amount}</li>
                   </ul>
-                  <p>Your payment has been processed successfully. The seller will ship the item to the address you provided shortly.</p>
+                  <p>Your payment has been processed successfully. An invoice for this transaction is attached to this email for your records.</p>
                 `,
                 message2: `
                   <h3>What’s Next?</h3>
@@ -2592,11 +2577,12 @@ export class PaymentsService {
                   <p>Thank you for choosing <b>Alletre</b>! We hope you enjoy your purchase and look forward to seeing you in future auctions.</p>
                 
                    <p style="margin-bottom: 0;">Best regards,</p>
-              <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-                  <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
+                   <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                   <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
                 `,
                 Button_text: 'View My Purchase',
                 Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
+                attachment: invoicePDF,
               };
               const notificationMessageToBuyer = `
               We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
@@ -3149,7 +3135,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 2 * 60 * 1000);
+        : new Date(date.getTime() + 5 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

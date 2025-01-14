@@ -71,12 +71,12 @@ export class UserService {
       //   title: 'We’re Excited to Have You Onboard!',
       //   message: `
       //     Hi ${userName},
-          
+
       //     Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
-      
+
       //     Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
-          
-      //     If you ever have questions or need assistance, our team is just a click away. 
+
+      //     If you ever have questions or need assistance, our team is just a click away.
       //   `,
       //   Button_text: 'Get Started',
       //   Button_URL: process.env.FRONT_URL,
@@ -498,7 +498,7 @@ export class UserService {
       Number(page),
       Number(perPage),
     );
-
+    console.log('limit', limit);
     const users = await this.prismaService.user.findMany({
       where: {
         ...(name
@@ -506,12 +506,14 @@ export class UserService {
           : {}),
       },
       select: {
+        id: true,
         userName: true,
         email: true,
         phone: true,
         imageLink: true,
         isVerified: true,
         createdAt: true,
+        isBlocked: true,
         _count: { select: { auctions: true, JoinedAuction: true } },
       },
       take: limit,
@@ -521,7 +523,6 @@ export class UserService {
     const count = await this.prismaService.user.count({
       where: { ...(name ? { userName: { startsWith: name } } : {}) },
     });
-
     return {
       pagination: this.paginationService.getPagination(count, page, perPage),
       users,
@@ -600,6 +601,28 @@ export class UserService {
       throw new MethodNotAllowedResponse({
         ar: error.response.message.ar,
         en: error.response.message.en,
+      });
+    }
+  }
+  async updateBlockStatus(userId: number, currentStatus: boolean) {
+    try {
+      const user = await this.prismaService.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          isBlocked: !currentStatus,
+        },
+      });
+      console.log('user is blocked ', user);
+      if (user) {
+        return user;
+      }
+    } catch (error) {
+      console.log('Error at updateBlockStatus user :', error);
+      throw new MethodNotAllowedResponse({
+        ar: '',
+        en: error,
       });
     }
   }

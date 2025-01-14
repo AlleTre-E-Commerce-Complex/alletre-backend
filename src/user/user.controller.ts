@@ -53,6 +53,7 @@ export class UserController {
     @Query() paginationDTO: PaginationDTO,
     @Query('name') name: string,
   ) {
+    console.log('getAllUsers : ', paginationDTO);
     return {
       success: true,
       data: await this.userService.getAllUsers(paginationDTO, name),
@@ -160,6 +161,24 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.unSubscribeUser(subscribeDto.email),
+    };
+  }
+
+  @Patch('/admin/updateUserBlockStatus')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async getAllAuctionsByAdmin(
+    @Query('userId') userId: number,
+    @Query('currentStatus') currentStatus: boolean,
+  ) {
+    const data = await this.userService.updateBlockStatus(
+      userId,
+      currentStatus,
+    );
+
+    return {
+      success: true,
+      data,
     };
   }
 }
