@@ -783,4 +783,39 @@ export class AuctionsController {
       ),
     };
   }
+  @Post('/product-listing')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('images', 5, {
+      dest: 'uploads/',
+    }),
+  )
+  async listOnlyProduct(
+    @UploadedFiles() images: Array<Express.Multer.File>,
+    @Body('product') productDTO: ProductDTO,
+  ) {
+    console.log('product DAta :', productDTO);
+    return {
+      success: true,
+      data: await this.userAuctionsService.listOnlyProduct(productDTO, images),
+    };
+  }
+  @Get('/getAllListed-products')
+  @UseGuards(AuthOrGuestGuard)
+  async fetchAllListedProducts(
+    @Account() account: any,
+    @Query() paginationDTO: PaginationDTO,
+  ) {
+    const listedProductsPaginated =
+      await this.userAuctionsService.fetchAllListedOnlyProduct(
+        account.roles,
+        paginationDTO,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+    return {
+      success: true,
+      pagination: listedProductsPaginated.pagination,
+      data: listedProductsPaginated.products,
+    };
+  }
 }

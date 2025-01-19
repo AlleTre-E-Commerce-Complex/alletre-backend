@@ -165,6 +165,7 @@ model Brand {
 
 model Product {
   id                  Int          @id @default(autoincrement())
+  isAuctionProduct    Boolean?     @default(true)
   categoryId          Int
   subCategoryId       Int?
   brandId             Int?
