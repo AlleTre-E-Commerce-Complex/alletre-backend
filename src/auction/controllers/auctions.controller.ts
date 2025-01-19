@@ -790,14 +790,15 @@ export class AuctionsController {
       dest: 'uploads/',
     }),
   )
-  async listOnlyProduct(
+  async listOnlyProduct( 
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Body('product') productDTO: ProductDTO,
+    @Account() account: any,
   ) {
     console.log('product DAta :', productDTO);
     return {
       success: true,
-      data: await this.userAuctionsService.listOnlyProduct(productDTO, images),
+      data: await this.userAuctionsService.listOnlyProduct(productDTO, images, account.id),
     };
   }
   @Get('/getAllListed-products')

@@ -3598,10 +3598,10 @@ export class UserAuctionsService {
       }),
     };
   }
-  async listOnlyProduct(productData: ProductDTO, images: Express.Multer.File[],){
+  async listOnlyProduct(productData: ProductDTO, images: Express.Multer.File[], userId :number){
     try {
       const createProductStatus = "LISTING"
-      const productId = await this._createProduct(productData, images, createProductStatus);
+      const productId = await this._createProduct(productData, images, createProductStatus, userId);
       return productId
     } catch (error) {
       console.error('list new procuct error :',error)
@@ -3629,6 +3629,7 @@ export class UserAuctionsService {
         },
         include:{
           images: true,
+          user: true,
         },
         skip: skip,
         take: limit,
@@ -4132,6 +4133,7 @@ export class UserAuctionsService {
     productBody: ProductDTO,
     images?: Express.Multer.File[],
     createProductStatus? : "LISTING" | "AUCTION",
+    userId?: number,
   ) {
     const {
       title,
@@ -4161,6 +4163,7 @@ export class UserAuctionsService {
       isOffer,
       offerAmount,
       brand,
+      ProductListingPrice,
     } = productBody;
 
     console.log('offer price :', offerAmount, 'isoffer:', isOffer);
@@ -4189,6 +4192,7 @@ export class UserAuctionsService {
           title,
           categoryId: Number(categoryId),
           description,
+          ...(userId? { userId: Number(userId) } : {}),
           ...(age ? { age: Number(age) } : {}),
           ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
           ...(screenSize ? { screenSize: Number(screenSize) } : {}),
@@ -4199,6 +4203,7 @@ export class UserAuctionsService {
           ...(countryId ? { countryId: Number(countryId) } : {}),
           ...(cityId ? { cityId: Number(cityId) } : {}),
           ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
+          ...(ProductListingPrice ? { ProductListingPrice: Number(ProductListingPrice) } : {}),
           ...nonNumericOptionalFields,
         },
       });
