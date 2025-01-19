@@ -28,6 +28,7 @@ model User {
   stripeId                 String?
   stripeConnectedAccountId String?
   auctions                 Auction[]
+  ListedProducts           Product[]
   locations                Location[]
   watchLists               WatchList[]
   bids                     Bids[]
@@ -165,6 +166,7 @@ model Brand {
 
 model Product {
   id                  Int          @id @default(autoincrement())
+  userId              Int?          
   isAuctionProduct    Boolean?     @default(true)
   categoryId          Int
   subCategoryId       Int?
@@ -183,6 +185,7 @@ model Product {
   ramSize             Int?
   isOffer             Boolean      @default(false)
   offerAmount         Decimal?     @default(0)
+  ProductListingPrice Decimal?     @default(0)
   cameraType          String?
   material            String?
   memory              String?
@@ -197,6 +200,7 @@ model Product {
   auction             Auction?
   images              Image[]
   brand               String?
+  user                User?         @relation(fields: [userId], references: [id])
   category            Category     @relation(fields: [categoryId], references: [id])
   subCategory         SubCategory? @relation(fields: [subCategoryId], references: [id])
   // brand               Brand?       @relation(fields: [brandId], references: [id])
