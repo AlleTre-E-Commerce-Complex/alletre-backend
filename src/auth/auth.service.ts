@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
@@ -11,6 +11,7 @@ import { EmailSerivce } from '../emails/email.service';
 import { EmailsType } from './enums/emails-type.enum';
 import { Socket } from 'socket.io';
 import { AdminService } from 'src/admin/admin.service';
+import axios from 'axios';
 import { WalletStatus, WalletTransactionType } from '@prisma/client';
 import { WalletService } from 'src/wallet/wallet.service';
 
@@ -133,6 +134,7 @@ export class AuthService {
       EmailsType.VERIFICATION,
       {},
       userSignUpBody.userName,
+      userSignUpBody.userName,
     );
 
     return {
@@ -216,7 +218,13 @@ export class AuthService {
     );
 
     // Send email verificaiton to 'email'
-    await this.emailSerivce.sendEmail(email, token, EmailsType.VERIFICATION);
+    await this.emailSerivce.sendEmail(
+      email,
+      token,
+      EmailsType.VERIFICATION,
+      user.userName,
+      {}
+    );
   }
 
   async forgetPassword(email: string) {
@@ -333,7 +341,7 @@ export class AuthService {
     }
 
     const successMessage = `
-      <html>
+        <html>
         <head>
           <style>
             body {
@@ -343,12 +351,13 @@ export class AuthService {
               align-items: center;
               height: 100vh;
               margin: 0;
+              
             }
             .modal {
               background-color: white;
               border-radius: 8px;
               box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              width: 300px;
+              width: 400px;
               text-align: center;
             }
             .modal-header {
@@ -360,6 +369,7 @@ export class AuthService {
             }
             .modal-body {
               padding: 20px;
+              
             }
             .modal-footer {
               padding: 10px;
@@ -368,30 +378,34 @@ export class AuthService {
               display: inline-block;
               margin-top: 20px;
               padding: 10px 20px;
-              background-color: #801f50;
+              background-color: #a91d3a;
               color: white;
               text-decoration: none;
               border-radius: 4px;
               transition: background-color 0.3s;
             }
             .modal a:hover {
-              background-color: #5e1438;
+              background-color: #5b0c1f;
             }
           </style>
         </head>
         <body>
           <div class="modal">
-            <div class="modal-header">Email Confirmation</div>
+             <img
+        src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/tick%20mark%20round%20icon.png?alt=media&token=ae88bf91-643c-4d3c-87b1-4d4f64601963"
+       
+         style="width: 90px; height: 90px; margin-top:30px;"
+      />
             <div class="modal-body">
-              <h1>Verified Successfully</h1>
-              <a href=${process.env.FRONT_URL}>Go to Login</a>
+              <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
+              <a href=${process.env.FRONT_URL}>Login</a>
             </div>
           </div>
         </body>
       </html>`;
 
     const failureMessage = `
-      <html>
+        <html>
         <head>
           <style>
             body {
@@ -401,12 +415,13 @@ export class AuthService {
               align-items: center;
               height: 100vh;
               margin: 0;
+              
             }
             .modal {
               background-color: white;
               border-radius: 8px;
               box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              width: 300px;
+              width: 400px;
               text-align: center;
             }
             .modal-header {
@@ -418,6 +433,7 @@ export class AuthService {
             }
             .modal-body {
               padding: 20px;
+              
             }
             .modal-footer {
               padding: 10px;
@@ -426,23 +442,27 @@ export class AuthService {
               display: inline-block;
               margin-top: 20px;
               padding: 10px 20px;
-              background-color: #801f50;
+              background-color: #a91d3a;
               color: white;
               text-decoration: none;
               border-radius: 4px;
               transition: background-color 0.3s;
             }
             .modal a:hover {
-              background-color: #5e1438;
+              background-color: #5b0c1f;
             }
           </style>
         </head>
         <body>
           <div class="modal">
-            <div class="modal-header">Email Confirmation</div>
+             <img
+        src=https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/tick%20mark%20failed%20mark-02.png?alt=media&token=69f43881-b26e-43ef-b4c2-a595feb1f16b 
+       
+         style="width: 90px; height: 90px; margin-top:30px;"
+      />
             <div class="modal-body">
-              <h1>Verification Failed</h1>
-              <a href=${process.env.FRONT_URL}>Go to Login</a>
+              <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verification Failed</h1>
+              <a href=${process.env.FRONT_URL}>Try Again</a>
             </div>
           </div>
         </body>
@@ -573,5 +593,77 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async getAuthorizationUrl(): Promise<string> {
+    const scope = 'urn:uae:digitalid:profile';
+    const state = Math.random().toString(36).substring(7);
+    console.log('state', state);
+    return (
+      `${process.env.UAE_PASS_SANDBOX_URL}/authorize?` +
+      `client_id=${process.env.UAE_PASS_CLIENT_ID}&` +
+      `response_type=code&` +
+      `scope=${scope}&` +
+      `state=${state}&` +
+      `redirect_uri=${process.env.UAE_PASS_REDIRECT_URI}`
+    );
+  }
+
+  async handleCallback(code: string): Promise<any> {
+    try {
+      // Get access token
+      const tokenResponse = await this.getAccessToken(code);
+      const accessToken = tokenResponse.access_token;
+
+      // Get user profile
+      const userProfile = await this.getUserProfile(accessToken);
+      console.log('userProfile', userProfile);
+      // Create or update user
+      //   const user = await this.upsertUser(userProfile);
+
+      // Generate JWT token
+      //   const tokens = await this.authService.generateTokens(user);
+
+      return {
+        // user,
+        // ...tokens,
+        userProfile,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'UAE Pass authentication failed',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+  }
+
+  private async getAccessToken(code: string): Promise<any> {
+    const tokenUrl = `${process.env.UAE_PASS_SANDBOX_URL}/token`;
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: process.env.UAE_PASS_REDIRECT_URI,
+      client_id: process.env.UAE_PASS_CLIENT_ID,
+      client_secret: process.env.UAE_PASS_CLIENT_SECRET,
+    });
+
+    const response = await axios.post(tokenUrl, params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    return response.data;
+  }
+
+  private async getUserProfile(accessToken: string): Promise<any> {
+    const userInfoUrl = `${process.env.UAE_PASS_SANDBOX_URL}/userinfo`;
+    const response = await axios.get(userInfoUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    return response.data;
   }
 }

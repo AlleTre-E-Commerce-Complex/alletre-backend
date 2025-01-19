@@ -1710,7 +1710,7 @@ export class UserAuctionsService {
       where: {
         status: {
           not: {
-            in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+            in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED,AuctionStatus.PENDING_OWNER_DEPOIST],
           },
         },
       },
