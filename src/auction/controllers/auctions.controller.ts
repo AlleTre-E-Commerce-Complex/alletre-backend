@@ -337,6 +337,28 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/pay-by-banck/upload-bank-statement')
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  // @UseInterceptors(FileInterceptor('image', { dest: 'uploads/' }))
+  @UseGuards(AuthGuard)
+  async uploadBankStatement(
+    @Account() account: any,
+    @Body('auctionId') auctionId: any,
+    @Body('amount') amount: any,
+    @UploadedFiles() statement: Express.Multer.File,
+  ) {
+    console.log('upload banck statement pay api called');
+    return {
+      success: true,
+      data: await this.userAuctionsService.uploadBankStatement(
+        statement,
+        account.id,
+        auctionId,
+        amount,
+      ),
+    };
+  }
+
   // @Get('/user/checkKYCStatusForWithdrawal')
   // @UseGuards(AuthGuard)
   // async checkKYCStatusForWithdrawal(

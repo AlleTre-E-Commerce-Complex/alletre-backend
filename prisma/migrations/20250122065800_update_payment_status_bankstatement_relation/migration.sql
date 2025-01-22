@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PaymentStatus" ADD VALUE 'BANK_STATEMENT_UPLOADED';

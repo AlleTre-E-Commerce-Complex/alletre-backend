@@ -2419,6 +2419,73 @@ export class UserAuctionsService {
     }
   }
 
+  async uploadBankStatement(
+    statement: Express.Multer.File,
+    userId: number,
+    auctionId: number,
+    amount: number,
+  ) {
+    try {
+      console.log('statement:', statement[0].filename);
+      // Validate that the statement file exists
+      if (!statement) {
+        throw new MethodNotAllowedResponse({
+          ar: 'ملف كشف الحساب البنكي مطلوب',
+          en: 'Bank statement file is required',
+        });
+      }
+  
+      // Upload the bank statement to Firebase
+      const uploadedStatement = await this.firebaseService.uploadImage(statement[0]);
+      console.log('Uploaded bank statement:', uploadedStatement);
+  
+      // Create a payment record in the database
+      const paymentData = await this.prismaService.payment.create({
+        data: {
+          userId,
+          auctionId: Number(auctionId),
+          amount,
+          type: PaymentType.AUCTION_PURCHASE,
+          isWalletPayment: true,
+          status: 'BANK_STATEMENT_UPLOADED',
+        },
+        include: {
+          auction: {
+            include: { product: { include: { images: true } } },
+          },
+        },
+      });
+  
+      // Ensure paymentData is successfully created
+      if (!paymentData) {
+        throw new MethodNotAllowedResponse({
+          ar: 'فشل في إنشاء سجل الدفع',
+          en: 'Failed to create payment record',
+        });
+      }
+  
+      // Create a bank statement record in the database
+      const createdImage = await this.prismaService.bankStatement.create({
+        data: {
+          paymentId: paymentData.id,
+          statementLink: uploadedStatement.fileLink,
+          statementPath: uploadedStatement.filePath,
+        },
+      });
+  
+      console.log('Uploaded bank statement record:', createdImage);
+  
+      return createdImage; // Return the created image for further processing, if needed
+    } catch (error) {
+      console.error('Error uploading bank statement:', error);
+  
+      throw new MethodNotAllowedResponse({
+        ar: 'فشل تحميل كشف الحساب البنكي',
+        en: 'Failed to upload bank statement',
+      });
+    }
+  }
+  
   async payDepositByBidder(
     userId: number,
     auctionId: number,
@@ -3628,8 +3695,9 @@ export class UserAuctionsService {
     roles: Role[],
     paginationDTO: PaginationDTO,
     userId?: number,
-  ) {
+  )  {
     try {
+      console.log('test--> :');
       const { page = 1, perPage = 4 } = paginationDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
