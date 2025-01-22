@@ -218,6 +218,8 @@ model Image {
   product   Product  @relation(fields: [productId], references: [id])
 }
 
+
+
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
@@ -302,15 +304,25 @@ model Bids {
 model Payment {
   id              Int           @id @default(autoincrement())
   userId          Int
-  auctionId       Int
+  auctionId       Int 
   paymentIntentId String?       @unique
   amount          Decimal
   createdAt       DateTime      @default(now())
   type            PaymentType?
+  bankStatement   BankStatement?
   isWalletPayment Boolean       @default(false)
   status          PaymentStatus @default(PENDING)
   auction         Auction       @relation(fields: [auctionId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
+}
+
+model BankStatement {
+  id        Int      @id @default(autoincrement())
+  paymentId Int?     @unique
+  statementPath String
+  statementLink String
+  createdAt DateTime @default(now())
+  payment   Payment?  @relation(fields: [paymentId], references: [id])
 }
 
 model JoinedAuction {
@@ -435,6 +447,7 @@ enum UsageStatus {
 }
 
 enum PaymentStatus {
+  BANK_STATEMENT_UPLOADED
   PENDING
   SUCCESS
   FAILED

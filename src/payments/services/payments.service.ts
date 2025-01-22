@@ -970,7 +970,8 @@ export class PaymentsService {
         const invoicePDF = await generateInvoicePDF(paymentSuccessData);
         const emailBodyToWinner = {
           subject: '🎉 Payment Confirmation and Next Steps',
-          title: 'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
+          title:
+            'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
           Product_Name: paymentSuccessData.auction.product.title,
           img: paymentSuccessData.auction.product.images[0].imageLink,
           userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
@@ -995,7 +996,8 @@ export class PaymentsService {
             <p style="margin-top: 0;">The <b>Alle Tre</b> Team</p>
           `,
           Button_text: 'Go to MY Bids',
-          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
+          Button_URL:
+            'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
           attachment: invoicePDF,
         };
         //send notification to the winner
@@ -2346,7 +2348,8 @@ export class PaymentsService {
               // when the winner pays the full amount - to winner
               const emailBodyToWinner = {
                 subject: '🎉 Payment Confirmation and Next Steps',
-                title: 'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
+                title:
+                  'Your Payment is Confirmed – Please Confirm Delivery Upon Completion',
                 Product_Name: paymentSuccessData.auction.product.title,
                 img: paymentSuccessData.auction.product.images[0].imageLink,
                 userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
@@ -2371,7 +2374,8 @@ export class PaymentsService {
                   <p style="margin-top: 0;">The <b>Alle Tre</b> Team</p>
                 `,
                 Button_text: 'Go to MY Bids',
-                Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
+                Button_URL:
+                  'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
                 attachment: invoicePDF,
               };
               //send notification to the winner
@@ -3077,9 +3081,9 @@ export class PaymentsService {
                    
                     <p>You can track bids and view your auction here:</p>
                        <div style="text-align: center">
-          <a
-            href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
-            style="
+            <a
+              href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+              style="
               display: inline-block;
               padding: 12px 20px;
               background-color: #a91d3a !important;
@@ -3091,14 +3095,14 @@ export class PaymentsService {
               font-weight: bold;
               margin: 20px 0;
               font-size: 18px;
-            "
-          >
-            View My Auction 
-          </a>
-        </div>
+              "
+              >
+              View My Auction 
+              </a>
+            </div>
 
                     <p style="margin-bottom: 0;">Best regards,</p>
-<p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                     <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
                   `,
               Button_text: 'Share My Auction ',
