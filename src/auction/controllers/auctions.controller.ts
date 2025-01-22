@@ -790,7 +790,7 @@ export class AuctionsController {
       dest: 'uploads/',
     }),
   )
-  async listOnlyProduct( 
+  async listOnlyProduct(
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Body('product') productDTO: ProductDTO,
     @Account() account: any,
@@ -798,7 +798,11 @@ export class AuctionsController {
     console.log('product DAta :', productDTO);
     return {
       success: true,
-      data: await this.userAuctionsService.listOnlyProduct(productDTO, images, account.id),
+      data: await this.userAuctionsService.listOnlyProduct(
+        productDTO,
+        images,
+        account.id,
+      ),
     };
   }
   @Get('/getAllListed-products')
@@ -817,6 +821,22 @@ export class AuctionsController {
       success: true,
       pagination: listedProductsPaginated.pagination,
       data: listedProductsPaginated.products,
+    };
+  }
+
+  @Get('/:productId/details')
+  @UseGuards(AuthOrGuestGuard)
+  async getProductById(
+    @Account() account: any,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.findProductByIdOr404(
+        productId,
+        account.roles,
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      ),
     };
   }
 }

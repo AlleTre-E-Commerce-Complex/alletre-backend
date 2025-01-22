@@ -80,11 +80,11 @@ export class UserAuctionsService {
     const { type, durationUnit, startDate, product } = auctionCreationBody;
 
     // Create Product
-    const createProductStatus = 'AUCTION'
+    const createProductStatus = 'AUCTION';
     const productId = await this._createProduct(
       product,
       images,
-      createProductStatus
+      createProductStatus,
     );
 
     // Create Auction
@@ -1710,7 +1710,11 @@ export class UserAuctionsService {
       where: {
         status: {
           not: {
-            in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED,AuctionStatus.PENDING_OWNER_DEPOIST],
+            in: [
+              AuctionStatus.ACTIVE,
+              AuctionStatus.IN_SCHEDULED,
+              AuctionStatus.PENDING_OWNER_DEPOIST,
+            ],
           },
         },
       },
@@ -3598,13 +3602,22 @@ export class UserAuctionsService {
       }),
     };
   }
-  async listOnlyProduct(productData: ProductDTO, images: Express.Multer.File[], userId :number){
+  async listOnlyProduct(
+    productData: ProductDTO,
+    images: Express.Multer.File[],
+    userId: number,
+  ) {
     try {
-      const createProductStatus = "LISTING"
-      const productId = await this._createProduct(productData, images, createProductStatus, userId);
-      return productId
+      const createProductStatus = 'LISTING';
+      const productId = await this._createProduct(
+        productData,
+        images,
+        createProductStatus,
+        userId,
+      );
+      return productId;
     } catch (error) {
-      console.error('list new procuct error :',error)
+      console.error('list new procuct error :', error);
       throw new MethodNotAllowedResponse({
         ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
         en: 'Something Went Wrong While Adding Your Product',
@@ -3615,30 +3628,29 @@ export class UserAuctionsService {
     roles: Role[],
     paginationDTO: PaginationDTO,
     userId?: number,
-  ){
+  ) {
     try {
-      console.log('test--> :',)
       const { page = 1, perPage = 4 } = paginationDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
       );
       const allListedProducts = await this.prismaService.product.findMany({
-        where:{
-          isAuctionProduct: false
+        where: {
+          isAuctionProduct: false,
         },
-        include:{
+        include: {
           images: true,
-          user: true,
+          user: { include: { locations: true } },
         },
         skip: skip,
         take: limit,
-      })
+      });
       const productsCount = await this.prismaService.product.count({
-        where:{
-          isAuctionProduct: false
-        }
-      })
+        where: {
+          isAuctionProduct: false,
+        },
+      });
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
@@ -3647,14 +3659,40 @@ export class UserAuctionsService {
       return {
         products: allListedProducts,
         pagination,
-      }
+      };
     } catch (error) {
-      console.error('list new procuct error :',error)
+      console.error('list new procuct error :', error);
       throw new MethodNotAllowedResponse({
         ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
         en: 'Something Went Wrong While Fetching all Products',
       });
     }
+  }
+  async findProductByIdOr404(
+    productId: number,
+    roles: Role[],
+    userId?: number,
+  ) {
+    const product = await this.prismaService.product.findUnique({
+      where: { id: productId },
+      include: {
+        category: true,
+        subCategory: true,
+        city: true,
+        country: true,
+        images: true,
+        user: { include: { locations: true } },
+      },
+    });
+
+    if (!product) {
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
+        en: 'Something Went Wrong While Fetching a Products',
+      });
+    }
+
+    return product;
   }
 
   private async _createOnTimeHoursAuction(
@@ -4132,7 +4170,7 @@ export class UserAuctionsService {
   private async _createProduct(
     productBody: ProductDTO,
     images?: Express.Multer.File[],
-    createProductStatus? : "LISTING" | "AUCTION",
+    createProductStatus?: 'LISTING' | 'AUCTION',
     userId?: number,
   ) {
     const {
@@ -4168,7 +4206,7 @@ export class UserAuctionsService {
 
     console.log('offer price :', offerAmount, 'isoffer:', isOffer);
     console.log('productBody :', productBody);
-    const isAuctionProduct = createProductStatus === 'LISTING' ? false : true  
+    const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
     const nonNumericOptionalFields = {
       usageStatus,
       color,
@@ -4183,7 +4221,7 @@ export class UserAuctionsService {
       model,
       isOffer,
       brand,
-      isAuctionProduct
+      isAuctionProduct,
     };
     let createdProduct: Product;
     try {
@@ -4192,7 +4230,7 @@ export class UserAuctionsService {
           title,
           categoryId: Number(categoryId),
           description,
-          ...(userId? { userId: Number(userId) } : {}),
+          ...(userId ? { userId: Number(userId) } : {}),
           ...(age ? { age: Number(age) } : {}),
           ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
           ...(screenSize ? { screenSize: Number(screenSize) } : {}),
@@ -4203,7 +4241,9 @@ export class UserAuctionsService {
           ...(countryId ? { countryId: Number(countryId) } : {}),
           ...(cityId ? { cityId: Number(cityId) } : {}),
           ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
-          ...(ProductListingPrice ? { ProductListingPrice: Number(ProductListingPrice) } : {}),
+          ...(ProductListingPrice
+            ? { ProductListingPrice: Number(ProductListingPrice) }
+            : {}),
           ...nonNumericOptionalFields,
         },
       });
