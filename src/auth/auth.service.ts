@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UserService } from '../user/user.service';
@@ -134,7 +139,6 @@ export class AuthService {
       EmailsType.VERIFICATION,
       {},
       userSignUpBody.userName,
-      userSignUpBody.userName,
     );
 
     return {
@@ -222,8 +226,8 @@ export class AuthService {
       email,
       token,
       EmailsType.VERIFICATION,
+      {},
       user.userName,
-      {}
     );
   }
 
