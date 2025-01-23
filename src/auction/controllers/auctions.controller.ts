@@ -217,6 +217,25 @@ export class AuctionsController {
     };
   }
 
+  @Get('/product/similar')
+  @UseGuards(AuthOrGuestGuard)
+  async getSimilarProducts(
+    @Account() account: any,
+    @Query('productId', ParseIntPipe) productId: number,
+  ) {
+    const similarProductsResult =
+      await this.userAuctionsService.findSimilarProducts(
+        Number(productId),
+        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      );
+
+    return {
+      success: true,
+      count: similarProductsResult.count,
+      data: similarProductsResult.similarProducts,
+    };
+  }
+
   @Get('/user/sponsored')
   @UseGuards(AuthOrGuestGuard)
   async getSponseredAuctions(@Account() account: any) {
