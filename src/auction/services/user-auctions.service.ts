@@ -1889,6 +1889,50 @@ export class UserAuctionsService {
       count: similarAuctions.length,
     };
   }
+  async findSimilarProducts(productId: number, userId?: number) {
+    const product = await this.prismaService.product.findUnique({
+      where: { id: productId },
+      select: { categoryId: true },
+    });
+
+    if (!product) {
+      throw new NotFoundResponse({
+        ar: 'لم يتم العثور على المنتج',
+        en: 'Product Not Found',
+      });
+    }
+
+    const similarProducts = await this.prismaService.product.findMany({
+      where: {
+        categoryId: product.categoryId, 
+        id: { not: productId },
+        isAuctionProduct: false, 
+        ...(userId ? { userId: { not: userId } } : {}), 
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        ProductListingPrice: true,
+        categoryId: true,
+        images: true,
+        user: {
+          select: {
+            id: true,
+            userName: true,
+            locations: true, 
+          },
+        },
+      },
+      take: 8, 
+    });
+
+    return {
+      count: similarProducts.length,
+      similarProducts,
+    };
+  }
+
   async findUpCommingAuctionsForUser(
     roles: Role[],
     paginationDTO: PaginationDTO,
@@ -4272,8 +4316,6 @@ export class UserAuctionsService {
       ProductListingPrice,
     } = productBody;
 
-    console.log('offer price :', offerAmount, 'isoffer:', isOffer);
-    console.log('productBody :', productBody);
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
     const nonNumericOptionalFields = {
       usageStatus,
