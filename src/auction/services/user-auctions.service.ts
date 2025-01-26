@@ -44,6 +44,7 @@ import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { AuctionWebSocketGateway } from '../gateway/auction.gateway';
+import { generateInvoicePDF } from 'src/emails/invoice';
 
 @Injectable()
 export class UserAuctionsService {
@@ -1904,10 +1905,10 @@ export class UserAuctionsService {
 
     const similarProducts = await this.prismaService.product.findMany({
       where: {
-        categoryId: product.categoryId, 
+        categoryId: product.categoryId,
         id: { not: productId },
-        isAuctionProduct: false, 
-        ...(userId ? { userId: { not: userId } } : {}), 
+        isAuctionProduct: false,
+        ...(userId ? { userId: { not: userId } } : {}),
       },
       select: {
         id: true,
@@ -1920,11 +1921,11 @@ export class UserAuctionsService {
           select: {
             id: true,
             userName: true,
-            locations: true, 
+            locations: true,
           },
         },
       },
-      take: 8, 
+      take: 8,
     });
 
     return {
@@ -2470,7 +2471,9 @@ export class UserAuctionsService {
     amount: number,
   ) {
     try {
-      console.log('statement:', statement[0].filename);
+      console.log('------------->', statement);
+      const fileType = statement[0].mimetype;
+      console.log('statement:', statement[0].fileName, fileType);
       // Validate that the statement file exists
       if (!statement) {
         throw new MethodNotAllowedResponse({
@@ -2478,11 +2481,16 @@ export class UserAuctionsService {
           en: 'Bank statement file is required',
         });
       }
-  
-      // Upload the bank statement to Firebase
-      const uploadedStatement = await this.firebaseService.uploadImage(statement[0]);
+      let uploadedStatement: any;
+      if (fileType === 'application/pdf') {
+        uploadedStatement = await this.firebaseService.uploadPdf(statement[0]);
+      } else {
+        // Upload the bank statement as image to Firebase
+        uploadedStatement = await this.firebaseService.uploadImage(
+          statement[0],
+        );
+      }
       console.log('Uploaded bank statement:', uploadedStatement);
-  
       // Create a payment record in the database
       const paymentData = await this.prismaService.payment.create({
         data: {
@@ -2499,7 +2507,7 @@ export class UserAuctionsService {
           },
         },
       });
-  
+
       // Ensure paymentData is successfully created
       if (!paymentData) {
         throw new MethodNotAllowedResponse({
@@ -2507,7 +2515,7 @@ export class UserAuctionsService {
           en: 'Failed to create payment record',
         });
       }
-  
+
       // Create a bank statement record in the database
       const createdImage = await this.prismaService.bankStatement.create({
         data: {
@@ -2516,20 +2524,393 @@ export class UserAuctionsService {
           statementPath: uploadedStatement.filePath,
         },
       });
-  
+
       console.log('Uploaded bank statement record:', createdImage);
-  
+
       return createdImage; // Return the created image for further processing, if needed
     } catch (error) {
       console.error('Error uploading bank statement:', error);
-  
+
       throw new MethodNotAllowedResponse({
         ar: 'فشل تحميل كشف الحساب البنكي',
         en: 'Failed to upload bank statement',
       });
     }
   }
-  
+
+  async findBankTransferData() {
+    const paymentsData = await this.prismaService.payment.findMany({
+      where: {
+        type: PaymentType.AUCTION_PURCHASE,
+        bankStatement: { isNot: null },
+      },
+      include: {
+        bankStatement: true,
+        auction: {
+          include: {
+            user: true,
+            location: { include: { city: true, country: true } },
+            product: { include: { images: true } },
+          },
+        },
+        user: {
+          include: { locations: { include: { city: true, country: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return paymentsData;
+  }
+
+  async updateBankTranferRequestsByAdmin(
+    requestId: string,
+    status: PaymentStatus,
+  ) {
+    try {
+      const updatedBankTransferRequestData =
+        await this.prismaService.payment.update({
+          where: {
+            id: Number(requestId),
+          },
+          data: {
+            status,
+          },
+          include: {
+            user: true,
+            auction: {
+              include: {
+                bids: {
+                  include: { user: true },
+                  orderBy: { amount: 'desc' },
+                },
+                product: {
+                  include: { images: true, category: true },
+                },
+                user: true,
+              },
+            },
+          },
+        });
+
+      const joinedAuction = await this.prismaService.joinedAuction.findFirst({
+        where: {
+          userId: updatedBankTransferRequestData.userId,
+          auctionId: updatedBankTransferRequestData.auctionId,
+        },
+        include: {
+          user: true,
+        },
+      });
+
+      if (updatedBankTransferRequestData) {
+        const lastBalanceOfAlletre =
+          await this.walletService.findLastTransactionOfAlletre();
+        // wallet data for deposit to alletre wallet
+
+        const alletreWalletData = {
+          status: WalletStatus.DEPOSIT,
+          transactionType: WalletTransactionType.By_AUCTION,
+          description: `Bank Transfer`,
+          amount: Number(updatedBankTransferRequestData.amount),
+          auctionId: Number(updatedBankTransferRequestData.auctionId),
+          balance: lastBalanceOfAlletre
+            ? Number(lastBalanceOfAlletre) +
+              Number(updatedBankTransferRequestData.amount)
+            : Number(updatedBankTransferRequestData.amount),
+        };
+        const isAlletreWalletCreted =
+          await this.walletService.addToAlletreWallet(
+            updatedBankTransferRequestData.userId,
+            alletreWalletData,
+          );
+
+        const joinedAuction = await this.prismaService.joinedAuction.findFirst({
+          where: {
+            userId: updatedBankTransferRequestData.userId,
+            auctionId: updatedBankTransferRequestData.auctionId,
+          },
+          include: {
+            user: true,
+          },
+        });
+
+        if (isAlletreWalletCreted) {
+          await this.prismaService.$transaction(async (prisma) => {
+            // Update joinedAuction for bidder to WAITING_DELIVERY
+            await prisma.joinedAuction.update({
+              where: { id: joinedAuction.id },
+              data: {
+                status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
+              },
+            });
+            // Update auction status to sold
+            await prisma.auction.update({
+              where: { id: updatedBankTransferRequestData.auctionId },
+              data: { status: AuctionStatus.SOLD },
+            });
+          });
+        }
+      }
+      const paymentData = updatedBankTransferRequestData;
+      if (paymentData) {
+        const auctionEndDate = new Date(paymentData.auction.expiryDate);
+        const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+        auctionEndDate.setDate(auctionEndDate.getDate() + 3);
+        const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
+        //here need send the back the security deposit of winner
+        const winnedBidderDepositPaymentData =
+          await this.paymentService.getAuctionPaymentTransaction(
+            paymentData.userId,
+            paymentData.auctionId,
+            PaymentType.BIDDER_DEPOSIT,
+          );
+
+        if (
+          !winnedBidderDepositPaymentData.isWalletPayment &&
+          winnedBidderDepositPaymentData.paymentIntentId
+        ) {
+          try {
+            const is_SD_SendBackToWinner =
+              await this.stripeService.cancelDepositPaymentIntent(
+                winnedBidderDepositPaymentData.paymentIntentId,
+              );
+            if (is_SD_SendBackToWinner) {
+              console.log('SD send back to winner - stripe');
+            }
+          } catch (error) {
+            console.error(
+              'Error when sending back SD  for winning bidder:',
+              error,
+            );
+          }
+        } else {
+          try {
+            //finding the last transaction balance of the winner
+            const lastWalletTransactionBalanceOfWinner =
+              await this.walletService.findLastTransaction(
+                winnedBidderDepositPaymentData.userId,
+              );
+            //finding the last transaction balance of the alletreWallet
+            const lastBalanceOfAlletre =
+              await this.walletService.findLastTransactionOfAlletre();
+            //wallet data for the winner bidder
+            const BidderWalletData = {
+              status: WalletStatus.DEPOSIT,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Return security deposit after auction win - payment through bank`,
+              amount: Number(winnedBidderDepositPaymentData.amount),
+              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              balance: lastWalletTransactionBalanceOfWinner
+                ? Number(lastWalletTransactionBalanceOfWinner) +
+                  Number(winnedBidderDepositPaymentData.amount)
+                : Number(winnedBidderDepositPaymentData.amount),
+            };
+            // wallet data for deposit to alletre wallet
+
+            const alletreWalletData = {
+              status: WalletStatus.WITHDRAWAL,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Return of bidder security deposit after auction win - payment through bank`,
+              amount: Number(winnedBidderDepositPaymentData.amount),
+              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              balance:
+                Number(lastBalanceOfAlletre) -
+                Number(winnedBidderDepositPaymentData.amount),
+            };
+            await this.walletService.create(
+              winnedBidderDepositPaymentData.userId,
+              BidderWalletData,
+            );
+            //crete new transaction in alletre wallet
+            await this.walletService.addToAlletreWallet(
+              winnedBidderDepositPaymentData.userId,
+              alletreWalletData,
+            );
+          } catch (error) {
+            console.error(
+              'Error when sending back SD  for winning bidder:',
+              error,
+            );
+          }
+        }
+        //Email to winning bidder paid amount (wallet)
+        const paymentSuccessData = paymentData;
+        const invoicePDF = await generateInvoicePDF(paymentSuccessData);
+        const emailBodyToWinner = {
+          subject: '🎉 Payment Confirmation and Next Steps',
+          title:
+            'Your Bank Transfer Payment is Confirmed – Please Confirm Delivery Upon Completion',
+          Product_Name: paymentSuccessData.auction.product.title,
+          img: paymentSuccessData.auction.product.images[0].imageLink,
+          userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
+          message1: `
+                    <p>We are pleased to inform you that your payment for the auction of <b>${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})</b> has been successfully received via bank transfer.</p>
+                    <p>Here are the auction details for your reference:</p>
+                    <ul>
+                      <li><b>Item:</b> ${paymentSuccessData.auction.product.title}</li>
+                      <li><b>Winning Bid:</b> ${paymentSuccessData.auction.bids[0].amount}</li>
+                      <li><b>Seller:</b> ${paymentSuccessData.auction.user.userName}</li>
+                    </ul>
+                    <p>An invoice for this transaction is attached to this email for your records.</p>
+                  `,
+          message2: `
+                    <h3>What’s Next?</h3>
+                    <ul>
+                      <li>Once the delivery is complete, please confirm the delivery by clicking the <b>"Confirm Delivery"</b> button on the <b>MY Bids</b> page under the section <b>"Waiting for Delivery."</b></li>
+                      <li>If you encounter any issues during the process, feel free to contact our support team for assistance.</li>
+                    </ul>
+                    <p>Thank you for choosing <b>Alle Tre</b>. We truly value your trust and look forward to serving you again.</p>
+                    <p style="margin-bottom: 0;">Best regards,</p>
+                    <p style="margin-top: 0;">The <b>Alle Tre</b> Team</p>
+                  `,
+          Button_text: 'Go to MY Bids',
+          Button_URL:
+            'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
+          attachment: invoicePDF,
+        };
+
+        //send notification to the winner
+        const auction = paymentData.auction;
+        const notificationMessageToWinner = `
+                We’re excited to inform you that you have won the auction for ${paymentData.auction.product.title}!
+                
+                Here are the details of your purchase:
+                - Auction Title: ${paymentData.auction.product.title}
+                - Category: ${paymentData.auction.product.category.nameEn}
+                - Winning Bid: ${paymentData.auction.bids[0].amount}
+                
+                Your payment has been successfully received via bank transfer.
+                `;
+
+        const notificationBodyToWinner = {
+          status: 'ON_AUCTION_PURCHASE_SUCCESS',
+          userType: 'FOR_WINNER',
+          usersId: joinedAuction.userId,
+          message: notificationMessageToWinner,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
+          auctionId: paymentData.auctionId,
+        };
+        //Email to seller when bidder pays amount (wallet)
+        const emailBodyToSeller = {
+          subject: '🎉 Payment Received! Next Steps for Your Auction',
+          title: ' Your Auction Item Has Been Paid For',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          userName: `${paymentData.auction.user.userName}`,
+          message1: `
+                          <p>Great news! The winning bidder for your auction, [Auction Title], has completed the payment in full.</p>
+                          <p>Auction Details:</p>
+                          <ul>
+                            <li>Item: ${paymentData.auction.product.title}</li>
+                            <li>Winning Bid: ${paymentData.auction.bids[0].amount}</li>
+                            <li>Buyer:  ${paymentData.auction.bids[0].user.userName}</li>
+                            <li>Delivery Option Chosen: [Delivery/Pickup] </li>
+                            </ul>
+                            <h2>What You Need to Do:</h2>
+                            <h3>If the buyer chose delivery:</h3>
+                            <p>• Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it’s securely packaged.</p>
+                              <h3>If the buyer chose pickup:</h3>
+                            <p>• The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over.</p>
+                        `,
+          message2: `
+                          <h3>When Will You Get Paid?</h3>                           
+                        <p>The winning amount of ${paymentData.auction.bids[0].amount} will be credited to your wallet after the buyer collects the item and confirms receipt.</p>
+        
+                        <p>Thank you for choosing <b>Alletre</b>!  We’re thrilled to see your auction succeed and look forward to supporting your future listings!</p>
+                        
+                        <p style="margin-bottom: 0;">Best regards,</p>
+                        <p style="margin-top: 0;">The <b>Alletre</b> Team</p> `,
+          Button_text: 'Pickup/Delivery Details ',
+          Button_URL: 'https://www.alletre.com/alletre/profile/my-bids/pending',
+        };
+        //send notification to the seller
+        const notificationMessageToSeller = `The winner of your Auction of ${paymentData.auction.product.title}
+                           (Model:${paymentData.auction.product.model}) has been paid the full amount. 
+                           We would like to let you know that you can hand over the item to the winner. once the winner
+                           confirmed the delvery, we will send the money to your wallet.`;
+        const notificationBodyToSeller = {
+          status: 'ON_AUCTION_PURCHASE_SUCCESS',
+          userType: 'FOR_SELLER',
+          usersId: paymentData.auction.user.id,
+          message: notificationMessageToSeller,
+          imageLink: auction.product.images[0].imageLink,
+          productTitle: auction.product.title,
+          auctionId: paymentData.auctionId,
+        };
+
+        await Promise.all([
+          this.emailService.sendEmail(
+            paymentData.auction.user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToSeller,
+          ),
+          this.emailService.sendEmail(
+            joinedAuction.user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToWinner,
+          ),
+        ]);
+        //send notification to the seller
+        try {
+          const isCreateNotificationToSeller =
+            await this.prismaService.notification.create({
+              data: {
+                userId: paymentData.auction.user.id,
+                message: notificationBodyToSeller.message,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
+                auctionId: notificationBodyToSeller.auctionId,
+              },
+            });
+          if (isCreateNotificationToSeller) {
+            this.notificationService.sendNotificationToSpecificUsers(
+              notificationBodyToSeller,
+            );
+          }
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+        //send notification to the winner
+        try {
+          const isCreateNotificationToWinner =
+            await this.prismaService.notification.create({
+              data: {
+                userId: joinedAuction.userId,
+                message: notificationBodyToWinner.message,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
+                auctionId: notificationBodyToWinner.auctionId,
+              },
+            });
+          if (isCreateNotificationToWinner) {
+            this.notificationService.sendNotificationToSpecificUsers(
+              notificationBodyToWinner,
+            );
+          }
+        } catch (error) {
+          console.log('sendNotificationToSpecificUsers error', error);
+        }
+        //Notifying delivery request to admin
+        // this.adminGateway.emitEventToAdmins(
+        //   'delivery:newNotification',
+        //   paymentData,
+        // );
+      }
+
+      return updatedBankTransferRequestData;
+    } catch (error) {
+      console.log('Error at updateBankTranferRequestsByAdmin:', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لايمكنك شراء المزاد',
+        en: 'error when updating the Bank Transfer request data',
+      });
+    }
+  }
+
   async payDepositByBidder(
     userId: number,
     auctionId: number,
@@ -2720,6 +3101,11 @@ export class UserAuctionsService {
       include: {
         auction: {
           include: {
+            Payment: {
+              where: {
+                status: 'BANK_STATEMENT_UPLOADED',
+              },
+            },
             product: {
               include: {
                 category: true,
@@ -3739,7 +4125,7 @@ export class UserAuctionsService {
     roles: Role[],
     paginationDTO: PaginationDTO,
     userId?: number,
-  )  {
+  ) {
     try {
       console.log('test--> :');
       const { page = 1, perPage = 4 } = paginationDTO;

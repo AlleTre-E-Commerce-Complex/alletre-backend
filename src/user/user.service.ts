@@ -254,12 +254,13 @@ export class UserService {
             countryId,
             ...(zipCode ? { zipCode } : {}),
             addressLabel,
+            phone,
           },
         });
-        await this.prismaService.user.update({
-          where: { id: userId },
-          data: { phone: phone.toString() },
-        });
+        // await this.prismaService.user.update({
+        //   where: { id: userId },
+        //   data: { phone: phone.toString() },
+        // });
       } else {
         await this.prismaService.$transaction([
           this.prismaService.location.create({
@@ -270,6 +271,7 @@ export class UserService {
               countryId,
               ...(zipCode ? { zipCode } : {}),
               addressLabel,
+              phone,
               isMain: true,
             },
           }),
@@ -305,10 +307,10 @@ export class UserService {
 
     await this._isMyLocation(userId, locationId);
     await this._isLocationRelatedToAuction(locationId);
-    await this.prismaService.user.update({
-      where: { id: userId },
-      data: { phone: phone.toString() },
-    });
+    // await this.prismaService.user.update({
+    //   where: { id: userId },
+    //   data: { phone: phone.toString() },
+    // });
     return await this.prismaService.location.update({
       where: { id: locationId },
       data: {
@@ -317,6 +319,7 @@ export class UserService {
         countryId,
         ...(zipCode ? { zipCode } : {}),
         addressLabel,
+        phone,
       },
     });
   }

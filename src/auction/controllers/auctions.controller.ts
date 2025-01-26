@@ -40,7 +40,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { WalletPayDto } from '../dtos/walletPay.dto';
-import { PaymentType } from '@prisma/client';
+import { PaymentStatus, PaymentType } from '@prisma/client';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 
@@ -378,6 +378,40 @@ export class AuctionsController {
     };
   }
 
+  @Get('/admin/get-bankTransfer-request')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async getBankTransferPayments() {
+    // @Query() getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
+    const auctionsPaginated =
+      await this.userAuctionsService.findBankTransferData();
+
+    return {
+      success: true,
+      data: auctionsPaginated,
+      // pagination: auctionsPaginated.pagination,
+      // data: auctionsPaginated.auctions,
+    };
+  }
+
+  @Patch('/admin/update-bankTransfer-request')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async updateBankTransferRequestsByAdmin(
+    @Query('requestId') requestId: string,
+    @Body('status') status: PaymentStatus,
+  ) {
+    const bankTransferRequestData =
+      await this.userAuctionsService.updateBankTranferRequestsByAdmin(
+        requestId,
+        status,
+      );
+
+    return {
+      success: true,
+      data: bankTransferRequestData,
+    };
+  }
   // @Get('/user/checkKYCStatusForWithdrawal')
   // @UseGuards(AuthGuard)
   // async checkKYCStatusForWithdrawal(
