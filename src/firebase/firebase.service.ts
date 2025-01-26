@@ -51,6 +51,41 @@ export class FirebaseService {
     };
   }
 
+  async uploadPdf(pdf: Express.Multer.File, prefix = 'uploadedDocument') {
+    const fileId = uuidv4();
+    const metadata = {
+      metadata: { firebaseStorageDownloadTokens: fileId },
+      contentType: 'application/pdf', // Key change: PDF MIME type
+      cacheControl: 'public, max-age=31536000',
+    };
+    const filePath = `${prefix}-${fileId}`;
+    let data: any;
+    try {
+      data = await FirebaseBucket.upload(`uploads/${pdf.filename}`, {
+        gzip: true,
+        metadata: metadata,
+        destination: filePath,
+      });
+
+      await unlink(`${process.cwd()}/uploads/${pdf.filename}`).catch((error) =>
+        console.log(error),
+      );
+
+      return {
+        fileName: pdf.originalname,
+        fileLink: this.getDownloadLink(data[0], fileId),
+        size: data[0].metadata.size,
+        fileId: fileId,
+        filePath: filePath,
+      };
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'خطأ داخلى فى رفع المستندات، برجاء إعادة المحاولة',
+        en: 'Error uploading document to the cloud, please try again.',
+      });
+    }
+  }
   getDownloadLink(file: File, downloadToken: string) {
     return (
       'https://firebasestorage.googleapis.com/v0/b/' +

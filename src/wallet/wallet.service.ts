@@ -80,6 +80,13 @@ export class WalletService {
     return walletData;
   }
 
+  async findAllAdminWalletDetails() {
+    const walletData = await this.prismaSevice.alletreWallet.findMany();
+    // console.log('wallet data :',walletData)
+    // let balance = walletData[walletData.length-1]
+    return walletData;
+  }
+
   async findLastTransaction(
     userId: number,
     prismaClient?: Prisma.TransactionClient,
@@ -99,6 +106,26 @@ export class WalletService {
     });
     return walletLastTransaction?.balance;
   }
+
+  async findAccountBalance() {
+    // Find the Alletre wallet balance
+    const alletreWalletBalance = await this.findLastTransactionOfAlletre();
+
+    // Find all user wallet data
+    const allUserWalletData = await this.prismaSevice.wallet.findMany();
+
+    // Calculate the total balance of all user wallets
+    const allUsersWalletBalance = allUserWalletData.reduce(
+      (sum, walletData) => {
+        return sum + Number(walletData.balance);
+      },
+      0,
+    );
+
+    // Return the total balance (Alletre wallet + all user wallets)
+    return Number(alletreWalletBalance) + allUsersWalletBalance;
+  }
+
   update(id: number, updateWalletDto: UpdateWalletDto) {
     return `This action updates a #${id} wallet`;
   }
