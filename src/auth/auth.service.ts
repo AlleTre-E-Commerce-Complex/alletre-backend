@@ -333,7 +333,7 @@ export class AuthService {
           <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
         `,
         Button_text: 'Browse Auctions',
-        Button_URL: 'https://www.alletre.com/alletre/',
+        Button_URL: 'https://www.alletre.com',
       };
       await this.emailSerivce.sendEmail(
         payload.email,

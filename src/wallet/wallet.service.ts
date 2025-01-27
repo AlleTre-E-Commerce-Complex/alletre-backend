@@ -111,19 +111,41 @@ export class WalletService {
     // Find the Alletre wallet balance
     const alletreWalletBalance = await this.findLastTransactionOfAlletre();
 
-    // Find all user wallet data
-    const allUserWalletData = await this.prismaSevice.wallet.findMany();
+    // Find all user  data
+    const allUser = await this.prismaSevice.user.findMany();
+
+    // Fetch the last wallet data for all users
+    const allUserLastWalletData = await Promise.all(
+      allUser.map((user) =>
+        this.prismaSevice.wallet.findFirst({
+          where: { userId: user.id },
+          orderBy: { id: 'desc' },
+        }),
+      ),
+    );
 
     // Calculate the total balance of all user wallets
-    const allUsersWalletBalance = allUserWalletData.reduce(
+    const allUsersWalletBalance = allUserLastWalletData.reduce(
       (sum, walletData) => {
-        return sum + Number(walletData.balance);
+        return sum + (walletData ? Number(walletData.balance) : 0);
       },
       0,
     );
-
+    let NumberOfWelcomeBonusUser = 0;
+    if (allUser.length < 100) {
+      NumberOfWelcomeBonusUser = allUser.length;
+    } else {
+      NumberOfWelcomeBonusUser = 100;
+    }
     // Return the total balance (Alletre wallet + all user wallets)
-    return Number(alletreWalletBalance) + allUsersWalletBalance;
+    const accountBalanceWithWelcomeBonus =
+      Number(alletreWalletBalance) + allUsersWalletBalance;
+    const accountBalanceWithOutWelcomeBonus =
+      accountBalanceWithWelcomeBonus - NumberOfWelcomeBonusUser * 100;
+    return {
+      accountBalanceWithOutWelcomeBonus,
+      accountBalanceWithWelcomeBonus,
+    };
   }
 
   update(id: number, updateWalletDto: UpdateWalletDto) {
