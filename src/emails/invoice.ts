@@ -69,8 +69,10 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
+    // Disable JavaScript
+    await page.setJavaScriptEnabled(false);
     await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
-    const pdfBuffer: Uint8Array = await page.pdf({ format: 'A4' });
+    const pdfBuffer: Uint8Array = await page.pdf({ format: 'A4', timeout:60000 });
 
     await browser.close();
     // Cast the Uint8Array to a Buffer and return it
@@ -80,3 +82,4 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
     throw error;
   }
 };
+
