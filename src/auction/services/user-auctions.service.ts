@@ -3102,6 +3102,7 @@ export class UserAuctionsService {
       include: {
         auction: {
           include: {
+            location:{include: {city:true, country:true}},
             Payment: {
               where: {
                 status: 'BANK_STATEMENT_UPLOADED',

@@ -25,6 +25,7 @@ import { NotificationsService } from 'src/notificatons/notifications.service';
 // import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
 import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
+import { timeout } from 'rxjs';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -2156,6 +2157,7 @@ export class PaymentsService {
             const { paymentSuccessData } =
               await this.prismaService.$transaction(async (prisma) => {
                 // Update payment transaction
+
                 const paymentSuccessData = await prisma.payment.update({
                   where: { paymentIntentId: paymentIntent.id },
                   data: { status: PaymentStatus.SUCCESS },
@@ -2174,6 +2176,7 @@ export class PaymentsService {
                     },
                   },
                 });
+               
 
                 // Update joinedAuction for bidder to WAITING_DELIVERY
                 await prisma.joinedAuction.update({
@@ -2182,14 +2185,18 @@ export class PaymentsService {
                     status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
                   },
                 });
+         
 
                 // Update auction status to sold
                 await prisma.auction.update({
                   where: { id: auctionPaymentTransaction.auctionId },
                   data: { status: AuctionStatus.SOLD },
                 });
+                
+
                 return { paymentSuccessData };
               });
+
             if (paymentSuccessData) {
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
@@ -2478,6 +2485,7 @@ export class PaymentsService {
             const { isPaymentSuccess } = await this.prismaService.$transaction(
               async (prisma) => {
                 // Update payment transaction
+                console.log('operation 1 started')
                 const isPaymentSuccess = await prisma.payment.update({
                   where: { paymentIntentId: paymentIntent.id },
                   data: { status: PaymentStatus.SUCCESS },
@@ -2497,17 +2505,22 @@ export class PaymentsService {
                     },
                   },
                 });
+                console.log('operation 1 completed')
+                console.log('operation 2 started')
                 await prisma.joinedAuction.updateMany({
                   where: {
                     auctionId: auctionPaymentTransaction.auctionId,
                   },
                   data: { status: JoinedAuctionStatus.LOST },
                 });
+                console.log('operation 2 completed')
                 //here i have created the joinedAuction and bids due to there where no
                 //funtionalities has implemented to handle the delevery and any other things track
                 //item after buy now completed. by creating the joined auction and bids, it will act as normal bids
                 //------------------------------------------------------------
                 // Join user to auction
+                console.log('operation 3 started')
+
                 await prisma.joinedAuction.create({
                   data: {
                     userId: isPaymentSuccess.userId,
@@ -2515,6 +2528,9 @@ export class PaymentsService {
                     status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
                   },
                 });
+                console.log('operation 3 completed')
+
+                console.log('operation 4 started')
                 // Create bid for user
                 await prisma.bids.create({
                   data: {
@@ -2523,6 +2539,8 @@ export class PaymentsService {
                     amount: isPaymentSuccess.amount,
                   },
                 });
+                console.log('operation 4 started')
+
                 //------------------------------------------------------------
 
                 // Update auction status to sold
@@ -2530,11 +2548,14 @@ export class PaymentsService {
                   where: { id: auctionPaymentTransaction.auctionId },
                   data: { status: AuctionStatus.SOLD },
                 });
+                console.log('operation 4 completed')
                 return { isPaymentSuccess };
               },
+              { timeout: 10000 }
             );
 
             if (isPaymentSuccess) {
+              console.log('Buy now payment is success :', isPaymentSuccess.user.email)
               // adding the buynow purchase money to alletre wallet for
               const lastWalletTransactionAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
@@ -2555,7 +2576,7 @@ export class PaymentsService {
                 walletDataToAlletre,
               );
               //Email to winner (buy now option used - wallet)
-              const invoicePDF = await generateInvoicePDF(isPaymentSuccess);
+              // const invoicePDF = await generateInvoicePDF(isPaymentSuccess);
               const emailBodyToWinner = {
                 subject: '🎉 Congratulations! You Won the Auction',
                 title: 'Your Bid Was Successful!',
@@ -2586,7 +2607,7 @@ export class PaymentsService {
                 `,
                 Button_text: 'View My Purchase',
                 Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
-                attachment: invoicePDF,
+                // attachment: invoicePDF,
               };
               const notificationMessageToBuyer = `
               We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
@@ -3139,7 +3160,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 5 * 60 * 1000);
+        : new Date(date.getTime() + 15 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

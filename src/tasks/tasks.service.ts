@@ -1204,7 +1204,7 @@ export class TasksService {
                     title: 'The Auction Has Ended',
                     Product_Name: isAcutionUpdated.product.title,
                     img: isAcutionUpdated.product.images[0].imageLink,
-                    userName: `${isAcutionUpdated.user.userName}`,
+                    userName: `${data.user.userName}`,
                     message1: ` 
                     <p>Thank you for participating in the auction for ${
                       isAcutionUpdated.product.title
