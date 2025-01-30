@@ -663,6 +663,7 @@ export class TasksService {
       await Promise.all(
         twentyFourHourPendingPaymentAuctions.map(async (data) => {
           const auctionEndDate = new Date(data.auction.expiryDate);
+          auctionEndDate.setDate(auctionEndDate.getDate() + 3);
           const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
           const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
           const body = {

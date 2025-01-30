@@ -4,7 +4,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { DeliveryRequestService } from './deliveryRequests.service';
-import { DeliveryRequestsStatus } from '@prisma/client';
+import { DeliveryRequestsStatus, DeliveryType } from '@prisma/client';
 
 @Controller('deliveryRequests')
 export class DeliveryRequestController {
@@ -14,9 +14,11 @@ export class DeliveryRequestController {
   @Get('/admin/get-delivery-request')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  async findDeliveryRequestsByAdmin() {
+  async findDeliveryRequestsByAdmin(
+    @Query('deliveryType') deliveryType: DeliveryType
+  ) {
     const deliveryRequestData =
-      await this.deliveryRequestService.findDeliveryRequestsByAdmin();
+      await this.deliveryRequestService.findDeliveryRequestsByAdmin(deliveryType);
 
     return {
       success: true,

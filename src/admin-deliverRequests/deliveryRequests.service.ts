@@ -1,23 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { DeliveryRequestsStatus } from '@prisma/client';
+import { DeliveryRequestsStatus, DeliveryType } from '@prisma/client';
+import { UserAuctionsService } from 'src/auction/services/user-auctions.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class DeliveryRequestService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly userAuctionService: UserAuctionsService,
+  ) {}
 
-  async findDeliveryRequestsByAdmin() {
+  async findDeliveryRequestsByAdmin(deliveryType : DeliveryType) {
     try {
+      console.log('deliveryType :',deliveryType)
       const deliveryRequestData = await this.prismaService.payment.findMany({
         where: {
           status: 'SUCCESS',
           type: {
             in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'], // Correct way to check for multiple values
           },
-          // auction:{
-          //   deliveryType: 'DELIVERY',
-          // }
+          auction:{
+            deliveryType: deliveryType,
+          }
+
         },
         include: {
           user: {
@@ -31,6 +37,9 @@ export class DeliveryRequestService {
             },
           },
         },
+        orderBy: {createdAt:'desc'},
+        // skip:0,
+        // take:5,
       });
 
       return deliveryRequestData;
@@ -61,6 +70,13 @@ export class DeliveryRequestService {
             },
           },
         });
+
+        if(status === 'DELIVERY_SUCCESS'){
+          await this.userAuctionService.confirmDelivery(
+            updatedDeliveryRequestData.userId, 
+            updatedDeliveryRequestData.auctionId
+          )
+        }
 
       return updatedDeliveryRequestData;
     } catch (error) {
