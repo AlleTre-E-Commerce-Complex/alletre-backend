@@ -3625,42 +3625,45 @@ export class UserAuctionsService {
             Button_text: 'View Wallet ',
             Button_URL: ' https://www.alletre.com/alletre/profile/wallet',
           };
+          //email body to winner when delivery completed
           const emailBodyToWinner = {
-            subject:
-              '🎉 Congratulations! You’ve Won the Auction & Your Item is On Its Way!',
-            title: 'You’re the Winner – Your Auction Item is Being Delivered!',
+            subject: '📦 Delivery Confirmed! Enjoy Your Auction Win!',
+            title: 'Your Auction Item Has Been Successfully Delivered!',
             Product_Name: sellerPaymentData.auction.product.title,
             img: sellerPaymentData.auction.product.images[0].imageLink,
             userName: `${sellerPaymentData.auction.bids[0].user.userName}`,
             message1: `
-                <p>Congratulations, ${sellerPaymentData.auction.bids[0].user.userName}! You are the winning bidder for the auction item: ${sellerPaymentData.auction.product.title}!</p>
+                <p>Hi ${sellerPaymentData.auction.bids[0].user.userName},</p>
+                <p>We’re excited to let you know that your auction win, <b>${sellerPaymentData.auction.product.title}</b>, has been successfully delivered!</p>
                 <p>Auction Details:</p>
                 <ul>
-                  <li>Title: ${sellerPaymentData.auction.product.title} </li>
+                  <li>Title: ${sellerPaymentData.auction.product.title}</li>
                   <li>Winning Bid: ${sellerPaymentData.auction.bids[0].amount}</li>
                   <li>Seller: ${sellerPaymentData.auction.user.userName}</li>
                   <li>Payment Status: Payment received successfully</li>
                 </ul>
                 <h3>What’s Next?</h3>
-                <p><b>Track Your Delivery</b>: Your item will be on its way shortly, and you can track its progress.</p>
-                <p><b>Get Ready to Enjoy Your New Item</b>: We hope you’re excited about your win! Don’t forget to check the item once it’s delivered to make sure everything is perfect.</p>`,
+                <p><b>Enjoy Your New Item!</b>: We hope you love your new purchase and that it meets your expectations. Please take a moment to inspect the item and share any feedback.</p>
+                <p><b>Leave a Review</b>: Help other buyers by sharing your experience.</p>
+              `,
             message2: `
-                <p>We’re thrilled that you chose to bid on this item and are looking forward to your next auction experience with us!</p>
-                <p>Thank you for using <b>Alletre</b>. We hope you continue to find amazing items and exciting auction opportunities!</p>
+                <p>Thank you for being part of the <b>Alletre</b> community. We hope you continue to find incredible auction items with us!</p>
                 <p style="margin-bottom: 0;">Best regards,</p>
                 <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-                <p>P.S. Need help or have any questions? Our support team is just a click away.</p>`,
-            Button_text: 'view Purchases',
+                <p>P.S. Need help or have any questions? Our support team is just a click away.</p>
+              `,
+            Button_text: 'View Purchases',
             Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
           };
+          
           const auction = sellerPaymentData.auction;
           const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
                    Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
                    (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
-                   The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to you bank account. 
+                   The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to your account. 
                    From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. `;
 
-          const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. You have successfully confirmed the delivery of Auction of ${sellerPaymentData.auction.product.title}
+          const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. The delivery has been confirmed of Auction of ${sellerPaymentData.auction.product.title}
                    (Model:${sellerPaymentData.auction.product.model}). 
                     We would like to thank you and appreciate you for choosing Alle Tre.`;
           const notificationBodyToSeller = {
