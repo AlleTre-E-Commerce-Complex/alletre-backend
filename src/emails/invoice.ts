@@ -1,4 +1,6 @@
-import puppeteer from 'puppeteer';
+const wkhtmltopdf = require('wkhtmltopdf');
+
+import { Readable } from 'stream';
 
 export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
   const htmlContent = `
@@ -66,20 +68,16 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
   `;
 
   try {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
+    return new Promise<Buffer>((resolve, reject) => {
+      const pdfChunks: Buffer[] = [];
+      const pdfStream: Readable = wkhtmltopdf(htmlContent, { pageSize: 'A4' });
 
-    // Disable JavaScript
-    await page.setJavaScriptEnabled(false);
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
-    const pdfBuffer: Uint8Array = await page.pdf({ format: 'A4', timeout:60000 });
-
-    await browser.close();
-    // Cast the Uint8Array to a Buffer and return it
-    return Buffer.from(pdfBuffer);
+      pdfStream.on('data', (chunk) => pdfChunks.push(chunk));
+      pdfStream.on('end', () => resolve(Buffer.concat(pdfChunks)));
+      pdfStream.on('error', (error) => reject(error));
+    });
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;
   }
 };
-

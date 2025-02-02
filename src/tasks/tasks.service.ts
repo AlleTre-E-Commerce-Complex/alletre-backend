@@ -88,7 +88,7 @@ export class TasksService {
                 <ul>
                   <li>Title: ${updatedAuction.product.title}</li>                     
                   <li>Category: ${updatedAuction.product.category.nameEn}</li>
-                  <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                  <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
                   <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                 </ul>
                 <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 

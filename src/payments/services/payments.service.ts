@@ -118,30 +118,7 @@ export class PaymentsService {
 
       const { paymentData } = await this.prismaService.$transaction(
         async (prisma) => {
-          //checking again the wallet balance to avoid issues
-          const lastWalletTransactionBalanceOfSeller =
-            await this.walletService.findLastTransaction(user.id, prisma);
-          if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
-            throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
-          }
-          //crete new transaction in seller wallet
-          const sellerWallet = await this.walletService.create(
-            user.id,
-            SellerWalletData,
-            prisma,
-          );
-          //crete new transaction in alletre wallet
-          const alletreWallet = await this.walletService.addToAlletreWallet(
-            user.id,
-            alletreWalletData,
-            prisma,
-          );
-          // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
+        
 
           const paymentData = await prisma.payment.create({
             data: {
@@ -163,6 +140,27 @@ export class PaymentsService {
       );
 
       if (paymentData) {
+
+          //checking again the wallet balance to avoid issues
+          const lastWalletTransactionBalanceOfSeller =
+            await this.walletService.findLastTransaction(user.id);
+          if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
+            throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+          }
+          //crete new transaction in seller wallet
+          const sellerWallet = await this.walletService.create(
+            user.id,
+            SellerWalletData);
+          //crete new transaction in alletre wallet
+          const alletreWallet = await this.walletService.addToAlletreWallet(
+            user.id,
+            alletreWalletData);
+          // create new payment database
+          if (!sellerWallet || !alletreWallet) {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
         await this.publishAuction(auctionId);
         if (paymentData.auction.type !== 'SCHEDULED') {
           const usersId = await this.notificationsService.getAllRegisteredUsers(
@@ -359,22 +357,6 @@ export class PaymentsService {
           try {
             console.log('test of wallet pay of bidder deposite 3');
 
-            //checking again the wallet balance to avoid issues
-            const lastWalletTransactionBalanceOfBidder =
-              await this.walletService.findLastTransaction(user.id, prisma);
-            if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
-              throw new MethodNotAllowedException(
-                'Sorry, Insufficient Balance.',
-              );
-            }
-            //crete new transaction in bidder wallet
-            await this.walletService.create(user.id, BidderWalletData, prisma);
-            //crete new transaction in alletre wallet
-            await this.walletService.addToAlletreWallet(
-              user.id,
-              alletreWalletData,
-              prisma,
-            );
             // Join user to auction
             await prisma.joinedAuction.create({
               data: {
@@ -428,6 +410,29 @@ export class PaymentsService {
           }
         },
       );
+      if (paymentData) {
+         //checking again the wallet balance to avoid issues
+         const lastWalletTransactionBalanceOfBidder =
+         await this.walletService.findLastTransaction(user.id);
+       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+         throw new MethodNotAllowedException(
+           'Sorry, Insufficient Balance.',
+         );
+       }
+       //crete new transaction in bidder wallet
+       const sellerWallet =  await this.walletService.create(user.id, BidderWalletData);
+       //crete new transaction in alletre wallet
+       const alletreWallet = await this.walletService.addToAlletreWallet(
+         user.id,
+         alletreWalletData);
+
+          // create new payment database
+          if (!sellerWallet || !alletreWallet) {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
+      
       //send email to seller and last bidder
       const joinedBidders = await this.prismaService.bids.findMany({
         where: {
@@ -636,6 +641,7 @@ export class PaymentsService {
       }
       console.log('test of wallet pay of bidder deposite 4');
       return paymentData;
+    }
     } catch (error) {
       console.log('wallet pay deposit by bidder error :', error);
       throw new InternalServerErrorException(
@@ -813,22 +819,7 @@ export class PaymentsService {
               'test of wallet pay of bidder deposite payAuctionByBidderWithWallet 3',
             );
 
-            //checking again the wallet balance to avoid issues
-            const lastWalletTransactionBalanceOfBidder =
-              await this.walletService.findLastTransaction(user.id, prisma);
-            if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
-              throw new MethodNotAllowedException(
-                'Sorry, Insufficient Balance.',
-              );
-            }
-            //crete new transaction in bidder wallet
-            await this.walletService.create(user.id, BidderWalletData, prisma);
-            //crete new transaction in alletre wallet
-            await this.walletService.addToAlletreWallet(
-              user.id,
-              alletreWalletData,
-              prisma,
-            );
+           
 
             // Update joinedAuction for bidder to WAITING_DELIVERY
             await prisma.joinedAuction.update({
@@ -886,6 +877,27 @@ export class PaymentsService {
         },
       );
       if (paymentData) {
+         //checking again the wallet balance to avoid issues
+         const lastWalletTransactionBalanceOfBidder =
+         await this.walletService.findLastTransaction(user.id);
+       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+         throw new MethodNotAllowedException(
+           'Sorry, Insufficient Balance.',
+         );
+       }
+       //crete new transaction in bidder wallet
+       const sellerWallet = await this.walletService.create(user.id, BidderWalletData);
+       //crete new transaction in alletre wallet
+       const alletreWallet = await this.walletService.addToAlletreWallet(
+         user.id,
+         alletreWalletData);
+          // create new payment database
+          if (!sellerWallet || !alletreWallet) {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
+
         const auctionEndDate = new Date(paymentData.auction.expiryDate);
         const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
         auctionEndDate.setDate(auctionEndDate.getDate() + 3);
@@ -1272,20 +1284,6 @@ export class PaymentsService {
         async (prisma) => {
           console.log('test 4');
 
-          //checking again the wallet balance to avoid issues
-          const lastWalletTransactionBalanceOfBidder =
-            await this.walletService.findLastTransaction(user.id, prisma);
-          if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
-            throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
-          }
-          //crete new transaction in bidder wallet
-          await this.walletService.create(user.id, buyerWalletData, prisma);
-          //crete new transaction in alletre wallet
-          await this.walletService.addToAlletreWallet(
-            user.id,
-            alletreWalletData,
-            prisma,
-          );
           // Update auction status to sold
 
           await prisma.joinedAuction.updateMany({
@@ -1349,11 +1347,32 @@ export class PaymentsService {
           });
           return { paymentData };
         },
+        { timeout: 10000 },
       );
       console.log('test 5');
 
       if (paymentData) {
-        console.log('payment data at buy now ', paymentData);
+         console.log('payment data at buy now ', paymentData);
+
+         //checking again the wallet balance to avoid issues
+         const lastWalletTransactionBalanceOfBidder =
+         await this.walletService.findLastTransaction(user.id);
+       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+         throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+       }
+       //crete new transaction in bidder wallet
+       const sellerWallet = await this.walletService.create(user.id, buyerWalletData);
+       //crete new transaction in alletre wallet
+       const alletreWallet = await this.walletService.addToAlletreWallet(
+         user.id,
+         alletreWalletData,);
+          // create new payment database
+          if (!sellerWallet || !alletreWallet) {
+            console.error('Failed to create the seller wallet or the alletre wallet when buy now with wallet')
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
         //Email to winner (buy now option used - stripe)
         const invoicePDF = await generateInvoicePDF(paymentData);
         const emailBodyToWinner = {
@@ -1470,7 +1489,7 @@ export class PaymentsService {
                 const bidderWalletData = {
                   status: WalletStatus.DEPOSIT,
                   transactionType: WalletTransactionType.By_AUCTION,
-                  description: `Auction ended; item purchased via Buy Now option.`,
+                  description: `Return security deposite, Auction ended; item purchased via Buy Now option.`,
                   amount: Number(payment.amount),
                   auctionId: Number(payment.auctionId),
                   balance: Number(lastWalletTransactionBalanceOfBidder)
@@ -1483,7 +1502,7 @@ export class PaymentsService {
                 const alletreWalletData = {
                   status: WalletStatus.WITHDRAWAL,
                   transactionType: WalletTransactionType.By_AUCTION,
-                  description: `Auction ended; item purchased via Buy Now option.`,
+                  description: `Return security deposite, Auction ended; item purchased via Buy Now option.`,
                   amount: Number(payment.amount),
                   auctionId: Number(payment.auctionId),
                   balance:
@@ -2576,7 +2595,7 @@ export class PaymentsService {
                 walletDataToAlletre,
               );
               //Email to winner (buy now option used - wallet)
-              // const invoicePDF = await generateInvoicePDF(isPaymentSuccess);
+              const invoicePDF = await generateInvoicePDF(isPaymentSuccess);
               const emailBodyToWinner = {
                 subject: '🎉 Congratulations! You Won the Auction',
                 title: 'Your Bid Was Successful!',
@@ -2607,7 +2626,7 @@ export class PaymentsService {
                 `,
                 Button_text: 'View My Purchase',
                 Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
-                // attachment: invoicePDF,
+                attachment: invoicePDF,
               };
               const notificationMessageToBuyer = `
               We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
@@ -2695,7 +2714,7 @@ export class PaymentsService {
                       const bidderWalletData = {
                         status: WalletStatus.DEPOSIT,
                         transactionType: WalletTransactionType.By_AUCTION,
-                        description: `Auction ended; item purchased via Buy Now option.`,
+                        description: `Return security deposite, Auction ended; item purchased via Buy Now option.`,
                         amount: Number(payment.amount),
                         auctionId: Number(payment.auctionId),
                         balance: Number(lastWalletTransactionBalanceOfBidder)
@@ -2708,7 +2727,7 @@ export class PaymentsService {
                       const alletreWalletData = {
                         status: WalletStatus.WITHDRAWAL,
                         transactionType: WalletTransactionType.By_AUCTION,
-                        description: `Auction ended; item purchased via Buy Now option.`,
+                        description: `Return security deposite, Auction ended; item purchased via Buy Now option.`,
                         amount: Number(payment.amount),
                         auctionId: Number(payment.auctionId),
                         balance:
@@ -2992,7 +3011,7 @@ export class PaymentsService {
                     <ul>
                       <li>Title: ${updatedAuction.product.title}</li>                     
                       <li>Category: ${updatedAuction.product.category.nameEn}</li>
-                      <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                      <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
                       <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                     </ul>
                     <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
@@ -3093,7 +3112,7 @@ export class PaymentsService {
                     <p>Here’s a summary of your listing:</p>
                     <ul>
                       <li>Title: ${updatedAuction.product.title}</li>                      <li>Category: ${updatedAuction.product.category.nameEn}</li>
-                      <li>Starting Bid: ${updatedAuction.acceptedAmount}</li>
+                      <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
                       <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
                     </ul>
                     <p>To maximize your listing’s visibility, share it with your friends or on social media!</p>
@@ -3160,7 +3179,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 15 * 60 * 1000);
+        : new Date(date.getTime() + 30 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
