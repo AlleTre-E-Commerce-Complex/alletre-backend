@@ -1,4 +1,4 @@
-import { Injectable, MethodNotAllowedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, MethodNotAllowedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
@@ -3549,25 +3549,9 @@ export class UserAuctionsService {
         };
 
         const [
-          walletCreationData,
           confirmDeliveryResult,
-          alletreWalletCreationData,
         ] = await this.prismaService.$transaction(async (prisma) => {
-          //full amount to seller wallet after duducting the fees
-          const walletCreationData = await this.walletService.create(
-            auction.userId,
-            walletData,
-            prisma,
-          );
-
-          //sending the full amount from alle tre wallet to seller wallet
-          //(due to  buyer pay the full amount, it has already in the alletre wallet )
-          const alletreWalletCreationData =
-            await this.walletService.addToAlletreWallet(
-              auction.userId,
-              walletDataToAlletre,
-              prisma,
-            );
+      
           const confirmDeliveryResult = await prisma.joinedAuction.update({
             where: { id: auctionWinner.id },
             data: {
@@ -3578,23 +3562,36 @@ export class UserAuctionsService {
                 },
               },
             },
-            include: { user: true },
+            include: {auction:true, user: true },
           });
 
           return Promise.all([
-            walletCreationData,
             confirmDeliveryResult,
-            alletreWalletCreationData,
           ]);
         });
-        if (
-          walletCreationData &&
-          confirmDeliveryResult &&
-          alletreWalletCreationData
-        ) {
+        if (confirmDeliveryResult ) {
           console.log(
             'sending email to seller and bidder after delivery confirmation',
           );
+              //full amount to seller wallet after duducting the fees
+              const walletCreationData = await this.walletService.create(
+                 confirmDeliveryResult.auction.userId,
+                walletData
+              );
+    
+              //sending the full amount from alle tre wallet to seller wallet
+              //(due to  buyer pay the full amount, it has already in the alletre wallet )
+              const alletreWalletCreationData =
+                await this.walletService.addToAlletreWallet(
+                  confirmDeliveryResult.auction.userId,
+                  walletDataToAlletre
+                );
+
+                if(!walletCreationData && ! alletreWalletCreationData) {
+                  throw new InternalServerErrorException(
+                    'Failed to process wallet payment',
+                  );
+                }
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
             subject:
