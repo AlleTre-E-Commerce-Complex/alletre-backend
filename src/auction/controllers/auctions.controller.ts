@@ -624,9 +624,13 @@ export class AuctionsController {
     @Param('auctionId', ParseIntPipe) auctionId: number,
     @Query('imageId', ParseIntPipe) imageId: number,
   ) {
-    await this.userAuctionsService.deleteAuctionImage(auctionId, imageId);
+    const deletedImage = await this.userAuctionsService.deleteAuctionImage(
+      auctionId,
+      imageId,
+    );
     return {
       success: true,
+      deletedImage,
     };
   }
 

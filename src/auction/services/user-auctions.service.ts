@@ -4141,7 +4141,9 @@ export class UserAuctionsService {
         },
         include: {
           images: true,
-          user: { include: { locations: true } },
+          user: {
+            include: { locations: { include: { country: true, city: true } } },
+          },
         },
         skip: skip,
         take: limit,
@@ -4181,7 +4183,9 @@ export class UserAuctionsService {
         city: true,
         country: true,
         images: true,
-        user: { include: { locations: true } },
+        user: {
+          include: { locations: { include: { country: true, city: true } } },
+        },
       },
     });
 
@@ -4330,7 +4334,7 @@ export class UserAuctionsService {
 
     await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
     try {
-      await this.prismaService.image.delete({ where: { id: imageId } });
+      return await this.prismaService.image.delete({ where: { id: imageId } });
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في عملية حذف الصورة',
