@@ -103,12 +103,15 @@ model Location {
   zipCode      String?
   addressLabel String?
   phone        String?
+  lat          Float
+  lng          Float
   createdAt    DateTime  @default(now())
   isMain       Boolean   @default(false)
   user         User      @relation(fields: [userId], references: [id])
   city         City      @relation(fields: [cityId], references: [id])
   country      Country   @relation(fields: [countryId], references: [id])
   auctions     Auction[]
+
 }
 
 model Category {

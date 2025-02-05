@@ -18,8 +18,8 @@ export class FirebaseService {
       contentType: 'image/jpeg',
       cacheControl: 'public, max-age=31536000',
     };
-    const filePath = `${prefix}-${fileId}`;
-    console.log('file Path : ', filePath);
+    const filePath = `${prefix}-${fileId}-${image.originalname}`;
+    console.log('file Path : ', image);
     let data: any;
     try {
       data = await FirebaseBucket.upload(`uploads/${image.filename}`, {

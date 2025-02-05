@@ -753,7 +753,7 @@ async function main() {
       hasUsageCondition: true,
       bidderDepositFixedAmount: 100,
       sellerDepositFixedAmount: 100,
-      brands: {
+      brands: {   
         create: [
           { name: 'Alfa Romeo' },
           { name: 'Aston Martin' },

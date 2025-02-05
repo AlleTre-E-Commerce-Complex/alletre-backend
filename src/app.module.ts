@@ -17,6 +17,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { NotificationsModule } from './notificatons/notifications.module';
 import { DeliveryRequestModule } from './admin-deliverRequests/deliveryRequests.module';
 import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
+import { WhatsAppModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
     NotificationsModule,
     WithdrawalModule,
     DeliveryRequestModule,
+    WhatsAppModule,
   ],
 })
 export class AppModule {
