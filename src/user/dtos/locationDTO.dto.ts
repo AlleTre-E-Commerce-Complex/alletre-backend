@@ -33,4 +33,14 @@ export class LocationDTO {
   @IsOptional()
   @IsPhoneNumber()
   phone: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
+  lat: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
+  lng: number;
 }

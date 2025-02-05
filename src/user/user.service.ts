@@ -237,8 +237,16 @@ export class UserService {
   }
 
   async addNewLocation(userId: number, locationDTO: LocationDTO) {
-    const { address, addressLabel, cityId, countryId, zipCode, phone } =
-      locationDTO;
+    const {
+      address,
+      addressLabel,
+      cityId,
+      countryId,
+      zipCode,
+      phone,
+      lat,
+      lng,
+    } = locationDTO;
 
     try {
       const userLocations = await this.prismaService.location.findMany({
@@ -255,12 +263,10 @@ export class UserService {
             ...(zipCode ? { zipCode } : {}),
             addressLabel,
             phone,
+            lat,
+            lng,
           },
         });
-        // await this.prismaService.user.update({
-        //   where: { id: userId },
-        //   data: { phone: phone.toString() },
-        // });
       } else {
         await this.prismaService.$transaction([
           this.prismaService.location.create({
@@ -272,6 +278,8 @@ export class UserService {
               ...(zipCode ? { zipCode } : {}),
               addressLabel,
               phone,
+              lat,
+              lng,
               isMain: true,
             },
           }),
@@ -283,6 +291,7 @@ export class UserService {
         ]);
       }
     } catch (error) {
+      console.log("rrrr",error)
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في إضافة العنوان الخاص بك',
         en: 'Something went wrong while adding your location',
