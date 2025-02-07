@@ -43,6 +43,18 @@ model User {
   pushSubscriptions        PushSubscription[]
 }
 
+model NonRegisteredUser {
+  id          Int      @id @default(autoincrement())
+  name        String?
+  mobile      String?
+  email       String?
+  address     String?
+  companyName String?
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model SubscribedUser {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -103,8 +115,8 @@ model Location {
   zipCode      String?
   addressLabel String?
   phone        String?
-  lat          Float
-  lng          Float
+  lat          Float?
+  lng          Float?
   createdAt    DateTime  @default(now())
   isMain       Boolean   @default(false)
   user         User      @relation(fields: [userId], references: [id])

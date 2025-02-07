@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserSignUpDTO } from './dtos/userSignup.dto';
 import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
@@ -14,6 +14,7 @@ import { EmailSerivce } from 'src/emails/email.service';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   constructor(
     private prismaService: PrismaService,
     private firebaseService: FirebaseService,
@@ -45,6 +46,55 @@ export class UserService {
 
     return user;
   }
+
+  async saveExcelData(data: any[]) {
+    const failedEntries: any[] = [];
+
+    // Process and clean data
+    const formattedData = data.flatMap((row) => {
+      const mobiles = this.extractMobileNumbers(row['MOBILE NUMBER']);
+      return mobiles.map((mobile) => ({
+        name: row['NAME'] || null,
+        mobile: mobile || null,
+        email: row['EMAIL'] || null,
+        address: row['ADDRESS'] || null,
+        companyName: row['COMPANY NAME'] || null,
+        remarks: row['REMARKS'] || null,
+      }));
+    });
+
+    for (const entry of formattedData) {
+      try {
+        await this.prismaService.nonRegisteredUser.create({
+          data: entry,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to insert: ${JSON.stringify(entry)}`, error);
+        failedEntries.push(entry);
+      }
+    }
+
+    return {
+      message: 'Data upload completed',
+      failedEntries: failedEntries.length ? failedEntries : 'No errors',
+    };
+  }
+
+  // Extract multiple mobile numbers from various formats
+  private extractMobileNumbers(mobileField: string): string[] {
+    if (!mobileField) return [];
+      // Check if the string contains any delimiter
+      const delimiterRegex = /\/|\n|,|\s+/;
+      if (!delimiterRegex.test(mobileField)) {
+        return [mobileField.toString().trim()]; // Return as a single-item array if no delimiter is found
+      }
+    return mobileField
+      .split(/\/|\n|,|\s+/) // Split by "/", new lines, commas, or spaces
+      .map((num) => num.trim()) // Remove extra spaces
+      .filter((num) => num.length > 0); // Remove empty values
+  }
+
+
 
   async oAuth(
     email: string,
@@ -263,8 +313,8 @@ export class UserService {
             ...(zipCode ? { zipCode } : {}),
             addressLabel,
             phone,
-            lat,
-            lng,
+            ...(lat ? {lat} : {}),
+            ...(lng ? {lng} : {}),
           },
         });
       } else {

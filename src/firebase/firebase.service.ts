@@ -10,46 +10,53 @@ import { unlink } from 'fs/promises';
 export class FirebaseService {
   constructor() {}
 
-  async uploadImage(image: Express.Multer.File, prefix = 'uploadedImage') {
-    const fileId = uuidv4();
-    const metadata = {
-      // used to create a download token
-      metadata: { firebaseStorageDownloadTokens: fileId },
-      contentType: 'image/jpeg',
-      cacheControl: 'public, max-age=31536000',
-    };
-    const filePath = `${prefix}-${fileId}`;
-    console.log('file Path : ', image);
-    let data: any;
-    try {
-      data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
-        gzip: true,
-        metadata: metadata,
-        destination: filePath,
-      });
-    } catch (error) {
-      console.error('Error code uploading to Firebase:', error.code);
-      console.error('Error message uploading to Firebase:', error.message);
-      throw new MethodNotAllowedResponse({
-        ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
-        en: 'Error uploading images to the cloud, please try again.',
-      });
-    }
+async uploadImage(image: Express.Multer.File, prefix = 'uploadedImage') {
+  const fileId = uuidv4();
 
-    await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
-      (error) => {
-        console.log(error);
-      },
-    );
+  // Extract the file extension from the original filename
+  const fileExtension = image.originalname.split('.').pop(); // e.g., 'jpg' or 'png'
 
-    return {
-      fileName: image.originalname,
-      fileLink: this.getDownloadLink(data[0], fileId),
-      size: data[0].metadata.size,
-      fileId: fileId,
-      filePath: filePath,
-    };
+  const metadata = {
+    metadata: { firebaseStorageDownloadTokens: fileId }, // Used to create a download token
+    contentType: image.mimetype, // Use the correct MIME type from the uploaded file
+    cacheControl: 'public, max-age=31536000',
+  };
+
+  // Construct the file path with the correct extension
+  const filePath = `${prefix}-${fileId}.${fileExtension}`;
+
+  console.log('file Path : ', filePath);
+
+  let data: any;
+  try {
+    data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
+      gzip: true,
+      metadata: metadata,
+      destination: filePath, // Save with the correct filename
+    });
+  } catch (error) {
+    console.error('Error code uploading to Firebase:', error.code);
+    console.error('Error message uploading to Firebase:', error.message);
+    throw new MethodNotAllowedResponse({
+      ar: 'خطأ داخلى فى رفع الصور، برجاء إعادة المحاولة',
+      en: 'Error uploading images to the cloud, please try again.',
+    });
   }
+
+  // Remove the local uploaded file
+  await unlink(`${process.cwd()}/uploads/${image.filename}`).catch((error) => {
+    console.log(error);
+  });
+
+  return {
+    fileName: image.originalname,
+    fileLink: this.getDownloadLink(data[0], fileId), // Pass fileExtension
+    size: data[0].metadata.size,
+    fileId: fileId,
+    filePath: filePath,
+  };
+}
+
 
   async uploadPdf(pdf: Express.Multer.File, prefix = 'uploadedDocument') {
     const fileId = uuidv4();
@@ -96,6 +103,9 @@ export class FirebaseService {
       downloadToken
     );
   }
+
+ 
+  
 
   async deleteFileFromStorage(filePath: string) {
     try {
