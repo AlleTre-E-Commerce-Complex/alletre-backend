@@ -63,24 +63,30 @@ export class WhatsAppService {
   `;
   
       // const mediaUrl = product.images.map((images)=> images.imageLink)
-      const mediaUrl = product.images[0].imageLink
+      const mediaUrl = product.images[0].imageLink;
+      const imageFileName = mediaUrl.split('/o/')[1]; // Get everything after '/o/'
+
+      console.log('imageFileName:',imageFileName); 
+      // Expected Output: uploadedImage-eef6d1f7-1e58-45eb-a703-cc392538c801.jpg?alt=media&token=eef6d1f7-1e58-45eb-a703-cc392538c801
+
+
       console.log('mediaUrl :', mediaUrl)
       const messageTemplateParams = [
         product.title,  // {{1}} - Product Name
         auction.startBidAmount.toString(),  // {{2}} - Starting Price
         new Date(auction.startDate).toDateString(),  // {{3}} - Auction Start Date
         new Date(auction.endDate).toDateString(),  // {{4}} - Auction End Date
-        `https://www.alletre.com/alletre/home/${auction.id}/details`,  // {{5}} - Auction Link
-        `uploadedImage-017b637c-9961-4a20-9414-23bc93d1318c?alt=media&token=017b637c-9961-4a20-9414-23bc93d1318c`, // {{6}} imageLink
-        `${auction.id}/details`, // {{7}} button link
+        imageFileName, // {{5}} imageLink
+        `${auction.id}/details`, // {{6}} button link
       ];
       
       
       console.log('messageTemplateParams:',messageTemplateParams)
+      console.log(' process.env.WHATSAPP_CONTENT_SID:', process.env.WHATSAPP_CONTENT_SID)
      const messageSendResponds =   await this.client.messages.create({
         from: this.fromNumber,
-        to: `whatsapp:${+919847678427}`,  
-        contentSid: "HX7d703ad7116139febc007de19dd23fef", // Your Twilio-approved template SID
+        to: `whatsapp:${+971522069628}`,  
+        contentSid:  process.env.WHATSAPP_CONTENT_SID, // Your Twilio-approved template SID
         contentVariables: JSON.stringify({
           1: messageTemplateParams[0], 
           2: messageTemplateParams[1], 
@@ -88,7 +94,6 @@ export class WhatsAppService {
           4: messageTemplateParams[3],
           5: messageTemplateParams[4],
           6: messageTemplateParams[5],
-          7: messageTemplateParams[6],
         }),
         // mediaUrl: ['https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/tick%20mark%20failed%20mark-02.png?alt=media&token=69f43881-b26e-43ef-b4c2-a595feb1f16b']
         // mediaUrl: mediaUrl.length > 0 ? [mediaUrl]: undefined

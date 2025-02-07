@@ -23,6 +23,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { SubscribeDto } from './dtos/subscribers.dto';
+import * as xlsx from 'xlsx';
 
 @Controller('users')
 export class UserController {
@@ -35,6 +36,20 @@ export class UserController {
       success: true,
       data: await this.userService.findUserProfileByIdOr404(account.id),
     };
+  }
+
+  @Post('/non-registered-users/upload-excel')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadExcelFile(@UploadedFile() file: Express.Multer.File) {
+    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+    const allSheetsData = [];
+
+    workbook.SheetNames.forEach((sheetName) => {
+      const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      allSheetsData.push(...sheetData); // Merge all sheets into one array
+    });
+    console.log('allSheets :',allSheetsData.length ,allSheetsData)
+    return this.userService.saveExcelData(allSheetsData);
   }
 
   @Get('my-locations')
@@ -63,8 +78,10 @@ export class UserController {
   @UseGuards(AuthGuard)
   async addNewLocationController(
     @Account() account: any,
-    @Body() locationDTO: LocationDTO,
+    @Body() locationDTO,
+    //  LocationDTO,
   ) {
+    console.log('locationDto' , locationDTO)
     return {
       success: true,
       data: await this.userService.addNewLocation(account.id, locationDTO),
