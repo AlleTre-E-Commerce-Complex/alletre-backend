@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   Query,
   UploadedFile,
@@ -21,6 +23,7 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { CreateCategoryDTO } from './categoryDTO';
 
 @Controller('categories')
 export class CategoryController {
@@ -63,6 +66,33 @@ export class CategoryController {
     };
   }
 
+
+  @Post('/createNewCategory')
+  @UseGuards(AuthGuard,RolesGuard)
+  @Roles(Role.Admin)
+  async createNewCategory( @Body() body : CreateCategoryDTO
+  ){
+    return {
+      success: true,
+      data: await this.categoryService.addNewCategory(body)
+    }
+  }
+
+  @Put('/editCategory/:categoryId')
+  @UseGuards(AuthGuard,RolesGuard)
+  @Roles(Role.Admin)
+  async editCategory(
+     @Body() body : CreateCategoryDTO,
+     @Param('categoryId',ParseIntPipe) categoryId: number
+
+  ){
+    console.log('===>111 edit', body)
+    return {
+      success: true,
+      data: await this.categoryService.updateCategory(body,categoryId)
+    }
+  }
+
   @Get('/sub-categories')
   @UseGuards(AuthOrGuestGuard)
   async findSubCategories(
@@ -97,6 +127,17 @@ export class CategoryController {
       success: true,
       data: await this.categoryService.getSystemCustomFields(),
     };
+  }
+
+
+  @Get('/getOne/:categoryId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async getCategoryDataById(@Param('categoryId',ParseIntPipe) categoryId: number){
+    return {
+      success: true,
+      data: await this.categoryService.findParticularCatergory(categoryId)
+    }
   }
 
   @Put('/:categoryId/upload-images')
