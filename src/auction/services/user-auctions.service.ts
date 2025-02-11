@@ -3240,8 +3240,12 @@ export class UserAuctionsService {
     const latestBidAmount = await this._findLatestBidForAuction(
       auctionWinner.auctionId,
     );
-    const payingAmount =
-      Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
+    const baseValue = Number(latestBidAmount);
+    const auctionFee = ((baseValue * 0.5) / 100)
+    const stripeFee = (((baseValue * 2.9) /100) + 1 )// stripe takes 2.9% of the base value and additionally 1 dirham
+    const payingAmount = !isWalletPayment ? (baseValue + auctionFee+ stripeFee) : (baseValue + auctionFee);
+    // const payingAmount =
+    //   Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
     if (!isWalletPayment) {
       return await this.paymentService.payAuctionByBidder(
         user,
@@ -3302,12 +3306,16 @@ export class UserAuctionsService {
       });
 
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
+    const baseValue = Number(auction.acceptedAmount);
+    const auctionFee = ((baseValue * 0.5) / 100)
+    const stripeFee = (((baseValue * 2.9) /100) + 1 )// stripe takes 2.9% of the base value and additionally 1 dirham
+    const payingAmount = !isWalletPayment ? (baseValue + auctionFee+ stripeFee) : (baseValue + auctionFee);
     if (!isWalletPayment) {
       return await this.paymentService.createBuyNowPaymentTransaction(
         user,
         auctionId,
         userMainLocation.country.currency,
-        Number(auction.acceptedAmount),
+        Number(payingAmount),
       );
     } else {
       // need to crete the createBuyNowPaymentTransaction for wallet
@@ -3315,7 +3323,7 @@ export class UserAuctionsService {
         user,
         auctionId,
         // userMainLocation.country.currency,
-        Number(auction.acceptedAmount),
+        Number(payingAmount),
       );
     }
   }
