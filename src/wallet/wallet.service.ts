@@ -91,20 +91,28 @@ export class WalletService {
     userId: number,
     prismaClient?: Prisma.TransactionClient,
   ) {
-    const prisma = prismaClient || this.prismaSevice;
+    try {
+      const prisma = prismaClient || this.prismaSevice;
     const walletLastTransaction = await prisma.wallet.findFirst({
       where: { userId },
       orderBy: { id: 'desc' },
     });
     return walletLastTransaction?.balance;
+    } catch (error) {
+      console.log('error at findLastTransaction :', error)
+    }
   }
 
   async findLastTransactionOfAlletre(prismaClient?: Prisma.TransactionClient) {
-    const prisma = prismaClient || this.prismaSevice;
+    try {
+      const prisma = prismaClient || this.prismaSevice;
     const walletLastTransaction = await prisma.alletreWallet.findFirst({
       orderBy: { id: 'desc' },
     });
     return walletLastTransaction?.balance;
+    } catch (error) {
+      console.log('error at find last transaction of alletre :',error)
+    }
   }
 
   async findAccountBalance() {

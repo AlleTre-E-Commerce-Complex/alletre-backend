@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as fsPomises from 'fs/promises';
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { CreateCategoryDTO } from './categoryDTO';
 @Injectable()
 export class CategoryService {
   constructor(
@@ -24,6 +25,7 @@ export class CategoryService {
     try {
       return await this.prismaService.category.findUnique({
         where: { id: categoryId },
+        include: {subCategories: {include: {customFields: true}}}
       });
     } catch (error) {
       console.log('Error when finding the category data :', error);
@@ -36,6 +38,101 @@ export class CategoryService {
       include: { customFields: true },
     });
   }
+
+
+  async updateCategory(body: CreateCategoryDTO, categoryId: number) {
+    try {
+        const updatedCategory = await this.prismaService.category.update({
+            where: { id: categoryId }, // find the category by its ID
+            data: {
+                nameAr: body.nameAr,
+                nameEn: body.nameEn,
+                bidderDepositFixedAmount: body.bidderDepositFixedAmount || 100,
+                sellerDepositFixedAmount: body.sellerDepositFixedAmount || 100,
+                subCategories: {
+                    upsert: body.subCategories.map((subCategory: any) => ({
+                        where: { id: subCategory.id || -1 },  // Check if the subcategory ID exists, if not, treat it as new
+                        create: {  // If subcategory doesn't exist, create it
+                            nameAr: subCategory.nameAr,
+                            nameEn: subCategory.nameEn,
+                            customFields: {
+                                create: subCategory.customFields.map((field: any) => ({ // Create new custom fields if they don't exist
+                                    key: field.key,
+                                    resKey: field.resKey,
+                                    type: field.type,
+                                    labelAr: field.labelAr,
+                                    labelEn: field.labelEn,
+                                }))
+                            }
+                        },
+                        update: {  // If subcategory exists, update it
+                            nameAr: subCategory.nameAr,
+                            nameEn: subCategory.nameEn,
+                            customFields: {
+                                upsert: subCategory.customFields.map((field: any) => ({
+                                    where: { id: field.id || -1 },  // Check if custom field exists, treat it as new if ID is missing
+                                    create: {  // If custom field doesn't exist, create it
+                                        key: field.key,
+                                        resKey: field.resKey,
+                                        type: field.type,
+                                        labelAr: field.labelAr,
+                                        labelEn: field.labelEn,
+                                    },
+                                    update: {  // If custom field exists, update it
+                                        key: field.key,
+                                        resKey: field.resKey,
+                                        type: field.type,
+                                        labelAr: field.labelAr,
+                                        labelEn: field.labelEn,
+                                    }
+                                }))
+                            }
+                        }
+                    }))
+                }
+            }
+        });
+
+        return updatedCategory;
+    } catch (error) {
+        console.error('Error while updating category:', error);
+        throw new Error('Error while updating category');
+    }
+}
+
+
+  async addNewCategory(body: CreateCategoryDTO) {
+    try {
+      const newCategory = await this.prismaService.category.create({
+        data: {
+          nameAr: body.nameAr,
+          nameEn: body.nameEn,
+          bidderDepositFixedAmount: body.bidderDepositFixedAmount || 100,
+          sellerDepositFixedAmount: body.sellerDepositFixedAmount || 100,
+          subCategories: {
+            create: body.subCategories.map((subCategory: any) => ({
+              nameAr: subCategory.nameAr,
+              nameEn: subCategory.nameEn,
+              customFields: {
+                create: subCategory.customFields.map((field: any) => ({
+                  key: field.key,
+                  resKey: field.resKey,
+                  type: field.type,
+                  labelAr: field.labelAr,
+                  labelEn: field.labelEn,
+                })),
+              },
+            })),
+          },
+        },
+      });
+      return newCategory; // Optionally return the created category
+    } catch (error) {
+      console.error('Error while adding new category:', error);
+      throw new Error('Error while adding new category');
+    }
+  }
+  
 
   async getCustomFields(categoryId?: number, subCategoryId?: number) {
     const customFieldsFilter = categoryId

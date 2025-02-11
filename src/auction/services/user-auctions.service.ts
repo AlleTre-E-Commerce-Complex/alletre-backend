@@ -2412,56 +2412,60 @@ export class UserAuctionsService {
     amount?: number,
     isWalletPayment?: boolean,
   ) {
-    await this.auctionsHelper._isAuctionOwner(userId, auctionId);
-    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
-
-    this.auctionStatusValidator.isActionValidForAuction(
-      auction,
-      AuctionActions.SELLER_DEPOSIT,
-    );
-
-    this.auctionStatusValidator.isStatusValidForAuction(
-      auction,
-      auction.type === AuctionType.ON_TIME
-        ? AuctionStatus.ACTIVE
-        : AuctionStatus.IN_SCHEDULED,
-    );
-
-    const auctionCategory = await this.auctionsHelper._getAuctionCategory(
-      auctionId,
-    );
-
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      include: {
-        locations: { include: { country: true } },
-      },
-    });
-
-    const sellerMainLocation = user.locations.find((location) => {
-      if (location.isMain) return location;
-    });
-
-    if (!sellerMainLocation)
-      throw new MethodNotAllowedResponse({
-        ar: 'ادخل عنوان رئيسي',
-        en: 'Set one location as main',
+    try {
+      await this.auctionsHelper._isAuctionOwner(userId, auctionId);
+      const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+  
+      this.auctionStatusValidator.isActionValidForAuction(
+        auction,
+        AuctionActions.SELLER_DEPOSIT,
+      );
+  
+      this.auctionStatusValidator.isStatusValidForAuction(
+        auction,
+        auction.type === AuctionType.ON_TIME
+          ? AuctionStatus.ACTIVE
+          : AuctionStatus.IN_SCHEDULED,
+      );
+  
+      const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+        auctionId,
+      );
+  
+      const user = await this.prismaService.user.findUnique({
+        where: { id: userId },
+        include: {
+          locations: { include: { country: true } },
+        },
       });
-
-    if (!isWalletPayment) {
-      return await this.paymentService.payDepositBySeller(
-        user,
-        auctionId,
-        sellerMainLocation.country.currency,
-        Number(auctionCategory.sellerDepositFixedAmount),
-      );
-    } else {
-      return await this.paymentService.walletPayDepositBySeller(
-        user,
-        auctionId,
-        // sellerMainLocation.country.currency,
-        amount,
-      );
+  
+      const sellerMainLocation = user.locations.find((location) => {
+        if (location.isMain) return location;
+      });
+  
+      if (!sellerMainLocation)
+        throw new MethodNotAllowedResponse({
+          ar: 'ادخل عنوان رئيسي',
+          en: 'Set one location as main',
+        });
+  
+      if (!isWalletPayment) {
+        return await this.paymentService.payDepositBySeller(
+          user,
+          auctionId,
+          sellerMainLocation.country.currency,
+          Number(auctionCategory.sellerDepositFixedAmount),
+        );
+      } else {
+        return await this.paymentService.walletPayDepositBySeller(
+          user,
+          auctionId,
+          // sellerMainLocation.country.currency,
+          amount,
+        );
+      }
+    } catch (error) {
+      console.log('error at pay publish :', error)
     }
   }
 

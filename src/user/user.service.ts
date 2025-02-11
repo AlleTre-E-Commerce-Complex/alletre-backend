@@ -553,6 +553,7 @@ export class UserService {
       });
   }
 
+
   async getAllUsers(paginationDTO: PaginationDTO, name?: string) {
     const { page = 1, perPage = 10 } = paginationDTO;
 
@@ -577,6 +578,40 @@ export class UserService {
         createdAt: true,
         isBlocked: true,
         _count: { select: { auctions: true, JoinedAuction: true } },
+      },
+      take: limit,
+      skip,
+    });
+
+    const count = await this.prismaService.user.count({
+      where: { ...(name ? { userName: { startsWith: name } } : {}) },
+    });
+    return {
+      pagination: this.paginationService.getPagination(count, page, perPage),
+      users,
+    };
+  }
+
+  async getAllNonRegisteredUsers(paginationDTO: PaginationDTO, name?: string) {
+    const { page = 1, perPage = 10 } = paginationDTO;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+    console.log('limit', limit);
+    const users = await this.prismaService.nonRegisteredUser.findMany({
+      where: {
+        ...(name
+          ? { name: { startsWith: name, mode: 'insensitive' } }
+          : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        mobile: true,
+        createdAt: true,
       },
       take: limit,
       skip,

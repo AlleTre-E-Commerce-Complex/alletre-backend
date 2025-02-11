@@ -189,6 +189,7 @@ export class PaymentsService {
           );
         }
       } else {
+        console.error('Payment data not created when walletPayDepositBySeller')
         throw new InternalServerErrorException(
           'Failed to process wallet payment',
         );
@@ -2957,6 +2958,7 @@ export class PaymentsService {
     auctionId: number,
     type: PaymentType,
   ) {
+   try {
     return await this.prismaService.payment.findFirst({
       where: {
         userId,
@@ -2964,6 +2966,9 @@ export class PaymentsService {
         type: type,
       },
     });
+   } catch (error) {
+    console.log('get auction payment transaction error :',error)
+   }
   }
   async publishAuction(auctionId: number, currentUserEmail?: string) {
     const auction = await this.prismaService.auction.findUnique({
@@ -3179,7 +3184,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 30 * 60 * 1000);
+        : new Date(date.getTime() + hours * 60 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

@@ -40,6 +40,7 @@ export class UserController {
 
   @Post('/non-registered-users/upload-excel')
   @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(AuthGuard, RolesGuard)
   async uploadExcelFile(@UploadedFile() file: Express.Multer.File) {
     const workbook = xlsx.read(file.buffer, { type: 'buffer' });
     const allSheetsData = [];
@@ -51,6 +52,17 @@ export class UserController {
     console.log('allSheets :',allSheetsData.length ,allSheetsData)
     return this.userService.saveExcelData(allSheetsData);
   }
+
+  // @Get('/non-registered-users/get')
+  // @UseGuards(AuthGuard, RolesGuard)
+  // async getNonRegisteredUsers(){
+  //   return {
+  //     success:true,
+  //     data: await this.userService.getAllNonRegisteredUsers()
+  //   }
+  // }
+
+
 
   @Get('my-locations')
   @UseGuards(AuthGuard)
@@ -74,12 +86,26 @@ export class UserController {
       data: await this.userService.getAllUsers(paginationDTO, name),
     };
   }
+
+  @Get('/non-registered-users/get')
+  @UseGuards(AuthGuard, RolesGuard)
+  async getNonRegisteredUsers(
+    @Query() paginationDTO: PaginationDTO,
+    @Query('name') name: string,
+  ) {
+    console.log('getAllUsers : ', paginationDTO);
+    return {
+      success: true,
+      data: await this.userService.getAllNonRegisteredUsers(paginationDTO, name),
+    };
+  }
+
+  
   @Post('locations')
   @UseGuards(AuthGuard)
   async addNewLocationController(
     @Account() account: any,
-    @Body() locationDTO,
-    //  LocationDTO,
+    @Body() locationDTO : LocationDTO,
   ) {
     console.log('locationDto' , locationDTO)
     return {
