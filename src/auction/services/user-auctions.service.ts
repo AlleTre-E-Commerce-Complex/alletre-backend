@@ -17,6 +17,7 @@ import {
   DeliveryType,
   DurationUnits,
   JoinedAuctionStatus,
+  ListedProductsStatus,
   PaymentStatus,
   PaymentType,
   Prisma,
@@ -45,6 +46,7 @@ import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/a
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { AuctionWebSocketGateway } from '../gateway/auction.gateway';
 import { generateInvoicePDF } from 'src/emails/invoice';
+import { GetListedProductDTO } from '../dtos/getListedProducts.dto';
 
 @Injectable()
 export class UserAuctionsService {
@@ -4126,7 +4128,15 @@ export class UserAuctionsService {
         createProductStatus,
         userId,
       );
-      return productId;
+      const newListedProduct = await this.prismaService.listedProducts.create({
+        data:{
+          productId,
+          userId,
+          ProductListingPrice: productData.ProductListingPrice,
+          locationId:productData.locationId,
+        }
+      })
+      return newListedProduct;
     } catch (error) {
       console.error('list new procuct error :', error);
       throw new MethodNotAllowedResponse({
@@ -4137,34 +4147,30 @@ export class UserAuctionsService {
   }
   async fetchAllListedOnlyProduct(
     roles: Role[],
-    paginationDTO: PaginationDTO,
+    getListedProductDTO: GetListedProductDTO,
     userId?: number,
   ) {
     try {
       console.log('test--> :');
-      const { page = 1, perPage = 4 } = paginationDTO;
+      const { page = 1, perPage = 4, status } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
       );
-      const allListedProducts = await this.prismaService.product.findMany({
+      const allListedProducts = await this.prismaService.listedProducts.findMany({
         where: {
-          isAuctionProduct: false,
+          status
         },
-        include: {
+        include: {product :{  include: {
           images: true,
           user: {
             include: { locations: { include: { country: true, city: true } } },
           },
-        },
+        }}},
         skip: skip,
         take: limit,
       });
-      const productsCount = await this.prismaService.product.count({
-        where: {
-          isAuctionProduct: false,
-        },
-      });
+      const productsCount = await this.prismaService.listedProducts.count({});
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
@@ -4187,28 +4193,65 @@ export class UserAuctionsService {
     roles: Role[],
     userId?: number,
   ) {
-    const product = await this.prismaService.product.findUnique({
-      where: { id: productId },
-      include: {
-        category: true,
-        subCategory: true,
-        city: true,
-        country: true,
-        images: true,
-        user: {
-          include: { locations: { include: { country: true, city: true } } },
-        },
-      },
-    });
-
-    if (!product) {
-      throw new MethodNotAllowedResponse({
-        ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
-        en: 'Something Went Wrong While Fetching a Products',
+    
+    try {
+      console.log('product id:',productId)
+      const product = await this.prismaService.listedProducts.findUnique({
+        where: { productId: productId },
+        include:{
+          product: { include: {
+              category: true,
+              subCategory: true,
+              city: true,
+              country: true,
+              images: true,
+              user: {
+                include: { locations: { include: { country: true, city: true } } },
+              },
+            },},
+          location:true
+      }
       });
+      console.log('product :', product)
+      if (!product) {
+        throw new MethodNotAllowedResponse({
+          ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
+          en: 'Something Went Wrong While Fetching a Products',
+        });
+      }
+  
+      return product;
+    } catch (error) {
+      console.log('find product error : ',error)
     }
+  }
 
-    return product;
+  async updateListedProductStatus(
+    id: number,
+    status : ListedProductsStatus
+  ) {
+    try {
+      console.log('product id:',id)
+      const updatedProduct = await this.prismaService.listedProducts.update({
+        where:{
+          id: id
+        },
+        data:{
+          status: status 
+        }
+      })
+      console.log('product :', updatedProduct)
+      if (!updatedProduct) {
+        throw new MethodNotAllowedResponse({
+          ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
+          en: 'Something Went Wrong While Fetching a Products',
+        });
+      }
+  
+      return updatedProduct;
+    } catch (error) {
+      console.log('find product error : ',error)
+    }
   }
 
   private async _createOnTimeHoursAuction(

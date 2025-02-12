@@ -27,6 +27,7 @@ model User {
   socketId                 String?
   stripeId                 String?
   stripeConnectedAccountId String?
+  listedProducts           ListedProducts[]
   auctions                 Auction[]
   ListedProducts           Product[]
   locations                Location[]
@@ -107,22 +108,23 @@ model City {
 }
 
 model Location {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  countryId    Int
-  cityId       Int
-  address      String
-  zipCode      String?
-  addressLabel String?
-  phone        String?
-  lat          Float?
-  lng          Float?
-  createdAt    DateTime  @default(now())
-  isMain       Boolean   @default(false)
-  user         User      @relation(fields: [userId], references: [id])
-  city         City      @relation(fields: [cityId], references: [id])
-  country      Country   @relation(fields: [countryId], references: [id])
-  auctions     Auction[]
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  countryId      Int
+  cityId         Int
+  address        String
+  zipCode        String?
+  addressLabel   String?
+  phone          String?
+  lat            Float?
+  lng            Float?
+  createdAt      DateTime  @default(now())
+  isMain         Boolean   @default(false)
+  user           User      @relation(fields: [userId], references: [id])
+  city           City      @relation(fields: [cityId], references: [id])
+  country        Country   @relation(fields: [countryId], references: [id])
+  auctions       Auction[]
+  listedProducts ListedProducts[]
 
 }
 
@@ -214,6 +216,7 @@ model Product {
   cityId              Int?
   carType             String?
   auction             Auction?
+  listedProducts      ListedProducts?
   images              Image[]
   brand               String?
   user                User?         @relation(fields: [userId], references: [id])
@@ -284,7 +287,19 @@ model Auction {
   alletreWallet               AlletreWallet[]
   auctionComplaints           AuctionComplaints[]
 }
+model ListedProducts{
+  id                          Int                    @id @default(autoincrement())
+  productId                   Int                    @unique
+  status                      ListedProductsStatus   @default(IN_PROGRESS)
+  userId                      Int
+  locationId                  Int?
+  location                    Location?              @relation(fields: [locationId], references: [id])
+  product                     Product                @relation(fields: [productId], references: [id])
+  user                        User                   @relation(fields: [userId], references: [id])
+  ProductListingPrice         Decimal?               @default(0)
+  createdAt                   DateTime               @default(now())
 
+}
 model Purchase {
   id              Int             @id @default(autoincrement())
   productId       Int             @unique
@@ -533,4 +548,10 @@ enum DeliveryType {
   NOT_SPECIFIED
   PICKUP
   DELIVERY
+}
+
+enum ListedProductsStatus {
+  IN_PROGRESS
+  OUT_OF_STOCK
+  SOLD_OUT
 }
