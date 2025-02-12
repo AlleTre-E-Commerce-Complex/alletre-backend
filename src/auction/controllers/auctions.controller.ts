@@ -40,9 +40,10 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { WalletPayDto } from '../dtos/walletPay.dto';
-import { PaymentStatus, PaymentType } from '@prisma/client';
+import { ListedProductsStatus, PaymentStatus, PaymentType } from '@prisma/client';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
+import { GetListedProductDTO } from '../dtos/getListedProducts.dto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -888,12 +889,12 @@ export class AuctionsController {
   @UseGuards(AuthOrGuestGuard)
   async fetchAllListedProducts(
     @Account() account: any,
-    @Query() paginationDTO: PaginationDTO,
+    @Query() getListedProductDTO: GetListedProductDTO,
   ) {
     const listedProductsPaginated =
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
-        paginationDTO,
+        getListedProductDTO,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       );
     return {
@@ -903,7 +904,7 @@ export class AuctionsController {
     };
   }
 
-  @Get('/:productId/details')
+  @Get('/listedProducts/:productId/details')
   @UseGuards(AuthOrGuestGuard)
   async getProductById(
     @Account() account: any,
@@ -916,6 +917,24 @@ export class AuctionsController {
         account.roles,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       ),
+    };
+  }
+
+  @Patch('/products/updateProductStatus')
+  @UseGuards(AuthGuard)
+  async updateProductStatus(
+    @Query('productId', ParseIntPipe) productId: number,
+    @Body('status') status: ListedProductsStatus,
+  ) {
+    const updatedProductData =
+      await this.userAuctionsService.updateListedProductStatus(
+        productId,
+        status,
+      );
+
+    return {
+      success: true,
+      data: updatedProductData,
     };
   }
 }

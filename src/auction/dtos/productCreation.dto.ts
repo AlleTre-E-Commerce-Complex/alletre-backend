@@ -135,4 +135,9 @@ export class ProductDTO {
   @Transform(({ value }): number => parseFloat(value))
   @IsNumber()
   ProductListingPrice: number;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  locationId: number;
 }
