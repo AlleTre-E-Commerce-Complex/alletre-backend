@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Worker } from 'worker_threads';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { fork } from 'child_process';
 
 @Injectable()
 export class EmailBatchService {
@@ -288,37 +289,86 @@ The <b>Alletre</b> Team
     </div>
   </body>
     `;
+    // try {
+    //   const userBatches = this.chunkArray(users, this.batchSize);
+    //   const workers = [];
+
+    //   for (const batch of userBatches) {
+    //     console.log('batches : ', batch);
+    //     const worker = new Worker(path.resolve(__dirname, 'email.worker.js'), {
+    //       workerData: { users: batch, subject, text, html },
+    //     });
+
+    //     worker.on('message', (result) => {
+    //       console.log('worker message : ', result);
+    //       if (result.success) {
+    //         console.log(`Batch sent successfully`);
+    //       } else {
+    //         console.error(`Batch failed:`, result.error);
+    //       }
+    //     });
+
+    //     worker.on('error', (error) => {
+    //       console.error('Worker error:', error);
+    //     });
+
+    //     workers.push(worker);
+    //   }
+
+    //   await Promise.all(
+    //     workers.map(
+    //       (worker) => new Promise((resolve) => worker.on('exit', resolve)),
+    //     ),
+    //   );
+    // } catch (error) {
+    //   console.error('Email batch service error:', error);
+    //   throw error;
+    // }
+
     try {
       const userBatches = this.chunkArray(users, this.batchSize);
-      const workers = [];
-
+      const childProcesses = [];
+  
       for (const batch of userBatches) {
         console.log('batches : ', batch);
-        const worker = new Worker(path.resolve(__dirname, 'email.worker.js'), {
-          workerData: { users: batch, subject, text, html },
-        });
-
-        worker.on('message', (result) => {
-          console.log('worker message : ', result);
+        const child = fork(path.resolve(__dirname, 'email.child.js'));
+  
+        child.on('message', (result:any) => {
+          console.log('child process message : ', result);
           if (result.success) {
-            console.log(`Batch sent successfully`);
+            console.log(`Batch sent successfully for send buld Email`);
           } else {
             console.error(`Batch failed:`, result.error);
           }
         });
-
-        worker.on('error', (error) => {
-          console.error('Worker error:', error);
+    console.log('send bulk email test 3');
+        
+        child.on('error', (error) => {
+          console.error('Child process error:', error);
         });
+        console.log('send bulk email test 4');
+  
+        child.on('exit', (code) => {
+          if (code !== 0) {
+            console.error(`Child process exited with code ${code}`);
+          }
+        });
+        console.log('send bulk email test 5');
+  
+        child.send({ users: batch, subject, text, html });
+        childProcesses.push(child);
+    console.log('send bulk email test 6');
 
-        workers.push(worker);
       }
+      console.log('send bulk email test 7');
 
       await Promise.all(
-        workers.map(
-          (worker) => new Promise((resolve) => worker.on('exit', resolve)),
+        childProcesses.map(
+          (child) => new Promise((resolve) => child.on('exit', resolve)),
         ),
       );
+    console.log('send bulk email test 8');
+
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;

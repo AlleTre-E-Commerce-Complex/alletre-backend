@@ -4,6 +4,7 @@ import { Worker } from 'worker_threads';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
 import { NotificationGateway } from './notifications.gateway';
+import { fork } from 'child_process';
 
 @Injectable()
 export class NotificationsService {
@@ -69,51 +70,112 @@ export class NotificationsService {
     }
   }
 
-  // async sendNotificationsToBidders(
-  //   joinedAuctionUsers: string[],
-  //   currentBidderMessage: string,
-  //   otherBiddersMessage: string,
-  //   html: string,
-  //   auctionId: number,
-  //   currentUserId: string,
-  // ) {
-  //   try {
-  //     //sending notification to current bidder
-  //     const notification = {
-  //       status: 'ON_BIDDING',
-  //       userType: 'CURRENT_BIDDER',
-  //       userId: currentUserId,
-  //       message: currentBidderMessage,
-  //       html,
-  //       auctionId,
-  //     };
-  //     await this.prismaService.notification.create({
-  //       data: {
-  //         userId: Number(currentUserId),
-  //         message: currentBidderMessage,
-  //         html,
-  //         auctionId,
-  //       },
-  //     });
-  //     this.notificationGateway.sendNotificationToAll(notification);
-  //     // this.sendNotificationToSpecificUsers(notification, currentUserId);
-  //     const isBidders = true;
-  //     await this.sendNotifications(
-  //       joinedAuctionUsers,
-  //       otherBiddersMessage,
-  //       html,
-  //       auctionId,
-  //       isBidders,
-  //     );
-  //   } catch (error) {
-  //     console.log('sendNotificationsToBidders error:', error);
-  //     throw new InternalServerErrorException('Failed to send notifications');
-  //   }
-  // }
+
 
   async sendNotificationToSpecificUsers(notification: any) {
     this.notificationGateway.sendNotificationToAll(notification);
   }
+
+  // async sendNotifications(
+  //   usersId: string[],
+  //   message: string,
+  //   imageLink: string,
+  //   productTitle: string,
+  //   auctionId: number,
+  //   isBidders?: boolean,
+  // ) {
+  //   try {
+  //     const batchSize = 100;
+  //     const userBatches = this.chunkArray(usersId, batchSize);
+
+  //     // // Send real-time notifications to online users
+  //     // usersId.forEach((userId) => {
+  //     //   const notification = { message, html, auctionId };
+
+  //     //   // Changed from sendNotificationsToAll to sendNotificationToUser
+  //     //   this.notificationGateway.sendNotificationToAll(notification);
+  //     // });
+
+  //     if (isBidders) {
+  //       //here the usersId will be a set of array
+  //       const notification = {
+  //         status: 'ON_BIDDING',
+  //         userType: 'OTHER_BIDDERS',
+  //         usersId: usersId,
+  //         message: message,
+  //         imageLink,
+  //         productTitle,
+  //         auctionId,
+  //       };
+  //       this.notificationGateway.sendNotificationToAll(notification);
+  //     } else {
+  //       //here the usersId will be only one userId
+  //       const notification = {
+  //         status: 'ON_SELLING',
+  //         userType: 'ALL_USERS',
+  //         usersId: usersId,
+  //         message: message,
+  //         imageLink,
+  //         productTitle,
+  //         auctionId,
+  //       };
+  //       this.notificationGateway.sendNotificationToAll(notification);
+  //     }
+
+  //     const workers = [];
+  //     const results = [];
+
+  //     for (const batch of userBatches) {
+  //       const worker = new Worker(
+  //         path.resolve(__dirname, 'notifications.worker.js'),
+  //         {
+  //           workerData: {
+  //             usersId: batch,
+  //             message,
+  //             imageLink,
+  //             productTitle,
+  //             auctionId,
+  //             // Add Firebase config to worker data
+  //             firebaseConfig: {
+  //               projectId: process.env.FIREBASE_PROJECT_ID,
+  //               clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  //               privateKey: process.env.FIREBASE_PRIVATE_KEY,
+  //             },
+  //           },
+  //         },
+  //       );
+
+  //       worker.on('message', (result) => {
+  //         results.push(result);
+  //         if (result.success) {
+  //           console.log(
+  //             `Batch sent successfully: ${result.notifications.count} notifications`,
+  //           );
+  //         } else {
+  //           console.error(`Batch failed:`, result.error);
+  //         }
+  //       });
+
+  //       worker.on('error', (error) => {
+  //         console.error('Worker error:', error);
+  //         results.push({ success: false, error });
+  //       });
+
+  //       workers.push(worker);
+  //     }
+
+  //     await Promise.all(
+  //       workers.map(
+  //         (worker) => new Promise((resolve) => worker.on('exit', resolve)),
+  //       ),
+  //     );
+
+  //     return results;
+  //   } catch (error) {
+  //     console.error('sendNotifications error:', error);
+  //     throw new InternalServerErrorException('Failed to send notifications');
+  //   }
+  // }
 
   async sendNotifications(
     usersId: string[],
@@ -126,17 +188,9 @@ export class NotificationsService {
     try {
       const batchSize = 100;
       const userBatches = this.chunkArray(usersId, batchSize);
-
-      // // Send real-time notifications to online users
-      // usersId.forEach((userId) => {
-      //   const notification = { message, html, auctionId };
-
-      //   // Changed from sendNotificationsToAll to sendNotificationToUser
-      //   this.notificationGateway.sendNotificationToAll(notification);
-      // });
-
+  
+      // Send real-time notifications to online users
       if (isBidders) {
-        //here the usersId will be a set of array
         const notification = {
           status: 'ON_BIDDING',
           userType: 'OTHER_BIDDERS',
@@ -148,7 +202,6 @@ export class NotificationsService {
         };
         this.notificationGateway.sendNotificationToAll(notification);
       } else {
-        //here the usersId will be only one userId
         const notification = {
           status: 'ON_SELLING',
           userType: 'ALL_USERS',
@@ -160,31 +213,14 @@ export class NotificationsService {
         };
         this.notificationGateway.sendNotificationToAll(notification);
       }
-
-      const workers = [];
+  
+      const childProcesses = [];
       const results = [];
-
+  
       for (const batch of userBatches) {
-        const worker = new Worker(
-          path.resolve(__dirname, 'notifications.worker.js'),
-          {
-            workerData: {
-              usersId: batch,
-              message,
-              imageLink,
-              productTitle,
-              auctionId,
-              // Add Firebase config to worker data
-              firebaseConfig: {
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY,
-              },
-            },
-          },
-        );
-
-        worker.on('message', (result) => {
+        const child = fork(path.resolve(__dirname, 'notifications.child.js'));
+  
+        child.on('message', (result:any) => {
           results.push(result);
           if (result.success) {
             console.log(
@@ -194,28 +230,47 @@ export class NotificationsService {
             console.error(`Batch failed:`, result.error);
           }
         });
-
-        worker.on('error', (error) => {
-          console.error('Worker error:', error);
+  
+        child.on('error', (error) => {
+          console.error('Child process error:', error);
           results.push({ success: false, error });
         });
-
-        workers.push(worker);
+  
+        child.on('exit', (code) => {
+          if (code !== 0) {
+            console.error(`Child process exited with code ${code}`);
+          }
+        });
+  
+        // Send data to the child process
+        child.send({
+          usersId: batch,
+          message,
+          imageLink,
+          productTitle,
+          auctionId,
+          firebaseConfig: {
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY,
+          },
+        });
+  
+        childProcesses.push(child);
       }
-
+  
       await Promise.all(
-        workers.map(
-          (worker) => new Promise((resolve) => worker.on('exit', resolve)),
+        childProcesses.map(
+          (child) => new Promise((resolve) => child.on('exit', resolve)),
         ),
       );
-
+  
       return results;
     } catch (error) {
       console.error('sendNotifications error:', error);
       throw new InternalServerErrorException('Failed to send notifications');
     }
   }
-
   async markNotificationsAsRead(userId: number, notificationIds: number[]) {
     // console.log('notificationIds : ', notificationIds);
     return this.prismaService.notification.updateMany({

@@ -1,3 +1,4 @@
+
 import { parentPort, workerData } from 'worker_threads';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as admin from 'firebase-admin';
@@ -48,53 +49,53 @@ async function sendNotifications(
     });
 
     // 3. Send Firebase push notifications in batches
-    if (userTokens.length > 0) {
-      const fcmMessages = userTokens.map((userToken) => ({
-        token: userToken.fcmToken,
-        notification: {
-          title: 'New Notification---**---',
-          body: message,
-        },
-        data: {
-          auctionId: auctionId.toString(),
-          url: `/alletre/home/${auctionId}/details`,
-          imageLink,
-          productTitle,
-        },
-        android: {
-          priority: 'high',
-        },
-        apns: {
-          payload: {
-            aps: {
-              contentAvailable: true,
-            },
-          },
-        },
-      }));
+    // if (userTokens.length > 0) {
+    //   const fcmMessages = userTokens.map((userToken) => ({
+    //     token: userToken.fcmToken,
+    //     notification: {
+    //       title: 'New Notification---**---',
+    //       body: message,
+    //     },
+    //     data: {
+    //       auctionId: auctionId.toString(),
+    //       url: `/alletre/home/${auctionId}/details`,
+    //       imageLink,
+    //       productTitle,
+    //     },
+    //     android: {
+    //       priority: 'high',
+    //     },
+    //     apns: {
+    //       payload: {
+    //         aps: {
+    //           contentAvailable: true,
+    //         },
+    //       },
+    //     },
+    //   }));
 
-      // Send in batches of 500 (Firebase limit)
-      const batchSize = 500;
-      const fcmResults = [];
+    //   // Send in batches of 500 (Firebase limit)
+    //   const batchSize = 500;
+    //   const fcmResults = [];
 
-      for (let i = 0; i < fcmMessages.length; i += batchSize) {
-        const batch = fcmMessages.slice(i, i + batchSize);
-        try {
-          const result = await admin.messaging().sendEach(
-            batch.map((msg) => ({
-              ...msg,
-              android: {
-                priority: 'high',
-              },
-            })),
-          );
-          fcmResults.push(result);
-        } catch (error) {
-          console.error('FCM batch send error:', error);
-          // Continue with other batches even if one fails
-        }
-      }
-    }
+    //   for (let i = 0; i < fcmMessages.length; i += batchSize) {
+    //     const batch = fcmMessages.slice(i, i + batchSize);
+    //     try {
+    //       const result = await admin.messaging().sendEach(
+    //         batch.map((msg) => ({
+    //           ...msg,
+    //           android: {
+    //             priority: 'high',
+    //           },
+    //         })),
+    //       );
+    //       fcmResults.push(result);
+    //     } catch (error) {
+    //       console.error('FCM batch send error:', error);
+    //       // Continue with other batches even if one fails
+    //     }
+    //   }
+    // }
 
     await prismaService.$disconnect();
     parentPort?.postMessage({
