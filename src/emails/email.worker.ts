@@ -3,6 +3,7 @@ import { parentPort, workerData } from 'worker_threads';
 import * as sgMail from '@sendgrid/mail';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception in Worker:', err);
 });
@@ -25,16 +26,21 @@ async function sendBatchEmails(
     html,
   };
   console.log('SENDGRID_API_KEY : ', process.env.SENDGRID_API_KEY);
+   // ✅ 2. Log memory usage to check if it's consuming too much
+   console.log('🛠 Memory Usage Before Sending Emails:', process.memoryUsage());
 
   try {
     console.log('test worker');
     await sgMail.sendMultiple(msg);
     parentPort?.postMessage({ success: true });
   } catch (error) {
-    console.log('worker error : ', error);
+    console.error('❌ Worker Error:', error);
     parentPort?.postMessage({ success: false, error });
   }
 }
+
+
+
 
 // workerData includes data passed from the main thread
 sendBatchEmails(
