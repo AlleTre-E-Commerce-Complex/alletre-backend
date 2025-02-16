@@ -145,11 +145,16 @@ export class WalletService {
     } else {
       NumberOfWelcomeBonusUser = 100;
     }
+    console.log('all users wallet balance :',allUsersWalletBalance,alletreWalletBalance)
     // Return the total balance (Alletre wallet + all user wallets)
-    const accountBalanceWithWelcomeBonus =
-      Number(alletreWalletBalance) + allUsersWalletBalance;
+    const accountBalanceWithWelcomeBonus = alletreWalletBalance ? Number(alletreWalletBalance) + allUsersWalletBalance : allUsersWalletBalance
+
+    console.log('accountBalanceWithWelcomeBonus:',accountBalanceWithWelcomeBonus)
+
+
     const accountBalanceWithOutWelcomeBonus =
       accountBalanceWithWelcomeBonus - NumberOfWelcomeBonusUser * 100;
+
     return {
       accountBalanceWithOutWelcomeBonus,
       accountBalanceWithWelcomeBonus,

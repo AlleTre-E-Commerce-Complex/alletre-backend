@@ -3310,14 +3310,16 @@ export class UserAuctionsService {
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
     const baseValue = Number(auction.acceptedAmount);
     const auctionFee = ((baseValue * 0.5) / 100)
-    const stripeFee = (((baseValue * 2.9) /100) + 1 )// stripe takes 2.9% of the base value and additionally 1 dirham
-    const payingAmount = !isWalletPayment ? (baseValue + auctionFee+ stripeFee) : (baseValue + auctionFee);
+    const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
+    const payingAmountWithFees = baseValue + auctionFee
+    const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
     if (!isWalletPayment) {
       return await this.paymentService.createBuyNowPaymentTransaction(
         user,
-        auctionId,
+        auctionId, 
         userMainLocation.country.currency,
-        Number(payingAmount),
+        Number(payingAmountWithFees),
+        Number(payingAmountWithStripeAndAlletreFees),
       );
     } else {
       // need to crete the createBuyNowPaymentTransaction for wallet
@@ -3325,7 +3327,7 @@ export class UserAuctionsService {
         user,
         auctionId,
         // userMainLocation.country.currency,
-        Number(payingAmount),
+        Number(payingAmountWithFees),
       );
     }
   }
@@ -3551,7 +3553,7 @@ export class UserAuctionsService {
               Number(amountToSellerWallet)
             : Number(amountToSellerWallet),
         };
-
+        
         const walletDataToAlletre = {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,

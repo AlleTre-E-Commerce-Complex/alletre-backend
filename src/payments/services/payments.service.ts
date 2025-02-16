@@ -1721,7 +1721,8 @@ export class PaymentsService {
     user: User,
     auctionId: number,
     currency: string,
-    amount: number,
+    payingAmount: number,
+    stripeAmount:number,
   ) {
     // Create SripeCustomer if has no account
     let stripeCustomerId: string = user?.stripeId || '';
@@ -1764,7 +1765,7 @@ export class PaymentsService {
     const { clientSecret, paymentIntentId } =
       await this.stripeService.createPaymentIntent(
         stripeCustomerId,
-        amount,
+        stripeAmount,
         currency,
       );
 
@@ -1773,7 +1774,7 @@ export class PaymentsService {
       data: {
         userId: user.id,
         auctionId: auctionId,
-        amount: amount,
+        amount: payingAmount,
         paymentIntentId: paymentIntentId,
         type: PaymentType.BUY_NOW_PURCHASE,
       },

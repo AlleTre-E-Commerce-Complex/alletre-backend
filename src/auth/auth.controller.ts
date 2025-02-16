@@ -113,4 +113,12 @@ export class AuthController {
       data: await this.authService.refreshToken(refreshToken),
     };
   }
+
+  @Post('/logout')
+  async logoutController(@Body('refreshToken') refreshToken: string) {
+    return {
+      success: true,
+      data: await this.authService.logout(refreshToken),
+    };
+  }
 }

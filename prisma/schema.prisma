@@ -140,7 +140,7 @@ model Category {
   bannerPath               String?
   sliderLink               String?
   sliderPath               String?
-  status                   Boolean        @default(false)
+  status                   Boolean        @default(true)
   products                 Product[]
   subCategories            SubCategory[]
   brands                   Brand[]

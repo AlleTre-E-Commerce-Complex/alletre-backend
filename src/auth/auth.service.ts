@@ -22,6 +22,9 @@ import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class AuthService {
+  private usedRefreshTokens: Set<string> = new Set();
+  private userSessions: Map<number, Set<string>> = new Map();
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -77,11 +80,16 @@ export class AuthService {
 
     return { user, addedBonus: null };
   }
+
   async signIn(email: string, password: string, userIp: string) {
     // Validate user using validateUser(email,password)
     const { user, addedBonus } = await this.validateUser(email, password);
     //check user is blocked or not
     if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
+    
+    // Clear old sessions for this user
+    this.clearUserSessions(user.id);
+    
     // Update user ip address
     if (user) await this.userService.updateUserIpAddress(user.id, userIp);
     // Generate tokens
@@ -90,6 +98,9 @@ export class AuthService {
       email: user.email,
       roles: [Role.User],
     });
+
+    // Store the new session
+    this.addUserSession(user.id, refreshToken);
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
 
@@ -102,6 +113,22 @@ export class AuthService {
       isAddedBonus: addedBonus ? true : false,
     };
   }
+
+  private addUserSession(userId: number, refreshToken: string) {
+    if (!this.userSessions.has(userId)) {
+      this.userSessions.set(userId, new Set());
+    }
+    this.userSessions.get(userId).add(refreshToken);
+  }
+
+  private clearUserSessions(userId: number) {
+    const userTokens = this.userSessions.get(userId);
+    if (userTokens) {
+      userTokens.forEach(token => this.usedRefreshTokens.add(token));
+      this.userSessions.delete(userId);
+    }
+  }
+
   async signUp(userSignUpBody: UserSignUpDTO) {
     // Hash Password
     const hashedPassword = await bcrypt.hash(
@@ -149,6 +176,7 @@ export class AuthService {
       refreshToken,
     };
   }
+
   async oAuth(data: OAuthDto, userIp: string) {
     const { idToken, phone, email, userName, oAuthType } = data;
 
@@ -272,6 +300,7 @@ export class AuthService {
     );
     await this.userService.updateUserCredentials(payload.email, hashedPassword);
   }
+
   async activateAccount(token: string) {
     if (!token)
       throw new ForbiddenResponse({
@@ -480,6 +509,71 @@ export class AuthService {
     }
   }
 
+  async refreshToken(oldRefreshToken: string) {
+    if (!oldRefreshToken)
+      throw new NotFoundResponse({ 
+        ar: 'لا يوجد', 
+        en: 'not found' 
+      });
+
+    // Check if token has been used or invalidated
+    if (this.usedRefreshTokens.has(oldRefreshToken)) {
+      throw new ForbiddenResponse({
+        en: 'Token has been invalidated',
+        ar: 'تم إبطال رمز التحديث',
+      });
+    }
+
+    // decode refreshToken
+    const payload = this.decodeRefreshToken(oldRefreshToken);
+
+    // Validate the session exists
+    const userTokens = this.userSessions.get(payload.id);
+    if (!userTokens || !userTokens.has(oldRefreshToken)) {
+      throw new ForbiddenResponse({
+        en: 'Invalid session',
+        ar: 'جلسة غير صالحة',
+      });
+    }
+
+    // Check CLientUser Existence
+    const user = await this.getUserByRole(payload.id, payload.roles[0]);
+    
+    // Invalidate old refresh token
+    userTokens.delete(oldRefreshToken);
+    this.usedRefreshTokens.add(oldRefreshToken);
+
+    // Generate new tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      roles: payload.roles,
+    });
+
+    // Store new refresh token
+    this.addUserSession(user.id, refreshToken);
+
+    return { accessToken, refreshToken };
+  }
+
+  async logout(refreshToken: string) {
+    if (!refreshToken) {
+      throw new NotFoundResponse({ 
+        ar: 'رمز التحديث غير موجود', 
+        en: 'Refresh token not found' 
+      });
+    }
+
+    try {
+      const payload = this.decodeRefreshToken(refreshToken);
+      this.clearUserSessions(payload.id);
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      // If token is invalid, still consider it a successful logout
+      return { message: 'Logged out successfully' };
+    }
+  }
+
   generateTokens(payload: { id: number; email: string; roles: string[] }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
@@ -493,6 +587,7 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
   async verifyToken(token: string) {
     if (!token) {
       throw new ForbiddenResponse({
@@ -516,24 +611,6 @@ export class AuthService {
     }
   }
 
-  async refreshToken(oldRefreshToken: string) {
-    if (!oldRefreshToken)
-      throw new NotFoundResponse({ ar: 'لا يوجد', en: 'not found' });
-
-    // decode refreshToken
-    const payload = this.decodeRefreshToken(oldRefreshToken);
-
-    // Check CLientUser Existence
-    const user = await this.getUserByRole(payload.id, payload.roles[0]);
-    // Generate Tokens
-    const { accessToken, refreshToken } = this.generateTokens({
-      id: user.id,
-      email: user.email,
-      roles: payload.roles,
-    });
-
-    return { accessToken, refreshToken };
-  }
   private decodeRefreshToken(refreshToken: string) {
     try {
       return this.jwtService.verify(refreshToken, {
