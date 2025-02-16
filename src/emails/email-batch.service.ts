@@ -10,26 +10,95 @@ export class EmailBatchService {
   private batchSize = 100; // Customize batch size as needed
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
-    console.log('send bulk email test 1', updatedAuction);
-    const users = await this.getAllRegisteredUsers(
-      1000,
-      updatedAuction.user.email,
-    );
-    console.log('send bulk email test 2', users);
+    try {
+      const users = await this.getAllRegisteredUsers(
+        1000,
+        updatedAuction.user.email,
+      );
 
-    const subject = `🚨 New Auction Alert: Don’t Miss Out!`;
-    const text = `A new auction has been listed: ${updatedAuction.product.title}`;
-    console.log('send bulk email test 3', text);
+      const subject = `🚨 New Auction Alert: Don't Miss Out!`;
+      const text = `A new auction has been listed: ${updatedAuction.product.title}`;
+      const html = this.generateEmailTemplate(updatedAuction);
+
+      const userBatches = this.chunkArray(users, this.batchSize);
+      const childProcesses = [];
+      const results = [];
+
+      for (const batch of userBatches) {
+        const child = fork(path.resolve(__dirname, 'email.child.js'));
+
+        const timeout = setTimeout(() => {
+          console.log('Child process timeout - killing process');
+          child.kill();
+        }, 30000);
+
+        child.on('message', (result: any) => {
+          clearTimeout(timeout);
+          results.push(result);
+          if (result.success) {
+            console.log(`Batch sent successfully`);
+          } else {
+            console.error(`Batch failed:`, result.error);
+          }
+        });
+
+        child.on('error', (error) => {
+          clearTimeout(timeout);
+          console.error('Child process error:', error);
+          results.push({ success: false, error: error.message });
+        });
+
+        child.on('exit', (code, signal) => {
+          clearTimeout(timeout);
+          if (code !== 0) {
+            console.error(`Child process exited with code ${code}, signal: ${signal}`);
+          }
+        });
+
+        child.send({ users: batch, subject, text, html });
+        childProcesses.push({ child, timeout });
+      }
+
+      try {
+        await Promise.all(
+          childProcesses.map(
+            ({ child }) =>
+              new Promise<void>((resolve) => {
+                child.on('exit', () => resolve());
+              }),
+          ),
+        );
+      } finally {
+        childProcesses.forEach(({ child, timeout }) => {
+          clearTimeout(timeout);
+          if (!child.killed) {
+            child.kill();
+          }
+        });
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      const failureCount = results.filter((r) => !r.success).length;
+      console.log(`Bulk email sending completed. Success: ${successCount}, Failures: ${failureCount}`);
+
+    } catch (error) {
+      console.error('Email batch service error:', error);
+      throw error;
+    }
+  }
+
+  private generateEmailTemplate(updatedAuction: any): string {
     const expiryDate = new Date(updatedAuction.expiryDate);
     const formattedDate = expiryDate.toLocaleString('en-US', {
-      weekday: 'short', // "Sun"
-      year: 'numeric', // "2025"
-      month: 'short', // "Jan"
-      day: '2-digit', // "05"
-      hour: '2-digit', // "08"
-      minute: '2-digit', // "54"
-      second: '2-digit', // "39"
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
     });
+
     const html = `
   
    <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
@@ -289,90 +358,7 @@ The <b>Alletre</b> Team
     </div>
   </body>
     `;
-    // try {
-    //   const userBatches = this.chunkArray(users, this.batchSize);
-    //   const workers = [];
-
-    //   for (const batch of userBatches) {
-    //     console.log('batches : ', batch);
-    //     const worker = new Worker(path.resolve(__dirname, 'email.worker.js'), {
-    //       workerData: { users: batch, subject, text, html },
-    //     });
-
-    //     worker.on('message', (result) => {
-    //       console.log('worker message : ', result);
-    //       if (result.success) {
-    //         console.log(`Batch sent successfully`);
-    //       } else {
-    //         console.error(`Batch failed:`, result.error);
-    //       }
-    //     });
-
-    //     worker.on('error', (error) => {
-    //       console.error('Worker error:', error);
-    //     });
-
-    //     workers.push(worker);
-    //   }
-
-    //   await Promise.all(
-    //     workers.map(
-    //       (worker) => new Promise((resolve) => worker.on('exit', resolve)),
-    //     ),
-    //   );
-    // } catch (error) {
-    //   console.error('Email batch service error:', error);
-    //   throw error;
-    // }
-
-    try {
-      const userBatches = this.chunkArray(users, this.batchSize);
-      const childProcesses = [];
-  
-      for (const batch of userBatches) {
-        console.log('batches : ', batch);
-        const child = fork(path.resolve(__dirname, 'email.child.js'));
-  
-        child.on('message', (result:any) => {
-          console.log('child process message : ', result);
-          if (result.success) {
-            console.log(`Batch sent successfully for send buld Email`);
-          } else {
-            console.error(`Batch failed:`, result.error);
-          }
-        });
-    console.log('send bulk email test 3');
-        
-        child.on('error', (error) => {
-          console.error('Child process error:', error);
-        });
-        console.log('send bulk email test 4');
-  
-        child.on('exit', (code) => {
-          if (code !== 0) {
-            console.error(`Child process exited with code ${code}`);
-          }
-        });
-        console.log('send bulk email test 5');
-  
-        child.send({ users: batch, subject, text, html });
-        childProcesses.push(child);
-    console.log('send bulk email test 6');
-
-      }
-      console.log('send bulk email test 7');
-
-      await Promise.all(
-        childProcesses.map(
-          (child) => new Promise((resolve) => child.on('exit', resolve)),
-        ),
-      );
-    console.log('send bulk email test 8');
-
-    } catch (error) {
-      console.error('Email batch service error:', error);
-      throw error;
-    }
+    return html;
   }
 
   private chunkArray(array: string[], size: number): string[][] {
@@ -389,7 +375,6 @@ The <b>Alletre</b> Team
 
     try {
       do {
-        // Fetch a batch of users
         batch = await this.prismaService.user.findMany({
           skip: skip,
           take: batchSize,
@@ -397,16 +382,14 @@ The <b>Alletre</b> Team
             email: true,
           },
           where: {
-            email: currentUserEmail ? { not: currentUserEmail } : undefined, // Only filter if currentUserEmail is defined
+            email: currentUserEmail ? { not: currentUserEmail } : undefined,
           },
         });
 
-        // Add fetched emails to the list
         emails.push(...batch.map((user: any) => user.email));
 
-        // Increment the skip counter for the next batch
         skip += batchSize;
-      } while (batch.length > 0); // Continue fetching until no more users are returned
+      } while (batch.length > 0);
 
       return emails;
     } catch (error) {
