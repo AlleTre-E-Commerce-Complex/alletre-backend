@@ -1,8 +1,18 @@
 // src/notifications.child.ts
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as admin from 'firebase-admin';
+import { Message } from 'firebase-admin/messaging';
 
 let prismaService: PrismaService;
+
+interface NotificationMessage {
+  usersId: string[];
+  message: string;
+  imageLink: string;
+  productTitle: string;
+  auctionId: number;
+  firebaseConfig: admin.ServiceAccount;
+}
 
 async function cleanup() {
   try {
@@ -27,7 +37,7 @@ async function sendNotifications(
   imageLink: string,
   productTitle: string,
   auctionId: number,
-  firebaseConfig: any,
+  firebaseConfig: admin.ServiceAccount,
 ) {
   prismaService = new PrismaService();
 
@@ -69,7 +79,7 @@ async function sendNotifications(
     // 3. Send Firebase push notifications in batches
     const fcmResults = [];
     if (userTokens.length > 0) {
-      const fcmMessages = userTokens.map((userToken) => ({
+      const fcmMessages: admin.messaging.Message[] = userTokens.map((userToken) => ({
         token: userToken.fcmToken,
         notification: {
           title: 'New Notification',
@@ -82,7 +92,7 @@ async function sendNotifications(
           productTitle,
         },
         android: {
-          priority: 'high',
+          priority: 'high' as const,
         },
         apns: {
           payload: {
@@ -131,7 +141,7 @@ async function sendNotifications(
 }
 
 // Listen for messages from the parent process
-process.on('message', (message) => {
+process.on('message', (message: NotificationMessage) => {
   sendNotifications(
     message.usersId,
     message.message,
