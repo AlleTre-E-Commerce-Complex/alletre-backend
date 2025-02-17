@@ -3249,6 +3249,8 @@ export class UserAuctionsService {
     const baseValue = Number(latestBidAmount);
     const auctionFee = ((baseValue * 0.5) / 100)
     const stripeFee = (((baseValue * 2.9) /100) + 1 )// stripe takes 2.9% of the base value and additionally 1 dirham
+    const payingAmountWithFees = baseValue + auctionFee
+    const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
     const payingAmount = !isWalletPayment ? (baseValue + auctionFee+ stripeFee) : (baseValue + auctionFee);
     // const payingAmount =
     //   Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
@@ -3257,14 +3259,15 @@ export class UserAuctionsService {
         user,
         auctionId,
         userMainLocation.country.currency,
-        Number(payingAmount),
+        Number(baseValue),
+        Number(payingAmountWithStripeAndAlletreFees),
       );
     } else {
       return await this.paymentService.payAuctionByBidderWithWallet(
         user,
         auctionId,
         // userMainLocation.country.currency,
-        Number(payingAmount),
+        Number(payingAmountWithFees),
       );
     }
   }
@@ -4200,9 +4203,9 @@ export class UserAuctionsService {
   ) {
     
     try {
-      console.log('product id:',productId)
+      console.log('product id:',productId, userId)
       const product = await this.prismaService.listedProducts.findUnique({
-        where: { productId: productId, userId: userId },
+        where: { productId: productId },
         include:{
           product: { include: {
               category: true,
@@ -4214,7 +4217,7 @@ export class UserAuctionsService {
                 include: { locations: { include: { country: true, city: true } } },
               },
             },},
-          location:true
+          location:true,
       }
       });
       console.log('product :', product)

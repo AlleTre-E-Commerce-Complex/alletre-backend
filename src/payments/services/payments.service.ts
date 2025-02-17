@@ -1156,7 +1156,8 @@ export class PaymentsService {
     user: User,
     auctionId: number,
     currency: string,
-    amount: number,
+    payingAmount: number,
+    stripeAmount:number,
   ) {
     // Create SripeCustomer if has no account
     let stripeCustomerId: string = user?.stripeId || '';
@@ -1200,7 +1201,7 @@ export class PaymentsService {
     const { clientSecret, paymentIntentId } =
       await this.stripeService.createPaymentIntent(
         stripeCustomerId,
-        amount,
+        stripeAmount,
         currency,
       );
 
@@ -1209,7 +1210,7 @@ export class PaymentsService {
       data: {
         userId: user.id,
         auctionId: auctionId,
-        amount: amount,
+        amount: payingAmount,
         paymentIntentId: paymentIntentId,
         type: PaymentType.AUCTION_PURCHASE,
       },
@@ -2221,16 +2222,22 @@ export class PaymentsService {
             if (paymentSuccessData) {
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
+                const baseValue = Number(paymentSuccessData.amount);
+                const auctionFee = ((baseValue * 0.5) / 100)
+                const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
+                const payingAmountWithFees = baseValue + auctionFee
+                const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
+              const amountToAlletteWalletAfterStripeDeduction = payingAmountWithStripeAndAlletreFees - (((payingAmountWithStripeAndAlletreFees * 3)/100)+1)   
               const alletreWalletData = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
                 description: `Complete Payment of winner bidder`,
-                amount: Number(paymentSuccessData.amount),
+                amount: Number(amountToAlletteWalletAfterStripeDeduction),
                 auctionId: Number(paymentSuccessData.auctionId),
                 balance: lastBalanceOfAlletre
                   ? Number(lastBalanceOfAlletre) +
-                    Number(paymentSuccessData.amount)
-                  : Number(paymentSuccessData.amount),
+                    Number(amountToAlletteWalletAfterStripeDeduction)
+                  : Number(amountToAlletteWalletAfterStripeDeduction),
               };
               await this.walletService.addToAlletreWallet(
                 paymentSuccessData.auction.user.id,
@@ -2580,16 +2587,22 @@ export class PaymentsService {
               // adding the buynow purchase money to alletre wallet for
               const lastWalletTransactionAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
+                const baseValue = Number(isPaymentSuccess.amount);
+                const auctionFee = ((baseValue * 0.5) / 100)
+                const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
+                const payingAmountWithFees = baseValue + auctionFee
+                const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
+              const amountToAlletteWalletAfterStripeDeduction = payingAmountWithStripeAndAlletreFees - (((payingAmountWithStripeAndAlletreFees * 3)/100)+1)   
               const walletDataToAlletre = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
-                description: 'Buy Now purchase',
-                amount: Number(isPaymentSuccess.amount),
+                description: 'Buy Now purchase amount after deducting the amount of stripe fee',
+                amount: Number(amountToAlletteWalletAfterStripeDeduction),
                 auctionId: Number(isPaymentSuccess.auctionId),
                 balance: Number(lastWalletTransactionAlletre)
                   ? Number(lastWalletTransactionAlletre) +
-                    Number(isPaymentSuccess.amount)
-                  : Number(isPaymentSuccess.amount),
+                    Number(amountToAlletteWalletAfterStripeDeduction)
+                  : Number(amountToAlletteWalletAfterStripeDeduction),
               };
 
               await this.walletService.addToAlletreWallet(
