@@ -895,7 +895,8 @@ export class AuctionsController {
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
         getListedProductDTO,
-        Number(account.id),
+        account.id? Number(account.id): undefined,
+
       );
     return {
       success: true,
@@ -915,7 +916,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.findProductByIdOr404(
         productId,
         account.roles,
-        Number(account.id),
+        account.id? Number(account.id): undefined,
       ),
     };
   }
