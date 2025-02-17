@@ -3322,7 +3322,7 @@ export class UserAuctionsService {
         user,
         auctionId, 
         userMainLocation.country.currency,
-        Number(payingAmountWithFees),
+        Number(baseValue),
         Number(payingAmountWithStripeAndAlletreFees),
       );
     } else {
@@ -4154,7 +4154,7 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      console.log('test--> :');
+      console.log('test--> :',userId);
       const { page = 1, perPage = 4, status } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
