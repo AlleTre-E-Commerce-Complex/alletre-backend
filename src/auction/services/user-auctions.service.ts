@@ -4199,7 +4199,7 @@ export class UserAuctionsService {
     try {
       console.log('product id:',productId)
       const product = await this.prismaService.listedProducts.findUnique({
-        where: { productId: productId },
+        where: { productId: productId, userId: userId },
         include:{
           product: { include: {
               category: true,
@@ -4223,6 +4223,37 @@ export class UserAuctionsService {
       }
   
       return product;
+    } catch (error) {
+      console.log('find product error : ',error)
+    }
+  }
+
+  async findListedProductsAnalytics(
+    userId: number,
+  ) {
+    try {
+     const count = await this.prismaService.listedProducts.count({
+       where:{
+         userId
+       }
+     })
+
+     const productsGrouping = await this.prismaService.listedProducts.groupBy({
+       where:{
+         userId
+       },
+       by: ['status'],
+       _count: { status: true },
+     })
+     return {
+       count,
+       productsGrouping : productsGrouping?.length ? productsGrouping.map(item =>{
+         return {
+           count: item['_count']?.status,
+           status: item.status,
+         }
+       }) : []
+     }
     } catch (error) {
       console.log('find product error : ',error)
     }

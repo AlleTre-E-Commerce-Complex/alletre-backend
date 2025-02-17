@@ -110,7 +110,7 @@ export class AuthController {
   ) {
     return {
       success: true,
-      data: await this.authService.refreshToken(refreshToken),
+      data: await this.authService.adminRefreshToken(refreshToken),
     };
   }
 

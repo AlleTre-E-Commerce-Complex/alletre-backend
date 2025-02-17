@@ -885,7 +885,7 @@ export class AuctionsController {
       ),
     };
   }
-  @Get('/getAllListed-products')
+  @Get('/listedProducts/getAllListed-products')
   @UseGuards(AuthOrGuestGuard)
   async fetchAllListedProducts(
     @Account() account: any,
@@ -895,7 +895,7 @@ export class AuctionsController {
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
         getListedProductDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        Number(account.id),
       );
     return {
       success: true,
@@ -915,8 +915,21 @@ export class AuctionsController {
       data: await this.userAuctionsService.findProductByIdOr404(
         productId,
         account.roles,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        Number(account.id),
       ),
+    };
+  }
+
+  @Get('/user/product/analytics')
+  @UseGuards(AuthGuard)
+  async getListedProductAnalytics(@Account() account: any) {
+    const productsAnalytics =
+      await this.userAuctionsService.findListedProductsAnalytics(account.id);
+
+    return {
+      success: true,
+      totalItems: productsAnalytics.count,
+      data: productsAnalytics.productsGrouping,
     };
   }
 
