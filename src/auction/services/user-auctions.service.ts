@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, MethodNotAllowedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  MethodNotAllowedException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
@@ -3108,7 +3112,7 @@ export class UserAuctionsService {
       include: {
         auction: {
           include: {
-            location:{include: {city:true, country:true}},
+            location: { include: { city: true, country: true } },
             Payment: {
               where: {
                 status: 'BANK_STATEMENT_UPLOADED',
@@ -3564,50 +3568,47 @@ export class UserAuctionsService {
             Number(lastWalletTransactionAlletre) - Number(amountToSellerWallet),
         };
 
-        const [
-          confirmDeliveryResult,
-        ] = await this.prismaService.$transaction(async (prisma) => {
-      
-          const confirmDeliveryResult = await prisma.joinedAuction.update({
-            where: { id: auctionWinner.id },
-            data: {
-              status: JoinedAuctionStatus.COMPLETED,
-              auction: {
-                update: {
-                  deliveryRequestsStatus: 'DELIVERY_SUCCESS',
+        const [confirmDeliveryResult] = await this.prismaService.$transaction(
+          async (prisma) => {
+            const confirmDeliveryResult = await prisma.joinedAuction.update({
+              where: { id: auctionWinner.id },
+              data: {
+                status: JoinedAuctionStatus.COMPLETED,
+                auction: {
+                  update: {
+                    deliveryRequestsStatus: 'DELIVERY_SUCCESS',
+                  },
                 },
               },
-            },
-            include: {auction:true, user: true },
-          });
+              include: { auction: true, user: true },
+            });
 
-          return Promise.all([
-            confirmDeliveryResult,
-          ]);
-        });
-        if (confirmDeliveryResult ) {
+            return Promise.all([confirmDeliveryResult]);
+          },
+        );
+        if (confirmDeliveryResult) {
           console.log(
             'sending email to seller and bidder after delivery confirmation',
           );
-              //full amount to seller wallet after duducting the fees
-              const walletCreationData = await this.walletService.create(
-                 confirmDeliveryResult.auction.userId,
-                walletData
-              );
-    
-              //sending the full amount from alle tre wallet to seller wallet
-              //(due to  buyer pay the full amount, it has already in the alletre wallet )
-              const alletreWalletCreationData =
-                await this.walletService.addToAlletreWallet(
-                  confirmDeliveryResult.auction.userId,
-                  walletDataToAlletre
-                );
+          //full amount to seller wallet after duducting the fees
+          const walletCreationData = await this.walletService.create(
+            confirmDeliveryResult.auction.userId,
+            walletData,
+          );
 
-                if(!walletCreationData && ! alletreWalletCreationData) {
-                  throw new InternalServerErrorException(
-                    'Failed to process wallet payment',
-                  );
-                }
+          //sending the full amount from alle tre wallet to seller wallet
+          //(due to  buyer pay the full amount, it has already in the alletre wallet )
+          const alletreWalletCreationData =
+            await this.walletService.addToAlletreWallet(
+              confirmDeliveryResult.auction.userId,
+              walletDataToAlletre,
+            );
+
+          if (!walletCreationData && !alletreWalletCreationData) {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
             subject:
@@ -3668,7 +3669,7 @@ export class UserAuctionsService {
             Button_text: 'View Purchases',
             Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
           };
-          
+
           const auction = sellerPaymentData.auction;
           const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
                    Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
@@ -4171,6 +4172,7 @@ export class UserAuctionsService {
         }}},
         skip: skip,
         take: limit,
+        orderBy: { id: 'desc' },
       });
       const productsCount = await this.prismaService.listedProducts.count({});
       const pagination = this.paginationService.getPagination(

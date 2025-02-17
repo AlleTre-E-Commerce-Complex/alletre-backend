@@ -83,18 +83,16 @@ export class UserService {
   // Extract multiple mobile numbers from various formats
   private extractMobileNumbers(mobileField: string): string[] {
     if (!mobileField) return [];
-      // Check if the string contains any delimiter
-      const delimiterRegex = /\/|\n|,|\s+/;
-      if (!delimiterRegex.test(mobileField)) {
-        return [mobileField.toString().trim()]; // Return as a single-item array if no delimiter is found
-      }
+    // Check if the string contains any delimiter
+    const delimiterRegex = /\/|\n|,|\s+/;
+    if (!delimiterRegex.test(mobileField)) {
+      return [mobileField.toString().trim()]; // Return as a single-item array if no delimiter is found
+    }
     return mobileField
       .split(/\/|\n|,|\s+/) // Split by "/", new lines, commas, or spaces
       .map((num) => num.trim()) // Remove extra spaces
       .filter((num) => num.length > 0); // Remove empty values
   }
-
-
 
   async oAuth(
     email: string,
@@ -313,8 +311,8 @@ export class UserService {
             ...(zipCode ? { zipCode } : {}),
             addressLabel,
             phone,
-            ...(lat ? {lat} : {}),
-            ...(lng ? {lng} : {}),
+            ...(lat ? { lat } : {}),
+            ...(lng ? { lng } : {}),
           },
         });
       } else {
@@ -341,7 +339,6 @@ export class UserService {
         ]);
       }
     } catch (error) {
-      console.log("rrrr",error)
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في إضافة العنوان الخاص بك',
         en: 'Something went wrong while adding your location',
