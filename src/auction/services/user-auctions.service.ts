@@ -4162,7 +4162,8 @@ export class UserAuctionsService {
       );
       const allListedProducts = await this.prismaService.listedProducts.findMany({
         where: {
-          status
+          status,
+          userId,
         },
         include: {product :{  include: {
           images: true,
