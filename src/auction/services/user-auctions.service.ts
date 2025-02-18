@@ -4157,15 +4157,15 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      console.log('test--> :',userId);
       const { page = 1, perPage = 4, status } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
       );
+      console.log('test-->  userId:',userId,'status :',status, 'page:',page, 'perPage:',perPage);
       const allListedProducts = await this.prismaService.listedProducts.findMany({
         where: {
-          status,
+          status : status ? status : 'IN_PROGRESS',
           userId,
         },
         include: {product :{  include: {
@@ -4178,12 +4178,20 @@ export class UserAuctionsService {
         take: limit,
         orderBy: { id: 'desc' },
       });
-      const productsCount = await this.prismaService.listedProducts.count({});
+      const productsCount = await this.prismaService.listedProducts.count({
+        where: {
+          status : status ? status : 'IN_PROGRESS',
+          userId,
+        },
+      });
+      console.log('prooductCount:',productsCount)
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
         perPage,
       );
+      console.log('pagination:', pagination)
+
       return {
         products: allListedProducts,
         pagination,
