@@ -3333,7 +3333,7 @@ export class UserAuctionsService {
       return await this.paymentService.createBuyNowPaymentTransactionWallet(
         user,
         auctionId,
-        // userMainLocation.country.currency,
+        Number(baseValue),
         Number(payingAmountWithFees),
       );
     }
@@ -3536,10 +3536,10 @@ export class UserAuctionsService {
           auctionWinner.auctionId,
         );
 
-        const feesAmountOfAlletre =
-          (Number(auctionWinnerBidAmount) * 0.5) / 100;
-        const amountToSellerWallet =
-          Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
+        const feesAmountOfAlletre =    (Number(auctionWinnerBidAmount) * 0.5) / 100;
+
+        const amountToSellerWallet =    Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
+
 
         // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
         // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()

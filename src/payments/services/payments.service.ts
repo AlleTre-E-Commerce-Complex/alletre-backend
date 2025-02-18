@@ -1221,8 +1221,8 @@ export class PaymentsService {
   async createBuyNowPaymentTransactionWallet(
     user: User,
     auctionId: number,
-    // currency: string,
-    amount: number,
+    payingAmount:number,
+    payingAmountWithFees: number,
   ) {
     try {
       // Check if user  already has transaction for auction
@@ -1254,7 +1254,7 @@ export class PaymentsService {
       //finding the last transaction balance of the alletreWallet
       const lastBalanceOfAlletre =
         await this.walletService.findLastTransactionOfAlletre();
-      if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+      if (Number(lastWalletTransactionBalanceOfBidder) < payingAmountWithFees) {
         throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
       }
 
@@ -1264,9 +1264,9 @@ export class PaymentsService {
         status: WalletStatus.WITHDRAWAL,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Purchase Product through buy now`,
-        amount: amount,
+        amount: payingAmountWithFees,
         auctionId: Number(auctionId),
-        balance: Number(lastWalletTransactionBalanceOfBidder) - amount,
+        balance: Number(lastWalletTransactionBalanceOfBidder) - payingAmountWithFees,
       };
       // wallet data for deposit to alletre wallet
 
@@ -1274,11 +1274,11 @@ export class PaymentsService {
         status: WalletStatus.DEPOSIT,
         transactionType: WalletTransactionType.By_AUCTION,
         description: `Purchase Product through buy now`,
-        amount: amount,
+        amount: payingAmountWithFees,
         auctionId: Number(auctionId),
         balance: lastBalanceOfAlletre
-          ? Number(lastBalanceOfAlletre) + amount
-          : amount,
+          ? Number(lastBalanceOfAlletre) + payingAmountWithFees
+          : payingAmountWithFees,
       };
       console.log('test 3');
 
@@ -1312,7 +1312,7 @@ export class PaymentsService {
             data: {
               userId: user.id,
               auctionId: auctionId,
-              amount: amount,
+              amount: payingAmount,
             },
           });
 
@@ -1320,7 +1320,7 @@ export class PaymentsService {
             data: {
               userId: user.id,
               auctionId: auctionId,
-              amount: amount,
+              amount: payingAmount,
               type: PaymentType.BUY_NOW_PURCHASE,
               isWalletPayment: true,
               status: 'SUCCESS',
@@ -1359,7 +1359,7 @@ export class PaymentsService {
          //checking again the wallet balance to avoid issues
          const lastWalletTransactionBalanceOfBidder =
          await this.walletService.findLastTransaction(user.id);
-       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+       if (Number(lastWalletTransactionBalanceOfBidder) < payingAmountWithFees) {
          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
        }
        //crete new transaction in bidder wallet

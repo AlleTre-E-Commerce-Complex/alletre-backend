@@ -16,43 +16,56 @@ export class AuthOrGuestGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
+    // If no auth header, treat as guest
     if (!request.headers.authorization) {
       request.account = { roles: [Role.Guest] };
       return true;
     }
 
-    request.account = this.validateAccessToken(request.headers.authorization);
-    return true;
+    try {
+      request.account = await this.validateAccessToken(request.headers.authorization);
+      return true;
+    } catch (error) {
+      // If token validation fails, still allow access as guest
+      request.account = { roles: [Role.Guest] };
+      return true;
+    }
   }
 
   async validateAccessToken(accessToken: string) {
-    if (accessToken.split(' ')[0] !== 'Bearer')
-      throw new ForbiddenException('Invalid token');
+    if (!accessToken) {
+      throw new ForbiddenException('No token provided');
+    }
 
-    const token = accessToken.split(' ')[1];
+    const [type, token] = accessToken.split(' ');
+    
+    if (type !== 'Bearer' || !token) {
+      throw new ForbiddenException('Invalid token format');
+    }
+
     try {
       const decoded: any = verify(token, process.env.ACCESS_TOKEN_SECRET);
-      // console.log('decoded*** :', decoded.roles);
-      // if (!decoded?.roles?.includes(Role.Admin)) {
-      //   // Check if the user exists and is not blocked
-      //   const user = await this.userService.findUserByIdOr404(
-      //     Number(decoded.id),
-      //   ); // Assuming `id` is in the token payload
-      //   console.log('token***', token);
+      
+      if (!decoded || !decoded.id || !decoded.roles) {
+        throw new ForbiddenException('Invalid token payload');
+      }
 
-      //   if (!user) {
-      //     throw new UnauthorizedException('User not found');
-      //   }
+      // Only check user status for non-admin users
+      if (!decoded.roles.includes(Role.Admin)) {
+        const user = await this.userService.findUserByIdOr404(Number(decoded.id));
+        
+        if (!user) {
+          throw new UnauthorizedException('User not found');
+        }
 
-      //   if (user.isBlocked) {
-      //     console.log('user is bloced', user.isBlocked);
-      //     throw new UnauthorizedException('User is blocked');
-      //   }
-      // }
+        if (user.isBlocked) {
+          throw new UnauthorizedException('User is blocked');
+        }
+      }
+
       return decoded;
     } catch (err) {
-      const message = `Token error: ${err.message || err.name}`;
-      throw new ForbiddenException(message);
+      throw new ForbiddenException(`Token error: ${err.message || 'Invalid token'}`);
     }
   }
 }
