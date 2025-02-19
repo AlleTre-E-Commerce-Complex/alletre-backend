@@ -63,18 +63,18 @@ export class NotificationsController {
   }
 
   // Add endpoint to mark notifications as read
-  @Put('/mark-read')
+  @Put('/mark-as-read')
   @UseGuards(AuthGuard)
   async markNotificationsAsRead(
     @Account() account: any,
     @Body('notificationIds') notificationIds: number[],
   ) {
     try {
-      await this.notificationsService.markNotificationsAsRead(
+     const data = await this.notificationsService.markNotificationsAsRead(
         account.id,
         notificationIds,
       );
-
+      console.log('markasread ',data)
       return {
         success: true,
         message: 'Notifications marked as read',

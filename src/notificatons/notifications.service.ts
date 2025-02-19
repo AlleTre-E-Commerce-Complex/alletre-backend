@@ -1,10 +1,8 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Worker } from 'worker_threads';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
 import { NotificationGateway } from './notifications.gateway';
-import { fork } from 'child_process';
 
 @Injectable()
 export class NotificationsService {
@@ -70,112 +68,9 @@ export class NotificationsService {
     }
   }
 
-
-
   async sendNotificationToSpecificUsers(notification: any) {
     this.notificationGateway.sendNotificationToAll(notification);
   }
-
-  // async sendNotifications(
-  //   usersId: string[],
-  //   message: string,
-  //   imageLink: string,
-  //   productTitle: string,
-  //   auctionId: number,
-  //   isBidders?: boolean,
-  // ) {
-  //   try {
-  //     const batchSize = 100;
-  //     const userBatches = this.chunkArray(usersId, batchSize);
-
-  //     // // Send real-time notifications to online users
-  //     // usersId.forEach((userId) => {
-  //     //   const notification = { message, html, auctionId };
-
-  //     //   // Changed from sendNotificationsToAll to sendNotificationToUser
-  //     //   this.notificationGateway.sendNotificationToAll(notification);
-  //     // });
-
-  //     if (isBidders) {
-  //       //here the usersId will be a set of array
-  //       const notification = {
-  //         status: 'ON_BIDDING',
-  //         userType: 'OTHER_BIDDERS',
-  //         usersId: usersId,
-  //         message: message,
-  //         imageLink,
-  //         productTitle,
-  //         auctionId,
-  //       };
-  //       this.notificationGateway.sendNotificationToAll(notification);
-  //     } else {
-  //       //here the usersId will be only one userId
-  //       const notification = {
-  //         status: 'ON_SELLING',
-  //         userType: 'ALL_USERS',
-  //         usersId: usersId,
-  //         message: message,
-  //         imageLink,
-  //         productTitle,
-  //         auctionId,
-  //       };
-  //       this.notificationGateway.sendNotificationToAll(notification);
-  //     }
-
-  //     const workers = [];
-  //     const results = [];
-
-  //     for (const batch of userBatches) {
-  //       const worker = new Worker(
-  //         path.resolve(__dirname, 'notifications.worker.js'),
-  //         {
-  //           workerData: {
-  //             usersId: batch,
-  //             message,
-  //             imageLink,
-  //             productTitle,
-  //             auctionId,
-  //             // Add Firebase config to worker data
-  //             firebaseConfig: {
-  //               projectId: process.env.FIREBASE_PROJECT_ID,
-  //               clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  //               privateKey: process.env.FIREBASE_PRIVATE_KEY,
-  //             },
-  //           },
-  //         },
-  //       );
-
-  //       worker.on('message', (result) => {
-  //         results.push(result);
-  //         if (result.success) {
-  //           console.log(
-  //             `Batch sent successfully: ${result.notifications.count} notifications`,
-  //           );
-  //         } else {
-  //           console.error(`Batch failed:`, result.error);
-  //         }
-  //       });
-
-  //       worker.on('error', (error) => {
-  //         console.error('Worker error:', error);
-  //         results.push({ success: false, error });
-  //       });
-
-  //       workers.push(worker);
-  //     }
-
-  //     await Promise.all(
-  //       workers.map(
-  //         (worker) => new Promise((resolve) => worker.on('exit', resolve)),
-  //       ),
-  //     );
-
-  //     return results;
-  //   } catch (error) {
-  //     console.error('sendNotifications error:', error);
-  //     throw new InternalServerErrorException('Failed to send notifications');
-  //   }
-  // }
 
   async sendNotifications(
     usersId: string[],
@@ -188,7 +83,7 @@ export class NotificationsService {
     try {
       const batchSize = 100;
       const userBatches = this.chunkArray(usersId, batchSize);
-  
+
       // Send real-time notifications to online users
       if (isBidders) {
         const notification = {
@@ -213,67 +108,111 @@ export class NotificationsService {
         };
         this.notificationGateway.sendNotificationToAll(notification);
       }
-  
-      const childProcesses = [];
+
+      let totalNotificationsSent = 0;
       const results = [];
-  
+
       for (const batch of userBatches) {
-        const child = fork(path.resolve(__dirname, 'notifications.child.js'));
-  
-        child.on('message', (result:any) => {
-          results.push(result);
-          if (result.success) {
-            console.log(
-              `Batch sent successfully: ${result.notifications.count} notifications`,
-            );
-          } else {
-            console.error(`Batch failed:`, result.error);
-          }
-        });
-  
-        child.on('error', (error) => {
-          console.error('Child process error:', error);
-          results.push({ success: false, error });
-        });
-  
-        child.on('exit', (code) => {
-          if (code !== 0) {
-            console.error(`Child process exited with code ${code}`);
-          }
-        });
-  
-        // Send data to the child process
-        child.send({
-          usersId: batch,
-          message,
-          imageLink,
-          productTitle,
-          auctionId,
-          firebaseConfig: {
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY,
-          },
-        });
-  
-        childProcesses.push(child);
+        try {
+          // 1. Save notifications to database in bulk
+          const notifications = await this.prismaService.notification.createMany({
+            data: batch.map((userId) => ({
+              userId: Number(userId),
+              message,
+              imageLink,
+              productTitle,
+              auctionId,
+            })),
+          });
+
+          // 2. Get FCM tokens for these users
+          // const userTokens = await this.prismaService.pushSubscription.findMany({
+          //   where: {
+          //     userId: {
+          //       in: batch.map(Number),
+          //     },
+          //     fcmToken: {
+          //       not: null,
+          //     },
+          //   },
+          //   select: {
+          //     userId: true,
+          //     fcmToken: true,
+          //   },
+          // });
+
+          // 3. Send Firebase push notifications in batches
+          // const fcmResults = [];
+          // if (userTokens.length > 0) {
+          //   const fcmMessages = userTokens.map((userToken) => ({
+          //     token: userToken.fcmToken,
+          //     notification: {
+          //       title: 'New Notification',
+          //       body: message,
+          //     },
+          //     data: {
+          //       auctionId: auctionId.toString(),
+          //       url: `/alletre/home/${auctionId}/details`,
+          //       imageLink,
+          //       productTitle,
+          //     },
+          //     android: {
+          //       priority: 'high',
+          //     },
+          //     apns: {
+          //       payload: {
+          //         aps: {
+          //           contentAvailable: true,
+          //         },
+          //       },
+          //     },
+          //   }));
+
+          //   // Send in batches of 500 (Firebase limit)
+          //   const fcmBatchSize = 500;
+          //   for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
+          //     const fcmBatch = fcmMessages.slice(i, i + fcmBatchSize);
+          //     try {
+          //       const result = await admin.messaging().sendEach(fcmBatch);
+          //       fcmResults.push(result);
+          //     } catch (error) {
+          //       console.error('FCM batch send error:', error);
+          //       // Continue with other batches even if one fails
+          //     }
+          //   }
+          // }
+
+          totalNotificationsSent += notifications.count;
+          results.push({
+            success: true,
+            notifications: {
+              count: notifications.count,
+              // fcmSent: userTokens.length,
+              fcmSent: 0,
+              fcmResults: [],
+            },
+          });
+
+          console.log(
+            `Batch sent successfully: ${notifications.count} notifications`,
+          );
+        } catch (error) {
+          console.error('Batch failed:', error);
+          results.push({ success: false, error: error.message });
+        }
       }
-  
-      await Promise.all(
-        childProcesses.map(
-          (child) => new Promise((resolve) => child.on('exit', resolve)),
-        ),
-      );
-  
+
+      console.log(`Total notifications sent: ${totalNotificationsSent}`);
       return results;
     } catch (error) {
       console.error('sendNotifications error:', error);
       throw new InternalServerErrorException('Failed to send notifications');
     }
   }
+
   async markNotificationsAsRead(userId: number, notificationIds: number[]) {
     // console.log('notificationIds : ', notificationIds);
-    return this.prismaService.notification.updateMany({
+    return await this.prismaService.notification.updateMany({
       where: {
         // id: { in: notificationIds },
         userId: userId,
@@ -285,7 +224,7 @@ export class NotificationsService {
   }
 
   async getUnreadNotificationCount(userId: number) {
-    return this.prismaService.notification.count({
+    return await this.prismaService.notification.count({
       where: {
         userId,
         isRead: false,

@@ -45,7 +45,7 @@ export class WhatsAppService {
 
   
 
-async sendAuctionToUsers(auctionId: string) {
+async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
     try {
         const auction = await this.prismaService.auction.findFirst({
             where: { id: Number(auctionId) },
@@ -66,8 +66,14 @@ async sendAuctionToUsers(auctionId: string) {
             5: imageFileName,
             6: `${auction.id}/details`,
         };
+        let allUsersList: any[] = []; // Initialize as an empty array
 
-        const allUsersList = await this.prismaService.nonRegisteredUser.findMany();
+        if (userType === 'NON_EXISTING_USER') {
+          allUsersList = await this.prismaService.nonRegisteredUser.findMany();
+        } else if (userType === 'EXISTING_USER') {
+          allUsersList = await this.prismaService.user.findMany();
+        }
+        
 
         const batchSize = 1000;
         const userBatches = [];

@@ -72,6 +72,28 @@ async function main() {
       subCategories: {
         create: [
           {
+            nameAr: 'الأجهزة المنزلية',
+            nameEn: 'Home Appliances',
+            customFields: {
+              create: [
+                {
+                  key: 'age',
+                  resKey: 'age',
+                  type: 'number',
+                  labelAr: 'عمر',
+                  labelEn: 'Age',
+                },
+                {
+                  key: 'model',
+                  resKey: 'model',
+                  type: 'text',
+                  labelAr: 'موديل',
+                  labelEn: 'Model',
+                },
+              ],
+            },
+          },
+          {
             nameAr: 'أجهزة الكمبيوتر والأجهزة اللوحية',
             nameEn: 'Computers & tablets',
             customFields: {
@@ -349,6 +371,7 @@ async function main() {
               ],
             },
           },
+          
         ],
       },
     },

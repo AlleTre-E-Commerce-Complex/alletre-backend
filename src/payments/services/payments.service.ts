@@ -410,6 +410,9 @@ export class PaymentsService {
             );
           }
         },
+        {
+          timeout:10000
+        }
       );
       if (paymentData) {
          //checking again the wallet balance to avoid issues
@@ -641,6 +644,7 @@ export class PaymentsService {
         }
       }
       console.log('test of wallet pay of bidder deposite 4');
+      this.auctionGateway.increaseBid(paymentData.auction)
       return paymentData;
     }
     } catch (error) {
@@ -1699,6 +1703,7 @@ export class PaymentsService {
           'delivery:newNotification',
           paymentData,
         );
+        this.auctionGateway.buyNowPurchase(auctionId)
       } else {
         throw new MethodNotAllowedException(
           'Faild to complete the buy now payment',
@@ -1805,7 +1810,7 @@ export class PaymentsService {
             where: { paymentIntentId: paymentIntent.id },
             include: {
               auction: {
-                include: { product: { include: { images: true } }, user: true },
+                include: { product: { include: { images: true } }, user: true, bids:true, },
               },
               user: true,
             },
@@ -2048,6 +2053,7 @@ export class PaymentsService {
                 console.log('sendNotificationToSpecificUsers error', error);
               }
             }
+            this.auctionGateway.increaseBid(joinedBidders[0].auction)
 
             break;
           case PaymentType.SELLER_DEPOSIT:
@@ -2943,6 +2949,7 @@ export class PaymentsService {
                 'delivery:newNotification',
                 isPaymentSuccess,
               );
+              this.auctionGateway.buyNowPurchase(isPaymentSuccess.auctionId)
             } else {
               throw new MethodNotAllowedException(
                 'Faild to complete the buy now payment',

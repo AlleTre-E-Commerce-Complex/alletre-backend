@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Worker } from 'worker_threads';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { fork } from 'child_process';
+import * as sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailBatchService {
@@ -20,65 +19,30 @@ export class EmailBatchService {
       const text = `A new auction has been listed: ${updatedAuction.product.title}`;
       const html = this.generateEmailTemplate(updatedAuction);
 
+      // Simple direct implementation for now
       const userBatches = this.chunkArray(users, this.batchSize);
-      const childProcesses = [];
-      const results = [];
+      let successCount = 0;
+      let failureCount = 0;
 
       for (const batch of userBatches) {
-        const child = fork(path.resolve(__dirname, 'email.child.js'));
+        try {
+          const msg = {
+            to: batch,
+            from: 'auctions@alletre.com',
+            subject,
+            text,
+            html,
+          };
 
-        const timeout = setTimeout(() => {
-          console.log('Child process timeout - killing process');
-          child.kill();
-        }, 30000);
-
-        child.on('message', (result: any) => {
-          clearTimeout(timeout);
-          results.push(result);
-          if (result.success) {
-            console.log(`Batch sent successfully`);
-          } else {
-            console.error(`Batch failed:`, result.error);
-          }
-        });
-
-        child.on('error', (error) => {
-          clearTimeout(timeout);
-          console.error('Child process error:', error);
-          results.push({ success: false, error: error.message });
-        });
-
-        child.on('exit', (code, signal) => {
-          clearTimeout(timeout);
-          if (code !== 0) {
-            console.error(`Child process exited with code ${code}, signal: ${signal}`);
-          }
-        });
-
-        child.send({ users: batch, subject, text, html });
-        childProcesses.push({ child, timeout });
+          await sgMail.sendMultiple(msg);
+          successCount++;
+          console.log(`Batch sent successfully`);
+        } catch (error) {
+          failureCount++;
+          console.error(`Batch failed:`, error);
+        }
       }
 
-      try {
-        await Promise.all(
-          childProcesses.map(
-            ({ child }) =>
-              new Promise<void>((resolve) => {
-                child.on('exit', () => resolve());
-              }),
-          ),
-        );
-      } finally {
-        childProcesses.forEach(({ child, timeout }) => {
-          clearTimeout(timeout);
-          if (!child.killed) {
-            child.kill();
-          }
-        });
-      }
-
-      const successCount = results.filter((r) => r.success).length;
-      const failureCount = results.filter((r) => !r.success).length;
       console.log(`Bulk email sending completed. Success: ${successCount}, Failures: ${failureCount}`);
 
     } catch (error) {
