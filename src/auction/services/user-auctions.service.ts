@@ -1910,25 +1910,36 @@ export class UserAuctionsService {
       });
     }
 
-    const similarProducts = await this.prismaService.product.findMany({
+    const similarProducts = await this.prismaService.listedProducts.findMany({
       where: {
-        categoryId: product.categoryId,
-        id: { not: productId },
-        isAuctionProduct: false,
-        ...(userId ? { userId: { not: userId } } : {}),
+        product: {
+          categoryId: product.categoryId,
+          id: { not: productId },
+          isAuctionProduct: false,
+          ...(userId ? { userId: { not: userId } } : {}),
+        },
       },
       select: {
-        id: true,
-        title: true,
-        description: true,
-        ProductListingPrice: true,
-        categoryId: true,
-        images: true,
-        user: {
+        location: {select:{
+          city:true,
+          country:true
+        }},
+        createdAt:true,
+        product: {
           select: {
             id: true,
-            userName: true,
-            locations: true,
+            title: true,
+            description: true,
+            ProductListingPrice: true,
+            categoryId: true,
+            images: true,
+            user: {
+              select: {
+                id: true,
+                userName: true,
+                locations: true,
+              },
+            },
           },
         },
       },
@@ -2421,40 +2432,40 @@ export class UserAuctionsService {
     try {
       await this.auctionsHelper._isAuctionOwner(userId, auctionId);
       const auction = await this.checkAuctionExistanceAndReturn(auctionId);
-  
+
       this.auctionStatusValidator.isActionValidForAuction(
         auction,
         AuctionActions.SELLER_DEPOSIT,
       );
-  
+
       this.auctionStatusValidator.isStatusValidForAuction(
         auction,
         auction.type === AuctionType.ON_TIME
           ? AuctionStatus.ACTIVE
           : AuctionStatus.IN_SCHEDULED,
       );
-  
+
       const auctionCategory = await this.auctionsHelper._getAuctionCategory(
         auctionId,
       );
-  
+
       const user = await this.prismaService.user.findUnique({
         where: { id: userId },
         include: {
           locations: { include: { country: true } },
         },
       });
-  
+
       const sellerMainLocation = user.locations.find((location) => {
         if (location.isMain) return location;
       });
-  
+
       if (!sellerMainLocation)
         throw new MethodNotAllowedResponse({
           ar: 'ادخل عنوان رئيسي',
           en: 'Set one location as main',
         });
-  
+
       if (!isWalletPayment) {
         return await this.paymentService.payDepositBySeller(
           user,
@@ -2471,7 +2482,7 @@ export class UserAuctionsService {
         );
       }
     } catch (error) {
-      console.log('error at pay publish :', error)
+      console.log('error at pay publish :', error);
     }
   }
 
@@ -3247,11 +3258,14 @@ export class UserAuctionsService {
       auctionWinner.auctionId,
     );
     const baseValue = Number(latestBidAmount);
-    const auctionFee = ((baseValue * 0.5) / 100)
-    const stripeFee = (((baseValue * 2.9) /100) + 1 )// stripe takes 2.9% of the base value and additionally 1 dirham
-    const payingAmountWithFees = baseValue + auctionFee
-    const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
-    const payingAmount = !isWalletPayment ? (baseValue + auctionFee+ stripeFee) : (baseValue + auctionFee);
+    const auctionFee = (baseValue * 0.5) / 100;
+    const stripeFee = (baseValue * 2.9) / 100 + 1; // stripe takes 2.9% of the base value and additionally 1 dirham
+    const payingAmountWithFees = baseValue + auctionFee;
+    const payingAmountWithStripeAndAlletreFees =
+      payingAmountWithFees + stripeFee;
+    const payingAmount = !isWalletPayment
+      ? baseValue + auctionFee + stripeFee
+      : baseValue + auctionFee;
     // const payingAmount =
     //   Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
     if (!isWalletPayment) {
@@ -3316,14 +3330,15 @@ export class UserAuctionsService {
 
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
     const baseValue = Number(auction.acceptedAmount);
-    const auctionFee = ((baseValue * 0.5) / 100)
-    const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
-    const payingAmountWithFees = baseValue + auctionFee
-    const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
+    const auctionFee = (baseValue * 0.5) / 100;
+    const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
+    const payingAmountWithFees = baseValue + auctionFee;
+    const payingAmountWithStripeAndAlletreFees =
+      payingAmountWithFees + stripeFee;
     if (!isWalletPayment) {
       return await this.paymentService.createBuyNowPaymentTransaction(
         user,
-        auctionId, 
+        auctionId,
         userMainLocation.country.currency,
         Number(baseValue),
         Number(payingAmountWithStripeAndAlletreFees),
@@ -3536,10 +3551,11 @@ export class UserAuctionsService {
           auctionWinner.auctionId,
         );
 
-        const feesAmountOfAlletre =    (Number(auctionWinnerBidAmount) * 0.5) / 100;
+        const feesAmountOfAlletre =
+          (Number(auctionWinnerBidAmount) * 0.5) / 100;
 
-        const amountToSellerWallet =    Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
-
+        const amountToSellerWallet =
+          Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
 
         // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
         // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
@@ -3560,7 +3576,7 @@ export class UserAuctionsService {
               Number(amountToSellerWallet)
             : Number(amountToSellerWallet),
         };
-        
+
         const walletDataToAlletre = {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,
@@ -4135,13 +4151,13 @@ export class UserAuctionsService {
         userId,
       );
       const newListedProduct = await this.prismaService.listedProducts.create({
-        data:{
+        data: {
           productId,
           userId,
           ProductListingPrice: productData.ProductListingPrice,
-          locationId:productData.locationId,
-        }
-      })
+          locationId: productData.locationId,
+        },
+      });
       return newListedProduct;
     } catch (error) {
       console.error('list new procuct error :', error);
@@ -4162,29 +4178,30 @@ export class UserAuctionsService {
         Number(page),
         Number(perPage),
       );
-      console.log('test-->  userId:',userId,'status :',status, 'page:',page, 'perPage:',perPage);
-      const allListedProducts = await this.prismaService.listedProducts.findMany({
-        where: {
-          status : status ? status : 'IN_PROGRESS',
-          userId,
-        },
-        include: {product :{  include: {
-          images: true,
-          user: {
-            include: { locations: { include: { country: true, city: true } } },
+      const allListedProducts =
+        await this.prismaService.listedProducts.findMany({
+          where: {
+            status,
+            userId,
           },
-        }}},
-        skip: skip,
-        take: limit,
-        orderBy: { id: 'desc' },
-      });
-      const productsCount = await this.prismaService.listedProducts.count({
-        where: {
-          status : status ? status : 'IN_PROGRESS',
-          userId,
-        },
-      });
-      console.log('prooductCount:',productsCount)
+          include: {
+            product: {
+              include: {
+                images: true,
+                user: {
+                  include: {
+                    locations: { include: { country: true, city: true } },
+                  },
+                },
+              },
+            },
+             location:{include:{city: true, country:true}}
+          },
+          skip: skip,
+          take: limit,
+          orderBy: { id: 'desc' },
+        });
+      const productsCount = await this.prismaService.listedProducts.count({});
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
@@ -4209,95 +4226,95 @@ export class UserAuctionsService {
     roles: Role[],
     userId?: number,
   ) {
-    
     try {
-      console.log('product id:',productId, userId)
+      console.log('product id:', productId, userId);
       const product = await this.prismaService.listedProducts.findUnique({
         where: { productId: productId },
-        include:{
-          product: { include: {
+        include: {
+          product: {
+            include: {
               category: true,
               subCategory: true,
               city: true,
               country: true,
               images: true,
               user: {
-                include: { locations: { include: { country: true, city: true } } },
+                include: {
+                  locations: { include: { country: true, city: true } },
+                },
               },
-            },},
-          location:true,
-      }
+            },
+          },
+         location:{include:{city: true, country:true}}
+        },
       });
-      console.log('product :', product)
+      console.log('product :', product);
       if (!product) {
         throw new MethodNotAllowedResponse({
           ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
           en: 'Something Went Wrong While Fetching a Products',
         });
       }
-  
+
       return product;
     } catch (error) {
-      console.log('find product error : ',error)
+      console.log('find product error : ', error);
     }
   }
 
-  async findListedProductsAnalytics(
-    userId: number,
-  ) {
+  async findListedProductsAnalytics(userId: number) {
     try {
-     const count = await this.prismaService.listedProducts.count({
-       where:{
-         userId
-       }
-     })
-
-     const productsGrouping = await this.prismaService.listedProducts.groupBy({
-       where:{
-         userId
-       },
-       by: ['status'],
-       _count: { status: true },
-     })
-     return {
-       count,
-       productsGrouping : productsGrouping?.length ? productsGrouping.map(item =>{
-         return {
-           count: item['_count']?.status,
-           status: item.status,
-         }
-       }) : []
-     }
-    } catch (error) {
-      console.log('find product error : ',error)
-    }
-  }
-
-  async updateListedProductStatus(
-    id: number,
-    status : ListedProductsStatus
-  ) {
-    try {
-      console.log('product id:',id)
-      const updatedProduct = await this.prismaService.listedProducts.update({
-        where:{
-          id: id
+      const count = await this.prismaService.listedProducts.count({
+        where: {
+          userId,
         },
-        data:{
-          status: status 
-        }
-      })
-      console.log('product :', updatedProduct)
+      });
+
+      const productsGrouping = await this.prismaService.listedProducts.groupBy({
+        where: {
+          userId,
+        },
+        by: ['status'],
+        _count: { status: true },
+      });
+      return {
+        count,
+        productsGrouping: productsGrouping?.length
+          ? productsGrouping.map((item) => {
+              return {
+                count: item['_count']?.status,
+                status: item.status,
+              };
+            })
+          : [],
+      };
+    } catch (error) {
+      console.log('find product error : ', error);
+    }
+  }
+
+  async updateListedProductStatus(id: number, status: ListedProductsStatus) {
+    try {
+      console.log('product id:', id);
+      const updatedProduct = await this.prismaService.listedProducts.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: status,
+        },
+      });
+      console.log('product :', updatedProduct);
       if (!updatedProduct) {
         throw new MethodNotAllowedResponse({
           ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
           en: 'Something Went Wrong While Fetching a Products',
         });
       }
-  
+
       return updatedProduct;
     } catch (error) {
-      console.log('find product error : ',error)
+      console.log('find product error : ', error);
     }
   }
 
