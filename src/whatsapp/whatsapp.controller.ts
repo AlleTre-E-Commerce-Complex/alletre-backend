@@ -13,6 +13,12 @@ export class WhatsAppController {
 
   @Post('send-auction-bulk')
   async sendAuctionToBulkUsers(@Body() body :{auctionId : string}) {
-    return this.whatsappService.sendAuctionToUsers(body.auctionId)
+    return this.whatsappService.sendAuctionToUsers(body.auctionId,'EXISTING_USER')
+  }
+  @Post('send-auction-bulk-ToNonExistingUser')
+  async sendAuctionToNonExistingBulkUsers(@Body() body :{auctionId : string}) {
+    return this.whatsappService.sendAuctionToUsers(body.auctionId, 'NON_EXISTING_USER'
+      
+    )
   }
 }

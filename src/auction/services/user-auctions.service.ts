@@ -3073,13 +3073,25 @@ export class UserAuctionsService {
       if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount4',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
         });
     }
 
     // Create new bid
-    await this.prismaService.bids.create({
+    const bidCreated = await this.prismaService.bids.create({
       data: { userId, auctionId, amount: bidAmount },
+      include:{
+        auction: {
+          include: {
+            user: true,
+            bids: {
+              include: { user: true },
+              orderBy: { amount: 'desc' },
+            },
+            product: { include: { images: true, category: true } },
+          },
+        },
+      }
     });
 
     // Get totalBids after my bid
@@ -3093,6 +3105,7 @@ export class UserAuctionsService {
       new Prisma.Decimal(bidAmount),
       totalBids,
     );
+    this.auctionWebsocketGateway.increaseBid(bidCreated.auction)
   }
 
   async getBidderJoindAuctions(
