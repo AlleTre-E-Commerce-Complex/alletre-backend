@@ -13,7 +13,7 @@ async function main() {
   });
   await prisma.category.create({
     data: {
-      nameAr: 'الأجهزة المنزلية',
+      nameAr: 'الأجهزة الإلكترونية',
       nameEn: 'Electronic Devices',
       hasUsageCondition: true,
       bidderDepositFixedAmount: 100,
@@ -80,7 +80,7 @@ async function main() {
                   key: 'age',
                   resKey: 'age',
                   type: 'number',
-                  labelAr: 'عمر',
+                  labelAr: 'عمر الاستخدام',
                   labelEn: 'Age',
                 },
                 {
@@ -130,7 +130,7 @@ async function main() {
                   key: 'regionOfManufacture',
                   resKey: 'regionOfManufacture',
                   type: 'text',
-                  labelAr: 'منظقة المنشأ',
+                  labelAr: 'بلد المنشأ',
                   labelEn: 'Region Of Manufacture',
                 },
                 {
@@ -160,6 +160,12 @@ async function main() {
                   type: 'text',
                   labelAr: 'موديل',
                   labelEn: 'Model',
+                },    {
+                  key: 'graphicCard',
+                  resKey: 'graphicCard',
+                  type: 'text',
+                  labelAr: 'معالج الرسومات',
+                  labelEn: 'Graphic Card',
                 },
               ],
             },
@@ -187,7 +193,7 @@ async function main() {
                   key: 'regionOfManufacture',
                   resKey: 'regionOfManufacture',
                   type: 'text',
-                  labelAr: 'منظقة المنشأ',
+                  labelAr: 'بلد المنشأ',
                   labelEn: 'Region Of Manufacture',
                 },
                 {
@@ -244,7 +250,7 @@ async function main() {
                   key: 'regionOfManufacture',
                   resKey: 'regionOfManufacture',
                   type: 'text',
-                  labelAr: 'منظقة المنشأ',
+                  labelAr: 'بلد المنشأ',
                   labelEn: 'Region Of Manufacture',
                 },
                 {
@@ -301,7 +307,7 @@ async function main() {
                   key: 'regionOfManufacture',
                   resKey: 'regionOfManufacture',
                   type: 'text',
-                  labelAr: 'منظقة المنشأ',
+                  labelAr: 'بلد المنشأ',
                   labelEn: 'Region Of Manufacture',
                 },
                 {
@@ -486,7 +492,7 @@ async function main() {
 
   await prisma.category.create({
     data: {
-      nameAr: 'ملكيات',
+      nameAr: 'عقارات',
       nameEn: 'Properties',
       bidderDepositFixedAmount: 100,
       sellerDepositFixedAmount: 100,
