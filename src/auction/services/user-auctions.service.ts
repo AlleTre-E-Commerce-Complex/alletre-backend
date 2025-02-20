@@ -4186,7 +4186,7 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      const { page = 1, perPage = 4, status } = getListedProductDTO;
+      const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
