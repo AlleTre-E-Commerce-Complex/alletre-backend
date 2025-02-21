@@ -568,6 +568,8 @@ export class AuthService {
       
       // Check if token has been used or invalidated
       if (this.usedRefreshTokens.has(oldRefreshToken)) {
+        // Clear all sessions for this user for security
+        this.clearUserSessions(payload.id);
         throw new ForbiddenResponse({
           en: 'Token has been invalidated',
           ar: 'تم إبطال رمز التحديث',
@@ -583,6 +585,9 @@ export class AuthService {
         });
       }
 
+      // Add old token to used tokens
+      this.usedRefreshTokens.add(oldRefreshToken);
+
       // Generate new tokens
       const { accessToken, refreshToken } = this.generateTokens({
         id: user.id,
@@ -590,10 +595,13 @@ export class AuthService {
         roles: payload.roles,
       });
 
-      // Invalidate the old token
-      this.usedRefreshTokens.add(oldRefreshToken);
+      // Update session with new refresh token
+      this.manageUserSession(user.id, refreshToken);
 
-      return { accessToken, refreshToken };
+      return {
+        accessToken,
+        refreshToken,
+      };
     } catch (error) {
       console.error('Refresh token error:', error);
       if (error instanceof ForbiddenResponse) {
