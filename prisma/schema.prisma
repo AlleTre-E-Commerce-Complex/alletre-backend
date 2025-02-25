@@ -27,21 +27,21 @@ model User {
   socketId                 String?
   stripeId                 String?
   stripeConnectedAccountId String?
-  listedProducts           ListedProducts[]
-  auctions                 Auction[]
-  ListedProducts           Product[]
-  locations                Location[]
-  watchLists               WatchList[]
-  bids                     Bids[]
-  Payment                  Payment[]
-  JoinedAuction            JoinedAuction[]
-  wallet                   Wallet[]
   alletreWallet            AlletreWallet[]
+  auctions                 Auction[]
   auctionComplaints        AuctionComplaints[]
   bankAccount              BankAccount[]
-  withdrawalRequests       WithdrawalRequests[]
+  bids                     Bids[]
+  JoinedAuction            JoinedAuction[]
+  listedProducts           ListedProducts[]
+  locations                Location[]
   notifications            Notification[]
-  pushSubscriptions        PushSubscription[]
+  Payment                  Payment[]
+  ListedProducts           Product[]
+  pushSubscriptions        PushSubscription?
+  wallet                   Wallet[]
+  watchLists               WatchList[]
+  withdrawalRequests       WithdrawalRequests[]
 }
 
 model NonRegisteredUser {
@@ -52,6 +52,8 @@ model NonRegisteredUser {
   address     String?
   companyName String?
   remarks     String?
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -92,8 +94,8 @@ model WithdrawalRequests {
   bankAccountId    Int
   userId           Int
   withdrawalStatus WithdrawalStatus @default(PENDING)
-  user             User             @relation(fields: [userId], references: [id])
   bankAccount      BankAccount      @relation(fields: [bankAccountId], references: [id])
+  user             User             @relation(fields: [userId], references: [id])
 }
 
 model City {
@@ -108,7 +110,7 @@ model City {
 }
 
 model Location {
-  id             Int       @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   userId         Int
   countryId      Int
   cityId         Int
@@ -118,33 +120,33 @@ model Location {
   phone          String?
   lat            Float?
   lng            Float?
-  createdAt      DateTime  @default(now())
-  isMain         Boolean   @default(false)
-  user           User      @relation(fields: [userId], references: [id])
-  city           City      @relation(fields: [cityId], references: [id])
-  country        Country   @relation(fields: [countryId], references: [id])
+  createdAt      DateTime         @default(now())
+  isMain         Boolean          @default(false)
   auctions       Auction[]
   listedProducts ListedProducts[]
-
+  city           City             @relation(fields: [cityId], references: [id])
+  country        Country          @relation(fields: [countryId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
 }
 
 model Category {
-  id                       Int            @id @default(autoincrement())
+  id                       Int                @id @default(autoincrement())
   nameEn                   String
   nameAr                   String
-  createdAt                DateTime       @default(now())
-  hasUsageCondition        Boolean        @default(false)
+  createdAt                DateTime           @default(now())
+  hasUsageCondition        Boolean            @default(false)
   sellerDepositFixedAmount Decimal?
   bidderDepositFixedAmount Decimal?
   bannerLink               String?
   bannerPath               String?
   sliderLink               String?
   sliderPath               String?
-  status                   Boolean        @default(true)
-  products                 Product[]
-  subCategories            SubCategory[]
+  status                   Boolean            @default(true)
   brands                   Brand[]
   customFields             CustomFields[]
+  products                 Product[]
+  subCategories            SubCategory[]
+  nonRegisteredUsers       NonRegisteredUser[]
 }
 
 model SubCategory {
@@ -155,22 +157,22 @@ model SubCategory {
   createdAt    DateTime       @default(now())
   imageLink    String?
   imagePath    String?
+  customFields CustomFields[]
   products     Product[]
   category     Category       @relation(fields: [categoryId], references: [id])
-  customFields CustomFields[]
 }
 
 model CustomFields {
   id            Int          @id @default(autoincrement())
   subCategoryId Int?
-  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
   categoryId    Int?
-  category      Category?    @relation(fields: [categoryId], references: [id])
   key           String
   resKey        String       @default("")
   type          String
   labelAr       String
   labelEn       String
+  category      Category?    @relation(fields: [categoryId], references: [id])
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 }
 
 model Brand {
@@ -178,18 +180,17 @@ model Brand {
   name       String
   categoryId Int
   createdAt  DateTime @default(now())
-  // products   Product[]
   category   Category @relation(fields: [categoryId], references: [id])
 }
 
 model Product {
-  id                  Int          @id @default(autoincrement())
-  userId              Int?          
-  isAuctionProduct    Boolean?     @default(true)
+  id                  Int             @id @default(autoincrement())
+  userId              Int?
+  isAuctionProduct    Boolean?        @default(true)
   categoryId          Int
   subCategoryId       Int?
   brandId             Int?
-  quantity            Int          @default(1)
+  quantity            Int             @default(1)
   title               String
   model               String?
   usageStatus         UsageStatus?
@@ -201,9 +202,9 @@ model Product {
   releaseYear         String?
   regionOfManufacture String?
   ramSize             Int?
-  isOffer             Boolean      @default(false)
-  offerAmount         Decimal?     @default(0)
-  ProductListingPrice Decimal?     @default(0)
+  isOffer             Boolean         @default(false)
+  offerAmount         Decimal?        @default(0)
+  ProductListingPrice Decimal?        @default(0)
   cameraType          String?
   material            String?
   memory              String?
@@ -215,16 +216,15 @@ model Product {
   countryId           Int?
   cityId              Int?
   carType             String?
-  auction             Auction?
-  listedProducts      ListedProducts?
-  images              Image[]
   brand               String?
-  user                User?         @relation(fields: [userId], references: [id])
-  category            Category     @relation(fields: [categoryId], references: [id])
-  subCategory         SubCategory? @relation(fields: [subCategoryId], references: [id])
-  // brand               Brand?       @relation(fields: [brandId], references: [id])
-  city                City?        @relation(fields: [cityId], references: [id])
-  country             Country?     @relation(fields: [countryId], references: [id])
+  auction             Auction?
+  images              Image[]
+  listedProducts      ListedProducts?
+  category            Category        @relation(fields: [categoryId], references: [id])
+  city                City?           @relation(fields: [cityId], references: [id])
+  country             Country?        @relation(fields: [countryId], references: [id])
+  subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
+  user                User?           @relation(fields: [userId], references: [id])
 }
 
 model Image {
@@ -237,8 +237,6 @@ model Image {
   product   Product  @relation(fields: [productId], references: [id])
 }
 
-
-
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
@@ -250,24 +248,24 @@ model PushSubscription {
 
 model Auction {
   id                          Int                    @id @default(autoincrement())
-  userId                      Int  
+  userId                      Int
   productId                   Int                    @unique
-  locationId                  Int?   
+  locationId                  Int?
   status                      AuctionStatus          @default(PENDING_OWNER_DEPOIST)
-  type                        AuctionType?   
-  durationUnit                DurationUnits?   
-  durationInDays              Int?   
-  durationInHours             Int?   
-  startBidAmount              Decimal?   
+  type                        AuctionType?
+  durationUnit                DurationUnits?
+  durationInDays              Int?
+  durationInHours             Int?
+  startBidAmount              Decimal?
   isBuyNowAllowed             Boolean                @default(false)
   isItemSendForDelivery       Boolean?               @default(false)
   IsDelivery                  Boolean?               @default(false)
-  deliveryPolicyDescription   String?  
-  numOfDaysOfExpecetdDelivery Int?   
+  deliveryPolicyDescription   String?
+  numOfDaysOfExpecetdDelivery Int?
   deliveryType                DeliveryType?          @default(NOT_SPECIFIED)
-  DeliveryFees                Decimal?   
+  DeliveryFees                Decimal?
   IsReturnPolicy              Boolean?               @default(false)
-  returnPolicyDescription     String?  
+  returnPolicyDescription     String?
   IsWarranty                  Boolean?               @default(false)
   warrantyPolicyDescription   String?
   acceptedAmount              Decimal?
@@ -276,30 +274,31 @@ model Auction {
   endDate                     DateTime?
   deliveryRequestsStatus      DeliveryRequestsStatus @default(DELIVERY_PENDING)
   createdAt                   DateTime               @default(now())
-  product                     Product                @relation(fields: [productId], references: [id])
-  user                        User                   @relation(fields: [userId], references: [id])
-  watchLists                  WatchList[]   
-  location                    Location?              @relation(fields: [locationId], references: [id])
-  bids                        Bids[]
-  Payment                     Payment[]
-  JoinedAuction               JoinedAuction[]
-  Wallet                      Wallet[]
   alletreWallet               AlletreWallet[]
-  auctionComplaints           AuctionComplaints[]
-}
-model ListedProducts{
-  id                          Int                    @id @default(autoincrement())
-  productId                   Int                    @unique
-  status                      ListedProductsStatus   @default(IN_PROGRESS)
-  userId                      Int
-  locationId                  Int?
   location                    Location?              @relation(fields: [locationId], references: [id])
   product                     Product                @relation(fields: [productId], references: [id])
   user                        User                   @relation(fields: [userId], references: [id])
-  ProductListingPrice         Decimal?               @default(0)
-  createdAt                   DateTime               @default(now())
-
+  auctionComplaints           AuctionComplaints[]
+  bids                        Bids[]
+  JoinedAuction               JoinedAuction[]
+  Payment                     Payment[]
+  Wallet                      Wallet[]
+  watchLists                  WatchList[]
 }
+
+model ListedProducts {
+  id                  Int                  @id @default(autoincrement())
+  productId           Int                  @unique
+  status              ListedProductsStatus @default(IN_PROGRESS)
+  userId              Int
+  locationId          Int?
+  ProductListingPrice Decimal?             @default(0)
+  createdAt           DateTime             @default(now())
+  location            Location?            @relation(fields: [locationId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id])
+}
+
 model Purchase {
   id              Int             @id @default(autoincrement())
   productId       Int             @unique
@@ -309,8 +308,8 @@ model Purchase {
   productQuantity Int             @default(1)
   productAmount   Decimal
   totalAmount     Decimal
-  Wallet          Wallet[]
   alletreWallet   AlletreWallet[]
+  Wallet          Wallet[]
 }
 
 model WatchList {
@@ -333,27 +332,27 @@ model Bids {
 }
 
 model Payment {
-  id              Int           @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   userId          Int
-  auctionId       Int 
-  paymentIntentId String?       @unique
+  auctionId       Int
+  paymentIntentId String?        @unique
   amount          Decimal
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime       @default(now())
   type            PaymentType?
+  isWalletPayment Boolean        @default(false)
+  status          PaymentStatus  @default(PENDING)
   bankStatement   BankStatement?
-  isWalletPayment Boolean       @default(false)
-  status          PaymentStatus @default(PENDING)
-  auction         Auction       @relation(fields: [auctionId], references: [id])
-  user            User          @relation(fields: [userId], references: [id])
+  auction         Auction        @relation(fields: [auctionId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])
 }
 
 model BankStatement {
-  id        Int      @id @default(autoincrement())
-  paymentId Int?     @unique
+  id            Int      @id @default(autoincrement())
+  paymentId     Int?     @unique
   statementPath String
   statementLink String
-  createdAt DateTime @default(now())
-  payment   Payment?  @relation(fields: [paymentId], references: [id])
+  createdAt     DateTime @default(now())
+  payment       Payment? @relation(fields: [paymentId], references: [id])
 }
 
 model JoinedAuction {
@@ -364,9 +363,9 @@ model JoinedAuction {
   status                      JoinedAuctionStatus @default(IN_PROGRESS)
   paymentExpiryDate           DateTime?
   isWarningMessageSent24Hours Boolean             @default(false)
+  isWarningMessageSent1Hour   Boolean             @default(false)
   auction                     Auction             @relation(fields: [auctionId], references: [id])
   user                        User                @relation(fields: [userId], references: [id])
-  isWarningMessageSent1Hour   Boolean             @default(false)
 }
 
 model Admin {
@@ -391,8 +390,8 @@ model Wallet {
   transactionType WalletTransactionType
   balance         Decimal
   auction         Auction?              @relation(fields: [auctionId], references: [id])
-  user            User                  @relation(fields: [userId], references: [id])
   purchase        Purchase?             @relation(fields: [purchaseId], references: [id])
+  user            User                  @relation(fields: [userId], references: [id])
 }
 
 model AlletreWallet {
@@ -407,8 +406,8 @@ model AlletreWallet {
   transactionType WalletTransactionType
   balance         Decimal
   auction         Auction?              @relation(fields: [auctionId], references: [id])
-  user            User                  @relation(fields: [userId], references: [id])
   purchase        Purchase?             @relation(fields: [purchaseId], references: [id])
+  user            User                  @relation(fields: [userId], references: [id])
 }
 
 model AuctionComplaints {
@@ -419,9 +418,9 @@ model AuctionComplaints {
   message       String
   auctionStatus JoinedAuctionStatus
   problemStatus ProblemStatus       @default(PENDING)
-  images        ComplaintImages[]
   auction       Auction             @relation(fields: [auctionId], references: [id])
   user          User                @relation(fields: [userId], references: [id])
+  images        ComplaintImages[]
 }
 
 model ComplaintImages {
@@ -455,6 +454,7 @@ enum DeliveryRequestsStatus {
   DELIVERY_FAILED
   DELIVERY_HOLD
 }
+
 enum ProblemStatus {
   PENDING
   SOLVED

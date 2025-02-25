@@ -62,7 +62,7 @@ async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTI
             1: product.title,
             2: auction.startBidAmount.toString(),
             3: new Date(auction.startDate).toDateString(),
-            4: new Date(auction.endDate).toDateString(),
+            4: new Date(auction.expiryDate).toDateString(),
             5: imageFileName,
             6: `${auction.id}/details`,
         };
@@ -93,7 +93,7 @@ async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTI
                         users: batch,
                         messageTemplateParams,
                         fromNumber: this.fromNumber,
-                        contentSid: process.env.WHATSAPP_CONTENT_SID,
+                        contentSid: process.env.WHATSAPP_CONTENT_SID_SCHEDULED,
                     },
                 });
 

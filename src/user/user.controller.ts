@@ -41,7 +41,10 @@ export class UserController {
   @Post('/non-registered-users/upload-excel')
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(AuthGuard, RolesGuard)
-  async uploadExcelFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadExcelFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('categoryId') categoryId: string,
+  ) {
     const workbook = xlsx.read(file.buffer, { type: 'buffer' });
     const allSheetsData = [];
 
@@ -49,8 +52,8 @@ export class UserController {
       const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
       allSheetsData.push(...sheetData); // Merge all sheets into one array
     });
-    console.log('allSheets :',allSheetsData.length ,allSheetsData)
-    return this.userService.saveExcelData(allSheetsData);
+    
+    return this.userService.saveExcelData(allSheetsData, parseInt(categoryId));
   }
 
   // @Get('/non-registered-users/get')
