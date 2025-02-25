@@ -47,51 +47,99 @@ export class UserService {
     return user;
   }
 
-  async saveExcelData(data: any[]) {
+  async saveExcelData(data: any[], categoryId: number) {
     const failedEntries: any[] = [];
+    const successEntries: any[] = [];
 
     // Process and clean data
-    const formattedData = data.flatMap((row) => {
-      const mobiles = this.extractMobileNumbers(row['MOBILE NUMBER']);
-      return mobiles.map((mobile) => ({
-        name: row['NAME'] || null,
-        mobile: mobile || null,
-        email: row['EMAIL'] || null,
-        address: row['ADDRESS'] || null,
-        companyName: row['COMPANY NAME'] || null,
-        remarks: row['REMARKS'] || null,
-      }));
-    });
-
-    for (const entry of formattedData) {
+    for (const row of data) {
       try {
-        await this.prismaService.nonRegisteredUser.create({
-          data: entry,
-        });
+        const mobiles = this.extractMobileNumbers(row['MOBILE NUMBER']);
+        const entries = mobiles.map((mobile) => ({
+          name: row['NAME'] || null,
+          mobile: mobile || null,
+          email: row['EMAIL'] || null,
+          address: row['ADDRESS'] || null,
+          companyName: row['COMPANY NAME'] || null,
+          remarks: row['REMARKS'] || null,
+          categoryId: categoryId,
+        }));
+
+        // Try to create each entry
+        for (const entry of entries) {
+          try {
+            const result = await this.prismaService.nonRegisteredUser.create({
+              data: entry,
+            });
+            successEntries.push(result);
+          } catch (error) {
+            this.logger.error(`Failed to insert: ${JSON.stringify(entry)}`, error);
+            failedEntries.push(entry);
+          }
+        }
       } catch (error) {
-        this.logger.error(`Failed to insert: ${JSON.stringify(entry)}`, error);
-        failedEntries.push(entry);
+        this.logger.error(`Failed to process row: ${JSON.stringify(row)}`, error);
+        failedEntries.push(row);
       }
     }
 
     return {
       message: 'Data upload completed',
+      successCount: successEntries.length,
+      failedCount: failedEntries.length,
       failedEntries: failedEntries.length ? failedEntries : 'No errors',
     };
   }
 
-  // Extract multiple mobile numbers from various formats
-  private extractMobileNumbers(mobileField: string): string[] {
-    if (!mobileField) return [];
-    // Check if the string contains any delimiter
-    const delimiterRegex = /\/|\n|,|\s+/;
-    if (!delimiterRegex.test(mobileField)) {
-      return [mobileField.toString().trim()]; // Return as a single-item array if no delimiter is found
+
+  // New extractMobileNumbers function
+  private extractMobileNumbers(mobileField: any): string[] {
+    try {
+      if (!mobileField) return [];
+
+      // Convert to string if it's a number
+      const mobileString = mobileField.toString();
+
+      // First split by common delimiters
+      const numbers = mobileString
+        .split(/\/|\n|,|\s+/)
+        .map((num:any) => num.trim())
+        .filter((num:any) => num.length > 0);
+
+      // Process and validate each number
+      return numbers.map((number:any) => {
+        try {
+          // Remove all hyphens and spaces
+          let cleanNumber = number.replace(/-|\s/g, '');
+
+          // Handle different formats and convert to standard format
+          if (cleanNumber.startsWith('+971')) {
+            // Format: +971XXXXXXXXX
+            cleanNumber = cleanNumber;
+          } else if (cleanNumber.startsWith('971')) {
+            // Format: 971XXXXXXXXX
+            cleanNumber = '+' + cleanNumber;
+          } else if (cleanNumber.startsWith('0')) {
+            // Format: 05XXXXXXXX
+            cleanNumber = '+971' + cleanNumber.substring(1);
+          } else if (cleanNumber.match(/^[5][0-9]{8}$/)) {
+            // Format: 5XXXXXXXX
+            cleanNumber = '+971' + cleanNumber;
+          }
+
+          // Validate UAE mobile number format
+          const uaeRegex = /^\+971[5][0-9]{8}$/;
+          return uaeRegex.test(cleanNumber) ? cleanNumber : null;
+        } catch (error) {
+          this.logger.error(`Failed to process number: ${number}`, error);
+          return null;
+        }
+      })
+      .filter((num): num is string => num !== null); // Remove invalid numbers
+    } catch (error) {
+      this.logger.error(`Failed to process mobile field: ${mobileField}`, error);
+      return [];
     }
-    return mobileField
-      .split(/\/|\n|,|\s+/) // Split by "/", new lines, commas, or spaces
-      .map((num) => num.trim()) // Remove extra spaces
-      .filter((num) => num.length > 0); // Remove empty values
   }
 
   async oAuth(
