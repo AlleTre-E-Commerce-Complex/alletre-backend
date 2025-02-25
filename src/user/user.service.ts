@@ -73,8 +73,16 @@ export class UserService {
             });
             successEntries.push(result);
           } catch (error) {
-            this.logger.error(`Failed to insert: ${JSON.stringify(entry)}`, error);
-            failedEntries.push(entry);
+            // Log more detailed error information
+            this.logger.error(
+              `Failed to insert: ${JSON.stringify(entry)}\nError details: ${
+                error.message
+              }\nError code: ${error.code}\nError meta: ${JSON.stringify(
+                error.meta
+              )}`,
+              error
+            );
+            failedEntries.push({ ...entry, error: error.message });
           }
         }
       } catch (error) {
