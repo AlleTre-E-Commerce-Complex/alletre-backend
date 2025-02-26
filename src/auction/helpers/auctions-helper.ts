@@ -41,7 +41,7 @@ export class AuctionsHelper {
     if (brands?.length) {
       productFilterOrSearch = {
         ...productFilterOrSearch,
-        ...{ brandId: { in: brands } },
+        ...{ brand: { in: brands } },
       };
     }
     if (usageStatus?.length) {
