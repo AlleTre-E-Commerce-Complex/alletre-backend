@@ -43,9 +43,7 @@ export class WhatsAppService {
 
 
 
-  
-
-async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
+  async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
     try {
         const auction = await this.prismaService.auction.findFirst({
             where: { id: Number(auctionId) },
@@ -94,6 +92,76 @@ async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTI
                         messageTemplateParams,
                         fromNumber: this.fromNumber,
                         contentSid: process.env.WHATSAPP_CONTENT_SID_SCHEDULED,
+                    },
+                });
+
+                worker.on('message', (result) => {
+                    console.log('Worker finished:', result);
+                    resolve(result);
+                });
+
+                worker.on('error', (error) => {
+                    console.error('Worker error:', error);
+                    reject(error);
+                });
+
+                worker.on('exit', (code) => {
+                    if (code !== 0) {
+                        console.error(`Worker stopped with exit code ${code}`);
+                    }
+                });
+            });
+        });
+
+        const results = await Promise.allSettled(workers);
+
+        return {
+            success: true,
+            message: 'Auction notifications sent successfully',
+            results,
+        };
+    } catch (error) {
+        console.error('Error sending WhatsApp messages:', error);
+        throw error;
+    }
+}
+
+async sendCommonMessageToUsers(message: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
+    try {
+
+
+
+        const messageTemplateParams = {
+            
+        };
+        let allUsersList: any[] = []; // Initialize as an empty array
+
+        if (userType === 'NON_EXISTING_USER') {
+          allUsersList = await this.prismaService.nonRegisteredUser.findMany();
+        } else if (userType === 'EXISTING_USER') {
+          allUsersList = await this.prismaService.user.findMany();
+        }
+        
+
+        const batchSize = 1000;
+        const userBatches = [];
+
+        for (let i = 0; i < allUsersList.length; i += batchSize) {
+            userBatches.push(allUsersList.slice(i, i + batchSize));
+        }
+
+        console.log('Worker file exists:', fs.existsSync(path.join(__dirname, 'whatsappWorker.js')));
+
+        const workers = userBatches.map((batch) => {
+            return new Promise((resolve, reject) => {
+                const workerPath = path.join(__dirname, 'whatsappWorker.js');
+
+                const worker = new Worker(workerPath, {
+                    workerData: {
+                        users: batch,
+                        messageTemplateParams,
+                        fromNumber: this.fromNumber,
+                        contentSid: process.env.WHATSAPP_CONTENT_SID_FOR_COMMON_MESSAGE,
                     },
                 });
 
