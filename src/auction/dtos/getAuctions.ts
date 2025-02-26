@@ -33,10 +33,10 @@ export class GetAuctionsDTO {
   categories: number[];
 
   @IsOptional()
-  @Transform(({ value }) => parseNumbers(value))
+  // @Transform(({ value }) => parseNumbers(value))
   @IsArray()
-  @IsNumber({}, { each: true })
-  brands: number[];
+  // @IsNumber({}, { each: true })
+  brands: string[];
 
   @IsOptional()
   @Transform(({ value }) => parseNumbers(value))
