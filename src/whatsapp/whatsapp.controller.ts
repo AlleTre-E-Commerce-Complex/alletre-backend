@@ -22,7 +22,18 @@ export class WhatsAppController {
     )
   }
   @Post('send-commentMessage-ToNonExistingUser')
-  async sendCommonMessageToAllNonExistingUsers(@Body() body :{message : string}) {
-    return this.whatsappService.sendCommonMessageToUsers(body.message, 'NON_EXISTING_USER')
+  async sendCommonMessageToAllNonExistingUsers(
+    @Body() body: {
+      message: string;
+      mediaUrl?: string;
+      buttonUrl?: string;
+    }
+  ) {
+    return this.whatsappService.sendCommonMessageToUsers(
+      body.message,
+      'NON_EXISTING_USER',
+      body.mediaUrl,
+      body.buttonUrl
+    );
   }
 }
