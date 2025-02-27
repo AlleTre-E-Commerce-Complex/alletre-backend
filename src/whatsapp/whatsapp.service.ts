@@ -126,13 +126,17 @@ export class WhatsAppService {
     }
 }
 
-async sendCommonMessageToUsers(message: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
+async sendCommonMessageToUsers(
+    message: string,
+    userType: "EXISTING_USER"|"NON_EXISTING_USER",
+    mediaUrl?: string,
+    buttonUrl?: string
+  ) {
     try {
-
-
-
         const messageTemplateParams = {
-            
+            1: message,
+            2: mediaUrl || 'logo512.png?alt=media&token=8b9490bd-8fd5-4439-9287-8e5ab3bd9ff1',
+            3: buttonUrl || ''
         };
         let allUsersList: any[] = []; // Initialize as an empty array
 
@@ -161,7 +165,7 @@ async sendCommonMessageToUsers(message: string,userType: "EXISTING_USER"|"NON_EX
                         users: batch,
                         messageTemplateParams,
                         fromNumber: this.fromNumber,
-                        contentSid: process.env.WHATSAPP_CONTENT_SID_FOR_COMMON_MESSAGE,
+                        contentSid: process.env.WHATSAPP_CONTENT_SID_FOR_2_COMMON_MESSAGE_TEMPLET,
                     },
                 });
 

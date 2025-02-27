@@ -311,11 +311,11 @@ export class PaymentsService {
         }
 
         //check previous payment attempt thorugh stripe or not
-        if (bidderPaymentForAuction.paymentIntentId) {
-          throw new MethodNotAllowedException(
-            'Wallet payment is not available for this auction. Please select an online payment method to proceed.',
-          );
-        }
+        // if (bidderPaymentForAuction.paymentIntentId) {
+        //   throw new MethodNotAllowedException(
+        //     'Wallet payment is not available for this auction. Please select an online payment method to proceed.',
+        //   );
+        // }
         return bidderPaymentForAuction;
       }
       //finding the last transaction balance of the bidder
