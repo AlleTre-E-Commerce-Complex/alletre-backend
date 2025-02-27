@@ -629,7 +629,7 @@ export class PaymentsService {
             );
           const imageLink = auction.product.images[0].imageLink;
           const productTitle = auction.product.title;
-          const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${paymentData.amount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
+          const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${bidAmount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
           const isBidders = true;
           await this.notificationsService.sendNotifications(
             joinedAuctionUsers,
