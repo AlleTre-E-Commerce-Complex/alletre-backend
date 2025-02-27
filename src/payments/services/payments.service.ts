@@ -316,7 +316,7 @@ export class PaymentsService {
         //     'Wallet payment is not available for this auction. Please select an online payment method to proceed.',
         //   );
         // }
-        return bidderPaymentForAuction;
+        // return bidderPaymentForAuction;
       }
       //finding the last transaction balance of the bidder
       const lastWalletTransactionBalanceOfBidder =
