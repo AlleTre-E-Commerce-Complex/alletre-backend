@@ -132,12 +132,14 @@ async sendCommonMessageToUsers(
     mediaUrl?: string,
     buttonUrl?: string
   ) {
+    console.log('message:',message,mediaUrl,buttonUrl)
     try {
         const messageTemplateParams = {
             1: message,
             2: mediaUrl || 'logo512.png?alt=media&token=8b9490bd-8fd5-4439-9287-8e5ab3bd9ff1',
-            3: buttonUrl || ''
+            3: buttonUrl || '/1/details'
         };
+        console.log('mesage 999', messageTemplateParams)
         let allUsersList: any[] = []; // Initialize as an empty array
 
         if (userType === 'NON_EXISTING_USER') {
