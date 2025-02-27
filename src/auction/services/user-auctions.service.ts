@@ -3106,6 +3106,77 @@ export class UserAuctionsService {
       totalBids,
     );
     this.auctionWebsocketGateway.increaseBid(bidCreated.auction)
+
+    try {
+      const imageLink = bidCreated.auction.product.images[0]?.imageLink;
+      const productTitle = bidCreated.auction.product.title;
+      
+      // Notify seller
+      const notificationDataToSeller = {
+        status: 'ON_BIDDING',
+        userType: 'FOR_SELLER',
+        usersId: bidCreated.auction.userId,
+        message: `New bid of AED ${bidAmount} placed on your auction ${productTitle}`,
+        imageLink,
+        productTitle,
+        auctionId
+      }
+      await this.prismaService.notification.create({
+        data:{
+          userId: notificationDataToSeller.usersId,
+          message: notificationDataToSeller.message,
+          imageLink: notificationDataToSeller.imageLink,
+          productTitle,
+          auctionId
+        }
+      })
+      this.notificationService.sendNotificationToSpecificUsers(notificationDataToSeller)
+      // Notify current bidder
+      const notificationDataToBidder ={
+        status: 'ON_BIDDING',
+        userType: 'CURRENT_BIDDER',
+        usersId: userId,
+        message: `Your bid of AED ${bidAmount} was placed successfully on ${productTitle}`,
+        imageLink,
+        productTitle,
+        auctionId
+      }
+
+      await this.prismaService.notification.create({
+        data:{
+          userId: notificationDataToBidder.usersId,
+          message: notificationDataToBidder.message,
+          imageLink: notificationDataToBidder.imageLink,
+          productTitle,
+          auctionId
+        }
+      })
+
+      this.notificationService.sendNotificationToSpecificUsers(notificationDataToBidder)
+
+      // Get and notify other bidders
+      const currentUserId = userId;
+          const joinedAuctionUsers =
+            await this.notificationService.getAllJoinedAuctionUsers(
+              auctionId,
+              currentUserId,
+            )
+
+      if (joinedAuctionUsers.length > 0) {
+        const otherBidderMessage =  `New bid of AED ${bidAmount} placed on ${productTitle}`
+        const isBidders = true
+        await this.notificationService.sendNotifications(
+          joinedAuctionUsers,
+          otherBidderMessage,
+          imageLink,
+          productTitle,
+          auctionId,
+          isBidders,
+        )
+      }
+    } catch (error) {
+      console.error('Error sending bid notifications:', error);
+    }
   }
 
   async getBidderJoindAuctions(
@@ -3520,8 +3591,7 @@ export class UserAuctionsService {
         const sellerReturnSecurityDepositWalletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
-          description:
-            'Return Security deposit due to winner confirmed the delivery',
+          description: `Return Security deposit due to winner confirmed the delivery`,
           amount: Number(sellerPaymentData.amount),
           auctionId: Number(auctionId),
           balance: lastWalletTransactionBalance
@@ -4866,14 +4936,27 @@ export class UserAuctionsService {
           description,
           ...(userId ? { userId: Number(userId) } : {}),
           ...(age ? { age: Number(age) } : {}),
-          ...(subCategoryId ? { subCategoryId: Number(subCategoryId) } : {}),
-          ...(screenSize ? { screenSize: Number(screenSize) } : {}),
-          ...(ramSize ? { ramSize: Number(ramSize) } : {}),
-          ...(totalArea ? { totalArea: Number(totalArea) } : {}),
-          ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : {}),
-          ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : {}),
-          ...(countryId ? { countryId: Number(countryId) } : {}),
-          ...(cityId ? { cityId: Number(cityId) } : {}),
+          ...(subCategoryId
+            ? { subCategoryId: Number(subCategoryId) }
+            : { subCategoryId: null }),
+          ...(brand ? { brand } : { brand: null }),
+          ...(screenSize
+            ? { screenSize: Number(screenSize) }
+            : { screenSize: null }),
+          ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
+          ...(totalArea
+            ? { totalArea: Number(totalArea) }
+            : { totalArea: null }),
+          ...(numberOfRooms
+            ? { numberOfRooms: Number(numberOfRooms) }
+            : { numberOfRooms: null }),
+          ...(numberOfFloors
+            ? { numberOfFloors: Number(numberOfFloors) }
+            : { numberOfFloors: null }),
+          ...(countryId
+            ? { countryId: Number(countryId) }
+            : { countryId: null }),
+          ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
           ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
           ...(ProductListingPrice
             ? { ProductListingPrice: Number(ProductListingPrice) }
