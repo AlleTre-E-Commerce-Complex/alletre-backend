@@ -1722,6 +1722,8 @@ export class UserAuctionsService {
               AuctionStatus.IN_SCHEDULED,
               AuctionStatus.PENDING_OWNER_DEPOIST,
               AuctionStatus.DRAFTED,
+              AuctionStatus.CANCELLED_AFTER_EXP_DATE,
+              AuctionStatus.CANCELLED_BEFORE_EXP_DATE
             ],
           },
         },
