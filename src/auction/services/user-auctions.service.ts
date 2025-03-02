@@ -2235,14 +2235,14 @@ export class UserAuctionsService {
             images: true,
           },
         },
-        user: { select: { lang: true } },
+        // user: {    select: { lang: true } },
+        user:true,
         location: {
           include: { city: true, country: true },
         },
         _count: { select: { bids: true } },
       },
     });
-
     if (!auction)
       throw new NotFoundResponse({
         ar: 'لا يوجد هذا الاعلان',
@@ -2253,7 +2253,6 @@ export class UserAuctionsService {
       auction.user.lang,
       auction,
     );
-
     // Add deposit flag for bidder
     const isDepositPaid = await this.prismaService.payment.findFirst({
       where: {
