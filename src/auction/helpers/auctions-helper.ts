@@ -211,7 +211,7 @@ export class AuctionsHelper {
       delete auction['product']['country'];
       auction['product']['country'] = countryName;
     }
-    delete auction['user'];
+    // delete auction['user'];
 
     return this._execludeNullFields(auction);
   }
