@@ -1348,12 +1348,14 @@ export class TasksService {
                   'lostBidderPaymentData ===>',
                   lostBidderPaymentData,
                 );
+                console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
                 if (!lostBidderPaymentData.isWalletPayment) {
                   await this.stripeService.cancelDepositPaymentIntent(
                     lostBidderPaymentData.paymentIntentId,
                   );
                 } else {
                   //logic to transfer to the wallet
+                console.log('lostBidderIswallet2',lostBidderPaymentData.isWalletPayment)
 
                   //finding the last transaction balance of the losers
                   const lastWalletTransactionBalanceOfBidder =
