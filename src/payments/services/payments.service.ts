@@ -3203,9 +3203,10 @@ export class PaymentsService {
 
   addHours(date: Date, hours: number) {
     const newDate =
-      process.env.NODE_ENV === 'production'
-        ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() +   5 * 60 * 1000); 
+      // process.env.NODE_ENV === 'production'
+      //   ? new Date(date.getTime() + hours * 60 * 60 * 1000)
+      //   : 
+        new Date(date.getTime() +   5 * 60 * 1000); 
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
