@@ -180,13 +180,13 @@ export class PaymentsService {
           const message = 'New Auction has been published.';
           const imageLink = auction.product.images[0].imageLink;
           const productTitle = auction.product.title;
-          await this.notificationsService.sendNotifications(
-            usersId,
-            message,
-            imageLink,
-            productTitle,
-            paymentData.auctionId,
-          );
+          // await this.notificationsService.sendNotifications(
+          //   usersId,
+          //   message,
+          //   imageLink,
+          //   productTitle,
+          //   paymentData.auctionId,
+          // );
         }
       } else {
         console.error('Payment data not created when walletPayDepositBySeller')
@@ -3174,16 +3174,16 @@ export class PaymentsService {
               Button_text: 'Share My Auction ',
               Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
             };
-            await this.emailService.sendEmail(
-              updatedAuction.user.email,
-              'token',
-              EmailsType.OTHER,
-              emailBodyToSeller,
-            );
-            await this.emailBatchService.sendBulkEmails(
-              updatedAuction,
-              currentUserEmail,
-            );
+            // await this.emailService.sendEmail(
+            //   updatedAuction.user.email,
+            //   'token',
+            //   EmailsType.OTHER,
+            //   emailBodyToSeller,
+            // );
+            // await this.emailBatchService.sendBulkEmails(
+            //   updatedAuction,
+            //   currentUserEmail,
+            // );
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
@@ -3205,7 +3205,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() +   10 * 60 * 1000); 
+        : new Date(date.getTime() +   5 * 60 * 1000); 
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
