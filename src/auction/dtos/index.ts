@@ -5,3 +5,5 @@ export * from './getAuctions';
 export * from './pagination.dto';
 export * from './submitBid.dto';
 export * from './getJoinedAuctions.dto';
+export * from './getAuctionsByOtherUser';
+export * from './getListedProductsByOtherUser.dto';

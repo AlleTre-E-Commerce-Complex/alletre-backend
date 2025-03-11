@@ -23,7 +23,9 @@ export class AuthOrGuestGuard implements CanActivate {
     }
 
     try {
-      request.account = await this.validateAccessToken(request.headers.authorization);
+      request.account = await this.validateAccessToken(
+        request.headers.authorization,
+      );
       return true;
     } catch (error) {
       // If token validation fails, still allow access as guest
@@ -38,22 +40,24 @@ export class AuthOrGuestGuard implements CanActivate {
     }
 
     const [type, token] = accessToken.split(' ');
-    
+
     if (type !== 'Bearer' || !token) {
       throw new ForbiddenException('Invalid token format');
     }
 
     try {
       const decoded: any = verify(token, process.env.ACCESS_TOKEN_SECRET);
-      
+
       if (!decoded || !decoded.id || !decoded.roles) {
         throw new ForbiddenException('Invalid token payload');
       }
 
       // Only check user status for non-admin users
       if (!decoded.roles.includes(Role.Admin)) {
-        const user = await this.userService.findUserByIdOr404(Number(decoded.id));
-        
+        const user = await this.userService.findUserByIdOr404(
+          Number(decoded.id),
+        );
+
         if (!user) {
           throw new UnauthorizedException('User not found');
         }
@@ -65,7 +69,9 @@ export class AuthOrGuestGuard implements CanActivate {
 
       return decoded;
     } catch (err) {
-      throw new ForbiddenException(`Token error: ${err.message || 'Invalid token'}`);
+      throw new ForbiddenException(
+        `Token error: ${err.message || 'Invalid token'}`,
+      );
     }
   }
 }
