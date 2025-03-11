@@ -22,6 +22,7 @@ import { Account } from 'src/auth/decorators/account.decorator';
 import { UserAuctionsService } from '../services/user-auctions.service';
 import {
   AuctionCreationDTO,
+  GetAuctionsByOtherUserDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
   GetJoinAuctionsDTO,
@@ -40,7 +41,11 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { WalletPayDto } from '../dtos/walletPay.dto';
-import { ListedProductsStatus, PaymentStatus, PaymentType } from '@prisma/client';
+import {
+  ListedProductsStatus,
+  PaymentStatus,
+  PaymentType,
+} from '@prisma/client';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 import { GetListedProductDTO } from '../dtos/getListedProducts.dto';
@@ -264,6 +269,24 @@ export class AuctionsController {
     const userAuctionsPaginated =
       await this.userAuctionsService.findUserOwnesAuctions(
         account.id,
+        getAuctionsByOwnerDTO,
+      );
+
+    return {
+      success: true,
+      pagination: userAuctionsPaginated.pagination,
+      data: userAuctionsPaginated.userAuctions,
+    };
+  }
+
+  @Get('/user/user-details')
+  @UseGuards(AuthGuard)
+  async getAuctionsByOtherUser(
+    @Query() getAuctionsByOwnerDTO: GetAuctionsByOtherUserDTO,
+  ) {
+    const userAuctionsPaginated =
+      await this.userAuctionsService.findOtherUserAuctions(
+        getAuctionsByOwnerDTO.userId,
         getAuctionsByOwnerDTO,
       );
 

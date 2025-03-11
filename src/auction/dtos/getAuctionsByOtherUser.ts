@@ -8,7 +8,7 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class GetAuctionsByOwnerDTO {
+export class GetAuctionsByOtherUserDTO {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
@@ -27,4 +27,8 @@ export class GetAuctionsByOwnerDTO {
   @IsOptional()
   @IsIn(Object.keys(AuctionType))
   type: AuctionType;
+
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  userId: number;
 }

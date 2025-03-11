@@ -7,9 +7,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
   AuctionCreationDTO,
+  GetAuctionsByOtherUserDTO,
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
   GetJoinAuctionsDTO,
+  GetListedProductByOhterUserDTO,
   PaginationDTO,
   ProductDTO,
 } from '../dtos';
@@ -1219,7 +1221,7 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
-    console.log('getAuctionsByOwnerDTO :', getAuctionsByOwnerDTO);
+  
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -1233,6 +1235,58 @@ export class UserAuctionsService {
       where: {
         userId: userId,
         ...(status ? { status: status } : {}),
+        ...(type ? { type } : {}),
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            // // brand: true,
+            subCategory: true,
+            city: true,
+            country: true,
+            images: true,
+          },
+        },
+        _count: { select: { bids: true } },
+        bids: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    const userOwensAuctionsCount = await this.prismaService.auction.count({
+      where: {
+        userId: userId,
+        ...(status ? { status: status } : {}),
+        ...(type ? { type } : {}),
+      },
+    });
+
+    const pagination = this.paginationService.getPagination(
+      userOwensAuctionsCount,
+      page,
+      perPage,
+    );
+
+    return { userAuctions, pagination };
+  }
+  async findOtherUserAuctions(
+    userId: number,
+    GetAuctionsByOtherUserdto: GetAuctionsByOtherUserDTO,
+  ) {
+    console.log('getAuctionsByOwnerDTO :', GetAuctionsByOtherUserdto);
+    const { page = 1, perPage = 10, status, type } = GetAuctionsByOtherUserdto;
+
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
+
+    const userAuctions = await this.prismaService.auction.findMany({
+      skip: skip,
+      take: limit,
+      where: {
+        userId: userId,
+          status: { in: ['ACTIVE', 'IN_SCHEDULED'] }  ,
         ...(type ? { type } : {}),
       },
       include: {
@@ -4305,6 +4359,60 @@ export class UserAuctionsService {
       });
     }
   }
+  async fetchListedProductByOthers(
+    roles: Role[],
+    getListedProductByOtherDTO: GetListedProductByOhterUserDTO,
+    userId?: number,
+  ) {
+    try {
+      const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductByOtherDTO;
+      const { limit, skip } = this.paginationService.getSkipAndLimit(
+        Number(page),
+        Number(perPage),
+      );
+      const allListedProducts =
+        await this.prismaService.listedProducts.findMany({
+          where: {
+            status,
+            userId,
+          },
+          include: {
+            product: {
+              include: {
+                images: true,
+                user: {
+                  include: {
+                    locations: { include: { country: true, city: true } },
+                  },
+                },
+              },
+            },
+             location:{include:{city: true, country:true}}
+          },
+          skip: skip,
+          take: limit,
+          orderBy: { id: 'desc' },
+        });
+      const productsCount = await this.prismaService.listedProducts.count({});
+      const pagination = this.paginationService.getPagination(
+        productsCount,
+        page,
+        perPage,
+      );
+      console.log('pagination:', pagination)
+
+      return {
+        products: allListedProducts,
+        pagination,
+      };
+    } catch (error) {
+      console.error('list new procuct error :', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
+        en: 'Something Went Wrong While Fetching all Products',
+      });
+    }
+  }
   async findProductByIdOr404(
     productId: number,
     roles: Role[],
@@ -4329,6 +4437,7 @@ export class UserAuctionsService {
               },
             },
           },
+          user:true,
          location:{include:{city: true, country:true}}
         },
       });

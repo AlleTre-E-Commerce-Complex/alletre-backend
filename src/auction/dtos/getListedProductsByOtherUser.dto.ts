@@ -2,7 +2,7 @@ import { ListedProductsStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import { IsIn, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
-export class GetListedProductDTO {
+export class GetListedProductByOhterUserDTO {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
@@ -17,4 +17,8 @@ export class GetListedProductDTO {
   @IsNotEmpty()
   @IsIn(Object.keys(ListedProductsStatus))
   status: ListedProductsStatus;
+
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  userId: number;
 }
