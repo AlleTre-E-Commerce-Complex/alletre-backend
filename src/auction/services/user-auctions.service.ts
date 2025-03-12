@@ -1482,6 +1482,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
+            usageStatus:true,
           },
         },
         _count: { select: { bids: true } },
