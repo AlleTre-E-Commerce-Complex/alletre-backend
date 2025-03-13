@@ -5,6 +5,7 @@ import {
   JoinedAuctionStatus,
   PaymentStatus,
   PaymentType,
+  PrismaClient,
   WalletStatus,
   WalletTransactionType,
 } from '@prisma/client';
@@ -1277,53 +1278,6 @@ export class TasksService {
             }
           }
 
-          // const winnedBidderPaymentData =
-          //   await this.paymentService.getAuctionPaymentTransaction(
-          //     winnedBidderAuction.userId,
-          //     winnedBidderAuction.auctionId,
-          //     PaymentType.BIDDER_DEPOSIT,
-          //   );
-
-          // Capture the S-D of the winning bidder (if money payed with wallet no need to capture again, it is already in the alletre wallet)
-          // if (
-          //   !winnedBidderPaymentData.isWalletPayment &&
-          //   winnedBidderPaymentData.paymentIntentId
-          // ) {
-          //   try {
-          //     const isSellerPaymentCaptured =
-          //       await this.stripeService.captureDepositPaymentIntent(
-          //         winnedBidderPaymentData.paymentIntentId,
-          //       );
-          //     console.log(
-          //       `Captured payment for winning bidder: ${winnedBidderAuction.userId}`,
-          //     );
-          //     //find the last transaction balane of the alletre
-          //     const lastBalanceOfAlletre =
-          //       await this.walletService.findLastTransactionOfAlletre();
-          //     //tranfering data for the alletre fees
-          //     const alletreWalletData = {
-          //       status: WalletStatus.DEPOSIT,
-          //       transactionType: WalletTransactionType.By_AUCTION,
-          //       description: `Captured payment for winning bidder`,
-          //       amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-          //       auctionId: Number(winnedBidderPaymentData.auctionId),
-          //       balance: lastBalanceOfAlletre
-          //         ? Number(lastBalanceOfAlletre) +
-          //           Number(isSellerPaymentCaptured.amount) / 100
-          //         : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-          //     };
-          //     await this.walletService.addToAlletreWallet(
-          //       winnedBidderPaymentData.userId,
-          //       alletreWalletData,
-          //     );
-          //   } catch (error) {
-          //     console.error(
-          //       'Error capturing payment for winning bidder:',
-          //       error,
-          //     );
-          //   }
-          // }
-
           // Cancel payment authorizations for losing bidders
           const losingBidders = await this.prismaService.joinedAuction.findMany(
             {
@@ -1335,80 +1289,97 @@ export class TasksService {
             },
           );
 
-          await Promise.all(
-            losingBidders.map(async (loser) => {
-              try {
-                const lostBidderPaymentData =
-                  await this.paymentService.getAuctionPaymentTransaction(
-                    loser.userId,
-                    loser.auctionId,
-                    PaymentType.BIDDER_DEPOSIT,
-                  );
-                console.log(
-                  'lostBidderPaymentData ===>',
-                  lostBidderPaymentData,
-                );
-                console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
-                if (!lostBidderPaymentData.isWalletPayment) {
-                  await this.stripeService.cancelDepositPaymentIntent(
-                    lostBidderPaymentData.paymentIntentId,
-                  );
-                } else {
-                  //logic to transfer to the wallet
-                console.log('lostBidderIswallet2',lostBidderPaymentData.isWalletPayment)
 
-                  //finding the last transaction balance of the losers
-                  const lastWalletTransactionBalanceOfBidder =
-                    await this.walletService.findLastTransaction(loser.userId);
-                  //finding the last transaction balance of the alletreWallet
-                  const lastBalanceOfAlletre =
-                    await this.walletService.findLastTransactionOfAlletre();
-                  //wallet data for withdraw money from seller wallet
+          for (const loser of losingBidders){
+            try {
+              const lostBidderPaymentData =
+              await this.paymentService.getAuctionPaymentTransaction(
+                loser.userId,
+                loser.auctionId,
+                PaymentType.BIDDER_DEPOSIT,
+              );
+              console.log('lostBidderPaymentData',lostBidderPaymentData)
+              await this.processRefundForLosingBidders(lostBidderPaymentData, this.prismaService);
+              console.log(`Successfully processed refund for losing bidder: ${loser.userId}`);
+            } catch (error) {
+              console.error(`Failed to process refund for losing bidder ${loser.userId}:`, error);
+            }
+          }
+          
+          // await Promise.all(
+          //   losingBidders.map(async (loser) => {
+          //     try {
+          //       const lostBidderPaymentData =
+          //         await this.paymentService.getAuctionPaymentTransaction(
+          //           loser.userId,
+          //           loser.auctionId,
+          //           PaymentType.BIDDER_DEPOSIT,
+          //         );
+          //       console.log(
+          //         'lostBidderPaymentData ===>',
+          //         lostBidderPaymentData,
+          //       );
+          //       console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
+          //       if (!lostBidderPaymentData.isWalletPayment) {
+          //         await this.stripeService.cancelDepositPaymentIntent(
+          //           lostBidderPaymentData.paymentIntentId,
+          //         );
+          //       } else {
+          //         //logic to transfer to the wallet
+          //       console.log('lostBidderIswallet2',lostBidderPaymentData.isWalletPayment)
 
-                  const BidderWalletData = {
-                    status: WalletStatus.DEPOSIT,
-                    transactionType: WalletTransactionType.By_AUCTION,
-                    description: `Return security deposit due to auction lost`,
-                    amount: Number(lostBidderPaymentData.amount),
-                    auctionId: Number(lostBidderPaymentData.auctionId),
-                    balance: lastWalletTransactionBalanceOfBidder
-                      ? Number(lastWalletTransactionBalanceOfBidder) +
-                        Number(lostBidderPaymentData.amount)
-                      : Number(lostBidderPaymentData.amount),
-                  };
-                  // wallet data for deposit to alletre wallet
+          //         //finding the last transaction balance of the losers
+          //         const lastWalletTransactionBalanceOfBidder =
+          //           await this.walletService.findLastTransaction(loser.userId);
+          //         //finding the last transaction balance of the alletreWallet
+          //         const lastBalanceOfAlletre =
+          //           await this.walletService.findLastTransactionOfAlletre();
+          //         //wallet data for withdraw money from seller wallet
 
-                  const alletreWalletData = {
-                    status: WalletStatus.WITHDRAWAL,
-                    transactionType: WalletTransactionType.By_AUCTION,
-                    description: `Return of bidder security deposit due to lost auction`,
-                    amount: Number(lostBidderPaymentData.amount),
-                    auctionId: Number(lostBidderPaymentData.auctionId),
-                    balance:
-                      Number(lastBalanceOfAlletre) -
-                      Number(lostBidderPaymentData.amount),
-                  };
-                  await this.walletService.create(
-                    lostBidderPaymentData.userId,
-                    BidderWalletData,
-                  );
-                  //crete new transaction in alletre wallet
-                  await this.walletService.addToAlletreWallet(
-                    lostBidderPaymentData.userId,
-                    alletreWalletData,
-                  );
-                }
-                console.log(
-                  `Canceled payment for losing bidder: ${loser.userId}`,
-                );
-              } catch (error) {
-                console.error(
-                  'Error canceling payment for losing bidder:',
-                  error,
-                );
-              }
-            }),
-          );
+          //         const BidderWalletData = {
+          //           status: WalletStatus.DEPOSIT,
+          //           transactionType: WalletTransactionType.By_AUCTION,
+          //           description: `Return security deposit due to auction lost`,
+          //           amount: Number(lostBidderPaymentData.amount),
+          //           auctionId: Number(lostBidderPaymentData.auctionId),
+          //           balance: lastWalletTransactionBalanceOfBidder
+          //             ? Number(lastWalletTransactionBalanceOfBidder) +
+          //               Number(lostBidderPaymentData.amount)
+          //             : Number(lostBidderPaymentData.amount),
+          //         };
+          //         // wallet data for deposit to alletre wallet
+
+          //         const alletreWalletData = {
+          //           status: WalletStatus.WITHDRAWAL,
+          //           transactionType: WalletTransactionType.By_AUCTION,
+          //           description: `Return of bidder security deposit due to lost auction`,
+          //           amount: Number(lostBidderPaymentData.amount),
+          //           auctionId: Number(lostBidderPaymentData.auctionId),
+          //           balance:
+          //             Number(lastBalanceOfAlletre) -
+          //             Number(lostBidderPaymentData.amount),
+          //         };
+          //         await this.walletService.create(
+          //           lostBidderPaymentData.userId,
+          //           BidderWalletData,
+          //         );
+          //         //crete new transaction in alletre wallet
+          //         await this.walletService.addToAlletreWallet(
+          //           lostBidderPaymentData.userId,
+          //           alletreWalletData,
+          //         );
+          //       }
+          //       console.log(
+          //         `Canceled payment for losing bidder: ${loser.userId}`,
+          //       );
+          //     } catch (error) {
+          //       console.error(
+          //         'Error canceling payment for losing bidder:',
+          //         error,
+          //       );
+          //     }
+          //   }),
+          // );
 
           //TODO: Notify user
           await this.userAuctionService.notifyAuctionWinner(
@@ -1575,4 +1546,76 @@ export class TasksService {
       }),
     );
   }
+  async  processRefundForLosingBidders(lostBidderPaymentData: any, prismaService: PrismaClient) {
+    console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
+    if (!lostBidderPaymentData.isWalletPayment) {
+      await this.stripeService.cancelDepositPaymentIntent(
+        lostBidderPaymentData.paymentIntentId,
+      );
+      return
+    } 
+      //logic to transfer to the wallet
+    console.log('lostBidderIswallet2',lostBidderPaymentData.isWalletPayment)
+    await prismaService.$transaction(async (prisma) => {
+      //finding the last transaction balance of the losers
+      const lastWalletTransactionBalanceOfBidder =
+        await this.walletService.findLastTransaction(lostBidderPaymentData.userId);
+      //finding the last transaction balance of the alletreWallet
+      const lastBalanceOfAlletre =
+        await this.walletService.findLastTransactionOfAlletre();
+      
+      //wallet data for withdraw money from seller wallet
+      const BidderWalletData = {
+        status: WalletStatus.DEPOSIT,
+        transactionType: WalletTransactionType.By_AUCTION,
+        description: `Return security deposit due to auction lost`,
+        amount: Number(lostBidderPaymentData.amount),
+        auctionId: Number(lostBidderPaymentData.auctionId),
+        balance: lastWalletTransactionBalanceOfBidder
+          ? Number(lastWalletTransactionBalanceOfBidder) +
+            Number(lostBidderPaymentData.amount)
+          : Number(lostBidderPaymentData.amount),
+      };
+      // wallet data for deposit to alletre wallet
+
+      const alletreWalletData = {
+        status: WalletStatus.WITHDRAWAL,
+        transactionType: WalletTransactionType.By_AUCTION,
+        description: `Return of bidder security deposit due to lost auction`,
+        amount: Number(lostBidderPaymentData.amount),
+        auctionId: Number(lostBidderPaymentData.auctionId),
+        balance:
+          Number(lastBalanceOfAlletre) -
+          Number(lostBidderPaymentData.amount),
+      };
+
+      await prisma.wallet.create({
+        data: {
+          userId: lostBidderPaymentData.userId,
+          description: BidderWalletData.description,
+          amount: BidderWalletData.amount,
+          status: BidderWalletData.status,
+          transactionType: BidderWalletData.transactionType,
+          auctionId: BidderWalletData.auctionId,
+          balance: BidderWalletData.balance,
+        },
+      });
+      await prisma.alletreWallet.create({
+        data: {
+          userId: lostBidderPaymentData.userId,
+          description: alletreWalletData.description,
+          amount: alletreWalletData.amount,
+          status: alletreWalletData.status,
+          transactionType: alletreWalletData.transactionType,
+          auctionId: alletreWalletData.auctionId,
+          balance: alletreWalletData.balance,
+        },
+      });
+      
+    })
 }
+ 
+}
+
+
+
