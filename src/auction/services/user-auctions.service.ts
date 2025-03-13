@@ -1308,14 +1308,16 @@ export class UserAuctionsService {
       },
       include: {
         product: {
-          include: {
-            category: true,
-            // // brand: true,
-            subCategory: true,
-            city: true,
-            country: true,
+          select:{
+            id: true,
+            title: true,
+            description: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
             images: true,
-          },
+            usageStatus:true,
+          }
         },
         _count: { select: { bids: true } },
         bids: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -1837,6 +1839,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
+          usageStatus:true,
           },
         },
         _count: { select: { bids: true } },
@@ -1938,6 +1941,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
+            usageStatus:true,
           },
         },
         _count: { select: { bids: true } },
@@ -2007,6 +2011,7 @@ export class UserAuctionsService {
             ProductListingPrice: true,
             categoryId: true,
             images: true,
+            usageStatus:true,
             user: {
               select: {
                 id: true,
@@ -2094,6 +2099,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
+            usageStatus: true,
           },
         },
         _count: { select: { bids: true } },
@@ -4397,7 +4403,7 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductByOtherDTO;
+      const { page = 1, perPage = 150, status = 'IN_PROGRESS' } = getListedProductByOtherDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
@@ -4431,9 +4437,7 @@ export class UserAuctionsService {
         page,
         perPage,
       );
-      console.log('pagination:', pagination)
-
-      return {
+       return {
         products: allListedProducts,
         pagination,
       };
