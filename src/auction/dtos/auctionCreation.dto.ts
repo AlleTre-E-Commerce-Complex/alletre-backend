@@ -61,7 +61,13 @@ export class AuctionCreationDTO {
   @ValidateNested()
   @Type(() => ProductDTO)
   product: ProductDTO;
-
+  
+  // Changed the product into optional for handling the convert listed product into auction
+  // @IsOptional() 
+  // @ValidateNested()
+  // @Type(() => ProductDTO)
+  // product?: ProductDTO;
+  
   @IsNotEmpty()
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()

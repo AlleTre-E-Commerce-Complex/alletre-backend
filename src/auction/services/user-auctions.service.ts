@@ -75,8 +75,14 @@ export class UserAuctionsService {
   async createPendingAuction(
     userId: number,
     auctionCreationBody: AuctionCreationDTO,
-    images: Express.Multer.File[],
+    images?: Express.Multer.File[],
+    isConvertProductToAuction?: boolean,
+    product_Id ?: number,
   ) {
+
+    const { type, durationUnit, startDate, product } = auctionCreationBody;
+    let productId : number
+    if(!isConvertProductToAuction){
     if (images.length < 3)
       throw new MethodNotAllowedResponse({
         ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
@@ -86,16 +92,27 @@ export class UserAuctionsService {
     // Check user can create auction (hasCompleteProfile)
     await this.auctionsHelper._userHasCompleteProfile(userId);
 
-    const { type, durationUnit, startDate, product } = auctionCreationBody;
 
     // Create Product
     const createProductStatus = 'AUCTION';
-    const productId = await this._createProduct(
+     productId = await this._createProduct(
       product,
       images,
       createProductStatus,
     );
+    }else{
 
+      productId = product_Id;
+      //update product status isAuctionProduct to true while converting the product to auction
+      await this.prismaService.product.update({
+        where:{
+          id:productId
+        },
+        data:{
+          isAuctionProduct: true
+        }
+      })
+    }
     // Create Auction
     switch (durationUnit) {
       case DurationUnits.DAYS:
@@ -2290,8 +2307,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
-        // user: {    select: { lang: true } },
-        user:true,
+        user: { select: { lang: true } },
         location: {
           include: { city: true, country: true },
         },
@@ -3025,7 +3041,7 @@ export class UserAuctionsService {
       if (currentBid.gte(newBid))
         throw new MethodNotAllowedResponse({
           ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount1',
+          en: 'Bid Amount Must Be Greater Than Current Amount',
         });
     } else {
       latestBidAmount = auction.startBidAmount;
@@ -4322,6 +4338,11 @@ export class UserAuctionsService {
           where: {
             status,
             userId,
+            product:{
+              is:{
+                isAuctionProduct: false
+              }
+            }
           },
           include: {
             product: {
@@ -4340,7 +4361,17 @@ export class UserAuctionsService {
           take: limit,
           orderBy: { id: 'desc' },
         });
-      const productsCount = await this.prismaService.listedProducts.count({});
+      const productsCount = await this.prismaService.listedProducts.count({
+        where: {
+          status,
+          userId,
+          product:{
+            is:{
+              isAuctionProduct: false
+            }
+          }
+        },
+      });
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,

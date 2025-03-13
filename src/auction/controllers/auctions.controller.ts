@@ -81,6 +81,34 @@ export class AuctionsController {
     };
   }
 
+  @Post('/user/:productId/convertListedProductToAuction')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('images', 5, {
+      dest: 'uploads/',
+    }),
+  )
+  async convertListToAuction(
+    @Account() account: any,
+    @Body() auctionCreationDTO: AuctionCreationDTO,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+    @Param('productId', ParseIntPipe) productId: number,
+
+  ) {
+    console.log('The form data convertListToAuction:', auctionCreationDTO);
+    const isConvertProductToAuction = true;
+    return {
+      success: true,
+      data: await this.userAuctionsService.createPendingAuction(
+        account.id,
+        auctionCreationDTO,
+        images,
+        isConvertProductToAuction,
+        productId
+      ),
+    };
+  }
+
   @Post('save-draft')
   @UseGuards(AuthGuard)
   @UseInterceptors(
