@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/guards/auth.guard';
 import { OwnerGuard } from '../../auth/guards/owner.guard';
+
 import { Account } from 'src/auth/decorators/account.decorator';
 import { UserAuctionsService } from '../services/user-auctions.service';
 import {
@@ -26,6 +27,7 @@ import {
   GetAuctionsByOwnerDTO,
   GetAuctionsDTO,
   GetJoinAuctionsDTO,
+  GetListedProductByOhterUserDTO,
   PaginationDTO,
   ProductDTO,
   SubmitBidDTO,
@@ -946,8 +948,25 @@ export class AuctionsController {
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
         getListedProductDTO,
-        account.id? Number(account.id): undefined,
-
+        account.id ? Number(account.id) : undefined,
+      );
+    return {
+      success: true,
+      pagination: listedProductsPaginated.pagination,
+      data: listedProductsPaginated.products,
+    };
+  }
+  @Get('/listedProducts/userProductdetails')
+  @UseGuards(AuthOrGuestGuard)
+  async fetchOtherUsersListedProducts(
+    @Account() account: any,
+    @Query() getListedProductByOhterUserDTO: GetListedProductByOhterUserDTO,
+  ) {
+    const listedProductsPaginated =
+      await this.userAuctionsService.fetchListedProductByOthers(
+        account.roles,
+        getListedProductByOhterUserDTO,
+        getListedProductByOhterUserDTO.userId,
       );
     return {
       success: true,
@@ -967,7 +986,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.findProductByIdOr404(
         productId,
         account.roles,
-        account.id? Number(account.id): undefined,
+        account.id ? Number(account.id) : undefined,
       ),
     };
   }
