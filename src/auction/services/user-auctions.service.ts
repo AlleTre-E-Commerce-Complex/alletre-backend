@@ -1511,6 +1511,9 @@ export class UserAuctionsService {
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc'
+      },
       skip: skip,
       take: limit,
     });

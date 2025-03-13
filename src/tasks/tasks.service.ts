@@ -1298,11 +1298,26 @@ export class TasksService {
                 loser.auctionId,
                 PaymentType.BIDDER_DEPOSIT,
               );
-              console.log('lostBidderPaymentData',lostBidderPaymentData)
               await this.processRefundForLosingBidders(lostBidderPaymentData, this.prismaService);
               console.log(`Successfully processed refund for losing bidder: ${loser.userId}`);
             } catch (error) {
               console.error(`Failed to process refund for losing bidder ${loser.userId}:`, error);
+              const body = {
+                subject:
+                  `Failed to process refund for losing bidder ${loser.userId}:`,
+                title:
+                  `Failed to process refund for losing bidder ${loser.userId}:`,
+                message1: `This is a test message from alletre backend when error occur at markPendingBidderPaymentAuctionsExpired function 
+                               Transaction Failed ${error.message}`,
+                Button_text: 'Click here to continue ',
+                Button_URL: process.env.FRONT_URL,
+              };
+              await this.emailService.sendEmail(
+                'alletre.auctions@gmail.com',
+                'token',
+                EmailsType.OTHER,
+                body,
+              );
             }
           }
           
