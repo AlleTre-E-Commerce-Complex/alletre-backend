@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
 class CustomFieldDTO {
@@ -37,10 +38,12 @@ export class CreateCategoryDTO {
   nameEn: string;
 
   @IsOptional()
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   bidderDepositFixedAmount: number;
 
   @IsOptional()
+  @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   sellerDepositFixedAmount: number;
 
