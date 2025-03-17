@@ -4342,20 +4342,40 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
+      const {
+        page = 1,
+        perPage = 10,
+        status = 'IN_PROGRESS',
+        brands,
+        categories,
+        countries,
+        priceFrom,
+        priceTo,
+        sellingType,
+        usageStatus,
+        title,
+      } = getListedProductDTO;
+      // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
       );
+
+      const productFilter = this.auctionsHelper._productFilterApplied({
+        brands,
+        categories,
+        usageStatus,
+        title,
+      });
+      
       const allListedProducts =
         await this.prismaService.listedProducts.findMany({
           where: {
             status,
             userId,
             product:{
-              is:{
-                isAuctionProduct: false
-              }
+              ...productFilter,
+              isAuctionProduct: false
             }
           },
           include: {
