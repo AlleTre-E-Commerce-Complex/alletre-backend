@@ -75,12 +75,16 @@ export class UserAuctionsService {
   async createPendingAuction(
     userId: number,
     auctionCreationBody: AuctionCreationDTO,
-    images?: Express.Multer.File[],
+    files?: Express.Multer.File[],
     isConvertProductToAuction?: boolean,
     product_Id ?: number,
   ) {
 
     const { type, durationUnit, startDate, product } = auctionCreationBody;
+     // Separate images and PDFs based on file extension
+     const images = files.filter(file => file.mimetype.startsWith('image/'));
+     const relatedDocuments = files.filter(file => file.mimetype === 'application/pdf');
+
     let productId : number
     if(!isConvertProductToAuction){
     if (images.length < 3)
@@ -97,7 +101,7 @@ export class UserAuctionsService {
     const createProductStatus = 'AUCTION';
      productId = await this._createProduct(
       product,
-      images,
+      files,
       createProductStatus,
     );
     }else{
@@ -156,6 +160,7 @@ export class UserAuctionsService {
     userId: number,
     productDTO: ProductDTO,
     images: Express.Multer.File[],
+    // relatedDocuments : Express.Multer.File[],
   ) {
     // Check user can create auction (hasCompleteProfile)
     await this.auctionsHelper._userHasCompleteProfile(userId);

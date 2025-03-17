@@ -60,25 +60,26 @@ export class AuctionsController {
 
   @Post('')
   @UseGuards(AuthGuard)
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      dest: 'uploads/',
-    }),
-  )
+  // @UseInterceptors(
+  //   FilesInterceptor('images', 5, {
+  //     dest: 'uploads/',
+  //   }),
+  // )
+  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
   async publishAuctionController(
     @Account() account: any,
     @Body() auctionCreationDTO: AuctionCreationDTO,
-    @UploadedFiles() images: Array<Express.Multer.File>,
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     console.log('The form data of the publish auction :', auctionCreationDTO);
-    console.log('The images of the publish auction :', images);
+    console.log('The files of the publish auction :', files);
 
     return {
       success: true,
       data: await this.userAuctionsService.createPendingAuction(
         account.id,
         auctionCreationDTO,
-        images,
+        files,
       ),
     };
   }
@@ -113,22 +114,31 @@ export class AuctionsController {
 
   @Post('save-draft')
   @UseGuards(AuthGuard)
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      dest: 'uploads/',
-    }),
-  )
+  // @UseInterceptors(
+  //   FilesInterceptor('images', 5, {
+  //     dest: 'uploads/',
+  //   }),
+  // )
+  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
   async saveAuctionAsDraftController(
     @Account() account: any,
     @Body() productDTO: ProductDTO,
-    @UploadedFiles() images: Array<Express.Multer.File>,
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
+    console.log('productDTO',productDTO)
+     // Separate images and PDFs based on file extension
+     const images = files.filter(file => file.mimetype.startsWith('image/'));
+     const relatedDocuments = files.filter(file => file.mimetype === 'application/pdf');
+
+    console.log('Images:', images);
+    console.log('PDFs:', relatedDocuments);
     return {
       success: true,
       data: await this.userAuctionsService.createDraftAuction(
         account.id,
         productDTO,
-        images,
+        files,
+        // relatedDocuments,
       ),
     };
   }
