@@ -2321,7 +2321,7 @@ export class UserAuctionsService {
             images: true,
           },
         },
-        user: { select: { lang: true } },
+        user: true,
         location: {
           include: { city: true, country: true },
         },
