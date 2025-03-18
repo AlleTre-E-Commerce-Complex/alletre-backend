@@ -130,23 +130,32 @@ model Location {
 }
 
 model Category {
-  id                       Int                @id @default(autoincrement())
-  nameEn                   String
-  nameAr                   String
-  createdAt                DateTime           @default(now())
-  hasUsageCondition        Boolean            @default(false)
-  sellerDepositFixedAmount Decimal?
-  bidderDepositFixedAmount Decimal?
-  bannerLink               String?
-  bannerPath               String?
-  sliderLink               String?
-  sliderPath               String?
-  status                   Boolean            @default(true)
-  brands                   Brand[]
-  customFields             CustomFields[]
-  products                 Product[]
-  subCategories            SubCategory[]
-  nonRegisteredUsers       NonRegisteredUser[]
+  id                                      Int                @id @default(autoincrement())
+  nameEn                                  String
+  nameAr                                  String
+  createdAt                               DateTime           @default(now())
+  hasUsageCondition                       Boolean            @default(false)
+  sellerDepositFixedAmount                Decimal?
+  bidderDepositFixedAmount                Decimal?
+  bannerLink                              String?
+  bannerPath                              String?
+  sliderLink                              String?
+  sliderPath                              String?
+  maxStartPrice                           Decimal?                      
+  maxBidLimit                             Decimal?           
+  luxuaryAmount                           Decimal?           
+  percentageOfLuxuarySD_forSeller         Decimal?           
+  minimumLuxuarySD_forSeller              Decimal?           
+  percentageOfLuxuarySD_forBidder         Decimal?           
+  minimumLuxuarySD_forBidder              Decimal?           
+  feesPercentage                          Decimal?           @default(0.5)
+  LuxuaryFeesPercentage                   Decimal?           @default(2)
+  status                                  Boolean            @default(true)
+  brands                                  Brand[]
+  customFields                            CustomFields[]
+  products                                Product[]
+  subCategories                           SubCategory[]
+  nonRegisteredUsers                      NonRegisteredUser[]
 }
 
 model SubCategory {

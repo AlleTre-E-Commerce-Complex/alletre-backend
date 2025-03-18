@@ -2552,12 +2552,27 @@ export class UserAuctionsService {
           en: 'Set one location as main',
         });
 
+      //calculate the seller security deposite
+      const startBidAmount = auction.startBidAmount
+      let amount = Number(auctionCategory.sellerDepositFixedAmount)
+      //checking whether the auction is luxuary or not
+      if(auctionCategory.luxuaryAmount && Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)){
+        //calculating the security deposite 
+        const total = Number((Number(startBidAmount) * Number(auctionCategory.percentageOfLuxuarySD_forSeller) ) / 100)
+        //checking the total is less than minimum security deposite 
+        if(auctionCategory.minimumLuxuarySD_forSeller && total < Number(auctionCategory.minimumLuxuarySD_forSeller)){
+          amount = Number(auctionCategory.minimumLuxuarySD_forSeller)
+        }else{
+          amount = total
+        }
+      }
       if (!isWalletPayment) {
         return await this.paymentService.payDepositBySeller(
           user,
           auctionId,
           sellerMainLocation.country.currency,
-          Number(auctionCategory.sellerDepositFixedAmount),
+          // Number(auctionCategory.sellerDepositFixedAmount),
+          amount
         );
       } else {
         return await this.paymentService.walletPayDepositBySeller(
@@ -3096,13 +3111,27 @@ export class UserAuctionsService {
         en: 'Set one location as main',
       });
 
-    console.log('payDepositByBidder test 2');
+    console.log('payDepositByBidder test 2',);
+   //calculate the seller security deposite
+   const startBidAmount = auction.startBidAmount
+   let amount = Number(auctionCategory.bidderDepositFixedAmount)
+   //checking whether the auction is luxuary or not
+   if(auctionCategory.luxuaryAmount && Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)){
+     //calculating the security deposite 
+     const total = Number((Number(startBidAmount) * Number(auctionCategory.percentageOfLuxuarySD_forBidder) ) / 100)
+     //checking the total is less than minimum security deposite 
+     if(auctionCategory.minimumLuxuarySD_forBidder && total < Number(auctionCategory.minimumLuxuarySD_forBidder)){
+       amount = Number(auctionCategory.minimumLuxuarySD_forBidder)
+     }else{
+       amount = total
+     }
+   }
     if (!isWalletPayment) {
       return await this.paymentService.payDepositByBidder(
         user,
         auctionId,
         bidderMainLocation.country.currency,
-        Number(auctionCategory.bidderDepositFixedAmount),
+        amount,
         bidAmount,
       );
     } else {
@@ -3111,7 +3140,8 @@ export class UserAuctionsService {
         auctionId,
         // bidderMainLocation.country.currency,
         // Number(auctionCategory.bidderDepositFixedAmount),
-        amount_forWalletPay,
+        // amount_forWalletPay,
+        amount,
         bidAmount,
       );
     }
