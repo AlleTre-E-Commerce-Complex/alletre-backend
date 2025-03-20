@@ -77,45 +77,47 @@ export class UserAuctionsService {
     auctionCreationBody: AuctionCreationDTO,
     files?: Express.Multer.File[],
     isConvertProductToAuction?: boolean,
-    product_Id ?: number,
+    product_Id?: number,
   ) {
-
     const { type, durationUnit, startDate, product } = auctionCreationBody;
-     // Separate images and PDFs based on file extension
-     const images = files.filter(file => file.mimetype.startsWith('image/'));
-     const relatedDocuments = files.filter(file => file.mimetype === 'application/pdf');
-
-    let productId : number
-    if(!isConvertProductToAuction){
-    if (images.length < 3)
-      throw new MethodNotAllowedResponse({
-        ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
-        en: 'Please Upload From 3 To 5 Photos',
-      });
-
-    // Check user can create auction (hasCompleteProfile)
-    await this.auctionsHelper._userHasCompleteProfile(userId);
-
-
-    // Create Product
-    const createProductStatus = 'AUCTION';
-     productId = await this._createProduct(
-      product,
-      files,
-      createProductStatus,
+    // Separate images and PDFs based on file extension
+    const images = files.filter((file) => file.mimetype.startsWith('image/'));
+    const video = files.filter((file) => file.mimetype.startsWith('video/'));
+    const relatedDocuments = files.filter(
+      (file) => file.mimetype === 'application/pdf',
     );
-    }else{
 
+    let productId: number;
+    if (!isConvertProductToAuction) {
+      const combinedfile = [...images, ...video];
+      console.log('AAAA', combinedfile.length);
+      if (combinedfile.length < 3)
+        throw new MethodNotAllowedResponse({
+          ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
+          en: 'Please Upload From 3 To 5 Photos',
+        });
+
+      // Check user can create auction (hasCompleteProfile)
+      await this.auctionsHelper._userHasCompleteProfile(userId);
+
+      // Create Product
+      const createProductStatus = 'AUCTION';
+      productId = await this._createProduct(
+        product,
+        files,
+        createProductStatus,
+      );
+    } else {
       productId = product_Id;
       //update product status isAuctionProduct to true while converting the product to auction
       await this.prismaService.product.update({
-        where:{
-          id:productId
+        where: {
+          id: productId,
         },
-        data:{
-          isAuctionProduct: true
-        }
-      })
+        data: {
+          isAuctionProduct: true,
+        },
+      });
     }
     // Create Auction
     switch (durationUnit) {
@@ -1243,7 +1245,6 @@ export class UserAuctionsService {
     userId: number,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
-  
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -1308,12 +1309,12 @@ export class UserAuctionsService {
       take: limit,
       where: {
         userId: userId,
-          status: { in: ['ACTIVE', 'IN_SCHEDULED'] }  ,
+        status: { in: ['ACTIVE', 'IN_SCHEDULED'] },
         ...(type ? { type } : {}),
       },
       include: {
         product: {
-          select:{
+          select: {
             id: true,
             title: true,
             description: true,
@@ -1321,8 +1322,8 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
-            usageStatus:true,
-          }
+            usageStatus: true,
+          },
         },
         _count: { select: { bids: true } },
         bids: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -1506,7 +1507,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
-            usageStatus:true,
+            usageStatus: true,
           },
         },
         _count: { select: { bids: true } },
@@ -1517,7 +1518,7 @@ export class UserAuctionsService {
         },
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
       skip: skip,
       take: limit,
@@ -1805,7 +1806,7 @@ export class UserAuctionsService {
               AuctionStatus.PENDING_OWNER_DEPOIST,
               AuctionStatus.DRAFTED,
               AuctionStatus.CANCELLED_AFTER_EXP_DATE,
-              AuctionStatus.CANCELLED_BEFORE_EXP_DATE
+              AuctionStatus.CANCELLED_BEFORE_EXP_DATE,
             ],
           },
         },
@@ -1847,7 +1848,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
-          usageStatus:true,
+            usageStatus: true,
           },
         },
         _count: { select: { bids: true } },
@@ -1949,7 +1950,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
-            usageStatus:true,
+            usageStatus: true,
           },
         },
         _count: { select: { bids: true } },
@@ -2006,11 +2007,13 @@ export class UserAuctionsService {
         },
       },
       select: {
-        location: {select:{
-          city:true,
-          country:true
-        }},
-        createdAt:true,
+        location: {
+          select: {
+            city: true,
+            country: true,
+          },
+        },
+        createdAt: true,
         product: {
           select: {
             id: true,
@@ -2019,7 +2022,7 @@ export class UserAuctionsService {
             ProductListingPrice: true,
             categoryId: true,
             images: true,
-            usageStatus:true,
+            usageStatus: true,
             user: {
               select: {
                 id: true,
@@ -2553,17 +2556,27 @@ export class UserAuctionsService {
         });
 
       //calculate the seller security deposite
-      const startBidAmount = auction.startBidAmount
-      let amount = Number(auctionCategory.sellerDepositFixedAmount)
+      const startBidAmount = auction.startBidAmount;
+      let amount = Number(auctionCategory.sellerDepositFixedAmount);
       //checking whether the auction is luxuary or not
-      if(auctionCategory.luxuaryAmount && Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)){
-        //calculating the security deposite 
-        const total = Number((Number(startBidAmount) * Number(auctionCategory.percentageOfLuxuarySD_forSeller) ) / 100)
-        //checking the total is less than minimum security deposite 
-        if(auctionCategory.minimumLuxuarySD_forSeller && total < Number(auctionCategory.minimumLuxuarySD_forSeller)){
-          amount = Number(auctionCategory.minimumLuxuarySD_forSeller)
-        }else{
-          amount = total
+      if (
+        auctionCategory.luxuaryAmount &&
+        Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
+      ) {
+        //calculating the security deposite
+        const total = Number(
+          (Number(startBidAmount) *
+            Number(auctionCategory.percentageOfLuxuarySD_forSeller)) /
+            100,
+        );
+        //checking the total is less than minimum security deposite
+        if (
+          auctionCategory.minimumLuxuarySD_forSeller &&
+          total < Number(auctionCategory.minimumLuxuarySD_forSeller)
+        ) {
+          amount = Number(auctionCategory.minimumLuxuarySD_forSeller);
+        } else {
+          amount = total;
         }
       }
       if (!isWalletPayment) {
@@ -2572,7 +2585,7 @@ export class UserAuctionsService {
           auctionId,
           sellerMainLocation.country.currency,
           // Number(auctionCategory.sellerDepositFixedAmount),
-          amount
+          amount,
         );
       } else {
         return await this.paymentService.walletPayDepositBySeller(
@@ -3111,21 +3124,31 @@ export class UserAuctionsService {
         en: 'Set one location as main',
       });
 
-    console.log('payDepositByBidder test 2',);
-   //calculate the seller security deposite
-   const startBidAmount = auction.startBidAmount
-   let amount = Number(auctionCategory.bidderDepositFixedAmount)
-   //checking whether the auction is luxuary or not
-   if(auctionCategory.luxuaryAmount && Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)){
-     //calculating the security deposite 
-     const total = Number((Number(startBidAmount) * Number(auctionCategory.percentageOfLuxuarySD_forBidder) ) / 100)
-     //checking the total is less than minimum security deposite 
-     if(auctionCategory.minimumLuxuarySD_forBidder && total < Number(auctionCategory.minimumLuxuarySD_forBidder)){
-       amount = Number(auctionCategory.minimumLuxuarySD_forBidder)
-     }else{
-       amount = total
-     }
-   }
+    console.log('payDepositByBidder test 2');
+    //calculate the seller security deposite
+    const startBidAmount = auction.startBidAmount;
+    let amount = Number(auctionCategory.bidderDepositFixedAmount);
+    //checking whether the auction is luxuary or not
+    if (
+      auctionCategory.luxuaryAmount &&
+      Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
+    ) {
+      //calculating the security deposite
+      const total = Number(
+        (Number(startBidAmount) *
+          Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
+          100,
+      );
+      //checking the total is less than minimum security deposite
+      if (
+        auctionCategory.minimumLuxuarySD_forBidder &&
+        total < Number(auctionCategory.minimumLuxuarySD_forBidder)
+      ) {
+        amount = Number(auctionCategory.minimumLuxuarySD_forBidder);
+      } else {
+        amount = total;
+      }
+    }
     if (!isWalletPayment) {
       return await this.paymentService.payDepositByBidder(
         user,
@@ -3196,7 +3219,7 @@ export class UserAuctionsService {
     // Create new bid
     const bidCreated = await this.prismaService.bids.create({
       data: { userId, auctionId, amount: bidAmount },
-      include:{
+      include: {
         auction: {
           include: {
             user: true,
@@ -3207,7 +3230,7 @@ export class UserAuctionsService {
             product: { include: { images: true, category: true } },
           },
         },
-      }
+      },
     });
 
     // Get totalBids after my bid
@@ -3221,12 +3244,12 @@ export class UserAuctionsService {
       new Prisma.Decimal(bidAmount),
       totalBids,
     );
-    this.auctionWebsocketGateway.increaseBid(bidCreated.auction)
+    this.auctionWebsocketGateway.increaseBid(bidCreated.auction);
 
     try {
       const imageLink = bidCreated.auction.product.images[0]?.imageLink;
       const productTitle = bidCreated.auction.product.title;
-      
+
       // Notify seller
       const notificationDataToSeller = {
         status: 'ON_BIDDING',
@@ -3235,52 +3258,56 @@ export class UserAuctionsService {
         message: `New bid of AED ${bidAmount} placed on your auction ${productTitle}`,
         imageLink,
         productTitle,
-        auctionId
-      }
+        auctionId,
+      };
       await this.prismaService.notification.create({
-        data:{
+        data: {
           userId: notificationDataToSeller.usersId,
           message: notificationDataToSeller.message,
           imageLink: notificationDataToSeller.imageLink,
           productTitle,
-          auctionId
-        }
-      })
-      this.notificationService.sendNotificationToSpecificUsers(notificationDataToSeller)
+          auctionId,
+        },
+      });
+      this.notificationService.sendNotificationToSpecificUsers(
+        notificationDataToSeller,
+      );
       // Notify current bidder
-      const notificationDataToBidder ={
+      const notificationDataToBidder = {
         status: 'ON_BIDDING',
         userType: 'CURRENT_BIDDER',
         usersId: userId,
         message: `Your bid of AED ${bidAmount} was placed successfully on ${productTitle}`,
         imageLink,
         productTitle,
-        auctionId
-      }
+        auctionId,
+      };
 
       await this.prismaService.notification.create({
-        data:{
+        data: {
           userId: notificationDataToBidder.usersId,
           message: notificationDataToBidder.message,
           imageLink: notificationDataToBidder.imageLink,
           productTitle,
-          auctionId
-        }
-      })
+          auctionId,
+        },
+      });
 
-      this.notificationService.sendNotificationToSpecificUsers(notificationDataToBidder)
+      this.notificationService.sendNotificationToSpecificUsers(
+        notificationDataToBidder,
+      );
 
       // Get and notify other bidders
       const currentUserId = userId;
-          const joinedAuctionUsers =
-            await this.notificationService.getAllJoinedAuctionUsers(
-              auctionId,
-              currentUserId,
-            )
+      const joinedAuctionUsers =
+        await this.notificationService.getAllJoinedAuctionUsers(
+          auctionId,
+          currentUserId,
+        );
 
       if (joinedAuctionUsers.length > 0) {
-        const otherBidderMessage =  `New bid of AED ${bidAmount} placed on ${productTitle}`
-        const isBidders = true
+        const otherBidderMessage = `New bid of AED ${bidAmount} placed on ${productTitle}`;
+        const isBidders = true;
         await this.notificationService.sendNotifications(
           joinedAuctionUsers,
           otherBidderMessage,
@@ -3288,7 +3315,7 @@ export class UserAuctionsService {
           productTitle,
           auctionId,
           isBidders,
-        )
+        );
       }
     } catch (error) {
       console.error('Error sending bid notifications:', error);
@@ -4397,16 +4424,16 @@ export class UserAuctionsService {
         usageStatus,
         title,
       });
-      
+
       const allListedProducts =
         await this.prismaService.listedProducts.findMany({
           where: {
             status,
             userId,
-            product:{
+            product: {
               ...productFilter,
-              isAuctionProduct: false
-            }
+              isAuctionProduct: false,
+            },
           },
           include: {
             product: {
@@ -4419,7 +4446,7 @@ export class UserAuctionsService {
                 },
               },
             },
-             location:{include:{city: true, country:true}}
+            location: { include: { city: true, country: true } },
           },
           skip: skip,
           take: limit,
@@ -4429,11 +4456,11 @@ export class UserAuctionsService {
         where: {
           status,
           userId,
-          product:{
-            is:{
-              isAuctionProduct: false
-            }
-          }
+          product: {
+            is: {
+              isAuctionProduct: false,
+            },
+          },
         },
       });
       const pagination = this.paginationService.getPagination(
@@ -4441,7 +4468,7 @@ export class UserAuctionsService {
         page,
         perPage,
       );
-      console.log('pagination:', pagination)
+      console.log('pagination:', pagination);
 
       return {
         products: allListedProducts,
@@ -4461,7 +4488,11 @@ export class UserAuctionsService {
     userId?: number,
   ) {
     try {
-      const { page = 1, perPage = 150, status = 'IN_PROGRESS' } = getListedProductByOtherDTO;
+      const {
+        page = 1,
+        perPage = 150,
+        status = 'IN_PROGRESS',
+      } = getListedProductByOtherDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
@@ -4483,7 +4514,7 @@ export class UserAuctionsService {
                 },
               },
             },
-             location:{include:{city: true, country:true}}
+            location: { include: { city: true, country: true } },
           },
           skip: skip,
           take: limit,
@@ -4495,7 +4526,7 @@ export class UserAuctionsService {
         page,
         perPage,
       );
-       return {
+      return {
         products: allListedProducts,
         pagination,
       };
@@ -4531,8 +4562,8 @@ export class UserAuctionsService {
               },
             },
           },
-          user:true,
-         location:{include:{city: true, country:true}}
+          user: true,
+          location: { include: { city: true, country: true } },
         },
       });
       console.log('product :', product);
