@@ -4575,20 +4575,48 @@ export class UserAuctionsService {
           location: { include: { city: true, country: true } },
         },
       });
-      console.log('product :', product);
+
       if (!product) {
         throw new MethodNotAllowedResponse({
           ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
           en: 'Something Went Wrong While Fetching a Products',
         });
       }
-
-      return product;
+      const userLang = 'en'
+    
+      const formatedProduct = this.filtertProduct(product,userLang)
+      console.log('product** :', formatedProduct);
+      return formatedProduct;
     } catch (error) {
       console.log('find product error : ', error);
     }
   }
 
+  async filtertProduct (listedProduct : any, userLang:any){
+    if (listedProduct['product']['city']) {
+      const cityName =
+        userLang === 'en'
+          ? listedProduct['product']['city']['nameEn']
+          : listedProduct['product']['city']['nameAr'];
+      delete listedProduct['product']['city'];
+      listedProduct['product']['city'] = cityName;
+    }
+    if (listedProduct['product']['country']) {
+      const countryName =
+        userLang === 'en'
+          ? listedProduct['product']['country']['nameEn']
+          : listedProduct['product']['country']['nameAr'];
+      delete listedProduct['product']['country'];
+      listedProduct['product']['country'] = countryName;
+    }
+
+    
+    for (const field in listedProduct['product']) {
+      if (listedProduct['product'][field] === null) delete listedProduct['product'][field];
+    }
+
+    return listedProduct
+  }
   async findListedProductsAnalytics(userId: number) {
     try {
       const count = await this.prismaService.listedProducts.count({
