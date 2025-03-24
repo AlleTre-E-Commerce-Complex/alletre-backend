@@ -2388,6 +2388,7 @@ export class UserAuctionsService {
   async checkAuctionExistanceAndReturn(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
+      include:{bids: true}
     });
 
     if (!auction)
@@ -3128,17 +3129,25 @@ export class UserAuctionsService {
     //calculate the seller security deposite
     const startBidAmount = auction.startBidAmount;
     let amount = Number(auctionCategory.bidderDepositFixedAmount);
+    const categoryName = auctionCategory?.nameEn
+
     //checking whether the auction is luxuary or not
     if (
       auctionCategory.luxuaryAmount &&
       Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
     ) {
+      let total : number
       //calculating the security deposite
-      const total = Number(
+       total = Number(
         (Number(startBidAmount) *
           Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
           100,
       );
+
+      if(categoryName === 'Cars' || categoryName === 'Properties'){
+        const latestBidAmount = auction?.bids?.reverse()[0]?.amount
+        total = Number(((latestBidAmount? Number(latestBidAmount): Number(startBidAmount) ) * Number(auctionCategory?.percentageOfLuxuarySD_forBidder) ) / 100)
+       }
       //checking the total is less than minimum security deposite
       if (
         auctionCategory.minimumLuxuarySD_forBidder &&
