@@ -1427,6 +1427,7 @@ export class UserAuctionsService {
       perPage = 10,
       brands,
       categories,
+      subCategory,
       countries,
       priceFrom,
       priceTo,
@@ -1446,6 +1447,7 @@ export class UserAuctionsService {
     const productFilter = this.auctionsHelper._productFilterApplied({
       brands,
       categories,
+      subCategory,
       usageStatus,
       title,
     });
@@ -4414,6 +4416,7 @@ export class UserAuctionsService {
         status = 'IN_PROGRESS',
         brands,
         categories,
+        subCategory,
         countries,
         priceFrom,
         priceTo,
@@ -4430,6 +4433,7 @@ export class UserAuctionsService {
       const productFilter = this.auctionsHelper._productFilterApplied({
         brands,
         categories,
+        subCategory,
         usageStatus,
         title,
       });
@@ -4443,6 +4447,10 @@ export class UserAuctionsService {
               ...productFilter,
               isAuctionProduct: false,
             },
+            AND:[
+              {ProductListingPrice: {gte: priceFrom}},
+              {ProductListingPrice: {lte: priceTo}},
+            ]
           },
           include: {
             product: {

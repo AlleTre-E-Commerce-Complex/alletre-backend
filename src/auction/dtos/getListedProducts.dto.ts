@@ -38,6 +38,12 @@ export class GetListedProductDTO {
     countries: number[];
   
     @IsOptional()
+    @Transform(({ value }) => parseNumbers(value))
+    @IsArray()
+    @IsNumber({}, { each: true })
+    subCategory: number[];
+    
+    @IsOptional()
     @IsString()
     sellingType: string;
   
