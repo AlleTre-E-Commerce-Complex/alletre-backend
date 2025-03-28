@@ -23,7 +23,7 @@ export class AuctionsHelper {
       });
   }
 
-  _productFilterApplied({ brands, categories, usageStatus, title }) {
+  _productFilterApplied({ brands, categories, subCategory, usageStatus, title }) {
     let productFilterOrSearch = {};
 
     if (title && title.length) {
@@ -36,6 +36,19 @@ export class AuctionsHelper {
       productFilterOrSearch = {
         ...productFilterOrSearch,
         ...{ categoryId: { in: categories } },
+      };
+
+        if (subCategory?.length) {
+          productFilterOrSearch = {
+            ...productFilterOrSearch,
+            ...{ subCategoryId: { in: subCategory } },
+          };
+        }
+    }
+    if (subCategory?.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ subCategoryId: { in: subCategory } },
       };
     }
     if (brands?.length) {
@@ -102,7 +115,8 @@ export class AuctionsHelper {
   _auctionFilterApplied({ priceFrom, priceTo, countries, sellingType }) {
     let auctionFilterOrSearch = {};
 
-    if (priceFrom && priceTo) {
+
+    if (priceFrom || priceTo) {
       auctionFilterOrSearch = {
         ...auctionFilterOrSearch,
         AND: [
