@@ -928,11 +928,7 @@ export class AuctionsController {
   }
   @Post('/product-listing')
   @UseGuards(AuthGuard)
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      dest: 'uploads/',
-    }),
-  )
+  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
   async listOnlyProduct(
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Body('product') productDTO: ProductDTO,
