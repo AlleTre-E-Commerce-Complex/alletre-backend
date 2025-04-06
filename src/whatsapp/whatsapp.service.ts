@@ -4,6 +4,7 @@ import * as Twilio from 'twilio';
 import { Worker } from 'worker_threads';
 import * as path from 'path';
 import * as fs from 'fs';
+import axios from 'axios'; 
 @Injectable()
 export class WhatsAppService {
   private client: Twilio.Twilio;
@@ -41,9 +42,99 @@ export class WhatsAppService {
     }
   }
 
+  async sendOtherUtilityMessages(messageTemplateParams: any,mobile:any,templateName:string,){
+    try {
+      console.log('sendOtherUtilitymessage')
+      if (mobile.startsWith('+971')) {
+        mobile = mobile.substring(4);
+    } else if (mobile.startsWith('0')) {
+        mobile = mobile.substring(1);
+    }
+    if (!/^\d{9}$/.test(mobile)) {
+        console.log(`Invalid number skipped: ${mobile}`);
+        return
+        // throw Error('`Invalid number skipped: ${mobile}`')
+    }
+
+    try {
+        // Construct the Gupshup API payload
+        const payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: `971${mobile}`, // Correct format for the recipient number
+            type: "template",
+            template: {
+                name: templateName,
+                language: { code: "en" },
+                components: [
+                    {
+                        type: "header",
+                        parameters: [
+                            {
+                                type: "image",
+                                image: {
+                                    link: messageTemplateParams[8]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        type: "body",
+                        parameters: [
+                            { type: "text", text: messageTemplateParams[1] },
+                            { type: "text", text: messageTemplateParams[2] },
+                            { type: "text", text: messageTemplateParams[3] },
+                            { type: "text", text: messageTemplateParams[4] },
+                            { type: "text", text: messageTemplateParams[5] },
+                            { type: "text", text: messageTemplateParams[6] },
+                            { type: "text", text: messageTemplateParams[7] },
+                        ]
+                    },
+                    templateName === 'alletre_common_utility_templet'
+                        ? {
+                              type: "button",
+                              sub_type: "url",
+                              index: 0,
+                              parameters: [
+                                  {
+                                      type: "text",
+                                      text: `${messageTemplateParams[9]}`
+                                  }
+                              ]
+                          }
+                        : null
+                ].filter(Boolean) // Removes null/false values
+            }
+        };
+        
+
+        // Send the request to Gupshup
+        const response = await axios.post(
+            'https://partner.gupshup.io/partner/app/196a6e5a-95bf-4ba8-8a30-0f8627d75447/v3/message',
+            payload,
+            {
+                headers: {
+                    'accept': 'application/json',
+                    'Authorization': 'sk_808029f6198240c788d9037099017a4a',
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        // Log response or handle success/failure
+        console.log(`Message sent to ${mobile}:`, response.data);
+    } catch (error) {
+        console.log(`Failed to send message to: ${mobile} | Error: ${error.message}`);
+        // failedMessages.push({ user: mobile, error: error.message });
+    }
+    } catch (error) {
+      console.error('Error sending WhatsApp messages:', error);
+      throw error;
+    }
+  }
 
 
-  async sendAuctionToUsers(auctionId: string,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
+  async sendAuctionToUsers(auctionId: any,userType: "EXISTING_USER"|"NON_EXISTING_USER") {
     try {
         const auction = await this.prismaService.auction.findFirst({
             where: { id: Number(auctionId) },
@@ -54,16 +145,22 @@ export class WhatsAppService {
 
         const { product } = auction;
         const mediaUrl = product.images[0]?.imageLink || '';
-        const imageFileName = mediaUrl.split('/o/')[1] || '';
 
+        // const messageTemplateParams = {
+        //     1: product.title,
+        //     2: auction.startBidAmount.toString(),
+        //     3: new Date(auction.startDate).toDateString(),
+        //     4: new Date(auction.expiryDate).toDateString(),
+        //     5: mediaUrl,
+        //     6: `${auction.id}/details`,
+        // };
         const messageTemplateParams = {
-            1: product.title,
-            2: auction.startBidAmount.toString(),
-            3: new Date(auction.startDate).toDateString(),
-            4: new Date(auction.expiryDate).toDateString(),
-            5: imageFileName,
-            6: `${auction.id}/details`,
-        };
+          1: `*${product.title} starts on AED ${auction.startBidAmount.toString()}*`,
+          2: `📅 *Auction Starts:* ${new Date(auction.startDate).toString()}`,
+          3: `⏳ *Auction Ends:* ${new Date(auction.expiryDate).toString()}`,
+          4:  mediaUrl,
+          5: `${auction.id}/details`,
+      };
         let allUsersList: any[] = []; // Initialize as an empty array
 
         if (userType === 'NON_EXISTING_USER') {
@@ -80,21 +177,16 @@ export class WhatsAppService {
             userBatches.push(allUsersList.slice(i, i + batchSize));
         }
 
-        console.log('Worker file exists:', fs.existsSync(path.join(__dirname, 'whatsappWorker.js')));
-
         const workers = userBatches.map((batch) => {
             return new Promise((resolve, reject) => {
                 const workerPath = path.join(__dirname, 'whatsappWorker.js');
-
                 const worker = new Worker(workerPath, {
                     workerData: {
                         users: batch,
                         messageTemplateParams,
-                        fromNumber: this.fromNumber,
-                        contentSid: process.env.WHATSAPP_CONTENT_SID_SCHEDULED,
+                        templateName:'alletre_auction_utility_templet_two'
                     },
                 });
-
                 worker.on('message', (result) => {
                     console.log('Worker finished:', result);
                     resolve(result);
@@ -127,26 +219,61 @@ export class WhatsAppService {
 }
 
 async sendCommonMessageToUsers(
-    message: string,
+    messages: any,
     userType: "EXISTING_USER"|"NON_EXISTING_USER",
     mediaUrl?: string,
-    buttonUrl?: string
+    buttonUrl?: string,
+    limit?: number,
+    skip?: number, 
+    categoryId? :number,
   ) {
-    console.log('message:',message,mediaUrl,buttonUrl)
+    console.log('message123:',messages,mediaUrl,buttonUrl,skip,limit, categoryId)
     try {
-        const messageTemplateParams = {
-            1: message,
-            2: mediaUrl || 'logo512.png?alt=media&token=8b9490bd-8fd5-4439-9287-8e5ab3bd9ff1',
-            3: buttonUrl || '/1/details'
-        };
+      const messageTemplateParams = {
+        // 1: '*🏡 Properties | 🚗 Cars | 💎 Jewelry | 📱 Electronics | 🏠 Home Appliances | 🏺 Antiques | 🛋️ Furniture*',
+        1: messages[0],
+        // 2: '✨ Whether you are a collector, bargain hunter, or seller, Alletre Online Auction is your go-to platform to buy & sell unique, high-value items! 💰🚀',
+        2: messages[1],
+        // 3: '🔓 Unlock amazing opportunities today!'
+        3: messages[2],
+
+        4 : mediaUrl,
+    };
+    
         console.log('mesage 999', messageTemplateParams)
         let allUsersList: any[] = []; // Initialize as an empty array
 
+        // if (userType === 'NON_EXISTING_USER') {
+        //   allUsersList = await this.prismaService.nonRegisteredUser.findMany({
+        //     where:{
+        //         categoryId:categoryId,
+        //     },
+        //     take: limit,
+        //     skip: skip,
+            
+        //   });
+        // } else if (userType === 'EXISTING_USER') {
+        //   allUsersList = await this.prismaService.user.findMany({
+        //     skip: skip,
+        //     take: limit,
+        //   });
+        // }
+
         if (userType === 'NON_EXISTING_USER') {
-          allUsersList = await this.prismaService.nonRegisteredUser.findMany();
-        } else if (userType === 'EXISTING_USER') {
-          allUsersList = await this.prismaService.user.findMany();
-        }
+            allUsersList = await this.prismaService.nonRegisteredUser.findMany({
+              ...(typeof categoryId === 'number' && !isNaN(categoryId) ? { where: { categoryId } } : {}),
+              ...(typeof limit === 'number' && !isNaN(limit) && limit > 0 ? { take: limit } : {}),
+              ...(typeof skip === 'number' && !isNaN(skip) && skip > 0 ? { skip: skip } : {}),
+            });
+          } else if (userType === 'EXISTING_USER') {
+            allUsersList = await this.prismaService.user.findMany({
+              ...(typeof limit === 'number' && !isNaN(limit) && limit > 0 ? { take: limit } : {}),
+              ...(typeof skip === 'number' && !isNaN(skip) && skip > 0 ? { skip: skip } : {}),
+            });
+          }
+          
+          
+          
         
 
         const batchSize = 1000;
@@ -166,8 +293,8 @@ async sendCommonMessageToUsers(
                     workerData: {
                         users: batch,
                         messageTemplateParams,
-                        fromNumber: this.fromNumber,
-                        contentSid: process.env.WHATSAPP_CONTENT_SID_FOR_2_COMMON_MESSAGE_TEMPLET,
+                        templateName:'alletre_common_messeages'
+
                     },
                 });
 
@@ -195,6 +322,7 @@ async sendCommonMessageToUsers(
             success: true,
             message: 'Auction notifications sent successfully',
             results,
+            allUsersList,
         };
     } catch (error) {
         console.error('Error sending WhatsApp messages:', error);

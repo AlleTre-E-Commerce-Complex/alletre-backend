@@ -16,8 +16,10 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import { AdminService } from 'src/admin/admin.service';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
+import { WhatsAppModule } from 'src/whatsapp/whatsapp.module';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, WhatsAppModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,
@@ -34,6 +36,7 @@ import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
     FirebaseService,
     AdminService,
     PaginationService,
+    WhatsAppService,
   ],
   exports: [PaymentsService],
 })

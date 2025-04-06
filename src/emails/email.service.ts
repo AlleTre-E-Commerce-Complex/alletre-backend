@@ -489,7 +489,6 @@ The <b>Alletre</b> Team
     body?: any,
     userName?: string,
   ) {
-    console.log('body ==================**********>', body, emailType, email);
     const mailOptions = this.mailOptionsGenerator(
       email,
       token,

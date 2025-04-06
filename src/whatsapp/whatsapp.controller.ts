@@ -1,5 +1,6 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, RawBodyRequest, Headers, Req, Res, Query } from '@nestjs/common';
 import { WhatsAppService } from './whatsapp.service';
+import { Request, Response } from 'express';
 
 @Controller('whatsapp')
 export class WhatsAppController {
@@ -24,16 +25,42 @@ export class WhatsAppController {
   @Post('send-commentMessage-ToNonExistingUser')
   async sendCommonMessageToAllNonExistingUsers(
     @Body() body: {
-      message: string;
+      messages: any;
       mediaUrl?: string;
       buttonUrl?: string;
+      limit?: string,
+      skip? : string, 
+      categoryId? : string,
     }
   ) {
+    console.log('category Id :',body.categoryId)
     return this.whatsappService.sendCommonMessageToUsers(
-      body.message,
+      body.messages,
       'NON_EXISTING_USER',
       body.mediaUrl,
-      body.buttonUrl
+      body.buttonUrl,
+      Number(body.limit),
+      Number(body.skip), 
+      Number(body.categoryId),
     );
   }
+
+  @HttpCode(200)
+  @Post('/whatsapp-webhook-listener') 
+  async whatsAppWebhookEventListener(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Headers() headers : any,
+    @Query() query : any,
+  ) {
+    console.log('🔹 Webhook Received');
+    console.log('🔹 Headers:', headers);
+    console.log('🔹 Query Params:', query);
+    console.log('🔹 Raw Body:', req.body); // This will now work
+    // console.log('🔹 Raw Body:', req.body.entry[0].changes); // This will now work
+
+    // Gupshup expects a quick 200 OK response
+    res.status(200).send();
+  }
+  
 }
