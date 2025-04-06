@@ -16,12 +16,14 @@ import { JwtService } from '@nestjs/jwt';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { AdminService } from 'src/admin/admin.service';
 import { PaginationService } from 'src/common/services/pagination.service';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 
 @Module({
   imports: [PrismaModule, AuctionModule, NotificationsModule],
   providers: [
     TasksService,
     PaymentsService,
+    WhatsAppService,
     StripeService,
     WalletService,
     EmailSerivce,
