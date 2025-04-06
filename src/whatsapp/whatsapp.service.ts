@@ -243,22 +243,6 @@ async sendCommonMessageToUsers(
         console.log('mesage 999', messageTemplateParams)
         let allUsersList: any[] = []; // Initialize as an empty array
 
-        // if (userType === 'NON_EXISTING_USER') {
-        //   allUsersList = await this.prismaService.nonRegisteredUser.findMany({
-        //     where:{
-        //         categoryId:categoryId,
-        //     },
-        //     take: limit,
-        //     skip: skip,
-            
-        //   });
-        // } else if (userType === 'EXISTING_USER') {
-        //   allUsersList = await this.prismaService.user.findMany({
-        //     skip: skip,
-        //     take: limit,
-        //   });
-        // }
-
         if (userType === 'NON_EXISTING_USER') {
             allUsersList = await this.prismaService.nonRegisteredUser.findMany({
               ...(typeof categoryId === 'number' && !isNaN(categoryId) ? { where: { categoryId } } : {}),
@@ -272,10 +256,6 @@ async sendCommonMessageToUsers(
             });
           }
           
-          
-          
-        
-
         const batchSize = 1000;
         const userBatches = [];
 
@@ -330,8 +310,59 @@ async sendCommonMessageToUsers(
     }
 }
 
+async handleWhatsAppWhebhook(webhookBody: any){
+    try {
+        const message = webhookBody?.payload?.payload?.text?.toUpperCase();
+        const phone = webhookBody?.payload?.sender?.phone;
 
+        if (!phone) {
+            console.log('No phone number found in webhook payload');
+            return;
+          }
+          
+        
+        if (message === 'STOP') {
+            const isUnsubscribed = await this.isUnsubscribed(phone)
+            if(isUnsubscribed){
+                console.log(`The mobile number ${phone} is already unsubscribed`)
+                return
+            }
+            await this.addUnsubscribedUser(phone, message);
+            return {reply : 'You have successfully unsubscribed, If you would like to Subscribe again, reply START'}
+        }
+
+        if (message === 'START') {
+            const isUnsubscribed = await this.isUnsubscribed(phone)
+            if(!isUnsubscribed){
+                console.log(`The mobile number ${phone} is not unsubscribed yet`)
+                return
+            }
+            await this.removeUnsubscribeUser(phone);
+            return {reply : 'You have successfully subscribed again'}
+        }
+    } catch (error) {
+        console.log('Handle whatsapp  webhook error : ',error)
+    }
+}
   
+async addUnsubscribedUser(phone: string, reason?: string) {
+    return this.prismaService.unsubscribedUser.upsert({
+      where: { phone },
+      update: { reason },
+      create: { phone, reason },
+    });
+  }
+  async removeUnsubscribeUser(phone: string) {
+    return this.prismaService.unsubscribedUser.delete({
+      where: { phone }
+    });
+  }
+  async isUnsubscribed(phone: string): Promise<boolean> {
+    const user = await this.prismaService.unsubscribedUser.findUnique({
+      where: { phone },
+    });
+    return !!user;
+  }
   // async sendAuctionToUsers(auctionId: string) {
   //   try {
   //     // Fetch auction details

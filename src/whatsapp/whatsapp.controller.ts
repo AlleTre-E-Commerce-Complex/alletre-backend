@@ -58,9 +58,13 @@ export class WhatsAppController {
     console.log('🔹 Query Params:', query);
     console.log('🔹 Raw Body:', req.body); // This will now work
     // console.log('🔹 Raw Body:', req.body.entry[0].changes); // This will now work
-
+    const response = await this.whatsappService.handleWhatsAppWhebhook(req.body)
     // Gupshup expects a quick 200 OK response
-    res.status(200).send();
+    if(response?.reply){
+      res.status(200).send(response?.reply)
+    }else{
+      res.status(200).send();
+    }
   }
-  
+
 }
