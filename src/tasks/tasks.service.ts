@@ -20,6 +20,7 @@ import { NotificationsService } from 'src/notificatons/notifications.service';
 import { PaymentsService } from 'src/payments/services/payments.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WalletService } from 'src/wallet/wallet.service';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 
 @Injectable()
 export class TasksService {
@@ -35,6 +36,8 @@ export class TasksService {
     private emailBatchService: EmailBatchService,
     private notificationService: NotificationsService,
     private auctionWebsocketGateWay: AuctionWebSocketGateway,
+    private readonly whatsappService: WhatsAppService,
+    
   ) {}
 
   /**
@@ -90,7 +93,7 @@ export class TasksService {
                   <li>Title: ${updatedAuction.product.title}</li>                     
                   <li>Category: ${updatedAuction.product.category.nameEn}</li>
                   <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
-                  <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                  <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime}</li>
                 </ul>
                 <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
               `,
@@ -125,6 +128,26 @@ export class TasksService {
           Button_text: 'Share My Auction ',
           Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
         };
+        const whatsappBodyToSeller = {
+          1: `${updatedAuction.user.userName}`,
+          2: `🎉 Your auction listing *${updatedAuction.product.title}* is now live on *Alletre*! Buyers can start bidding right away.`,
+          3: ` Category: ${updatedAuction.product.category.nameEn}`,
+          4: ` Starting Bid: ${updatedAuction.startBidAmount}`,
+          5: ` Ends: ${formattedEndDate} at ${formattedEndTime}`,
+          6: `🚀 To boost visibility, share your listing with friends or on social media. 👁️ Track your auction and stay updated on the latest bids`,
+          7: `Thanks for choosing *Alletre*! Good luck with your auction. 📬 Stay tuned for updates and messages from interested bidders.`,
+          8: `${updatedAuction.product.images[0].imageLink}`,
+          9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+        };
+        
+        if (updatedAuction.user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyToSeller,
+            updatedAuction.user.phone,
+            'alletre_common_utility_templet'
+          );
+        }
+        
         await this.emailService.sendEmail(
           updatedAuction.user.email,
           'token',
@@ -360,11 +383,11 @@ export class TasksService {
                 sellerPaymentData.auction.product.category
                   .sellerDepositFixedAmount
               } </li>
-     <li>Compensation: ${
-       Number(
-         sellerPaymentData.auction.product.category.bidderDepositFixedAmount,
-       ) * 0.5
-     } (50% of the bidder’s security deposit)</li>
+                <li>Compensation: ${
+                  Number(
+                    sellerPaymentData.auction.product.category.bidderDepositFixedAmount,
+                  ) * 0.5
+                } (50% of the bidder’s security deposit)</li>
 
 
             </ul>
@@ -380,6 +403,27 @@ export class TasksService {
               Button_text: 'Create auction',
               Button_URL: ' https://www.alletre.com/',
             };
+
+            const whatsappBodyForSeller = {
+              1: `⚠️ Hi ${sellerPaymentData.auction.user.userName},`,
+              2: `We regret to inform you that the winning bidder for your auction *${sellerPaymentData.auction.product.title}* did not complete the payment within the required timeframe.`,
+              3: `But don ot worry, here is what happens next:`,
+              4: `• Your security deposit: ${sellerPaymentData.auction.product.category.sellerDepositFixedAmount}`,
+              5: `• Compensation: ${Number(sellerPaymentData.auction.product.category.bidderDepositFixedAmount) * 0.5} (50% of the bidders deposit)`,
+              6: `The compensation has been credited to your account and is available for use in future auctions.`,
+              7: `👉 What is next? We recommend relisting your item to attract new bidders and secure a successful sale. Thank you for using *Alletre*! We are here to support you every step of the way.`,
+              8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
+              9: `https://www.alletre.com/`,
+            };
+            
+            if (sellerPaymentData.auction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyForSeller,
+                sellerPaymentData.auction.user.phone,
+                'alletre_common_utility_templet'
+              );
+            }
+            
             //sendEmailtoBidder
             const auctionEndDate = new Date(
               sellerPaymentData.auction.expiryDate,
@@ -418,6 +462,27 @@ export class TasksService {
               Button_text: 'Explore Auctions',
               Button_URL: ' https://www.alletre.com/',
             };
+
+            const whatsappBodyForBidder = {
+              1: `⚠️ Hi ${sellerPaymentData.auction.bids[0].user.userName},`,
+              2: `Your winning bid for *${sellerPaymentData.auction.product.title}* has been cancelled because we did not receive your payment on time.`,
+              3: `Here are the auction details:`,
+              4: `• Title: ${sellerPaymentData.auction.product.title} • Winning Bid: ${sellerPaymentData.auction.bids[0].amount} • Payment Due By: ${formattedEndDate} & ${formattedEndTime}`,
+              5: `Since the payment was not completed: • The auction has been cancelled • Your security deposit of ${sellerPaymentData.auction.acceptedAmount} has been confiscated.`,
+              6: `We know this is disappointing, but timely payments help us ensure a smooth experience for all users.`,
+              7: `We encourage you to explore other auctions that match your interests. Thank you for being part of *Alletre*!`,
+              8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
+              9: `https://www.alletre.com/`,
+            };
+            
+            if (sellerPaymentData.auction.bids[0].user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyForBidder,
+                sellerPaymentData.auction.bids[0].user.phone,
+                'alletre_common_utility_templet'
+              );
+            }
+            
             const notificationMessageToSeller = ` 
                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
                                 (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
@@ -504,7 +569,7 @@ export class TasksService {
               'Error When Handling the winner full paymet expiry in the task service ',
             title:
               'Error When Handling the winner full paymet expiry in the task service',
-            message: `This is a test message from alletre backend when error occur at markPendingBidderPaymentAuctionsExpired function 
+            message1: `This is a test message from alletre backend when error occur at markPendingBidderPaymentAuctionsExpired function 
                            Transaction Failed ${error.message}`,
             Button_text: 'Click here to continue your payment',
             Button_URL: process.env.FRONT_URL,
@@ -699,6 +764,26 @@ export class TasksService {
               ' https://www.alletre.com/alletre/profile/my-bids/pending',
           };
 
+          const whatsappBodyForPendingPayment = {
+            1: `⏳ Hi ${data.user.userName},`,
+            2: `Congrats on winning the auction for *${data.auction.product.title}*! However, we noticed your payment is still pending.`,
+            3: `Here are your auction details:`,
+            4: `• Title: ${data.auction.product.title} • Winning Bid: ${data.auction.bids[0].amount} • Payment Due By: ${formattedEndDate} & ${formattedEndTime}`,
+            5: `If payment is not completed within the next 24 hours: • The auction will be cancelled • Your deposit of ${data.auction.product.category.bidderDepositFixedAmount} will be confiscated.`,
+            6: `We recommend acting quickly to avoid losing both your winning bid and your deposit.`,
+            7: `Thanks for being part of *Alletre*! Completing your payment helps ensure a smooth experience for everyone.`,
+            8: `${data.auction.product.images[0].imageLink}`,
+            9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+          };
+          
+          if (data.user.phone) {
+            await this.whatsappService.sendOtherUtilityMessages(
+              whatsappBodyForPendingPayment,
+              data.user.phone,
+              'alletre_common_utility_templet'
+            );
+          }
+          
           // Send email
           await this.emailService.sendEmail(
             data.user.email,
@@ -784,6 +869,7 @@ export class TasksService {
           const auctionEndDate = new Date(data.auction.expiryDate);
           const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
           const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+
           const body = {
             subject: '⏰ Urgent: 1 Hour Left to Complete Your Payment!',
             title: 'Last Chance to Secure Your Auction Win!',
@@ -814,6 +900,27 @@ export class TasksService {
             Button_URL:
               ' https://www.alletre.com/alletre/profile/my-bids/pending',
           };
+
+          const whatsappBodyForFinalHour = {
+            1: `⏰ Hi ${data.user.userName},`,
+            2: `This is a final reminder—only 1 hour remains to complete your payment for *${data.auction.product.title}*.`,
+            3: `Auction details below:`,
+            4: `• Title: ${data.auction.product.title} • Winning Bid: ${data.auction.bids[0].amount} • Payment Due By: ${formattedEndDate} & ${formattedEndTime}`,
+            5: `If payment is not completed in the next hour: • The auction will be cancelled • Your deposit of ${data.auction.product.category.bidderDepositFixedAmount} will be confiscated.`,
+            6: `Do not miss out! Complete your payment now to secure your win and avoid losing your deposit.`,
+            7: `Thanks for using *Alletre*! We are here to help you complete this transaction smoothly.`,
+            8: `${data.auction.product.images[0].imageLink}`,
+            9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+          };
+          
+          if (data.user.phone) {
+            await this.whatsappService.sendOtherUtilityMessages(
+              whatsappBodyForFinalHour,
+              data.user.phone,
+              'alletre_common_utility_templet'
+            );
+          }
+          
 
           // Send email
           await this.emailService.sendEmail(
@@ -1030,8 +1137,29 @@ export class TasksService {
                         <p>P.S. Encourage buyers to leave feedback—it helps build trust and improve future experiences!</p>`,
               Button_text: 'View Auction Summary   ',
               Button_URL:
-                ' https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details',
+                ` https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
             };
+
+            const whatsappBodyForAuctionSuccess = {
+              1: `🏆 Hi ${isAcutionUpdated.user.userName},`,
+              2: `Great news! Your auction for *${isAcutionUpdated.product.title}* has officially ended and we have a winner.`,
+              3: `Here are the final details:`,
+              4: `• Winning Bid Amount: ${isAcutionUpdated.bids[0].amount} • Winner: ${isAcutionUpdated.bids[0].user.userName} • Ended On: ${formattedEndDate} & ${formattedEndTime}`,
+              5: `Next steps: • Our team will coordinate with ${isAcutionUpdated.bids[0].user.userName} to finalize payment and delivery.`,
+              6: `• The winning amount and your deposit will be credited to your wallet after item delivery.`,
+              7: `Thanks for trusting *Alletre*! If you need help, our support team is just a click away. We look forward to more successful auctions with you.`,
+              8: `${isAcutionUpdated.product.images[0].imageLink}`,
+              9: `https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
+            };
+            
+            if (isAcutionUpdated.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyForAuctionSuccess,
+                isAcutionUpdated.user.phone,
+                'alletre_common_utility_templet'
+              );
+            }
+            
             await this.emailService.sendEmail(
               isAcutionUpdated.user.email,
               'token',
@@ -1156,6 +1284,26 @@ export class TasksService {
               EmailsType.OTHER,
               body,
             );
+            const whatsappBodyForAuctionWin = {
+              1: `🏆 Hi ${isAcutionUpdated.bids[0].user.userName},`,
+              2: `Congrats! You won the auction for *${isAcutionUpdated.product.title}*. Now it is time to complete your payment and finalize the deal.`,
+              3: `Auction details:`,
+              4: `• Item: ${isAcutionUpdated.product.title} • Winning Bid: ${isAcutionUpdated.bids[0].amount} • Seller: ${isAcutionUpdated.user.userName} • Payment Due By: ${PaymentEndDate} & ${formattedEndTime}`,
+              5: `Step 1 Complete your payment now to secure your item.`,
+              6: `Step 2 Choose delivery or pickup: • Delivery: We ship to your address (shipping charges may apply) • Pickup: Collect directly from the seller (details shared after payment)`,
+              7: `Step 3 If picking up, confirm once collected. This helps ensure a smooth and secure transaction. Thanks for being part of *Alletre*!`,
+              8: `${isAcutionUpdated.product.images[0].imageLink}`,
+              9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+            };
+            
+            if (isAcutionUpdated.bids[0].user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyForAuctionWin,
+                isAcutionUpdated.bids[0].user.phone,
+                'alletre_common_utility_templet'
+              );
+            }
+            
             // create notification for winner
             const isCreateNotificationToWinner =
               await this.prismaService.notification.create({
@@ -1229,7 +1377,7 @@ export class TasksService {
                                 <p>The <b>Alletre</b> Team </p>
                                 <p>P.S. Have questions or need assistance? Contact us anytime.</p>`,
                     Button_text: 'Live Auctions',
-                    Button_URL: ' https://www.alletre.com/alletre/',
+                    Button_URL: ' https://www.alletre.com/',
                   };
 
                   await this.emailService.sendEmail(
@@ -1238,6 +1386,26 @@ export class TasksService {
                     EmailsType.OTHER,
                     body,
                   );
+                  const whatsappBodyForAuctionLost = {
+                    1: `❌ Hi ${data.user.userName},`,
+                    2: `Thank you for participating in the auction for *${isAcutionUpdated.product.title}*. While your bid was competitive, the auction has ended and you did not win this time.`,
+                    3: `Auction summary:`,
+                    4: `• Item: ${isAcutionUpdated.product.title} • Your Highest Bid: ${isAcutionUpdated.bids.find(bid => bid.userId === isAcutionUpdated.user.id)?.amount} • Winning Bid: ${isAcutionUpdated.bids[0].amount}`,
+                    5: `Do not give up. There are many more exciting auctions waiting for you on Alletre.`,
+                    6: `Tap below to explore live auctions and get ready for your next opportunity to win.`,
+                    7: `We appreciate your enthusiasm and look forward to seeing you succeed next time. Keep bidding and keep winning with Alletre.`,
+                    8: `${isAcutionUpdated.product.images[0].imageLink}`,
+                    9: `https://www.alletre.com/`,
+                  };
+                  
+                  if (data.user.phone) {
+                    await this.whatsappService.sendOtherUtilityMessages(
+                      whatsappBodyForAuctionLost,
+                      data.user.phone,
+                      'alletre_common_utility_templet'
+                    );
+                  }
+                  
                   // create notification for winner
                   const isCreateNotificationToLoser =
                     await this.prismaService.notification.create({
@@ -1524,6 +1692,26 @@ export class TasksService {
                 EmailsType.OTHER,
                 body,
               );
+              const whatsappBodyForAuctionExpiredWithoutBids = {
+                1: `📭 Hi ${auctionExpairyData.user.userName},`,
+                2: `Your auction for *${auctionExpairyData.product.title}* has ended without receiving any bids. That happens sometimes but no worries we have got your back.`,
+                3: `Good news. Your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.`,
+                4: `Here are some tips to improve your chances next time.`,
+                5: `• Lower your starting bid to attract more interest • Add more photos or improve your item description • Share your auction on social media to get more reach • Write a clear and appealing item description`,
+                6: `Would you like to relist your auction easily`,
+                7: `Tap below to create a new auction and connect with potential buyers today.`,
+                8: `${auctionExpairyData.product.images[0].imageLink}`,
+                9: `https://www.alletre.com/`,
+              };
+              
+              if (auctionExpairyData.user.phone) {
+                await this.whatsappService.sendOtherUtilityMessages(
+                  whatsappBodyForAuctionExpiredWithoutBids,
+                  auctionExpairyData.user.phone,
+                  'alletre_common_utility_templet'
+                );
+              }
+              
             }
             const auctionExpireNotificationData =
               await this.prismaService.notification.create({

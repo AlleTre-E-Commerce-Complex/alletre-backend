@@ -552,7 +552,7 @@ export class PaymentsService {
           1:`${paymentData.auction.user.userName}`,
           2:`Congratulations! Your auction ${paymentData.auction.product.title} has received its first bid! This is an exciting milestone, and the competition has officially begun.`,
           3:`*First Bid Amount:* ${joinedBidders[joinedBidders.length - 1].amount}`,
-          4:`*Bidder’s Username:* ${joinedBidders[joinedBidders.length - 1].user.userName}`,
+          4:`*Bidder Username:* ${joinedBidders[joinedBidders.length - 1].user.userName}`,
           5:`*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
           6:`This is just the beginning—more bidders could be on their way!`,
           7:`*What can you do now?* -> Share your auction to attract even more bids. Keep an eye on the activity to stay informed about the progress.`,
@@ -591,7 +591,7 @@ export class PaymentsService {
           8: paymentData.auction.product.images[0].imageLink,
           9:`https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
         }
-        if(paymentData.auction.user.phone){
+        if(joinedBidders[1].user.phone){
           await this.whatsappService.sendOtherUtilityMessages(whatsappBodyTosecondLastBidders,joinedBidders[1].user.phone,'alletre_common_utility_templet')
         }
       }
@@ -1488,7 +1488,7 @@ export class PaymentsService {
           EmailsType.OTHER,
           emailBodyToWinner,
         );
-        const whatsappBodyToSeller = {
+        const whatsappBodyToWinner = {
           1:`${paymentData.user.userName}`,
           2:`We are excited to inform you that you have won the auction for ${paymentData.auction.product.title}!`,
           3:`*Auction Title:* ${paymentData.auction.product.title}`,
@@ -1499,8 +1499,8 @@ export class PaymentsService {
           8: paymentData.auction.product.images[0].imageLink,
           9:`https://www.alletre.com/alletre/profile/purchased`,
         }
-        if(paymentData.auction.user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,paymentData.user.phone,'alletre_common_utility_templet')
+        if(paymentData.user.phone){
+          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinner,paymentData.user.phone,'alletre_common_utility_templet')
         }
         const auction = paymentData.auction;
         const notificationMessageToWinner = `
@@ -1649,7 +1649,7 @@ export class PaymentsService {
                     <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
                   `,
                   Button_text: 'Browse Auctions',
-                  Button_URL: 'https://www.alletre.com/alletre/',
+                  Button_URL: 'https://www.alletre.com/alletre/home',
                 };
                 await this.emailService.sendEmail(
                   payment.user.email,
@@ -1658,7 +1658,7 @@ export class PaymentsService {
                   emailBodyToLostBidders,
                 );
                 const notificationMessageToLosers = `
-                The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.
+                The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid did not win this time.
                 
                 Here are the details of your purchase:
                 - Auction Title: ${payment.auction.product.title}
@@ -1668,6 +1668,20 @@ export class PaymentsService {
                 We know it’s disappointing, but there are always more exciting auctions to explore on Alletre.
                 `;
 
+                const whatsappBodyToLosers = {
+                  1:`${payment.user.userName}`,
+                  2:`The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid did not win this time!`,
+                  3:`*Auction Title:* ${payment.auction.product.title}`,
+                  4:`*Category:* ${payment.auction.product.category.nameEn}`,
+                  5:`*Winning Bid:* ${payment.auction.bids[0].amount}`,
+                  6:`*We know it is disappointing, but there are always more exciting auctions to explore on Alletre.*`,
+                  7:`Please visit us to participate in stunning auctions.`,
+                  8: payment.auction.product.images[0].imageLink,
+                  9:`https://www.alletre.com/alletre/home`,
+                }
+                if(payment.user.phone){
+                  await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToLosers,payment.user.phone,'alletre_common_utility_templet')
+                }
                 const auction = payment.auction;
                 const notificationBodyToLosers = {
                   status: 'ON_ITEM_BUY_NOW',
@@ -1737,6 +1751,20 @@ export class PaymentsService {
                 EmailsType.OTHER,
                 emailBodyToSeller,
               );
+              const whatsappBodyToSeller = {
+                1:`${payment.user.userName}`,
+                2:`Great news! Your auction *${payment.auction.product.title}*, just ended because a buyer used the *Buy now* option to purchase your item instantly`,
+                3:`*Auction Title:* ${payment.auction.product.title}`,
+                4:`*Category:* ${payment.auction.product.category.nameEn}`,
+                5:`*Sold For:* ${payment.auction.bids[0].amount}`,
+                6:`*Buyer:* ${payment.auction.bids[0].user.userName}`,
+                7:`Please visit us to participate in stunning auctions.`,
+                8: payment.auction.product.images[0].imageLink,
+                9:`https://www.alletre.com/alletre/profile/my-auctions/sold`,
+              }
+              if(payment.user.phone){
+                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,payment.user.phone,'alletre_common_utility_templet')
+              }
               const auction = payment.auction;
               const notificationMessageToSeller = `
               Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the Buy now option to purchase your item instantly.
@@ -1990,7 +2018,7 @@ export class PaymentsService {
                               <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
               Button_text: 'View My Auction ',
               Button_URL:
-                'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
+                `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
             };
 
             const emailBodyToSecondLastBidder = {
@@ -2027,7 +2055,7 @@ export class PaymentsService {
                               <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
               Button_text: 'Place a Higher Bid',
               Button_URL:
-                'https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details',
+                `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
             };
 
             console.log('joinedBidders1111111111111', joinedBidders);
@@ -2039,6 +2067,20 @@ export class PaymentsService {
                 emailBodyToSeller,
               );
             }
+            const whatsappBodyToSeller = {
+              1:`${auctionHoldPaymentTransaction.user.userName}`,
+              2:`Congratulations! Your auction *${auctionHoldPaymentTransaction.auction.product.title}* has received its first bid! This is an exciting milestone, and the competition has officially begun`,
+              3:`*First Bid Amount:* ${joinedBidders[joinedBidders.length - 1].amount}`,
+              4:`*Bidder Username:* ${joinedBidders[joinedBidders.length - 1].user.userName} `,
+              5:`*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
+              6:`*This is just the beginning—more bidders could be on their way!*`,
+              7:`Please visit Now to see my auctions`,
+              8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
+              9:`https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+            }
+            if(auctionHoldPaymentTransaction.auction.user.phone){
+              await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,auctionHoldPaymentTransaction.user.phone,'alletre_common_utility_templet')
+            }
             if (joinedBidders[1]) {
               console.log('joinedBidders222222', joinedBidders[1]);
               this.emailService.sendEmail(
@@ -2047,6 +2089,28 @@ export class PaymentsService {
                 EmailsType.OTHER,
                 emailBodyToSecondLastBidder,
               );
+            }
+            const whatsappBodyTosecondLastBidders = {
+              1:`${joinedBidders[1].user.userName}`,
+              2:`Exciting things are happening on *${
+                    auctionHoldPaymentTransaction.auction.product.title
+                  }* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
+              3:`* Current Highest Bid:* ${
+                    joinedBidders.length > 1
+                      ? joinedBidders[0].amount
+                      : 'No bids yet'
+                  }`,
+              4:`*Your Last Bid*: ${joinedBidders[1]?.amount}`,
+              5:`*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
+              6:`Do not miss your chance to claim this one-of-a-kind *${
+                       auctionHoldPaymentTransaction.auction.product.title
+                     }* . The clock is ticking, and every second counts!`,
+              7:`Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
+              8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
+              9:`https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+            }
+            if(joinedBidders[1].user.phone){
+              await this.whatsappService.sendOtherUtilityMessages(whatsappBodyTosecondLastBidders,joinedBidders[1].user.phone,'alletre_common_utility_templet')
             }
             // create notification for seller
             const auction = auctionHoldPaymentTransaction.auction;
@@ -2422,7 +2486,7 @@ export class PaymentsService {
                     <li>Item: ${paymentSuccessData.auction.product.title}</li>
                     <li>Winning Bid: ${paymentSuccessData.auction.bids[0].amount}</li>
                     <li>Buyer:  ${paymentSuccessData.auction.bids[0].user.userName}</li>
-                    <li>Delivery Option Chosen: [Delivery/Pickup] </li>
+                    <li>Delivery Option Chosen: ${paymentSuccessData.auction.deliveryType}</li>
                     </ul>
                     <h2>What You Need to Do:</h2>
                     <h3>If the buyer chose delivery:</h3>
@@ -2531,6 +2595,37 @@ export class PaymentsService {
                   emailBodyToWinner,
                 ),
               ]);
+
+              const whatsappBodyToSeller = {
+                1:`${paymentSuccessData.auction.user.userName}`,
+                2:`Great news! The winning bidder for your auction, ${paymentSuccessData.auction.product.title}, has completed the payment in full.`,
+                3:`*Item:* ${paymentSuccessData.auction.product.title}`,
+                4:`*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount} `,
+                5:`*Buyer:*  ${paymentSuccessData.auction.bids[0].user.userName}`,
+                6:`*Delivery Option Chosen:* ${paymentSuccessData.auction.deliveryType}`,
+                7:`*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
+                8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
+                9:`https://www.alletre.com/alletre/profile/my-bids/pending`,
+              }
+              if(paymentSuccessData.auction.user.phone){
+                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,paymentSuccessData.auction.user.phone,'alletre_common_utility_templet')
+              }
+
+              const whatsappBodyToWinner = {
+                1: `${paymentSuccessData.auction.bids[0].user.userName}`,
+                2: `🎉 Your payment for *${paymentSuccessData.auction.product.title} (${paymentSuccessData.auction.product.model})* has been confirmed.`,
+                3: `*Item:* ${paymentSuccessData.auction.product.title}`,
+                4: `*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount}`,
+                5: `*Seller:* ${paymentSuccessData.auction.user.userName}`,
+                6: `📄 An invoice for this transaction is attached in your email for your records.`,
+                7: `📝 *Next Steps:* Once you receive your item, please confirm delivery on the *MY Bids* page under *"Waiting for Delivery"*. If you face any issues, our support team is ready to help.`,
+                8: paymentSuccessData.auction.product.images[0].imageLink,
+                9: `https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery`,
+              }
+              
+              if(paymentSuccessData.auction.bids[0].user.phone){
+                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinner,paymentSuccessData.auction.bids[0].user.phone,'alletre_common_utility_templet')
+              }
               console.log('purchase test5 4');
 
               //send notification to the seller
@@ -2732,6 +2827,22 @@ export class PaymentsService {
                 Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
                 attachment: invoicePDF,
               };
+
+              const whatsappBodyToWinnerAuction = {
+                1: `${isPaymentSuccess.user.userName}`,
+                2: `🎉 Congratulations! You have won the auction for *${isPaymentSuccess.auction.product.title}*!`,
+                3: `*Auction Title:* ${isPaymentSuccess.auction.product.title}`,
+                4: `*Category:* ${isPaymentSuccess.auction.product.category.nameEn}`,
+                5: `*Winning Bid:* ${isPaymentSuccess.amount}`,
+                6: `✅ Your payment was successful. Check your email for the invoice.`,
+                7: `🚚 *What’s Next:* - *1 - Await Shipment - The seller will ship the item to your address. 2- Track Delivery - You can track delivery status in your account once it is shipped.*`,
+                8: isPaymentSuccess.auction.product.images[0].imageLink,
+                9: `https://www.alletre.com/alletre/profile/purchased`,
+              }
+              if(isPaymentSuccess.user.phone){
+                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinnerAuction,isPaymentSuccess.user.phone,'alletre_common_utility_templet')
+              }
+              
               const notificationMessageToBuyer = `
               We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
               
@@ -2996,6 +3107,26 @@ export class PaymentsService {
                       EmailsType.OTHER,
                       emailBodyToSeller,
                     );
+                    const whatsappBodyToSellerDirectBuy = {
+                      1: `${payment.user.userName}`,
+                      2: `🎉 Great news! Your auction item *${payment.auction.product.title}* has been sold instantly through the Buy Now option.`,
+                      3: `*Auction Title:* ${payment.auction.product.title}`,
+                      4: `*Sold For:* ${payment.auction.bids[0].amount}`,
+                      5: `*Buyer:* ${payment.auction.bids[0].user.userName}`,
+                      6: `✅ The buyer has completed the payment. The funds will be transferred to your account shortly.`,
+                      7: `📦 What is Next: 1. Ship Your Item - Package it securely and ship to the buyer address. 2. Confirm Shipping - Update the status in your account once shipped.`,
+                      8: payment.auction.product.images[0].imageLink,
+                      9: `https://www.alletre.com/alletre/profile/my-auctions/sold`
+                    }
+                    
+                    if (payment.user.phone) {
+                      await this.whatsappService.sendOtherUtilityMessages(
+                        whatsappBodyToSellerDirectBuy,
+                        payment.user.phone,
+                        'alletre_common_utility_templet'
+                      )
+                    }
+                    
                     const notificationMessageToSeller = `
                     Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the Buy now option to purchase your item instantly.
                     
@@ -3177,6 +3308,27 @@ export class PaymentsService {
               emailBodyToSeller,
             );
 
+            const whatsappBodyToSellerAuctionLive = {
+              1: `${updatedAuction.user.userName}`,
+              2: `🎉 Congratulations! Your auction listing *${updatedAuction.product.title}* is now live on Alletre. Buyers can now find and bid on your item.`,
+              3: `*Title:* ${updatedAuction.product.title}`,
+              4: `*Starting Bid:* ${updatedAuction.startBidAmount}`,
+              5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+              6: `🚀 Tip: Share your auction link with friends or on social media to get more visibility.`,
+              7: `You can track bids and view your auction anytime.`,
+              8: updatedAuction.product.images[0].imageLink,
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`
+            }
+            
+            if (updatedAuction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyToSellerAuctionLive,
+                updatedAuction.user.phone,
+                'alletre_common_utility_templet'
+              )
+            }
+            
+
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
               currentUserEmail,
@@ -3282,6 +3434,26 @@ export class PaymentsService {
               EmailsType.OTHER,
               emailBodyToSeller,
             );
+            const whatsappBodyToSellerAuctionLive = {
+              1: `${updatedAuction.user.userName}`,
+              2: `🎉 Your auction listing *${updatedAuction.product.title}* is now live on Alletre. Buyers can now find and bid on your item.`,
+              3: `*Title:* ${updatedAuction.product.title}`,
+              4: `*Starting Bid:* ${updatedAuction.startBidAmount}`,
+              5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+              6: `🚀 To boost your listing visibility, share it with your friends or on social media.`,
+              7: `You can track bids and view your auction using the link below.`,
+              8: updatedAuction.product.images[0].imageLink,
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`
+            }
+            
+            if (updatedAuction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyToSellerAuctionLive,
+                updatedAuction.user.phone,
+                'alletre_common_utility_templet'
+              )
+            }
+            
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
               currentUserEmail,
