@@ -16,6 +16,7 @@ import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
 import { AuctionWebSocketGateway } from './gateway/auction.gateway';
 import { UserModule } from 'src/user/user.module';
+import { WhatsAppModule } from 'src/whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { UserModule } from 'src/user/user.module';
     PaymentsModule,
     NotificationsModule,
     UserModule,
+    WhatsAppModule,
   ],
   providers: [
     UserAuctionsService,

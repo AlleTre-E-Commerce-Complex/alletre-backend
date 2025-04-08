@@ -11,6 +11,7 @@ import { PaginationService } from 'src/common/services/pagination.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { EmailSerivce } from 'src/emails/email.service';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,8 @@ export class UserService {
     private walletService: WalletService,
     private paginationService: PaginationService,
     private emailService: EmailSerivce,
+    private readonly whatsappService: WhatsAppService,
+    
   ) {}
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
@@ -216,6 +219,25 @@ export class UserService {
         EmailsType.OTHER,
         emailBodyToNewUser,
       );
+      const whatsappBodyForNewUserWelcome = {
+        1: `👋 Hi ${user.userName}, welcome to *alletre*!`,
+        2: `We are thrilled to have you onboard. Whether you are here to explore buy or sell we are here to support you every step of the way.`,
+        3: `Start discovering amazing auctions creating your own and connecting with a vibrant community of auction enthusiasts.`,
+        4: `Need help anytime? Our support team is just a click away.`,
+        5: `Here is what you can do next:`,
+        6: `• Explore more auctions and find items you will love • Use buy now or set higher auto bids to win your favorite items`,
+        7: `Thanks again for joining us. We look forward to seeing you in future bids.`,
+        8: `https://www.alletre.com`,
+      };
+      
+      if (user.phone) {
+        await this.whatsappService.sendOtherUtilityMessages(
+          whatsappBodyForNewUserWelcome,
+          user.phone,
+          'alletre_common_utility_templet'
+        );
+      }
+      
     }
     if (user && user.id <= 100) {
       const newUserWalletData = {
