@@ -653,6 +653,7 @@ export class UserService {
         createdAt: true,
         isBlocked: true,
         _count: { select: { auctions: true, JoinedAuction: true } },
+        wallet:true
       },
       take: limit,
       skip,
