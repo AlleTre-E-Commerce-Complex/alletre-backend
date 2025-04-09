@@ -2260,6 +2260,7 @@ export class UserAuctionsService {
       },
       skip: skip,
       take: limit,
+      orderBy: { startBidAmount: 'desc' },
     });
 
     const auctionsCount = await this.prismaService.auction.count({

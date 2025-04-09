@@ -81,8 +81,9 @@ export class WalletService {
   }
 
   async findAllAdminWalletDetails() {
-    const walletData = await this.prismaSevice.alletreWallet.findMany();
-    // console.log('wallet data :',walletData)
+    const walletData = await this.prismaSevice.alletreWallet.findMany({
+      include:{ user: true}
+    });
     // let balance = walletData[walletData.length-1]
     return walletData;
   }
