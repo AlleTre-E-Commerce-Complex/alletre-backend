@@ -120,8 +120,6 @@ export class PaymentsService {
 
       const { paymentData } = await this.prismaService.$transaction(
         async (prisma) => {
-        
-
           const paymentData = await prisma.payment.create({
             data: {
               userId: user.id,
@@ -142,27 +140,28 @@ export class PaymentsService {
       );
 
       if (paymentData) {
-
-          //checking again the wallet balance to avoid issues
-          const lastWalletTransactionBalanceOfSeller =
-            await this.walletService.findLastTransaction(user.id);
-          if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
-            throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
-          }
-          //crete new transaction in seller wallet
-          const sellerWallet = await this.walletService.create(
-            user.id,
-            SellerWalletData);
-          //crete new transaction in alletre wallet
-          const alletreWallet = await this.walletService.addToAlletreWallet(
-            user.id,
-            alletreWalletData);
-          // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
+        //checking again the wallet balance to avoid issues
+        const lastWalletTransactionBalanceOfSeller =
+          await this.walletService.findLastTransaction(user.id);
+        if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
+          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+        }
+        //crete new transaction in seller wallet
+        const sellerWallet = await this.walletService.create(
+          user.id,
+          SellerWalletData,
+        );
+        //crete new transaction in alletre wallet
+        const alletreWallet = await this.walletService.addToAlletreWallet(
+          user.id,
+          alletreWalletData,
+        );
+        // create new payment database
+        if (!sellerWallet || !alletreWallet) {
+          throw new InternalServerErrorException(
+            'Failed to process wallet payment',
+          );
+        }
         await this.publishAuction(auctionId);
         if (paymentData.auction.type !== 'SCHEDULED') {
           const usersId = await this.notificationsService.getAllRegisteredUsers(
@@ -191,7 +190,7 @@ export class PaymentsService {
           );
         }
       } else {
-        console.error('Payment data not created when walletPayDepositBySeller')
+        console.error('Payment data not created when walletPayDepositBySeller');
         throw new InternalServerErrorException(
           'Failed to process wallet payment',
         );
@@ -413,64 +412,66 @@ export class PaymentsService {
           }
         },
         {
-          timeout:10000
-        }
+          timeout: 10000,
+        },
       );
       if (paymentData) {
-         //checking again the wallet balance to avoid issues
-         const lastWalletTransactionBalanceOfBidder =
-         await this.walletService.findLastTransaction(user.id);
-       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
-         throw new MethodNotAllowedException(
-           'Sorry, Insufficient Balance.',
-         );
-       }
-       //crete new transaction in bidder wallet
-       const sellerWallet =  await this.walletService.create(user.id, BidderWalletData);
-       //crete new transaction in alletre wallet
-       const alletreWallet = await this.walletService.addToAlletreWallet(
-         user.id,
-         alletreWalletData);
+        //checking again the wallet balance to avoid issues
+        const lastWalletTransactionBalanceOfBidder =
+          await this.walletService.findLastTransaction(user.id);
+        if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+        }
+        //crete new transaction in bidder wallet
+        const sellerWallet = await this.walletService.create(
+          user.id,
+          BidderWalletData,
+        );
+        //crete new transaction in alletre wallet
+        const alletreWallet = await this.walletService.addToAlletreWallet(
+          user.id,
+          alletreWalletData,
+        );
 
-          // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
-      
-      //send email to seller and last bidder
-      const joinedBidders = await this.prismaService.bids.findMany({
-        where: {
-          auctionId: auctionId,
-        },
-        include: {
-          user: true,
-          auction: {
-            include: {
-              user: true,
-              bids: {
-                include: { user: true },
-                orderBy: { amount: 'desc' },
+        // create new payment database
+        if (!sellerWallet || !alletreWallet) {
+          throw new InternalServerErrorException(
+            'Failed to process wallet payment',
+          );
+        }
+
+        //send email to seller and last bidder
+        const joinedBidders = await this.prismaService.bids.findMany({
+          where: {
+            auctionId: auctionId,
+          },
+          include: {
+            user: true,
+            auction: {
+              include: {
+                user: true,
+                bids: {
+                  include: { user: true },
+                  orderBy: { amount: 'desc' },
+                },
+                product: { include: { images: true, category: true } },
               },
-              product: { include: { images: true, category: true } },
             },
           },
-        },
-        orderBy: {
-          id: 'desc',
-        },
-      });
-      const auctionEndDate = new Date(paymentData.auction.expiryDate);
-      const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
-      const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
-      const emailBodyToSeller = {
-        subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
-        title: 'Your Auction is Officially in Motion!',
-        Product_Name: paymentData.auction.product.title,
-        img: paymentData.auction.product.images[0].imageLink,
-        userName: `${paymentData.auction.user.userName}`,
-        message1: ` 
+          orderBy: {
+            id: 'desc',
+          },
+        });
+        const auctionEndDate = new Date(paymentData.auction.expiryDate);
+        const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+        const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+        const emailBodyToSeller = {
+          subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
+          title: 'Your Auction is Officially in Motion!',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          userName: `${paymentData.auction.user.userName}`,
+          message1: ` 
                   <p>Congratulations! Your auction ${
                     paymentData.auction.product.title
                   } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
@@ -491,25 +492,24 @@ export class PaymentsService {
                   <li>Keep an eye on the activity to stay informed about the progress.</li>
                   </ul>
                   `,
-        message2: ` 
+          message2: ` 
                                <p>Thank you for choosing <b>Alletre</b>. We can’t wait to see how this unfolds!</p>
                   
              
                                <p style="margin-bottom: 0;">Good luck,</p>
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
-        Button_text: 'View My Auction ',
-        Button_URL:
-          `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
-      };
+          Button_text: 'View My Auction ',
+          Button_URL: `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
+        };
 
-      const emailBodyToSecondLastBidder = {
-        subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
-        title: 'Your Bid Just Got Beaten!',
-        Product_Name: paymentData.auction.product.title,
-        img: paymentData.auction.product.images[0].imageLink,
-        userName: `${joinedBidders[1]?.user.userName}`,
-        message1: ` 
+        const emailBodyToSecondLastBidder = {
+          subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
+          title: 'Your Bid Just Got Beaten!',
+          Product_Name: paymentData.auction.product.title,
+          img: paymentData.auction.product.images[0].imageLink,
+          userName: `${joinedBidders[1]?.user.userName}`,
+          message1: ` 
                   <p>Exciting things are happening on ${
                     paymentData.auction.product.title
                   }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.</p>
@@ -528,164 +528,169 @@ export class PaymentsService {
                      } . The clock is ticking, and every second counts!</p>       
                      <p><b>Reclaim Your Spot as the Top Bidder Now!</b></p>
                   `,
-        message2: ` 
+          message2: ` 
                                <p>Stay ahead of the competition and secure your win!</p>
                   
              
                                <p style="margin-bottom: 0;">Good luck,</p>
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
-        Button_text: 'Place a Higher Bid',
-        Button_URL:
-          `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
-      };
-
-      console.log('joinedBidders1111111111111', joinedBidders);
-      if (joinedBidders.length === 1) {
-        this.emailService.sendEmail(
-          joinedBidders[0].auction.user.email,
-          'token',
-          EmailsType.OTHER,
-          emailBodyToSeller,
-        );
-        const whatsappBodyToLostBidders = {
-          1:`${paymentData.auction.user.userName}`,
-          2:`Congratulations! Your auction ${paymentData.auction.product.title} has received its first bid! This is an exciting milestone, and the competition has officially begun.`,
-          3:`*First Bid Amount:* ${joinedBidders[joinedBidders.length - 1].amount}`,
-          4:`*Bidder Username:* ${joinedBidders[joinedBidders.length - 1].user.userName}`,
-          5:`*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
-          6:`This is just the beginning—more bidders could be on their way!`,
-          7:`*What can you do now?* -> Share your auction to attract even more bids. Keep an eye on the activity to stay informed about the progress.`,
-          8: paymentData.auction.product.images[0].imageLink,
-          9:`https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
-        }
-        if(paymentData.auction.user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToLostBidders,paymentData.auction.user.phone,'alletre_common_utility_templet')
-        }
-      }
-      if (joinedBidders[1]) {
-        console.log('joinedBidders222222', joinedBidders[1]);
-        this.emailService.sendEmail(
-          joinedBidders[1].user.email,
-          'token',
-          EmailsType.OTHER,
-          emailBodyToSecondLastBidder,
-        );
-
-        const whatsappBodyTosecondLastBidders = {
-          1:`${joinedBidders[1].user.userName}`,
-          2:`Exciting things are happening on ${
-                    paymentData.auction.product.title
-                  }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.`,
-          3:`*Here’s the current standing:*`,
-          4:`*Current Highest Bid:* ${
-                    joinedBidders.length > 1
-                      ? joinedBidders[0].amount
-                      : 'No bids yet'
-                  }`,
-          5:`*Your Last Bid:* ${joinedBidders[1]?.amount}`,
-          6:`Don’t miss your chance to claim this one-of-a-kind ${
-                       paymentData.auction.product.title
-                     } . The clock is ticking, and every second counts!`,
-          7:`*Reclaim Your Spot as the Top Bidder Now!*`,
-          8: paymentData.auction.product.images[0].imageLink,
-          9:`https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
-        }
-        if(joinedBidders[1].user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyTosecondLastBidders,joinedBidders[1].user.phone,'alletre_common_utility_templet')
-        }
-      }
-      // create notification for seller
-      const auction = paymentData.auction;
-      const isCreateNotificationToSeller =
-        await this.prismaService.notification.create({
-          data: {
-            userId: paymentData.auction.userId,
-            message: `Mr. ${paymentData.user.userName} has been placed new bid on your auction ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
-            imageLink: auction.product.images[0].imageLink,
-            productTitle: auction.product.title,
-            auctionId: paymentData.auctionId,
-          },
-        });
-
-      const isCreateNotificationToCurrentBidder =
-        await this.prismaService.notification.create({
-          data: {
-            userId: paymentData.userId,
-            message: `You have successfully placed a bid on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
-            imageLink: auction.product.images[0].imageLink,
-            productTitle: auction.product.title,
-            auctionId: paymentData.auctionId,
-          },
-        });
-
-      if (isCreateNotificationToSeller) {
-        // Send notification to seller
-        const sellerUserId = paymentData.auction.userId;
-
-        const notification = {
-          status: 'ON_BIDDING',
-          userType: 'FOR_SELLER',
-          usersId: sellerUserId,
-          message: isCreateNotificationToSeller.message,
-          imageLink: auction.product.images[0].imageLink,
-          productTitle: auction.product.title,
-          auctionId: isCreateNotificationToSeller.auctionId,
+          Button_text: 'Place a Higher Bid',
+          Button_URL: `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
         };
-        try {
-          this.notificationsService.sendNotificationToSpecificUsers(
-            notification,
-          );
-        } catch (error) {
-          console.log('sendNotificationToSpecificUsers error', error);
-        }
-      }
 
-      if (isCreateNotificationToCurrentBidder) {
-        try {
-          // Send notification to current bidder
-          const currentBidderId = paymentData.userId;
+        console.log('joinedBidders1111111111111', joinedBidders);
+        if (joinedBidders.length === 1) {
+          this.emailService.sendEmail(
+            joinedBidders[0].auction.user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToSeller,
+          );
+          const whatsappBodyToLostBidders = {
+            1: `${paymentData.auction.user.userName}`,
+            2: `Congratulations! Your auction ${paymentData.auction.product.title} has received its first bid! This is an exciting milestone, and the competition has officially begun.`,
+            3: `*First Bid Amount:* ${
+              joinedBidders[joinedBidders.length - 1].amount
+            }`,
+            4: `*Bidder Username:* ${
+              joinedBidders[joinedBidders.length - 1].user.userName
+            }`,
+            5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+            6: `This is just the beginning—more bidders could be on their way!`,
+            7: `*What can you do now?* -> Share your auction to attract even more bids. Keep an eye on the activity to stay informed about the progress.`,
+            8: paymentData.auction.product.images[0].imageLink,
+            9: `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
+          };
+          if (paymentData.auction.user.phone) {
+            await this.whatsappService.sendOtherUtilityMessages(
+              whatsappBodyToLostBidders,
+              paymentData.auction.user.phone,
+              'alletre_common_utility_templet',
+            );
+          }
+        }
+        if (joinedBidders[1]) {
+          console.log('joinedBidders222222', joinedBidders[1]);
+          this.emailService.sendEmail(
+            joinedBidders[1].user.email,
+            'token',
+            EmailsType.OTHER,
+            emailBodyToSecondLastBidder,
+          );
+
+          const whatsappBodyTosecondLastBidders = {
+            1: `${joinedBidders[1].user.userName}`,
+            2: `Exciting things are happening on ${paymentData.auction.product.title}! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.`,
+            3: `*Here’s the current standing:*`,
+            4: `*Current Highest Bid:* ${
+              joinedBidders.length > 1 ? joinedBidders[0].amount : 'No bids yet'
+            }`,
+            5: `*Your Last Bid:* ${joinedBidders[1]?.amount}`,
+            6: `Don’t miss your chance to claim this one-of-a-kind ${paymentData.auction.product.title} . The clock is ticking, and every second counts!`,
+            7: `*Reclaim Your Spot as the Top Bidder Now!*`,
+            8: paymentData.auction.product.images[0].imageLink,
+            9: `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
+          };
+          if (joinedBidders[1].user.phone) {
+            await this.whatsappService.sendOtherUtilityMessages(
+              whatsappBodyTosecondLastBidders,
+              joinedBidders[1].user.phone,
+              'alletre_common_utility_templet',
+            );
+          }
+        }
+        // create notification for seller
+        const auction = paymentData.auction;
+        const isCreateNotificationToSeller =
+          await this.prismaService.notification.create({
+            data: {
+              userId: paymentData.auction.userId,
+              message: `Mr. ${paymentData.user.userName} has been placed new bid on your auction ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: paymentData.auctionId,
+            },
+          });
+
+        const isCreateNotificationToCurrentBidder =
+          await this.prismaService.notification.create({
+            data: {
+              userId: paymentData.userId,
+              message: `You have successfully placed a bid on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: paymentData.auctionId,
+            },
+          });
+
+        if (isCreateNotificationToSeller) {
+          // Send notification to seller
+          const sellerUserId = paymentData.auction.userId;
 
           const notification = {
             status: 'ON_BIDDING',
-            userType: 'CURRENT_BIDDER',
-            usersId: currentBidderId,
-            message: isCreateNotificationToCurrentBidder.message,
+            userType: 'FOR_SELLER',
+            usersId: sellerUserId,
+            message: isCreateNotificationToSeller.message,
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
-            auctionId: isCreateNotificationToCurrentBidder.auctionId,
+            auctionId: isCreateNotificationToSeller.auctionId,
           };
-          this.notificationsService.sendNotificationToSpecificUsers(
-            notification,
-          );
-
-          // Send notification other bidders
-          const currentUserId = paymentData.userId;
-          const joinedAuctionUsers =
-            await this.notificationsService.getAllJoinedAuctionUsers(
-              paymentData.auctionId,
-              currentUserId,
+          try {
+            this.notificationsService.sendNotificationToSpecificUsers(
+              notification,
             );
-          const imageLink = auction.product.images[0].imageLink;
-          const productTitle = auction.product.title;
-          const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${bidAmount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
-          const isBidders = true;
-          await this.notificationsService.sendNotifications(
-            joinedAuctionUsers,
-            otherBidderMessage,
-            imageLink,
-            productTitle,
-            paymentData.auctionId,
-            isBidders,
-          );
-        } catch (error) {
-          console.log('sendNotificationToSpecificUsers error', error);
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
         }
+
+        if (isCreateNotificationToCurrentBidder) {
+          try {
+            // Send notification to current bidder
+            const currentBidderId = paymentData.userId;
+
+            const notification = {
+              status: 'ON_BIDDING',
+              userType: 'CURRENT_BIDDER',
+              usersId: currentBidderId,
+              message: isCreateNotificationToCurrentBidder.message,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: isCreateNotificationToCurrentBidder.auctionId,
+            };
+            this.notificationsService.sendNotificationToSpecificUsers(
+              notification,
+            );
+
+            // Send notification other bidders
+            const currentUserId = paymentData.userId;
+            const joinedAuctionUsers =
+              await this.notificationsService.getAllJoinedAuctionUsers(
+                paymentData.auctionId,
+                currentUserId,
+              );
+            const imageLink = auction.product.images[0].imageLink;
+            const productTitle = auction.product.title;
+            const otherBidderMessage = `${paymentData.user.userName} has placed a bid (AED ${bidAmount}) on ${paymentData.auction.product.title} (Model: ${paymentData.auction.product.model})`;
+            const isBidders = true;
+            await this.notificationsService.sendNotifications(
+              joinedAuctionUsers,
+              otherBidderMessage,
+              imageLink,
+              productTitle,
+              paymentData.auctionId,
+              isBidders,
+            );
+          } catch (error) {
+            console.log('sendNotificationToSpecificUsers error', error);
+          }
+        }
+        console.log('test of wallet pay of bidder deposite 4');
+        this.auctionGateway.increaseBid(paymentData.auction);
+        return paymentData;
       }
-      console.log('test of wallet pay of bidder deposite 4');
-      this.auctionGateway.increaseBid(paymentData.auction)
-      return paymentData;
-    }
     } catch (error) {
       console.log('wallet pay deposit by bidder error :', error);
       throw new InternalServerErrorException(
@@ -863,8 +868,6 @@ export class PaymentsService {
               'test of wallet pay of bidder deposite payAuctionByBidderWithWallet 3',
             );
 
-           
-
             // Update joinedAuction for bidder to WAITING_DELIVERY
             await prisma.joinedAuction.update({
               where: { id: joinedAuction.id },
@@ -921,26 +924,28 @@ export class PaymentsService {
         },
       );
       if (paymentData) {
-         //checking again the wallet balance to avoid issues
-         const lastWalletTransactionBalanceOfBidder =
-         await this.walletService.findLastTransaction(user.id);
-       if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
-         throw new MethodNotAllowedException(
-           'Sorry, Insufficient Balance.',
-         );
-       }
-       //crete new transaction in bidder wallet
-       const sellerWallet = await this.walletService.create(user.id, BidderWalletData);
-       //crete new transaction in alletre wallet
-       const alletreWallet = await this.walletService.addToAlletreWallet(
-         user.id,
-         alletreWalletData);
-          // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
+        //checking again the wallet balance to avoid issues
+        const lastWalletTransactionBalanceOfBidder =
+          await this.walletService.findLastTransaction(user.id);
+        if (Number(lastWalletTransactionBalanceOfBidder) < amount) {
+          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+        }
+        //crete new transaction in bidder wallet
+        const sellerWallet = await this.walletService.create(
+          user.id,
+          BidderWalletData,
+        );
+        //crete new transaction in alletre wallet
+        const alletreWallet = await this.walletService.addToAlletreWallet(
+          user.id,
+          alletreWalletData,
+        );
+        // create new payment database
+        if (!sellerWallet || !alletreWallet) {
+          throw new InternalServerErrorException(
+            'Failed to process wallet payment',
+          );
+        }
 
         const auctionEndDate = new Date(paymentData.auction.expiryDate);
         const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
@@ -1138,38 +1143,46 @@ export class PaymentsService {
             joinedAuction.user.email,
             'token',
             EmailsType.OTHER,
-              emailBodyToWinner,
+            emailBodyToWinner,
           ),
         ]);
 
         const whatsappBodyToSeller = {
-          1:`${paymentData.auction.user.userName}`,
-          2:`Great news! The winning bidder for your auction, ${paymentData.auction.product.title}, has completed the payment in full.`,
-          3:`*Item:* ${paymentData.auction.product.title}`,
-          4:`*Winning Bid:* ${paymentData.auction.bids[0].amount}`,
-          5:`*Buyer:*  ${paymentData.auction.bids[0].user.userName}`,
-          6:`*Delivery Option Chosen:* ${paymentData.auction.deliveryType}`,
-          7:`*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
+          1: `${paymentData.auction.user.userName}`,
+          2: `Great news! The winning bidder for your auction, ${paymentData.auction.product.title}, has completed the payment in full.`,
+          3: `*Item:* ${paymentData.auction.product.title}`,
+          4: `*Winning Bid:* ${paymentData.auction.bids[0].amount}`,
+          5: `*Buyer:*  ${paymentData.auction.bids[0].user.userName}`,
+          6: `*Delivery Option Chosen:* ${paymentData.auction.deliveryType}`,
+          7: `*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
           8: paymentData.auction.product.images[0].imageLink,
-          9:`https://www.alletre.com/alletre/profile/my-bids/pending`,
-        }
-        if(paymentData.auction.user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,paymentData.auction.user.phone,'alletre_common_utility_templet')
+          9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+        };
+        if (paymentData.auction.user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyToSeller,
+            paymentData.auction.user.phone,
+            'alletre_common_utility_templet',
+          );
         }
 
         const whatsappBodyToWinner = {
-          1:`${paymentSuccessData.auction.bids[0].user.userName}`,
-          2:`We are pleased to inform you that your payment for the auction of *${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})* has been successfully processed.`,
-          3:`*Item:* ${paymentSuccessData.auction.product.title}`,
-          4:`*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount}`,
-          5:`*Seller:* ${paymentSuccessData.auction.user.userName}`,
-          6:`Once the delivery is complete, please confirm the delivery by clicking the *"Confirm Delivery"* button on the *MY Bids* page under the section *"Waiting for Delivery."* `,
-          7:`If you encounter any issues during the process, feel free to contact our support team for assistance.`,
+          1: `${paymentSuccessData.auction.bids[0].user.userName}`,
+          2: `We are pleased to inform you that your payment for the auction of *${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})* has been successfully processed.`,
+          3: `*Item:* ${paymentSuccessData.auction.product.title}`,
+          4: `*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount}`,
+          5: `*Seller:* ${paymentSuccessData.auction.user.userName}`,
+          6: `Once the delivery is complete, please confirm the delivery by clicking the *"Confirm Delivery"* button on the *MY Bids* page under the section *"Waiting for Delivery."* `,
+          7: `If you encounter any issues during the process, feel free to contact our support team for assistance.`,
           8: paymentSuccessData.auction.product.images[0].imageLink,
-          9:`https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
-        }
-        if(paymentData.auction.user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinner,paymentData.auction.user.phone,'alletre_common_utility_templet')
+          9: `https://www.alletre.com/alletre/home/${paymentData.auction.id}/details`,
+        };
+        if (paymentData.auction.user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyToWinner,
+            paymentData.auction.user.phone,
+            'alletre_common_utility_templet',
+          );
         }
         //send notification to the seller
         try {
@@ -1230,7 +1243,7 @@ export class PaymentsService {
     auctionId: number,
     currency: string,
     payingAmount: number,
-    stripeAmount:number,
+    stripeAmount: number,
   ) {
     // Create SripeCustomer if has no account
     let stripeCustomerId: string = user?.stripeId || '';
@@ -1294,7 +1307,7 @@ export class PaymentsService {
   async createBuyNowPaymentTransactionWallet(
     user: User,
     auctionId: number,
-    payingAmount:number,
+    payingAmount: number,
     payingAmountWithFees: number,
   ) {
     try {
@@ -1339,7 +1352,8 @@ export class PaymentsService {
         description: `Purchase Product through buy now`,
         amount: payingAmountWithFees,
         auctionId: Number(auctionId),
-        balance: Number(lastWalletTransactionBalanceOfBidder) - payingAmountWithFees,
+        balance:
+          Number(lastWalletTransactionBalanceOfBidder) - payingAmountWithFees,
       };
       // wallet data for deposit to alletre wallet
 
@@ -1427,27 +1441,35 @@ export class PaymentsService {
       console.log('test 5');
 
       if (paymentData) {
-         console.log('payment data at buy now ', paymentData);
+        console.log('payment data at buy now ', paymentData);
 
-         //checking again the wallet balance to avoid issues
-         const lastWalletTransactionBalanceOfBidder =
-         await this.walletService.findLastTransaction(user.id);
-       if (Number(lastWalletTransactionBalanceOfBidder) < payingAmountWithFees) {
-         throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
-       }
-       //crete new transaction in bidder wallet
-       const sellerWallet = await this.walletService.create(user.id, buyerWalletData);
-       //crete new transaction in alletre wallet
-       const alletreWallet = await this.walletService.addToAlletreWallet(
-         user.id,
-         alletreWalletData,);
-          // create new payment database
-          if (!sellerWallet || !alletreWallet) {
-            console.error('Failed to create the seller wallet or the alletre wallet when buy now with wallet')
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
-          }
+        //checking again the wallet balance to avoid issues
+        const lastWalletTransactionBalanceOfBidder =
+          await this.walletService.findLastTransaction(user.id);
+        if (
+          Number(lastWalletTransactionBalanceOfBidder) < payingAmountWithFees
+        ) {
+          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+        }
+        //crete new transaction in bidder wallet
+        const sellerWallet = await this.walletService.create(
+          user.id,
+          buyerWalletData,
+        );
+        //crete new transaction in alletre wallet
+        const alletreWallet = await this.walletService.addToAlletreWallet(
+          user.id,
+          alletreWalletData,
+        );
+        // create new payment database
+        if (!sellerWallet || !alletreWallet) {
+          console.error(
+            'Failed to create the seller wallet or the alletre wallet when buy now with wallet',
+          );
+          throw new InternalServerErrorException(
+            'Failed to process wallet payment',
+          );
+        }
         //Email to winner (buy now option used - stripe)
         const invoicePDF = await generateInvoicePDF(paymentData);
         const emailBodyToWinner = {
@@ -1489,18 +1511,22 @@ export class PaymentsService {
           emailBodyToWinner,
         );
         const whatsappBodyToWinner = {
-          1:`${paymentData.user.userName}`,
-          2:`We are excited to inform you that you have won the auction for ${paymentData.auction.product.title}!`,
-          3:`*Auction Title:* ${paymentData.auction.product.title}`,
-          4:`*Category:* ${paymentData.auction.product.category.nameEn}`,
-          5:`*Winning Bid:* ${paymentData.auction.bids[0].amount}`,
-          6:`*What is Next?*`,
-          7:`1. *Await Shipment:* The seller will ship the item to your provided address soon. *Track Your Delivery:* Once shipped, track your delivery status from your account. `,
+          1: `${paymentData.user.userName}`,
+          2: `We are excited to inform you that you have won the auction for ${paymentData.auction.product.title}!`,
+          3: `*Auction Title:* ${paymentData.auction.product.title}`,
+          4: `*Category:* ${paymentData.auction.product.category.nameEn}`,
+          5: `*Winning Bid:* ${paymentData.auction.bids[0].amount}`,
+          6: `*What is Next?*`,
+          7: `1. *Await Shipment:* The seller will ship the item to your provided address soon. *Track Your Delivery:* Once shipped, track your delivery status from your account. `,
           8: paymentData.auction.product.images[0].imageLink,
-          9:`https://www.alletre.com/alletre/profile/purchased`,
-        }
-        if(paymentData.user.phone){
-          await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinner,paymentData.user.phone,'alletre_common_utility_templet')
+          9: `https://www.alletre.com/alletre/profile/purchased`,
+        };
+        if (paymentData.user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyToWinner,
+            paymentData.user.phone,
+            'alletre_common_utility_templet',
+          );
         }
         const auction = paymentData.auction;
         const notificationMessageToWinner = `
@@ -1669,18 +1695,22 @@ export class PaymentsService {
                 `;
 
                 const whatsappBodyToLosers = {
-                  1:`${payment.user.userName}`,
-                  2:`The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid did not win this time!`,
-                  3:`*Auction Title:* ${payment.auction.product.title}`,
-                  4:`*Category:* ${payment.auction.product.category.nameEn}`,
-                  5:`*Winning Bid:* ${payment.auction.bids[0].amount}`,
-                  6:`*We know it is disappointing, but there are always more exciting auctions to explore on Alletre.*`,
-                  7:`Please visit us to participate in stunning auctions.`,
+                  1: `${payment.user.userName}`,
+                  2: `The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid did not win this time!`,
+                  3: `*Auction Title:* ${payment.auction.product.title}`,
+                  4: `*Category:* ${payment.auction.product.category.nameEn}`,
+                  5: `*Winning Bid:* ${payment.auction.bids[0].amount}`,
+                  6: `*We know it is disappointing, but there are always more exciting auctions to explore on Alletre.*`,
+                  7: `Please visit us to participate in stunning auctions.`,
                   8: payment.auction.product.images[0].imageLink,
-                  9:`https://www.alletre.com/alletre/home`,
-                }
-                if(payment.user.phone){
-                  await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToLosers,payment.user.phone,'alletre_common_utility_templet')
+                  9: `https://www.alletre.com/alletre/home`,
+                };
+                if (payment.user.phone) {
+                  await this.whatsappService.sendOtherUtilityMessages(
+                    whatsappBodyToLosers,
+                    payment.user.phone,
+                    'alletre_common_utility_templet',
+                  );
                 }
                 const auction = payment.auction;
                 const notificationBodyToLosers = {
@@ -1752,18 +1782,22 @@ export class PaymentsService {
                 emailBodyToSeller,
               );
               const whatsappBodyToSeller = {
-                1:`${payment.user.userName}`,
-                2:`Great news! Your auction *${payment.auction.product.title}*, just ended because a buyer used the *Buy now* option to purchase your item instantly`,
-                3:`*Auction Title:* ${payment.auction.product.title}`,
-                4:`*Category:* ${payment.auction.product.category.nameEn}`,
-                5:`*Sold For:* ${payment.auction.bids[0].amount}`,
-                6:`*Buyer:* ${payment.auction.bids[0].user.userName}`,
-                7:`Please visit us to participate in stunning auctions.`,
+                1: `${payment.user.userName}`,
+                2: `Great news! Your auction *${payment.auction.product.title}*, just ended because a buyer used the *Buy now* option to purchase your item instantly`,
+                3: `*Auction Title:* ${payment.auction.product.title}`,
+                4: `*Category:* ${payment.auction.product.category.nameEn}`,
+                5: `*Sold For:* ${payment.auction.bids[0].amount}`,
+                6: `*Buyer:* ${payment.auction.bids[0].user.userName}`,
+                7: `Please visit us to participate in stunning auctions.`,
                 8: payment.auction.product.images[0].imageLink,
-                9:`https://www.alletre.com/alletre/profile/my-auctions/sold`,
-              }
-              if(payment.user.phone){
-                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,payment.user.phone,'alletre_common_utility_templet')
+                9: `https://www.alletre.com/alletre/profile/my-auctions/sold`,
+              };
+              if (payment.user.phone) {
+                await this.whatsappService.sendOtherUtilityMessages(
+                  whatsappBodyToSeller,
+                  payment.user.phone,
+                  'alletre_common_utility_templet',
+                );
               }
               const auction = payment.auction;
               const notificationMessageToSeller = `
@@ -1814,7 +1848,7 @@ export class PaymentsService {
           'delivery:newNotification',
           paymentData,
         );
-        this.auctionGateway.buyNowPurchase(auctionId)
+        this.auctionGateway.buyNowPurchase(auctionId);
       } else {
         throw new MethodNotAllowedException(
           'Faild to complete the buy now payment',
@@ -1839,7 +1873,7 @@ export class PaymentsService {
     auctionId: number,
     currency: string,
     payingAmount: number,
-    stripeAmount:number,
+    stripeAmount: number,
   ) {
     // Create SripeCustomer if has no account
     let stripeCustomerId: string = user?.stripeId || '';
@@ -1921,7 +1955,11 @@ export class PaymentsService {
             where: { paymentIntentId: paymentIntent.id },
             include: {
               auction: {
-                include: { product: { include: { images: true } }, user: true, bids:true, },
+                include: {
+                  product: { include: { images: true } },
+                  user: true,
+                  bids: true,
+                },
               },
               user: true,
             },
@@ -2017,8 +2055,7 @@ export class PaymentsService {
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
               Button_text: 'View My Auction ',
-              Button_URL:
-                `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              Button_URL: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
             };
 
             const emailBodyToSecondLastBidder = {
@@ -2054,8 +2091,7 @@ export class PaymentsService {
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
               Button_text: 'Place a Higher Bid',
-              Button_URL:
-                `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              Button_URL: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
             };
 
             console.log('joinedBidders1111111111111', joinedBidders);
@@ -2068,18 +2104,27 @@ export class PaymentsService {
               );
             }
             const whatsappBodyToSeller = {
-              1:`${auctionHoldPaymentTransaction.user.userName}`,
-              2:`Congratulations! Your auction *${auctionHoldPaymentTransaction.auction.product.title}* has received its first bid! This is an exciting milestone, and the competition has officially begun`,
-              3:`*First Bid Amount:* ${joinedBidders[joinedBidders.length - 1].amount}`,
-              4:`*Bidder Username:* ${joinedBidders[joinedBidders.length - 1].user.userName} `,
-              5:`*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
-              6:`*This is just the beginning—more bidders could be on their way!*`,
-              7:`Please visit Now to see my auctions`,
-              8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
-              9:`https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
-            }
-            if(auctionHoldPaymentTransaction.auction.user.phone){
-              await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,auctionHoldPaymentTransaction.user.phone,'alletre_common_utility_templet')
+              1: `${auctionHoldPaymentTransaction.user.userName}`,
+              2: `Congratulations! Your auction *${auctionHoldPaymentTransaction.auction.product.title}* has received its first bid! This is an exciting milestone, and the competition has officially begun`,
+              3: `*First Bid Amount:* ${
+                joinedBidders[joinedBidders.length - 1].amount
+              }`,
+              4: `*Bidder Username:* ${
+                joinedBidders[joinedBidders.length - 1].user.userName
+              } `,
+              5: `*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
+              6: `*This is just the beginning—more bidders could be on their way!*`,
+              7: `Please visit Now to see my auctions`,
+              8: auctionHoldPaymentTransaction.auction.product.images[0]
+                .imageLink,
+              9: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+            };
+            if (auctionHoldPaymentTransaction.auction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyToSeller,
+                auctionHoldPaymentTransaction.user.phone,
+                'alletre_common_utility_templet',
+              );
             }
             if (joinedBidders[1]) {
               console.log('joinedBidders222222', joinedBidders[1]);
@@ -2091,26 +2136,27 @@ export class PaymentsService {
               );
             }
             const whatsappBodyTosecondLastBidders = {
-              1:`${joinedBidders[1].user.userName}`,
-              2:`Exciting things are happening on *${
-                    auctionHoldPaymentTransaction.auction.product.title
-                  }* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
-              3:`* Current Highest Bid:* ${
-                    joinedBidders.length > 1
-                      ? joinedBidders[0].amount
-                      : 'No bids yet'
-                  }`,
-              4:`*Your Last Bid*: ${joinedBidders[1]?.amount}`,
-              5:`*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
-              6:`Do not miss your chance to claim this one-of-a-kind *${
-                       auctionHoldPaymentTransaction.auction.product.title
-                     }* . The clock is ticking, and every second counts!`,
-              7:`Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
-              8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
-              9:`https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
-            }
-            if(joinedBidders[1].user.phone){
-              await this.whatsappService.sendOtherUtilityMessages(whatsappBodyTosecondLastBidders,joinedBidders[1].user.phone,'alletre_common_utility_templet')
+              1: `${joinedBidders[1].user.userName}`,
+              2: `Exciting things are happening on *${auctionHoldPaymentTransaction.auction.product.title}* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
+              3: `* Current Highest Bid:* ${
+                joinedBidders.length > 1
+                  ? joinedBidders[0].amount
+                  : 'No bids yet'
+              }`,
+              4: `*Your Last Bid*: ${joinedBidders[1]?.amount}`,
+              5: `*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
+              6: `Do not miss your chance to claim this one-of-a-kind *${auctionHoldPaymentTransaction.auction.product.title}* . The clock is ticking, and every second counts!`,
+              7: `Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
+              8: auctionHoldPaymentTransaction.auction.product.images[0]
+                .imageLink,
+              9: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+            };
+            if (joinedBidders[1].user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyTosecondLastBidders,
+                joinedBidders[1].user.phone,
+                'alletre_common_utility_templet',
+              );
             }
             // create notification for seller
             const auction = auctionHoldPaymentTransaction.auction;
@@ -2200,7 +2246,7 @@ export class PaymentsService {
                 console.log('sendNotificationToSpecificUsers error', error);
               }
             }
-            this.auctionGateway.increaseBid(joinedBidders[0].auction)
+            this.auctionGateway.increaseBid(joinedBidders[0].auction);
 
             break;
           case PaymentType.SELLER_DEPOSIT:
@@ -2351,7 +2397,6 @@ export class PaymentsService {
                     },
                   },
                 });
-               
 
                 // Update joinedAuction for bidder to WAITING_DELIVERY
                 await prisma.joinedAuction.update({
@@ -2360,14 +2405,12 @@ export class PaymentsService {
                     status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
                   },
                 });
-         
 
                 // Update auction status to sold
                 await prisma.auction.update({
                   where: { id: auctionPaymentTransaction.auctionId },
                   data: { status: AuctionStatus.SOLD },
                 });
-                
 
                 return { paymentSuccessData };
               });
@@ -2375,12 +2418,15 @@ export class PaymentsService {
             if (paymentSuccessData) {
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
-                const baseValue = Number(paymentSuccessData.amount);
-                const auctionFee = ((baseValue * 0.5) / 100)
-                const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
-                const payingAmountWithFees = baseValue + auctionFee
-                const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
-              const amountToAlletteWalletAfterStripeDeduction = payingAmountWithStripeAndAlletreFees - (((payingAmountWithStripeAndAlletreFees * 3)/100)+1)   
+              const baseValue = Number(paymentSuccessData.amount);
+              const auctionFee = (baseValue * 0.5) / 100;
+              const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
+              const payingAmountWithFees = baseValue + auctionFee;
+              const payingAmountWithStripeAndAlletreFees =
+                payingAmountWithFees + stripeFee;
+              const amountToAlletteWalletAfterStripeDeduction =
+                payingAmountWithStripeAndAlletreFees -
+                ((payingAmountWithStripeAndAlletreFees * 3) / 100 + 1);
               const alletreWalletData = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
@@ -2597,18 +2643,23 @@ export class PaymentsService {
               ]);
 
               const whatsappBodyToSeller = {
-                1:`${paymentSuccessData.auction.user.userName}`,
-                2:`Great news! The winning bidder for your auction, ${paymentSuccessData.auction.product.title}, has completed the payment in full.`,
-                3:`*Item:* ${paymentSuccessData.auction.product.title}`,
-                4:`*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount} `,
-                5:`*Buyer:*  ${paymentSuccessData.auction.bids[0].user.userName}`,
-                6:`*Delivery Option Chosen:* ${paymentSuccessData.auction.deliveryType}`,
-                7:`*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
-                8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
-                9:`https://www.alletre.com/alletre/profile/my-bids/pending`,
-              }
-              if(paymentSuccessData.auction.user.phone){
-                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,paymentSuccessData.auction.user.phone,'alletre_common_utility_templet')
+                1: `${paymentSuccessData.auction.user.userName}`,
+                2: `Great news! The winning bidder for your auction, ${paymentSuccessData.auction.product.title}, has completed the payment in full.`,
+                3: `*Item:* ${paymentSuccessData.auction.product.title}`,
+                4: `*Winning Bid:* ${paymentSuccessData.auction.bids[0].amount} `,
+                5: `*Buyer:*  ${paymentSuccessData.auction.bids[0].user.userName}`,
+                6: `*Delivery Option Chosen:* ${paymentSuccessData.auction.deliveryType}`,
+                7: `*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
+                8: auctionHoldPaymentTransaction.auction.product.images[0]
+                  .imageLink,
+                9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+              };
+              if (paymentSuccessData.auction.user.phone) {
+                await this.whatsappService.sendOtherUtilityMessages(
+                  whatsappBodyToSeller,
+                  paymentSuccessData.auction.user.phone,
+                  'alletre_common_utility_templet',
+                );
               }
 
               const whatsappBodyToWinner = {
@@ -2621,10 +2672,14 @@ export class PaymentsService {
                 7: `📝 *Next Steps:* Once you receive your item, please confirm delivery on the *MY Bids* page under *"Waiting for Delivery"*. If you face any issues, our support team is ready to help.`,
                 8: paymentSuccessData.auction.product.images[0].imageLink,
                 9: `https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery`,
-              }
-              
-              if(paymentSuccessData.auction.bids[0].user.phone){
-                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinner,paymentSuccessData.auction.bids[0].user.phone,'alletre_common_utility_templet')
+              };
+
+              if (paymentSuccessData.auction.bids[0].user.phone) {
+                await this.whatsappService.sendOtherUtilityMessages(
+                  whatsappBodyToWinner,
+                  paymentSuccessData.auction.bids[0].user.phone,
+                  'alletre_common_utility_templet',
+                );
               }
               console.log('purchase test5 4');
 
@@ -2697,7 +2752,7 @@ export class PaymentsService {
             const { isPaymentSuccess } = await this.prismaService.$transaction(
               async (prisma) => {
                 // Update payment transaction
-                console.log('operation 1 started')
+                console.log('operation 1 started');
                 const isPaymentSuccess = await prisma.payment.update({
                   where: { paymentIntentId: paymentIntent.id },
                   data: { status: PaymentStatus.SUCCESS },
@@ -2717,21 +2772,21 @@ export class PaymentsService {
                     },
                   },
                 });
-                console.log('operation 1 completed')
-                console.log('operation 2 started')
+                console.log('operation 1 completed');
+                console.log('operation 2 started');
                 await prisma.joinedAuction.updateMany({
                   where: {
                     auctionId: auctionPaymentTransaction.auctionId,
                   },
                   data: { status: JoinedAuctionStatus.LOST },
                 });
-                console.log('operation 2 completed')
+                console.log('operation 2 completed');
                 //here i have created the joinedAuction and bids due to there where no
                 //funtionalities has implemented to handle the delevery and any other things track
                 //item after buy now completed. by creating the joined auction and bids, it will act as normal bids
                 //------------------------------------------------------------
                 // Join user to auction
-                console.log('operation 3 started')
+                console.log('operation 3 started');
 
                 await prisma.joinedAuction.create({
                   data: {
@@ -2740,9 +2795,9 @@ export class PaymentsService {
                     status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
                   },
                 });
-                console.log('operation 3 completed')
+                console.log('operation 3 completed');
 
-                console.log('operation 4 started')
+                console.log('operation 4 started');
                 // Create bid for user
                 await prisma.bids.create({
                   data: {
@@ -2751,7 +2806,7 @@ export class PaymentsService {
                     amount: isPaymentSuccess.amount,
                   },
                 });
-                console.log('operation 4 started')
+                console.log('operation 4 started');
 
                 //------------------------------------------------------------
 
@@ -2760,27 +2815,34 @@ export class PaymentsService {
                   where: { id: auctionPaymentTransaction.auctionId },
                   data: { status: AuctionStatus.SOLD },
                 });
-                console.log('operation 4 completed')
+                console.log('operation 4 completed');
                 return { isPaymentSuccess };
               },
-              { timeout: 10000 }
+              { timeout: 10000 },
             );
 
             if (isPaymentSuccess) {
-              console.log('Buy now payment is success :', isPaymentSuccess.user.email)
+              console.log(
+                'Buy now payment is success :',
+                isPaymentSuccess.user.email,
+              );
               // adding the buynow purchase money to alletre wallet for
               const lastWalletTransactionAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
-                const baseValue = Number(isPaymentSuccess.amount);
-                const auctionFee = ((baseValue * 0.5) / 100)
-                const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
-                const payingAmountWithFees = baseValue + auctionFee
-                const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
-              const amountToAlletteWalletAfterStripeDeduction = payingAmountWithStripeAndAlletreFees - (((payingAmountWithStripeAndAlletreFees * 3)/100)+1)   
+              const baseValue = Number(isPaymentSuccess.amount);
+              const auctionFee = (baseValue * 0.5) / 100;
+              const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
+              const payingAmountWithFees = baseValue + auctionFee;
+              const payingAmountWithStripeAndAlletreFees =
+                payingAmountWithFees + stripeFee;
+              const amountToAlletteWalletAfterStripeDeduction =
+                payingAmountWithStripeAndAlletreFees -
+                ((payingAmountWithStripeAndAlletreFees * 3) / 100 + 1);
               const walletDataToAlletre = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
-                description: 'Buy Now purchase amount after deducting the amount of stripe fee',
+                description:
+                  'Buy Now purchase amount after deducting the amount of stripe fee',
                 amount: Number(amountToAlletteWalletAfterStripeDeduction),
                 auctionId: Number(isPaymentSuccess.auctionId),
                 balance: Number(lastWalletTransactionAlletre)
@@ -2838,11 +2900,15 @@ export class PaymentsService {
                 7: `🚚 *What’s Next:* - *1 - Await Shipment - The seller will ship the item to your address. 2- Track Delivery - You can track delivery status in your account once it is shipped.*`,
                 8: isPaymentSuccess.auction.product.images[0].imageLink,
                 9: `https://www.alletre.com/alletre/profile/purchased`,
+              };
+              if (isPaymentSuccess.user.phone) {
+                await this.whatsappService.sendOtherUtilityMessages(
+                  whatsappBodyToWinnerAuction,
+                  isPaymentSuccess.user.phone,
+                  'alletre_common_utility_templet',
+                );
               }
-              if(isPaymentSuccess.user.phone){
-                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToWinnerAuction,isPaymentSuccess.user.phone,'alletre_common_utility_templet')
-              }
-              
+
               const notificationMessageToBuyer = `
               We’re excited to inform you that you have won the auction for ${isPaymentSuccess.auction.product.title}!
               
@@ -3005,18 +3071,22 @@ export class PaymentsService {
                         Button_URL: 'https://www.alletre.com/alletre/home/',
                       };
                       const whatsappBodyToLostBidders = {
-                        1:`${payment.user.userName}`,
-                        2:`The auction for *${payment.auction.product.title}* has ended, and unfortunately, your bid didn’t win this time`,
-                        3:`*Auction Title:* ${payment.auction.product.title}`,
-                        4:`*Category:* ${payment.auction.product.category.nameEn}`,
-                        5:`*Winning Bid:* ${payment.auction.bids[0].amount}`,
-                        6:`*Winner:* ${payment.auction.bids[0].user.userName}`,
-                        7:`We know it’s disappointing, but there are always more exciting auctions to explore on *Alletre*`,
+                        1: `${payment.user.userName}`,
+                        2: `The auction for *${payment.auction.product.title}* has ended, and unfortunately, your bid didn’t win this time`,
+                        3: `*Auction Title:* ${payment.auction.product.title}`,
+                        4: `*Category:* ${payment.auction.product.category.nameEn}`,
+                        5: `*Winning Bid:* ${payment.auction.bids[0].amount}`,
+                        6: `*Winner:* ${payment.auction.bids[0].user.userName}`,
+                        7: `We know it’s disappointing, but there are always more exciting auctions to explore on *Alletre*`,
                         8: payment.auction.product.images[0].imageLink,
-                        9:`https://www.alletre.com/alletre/home/`,
-                      }
-                      if(payment.user.phone){
-                        await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToLostBidders,payment.user.phone,'alletre_common_utility_templet')
+                        9: `https://www.alletre.com/alletre/home/`,
+                      };
+                      if (payment.user.phone) {
+                        await this.whatsappService.sendOtherUtilityMessages(
+                          whatsappBodyToLostBidders,
+                          payment.user.phone,
+                          'alletre_common_utility_templet',
+                        );
                       }
                       await this.emailService.sendEmail(
                         payment.user.email,
@@ -3024,7 +3094,7 @@ export class PaymentsService {
                         EmailsType.OTHER,
                         emailBodyToLostBidders,
                       );
-                     
+
                       const notificationMessageToLosers = `
                       The auction for ${payment.auction.product.title} has ended, and unfortunately, your bid didn’t win this time.
                       
@@ -3116,17 +3186,17 @@ export class PaymentsService {
                       6: `✅ The buyer has completed the payment. The funds will be transferred to your account shortly.`,
                       7: `📦 What is Next: 1. Ship Your Item - Package it securely and ship to the buyer address. 2. Confirm Shipping - Update the status in your account once shipped.`,
                       8: payment.auction.product.images[0].imageLink,
-                      9: `https://www.alletre.com/alletre/profile/my-auctions/sold`
-                    }
-                    
+                      9: `https://www.alletre.com/alletre/profile/my-auctions/sold`,
+                    };
+
                     if (payment.user.phone) {
                       await this.whatsappService.sendOtherUtilityMessages(
                         whatsappBodyToSellerDirectBuy,
                         payment.user.phone,
-                        'alletre_common_utility_templet'
-                      )
+                        'alletre_common_utility_templet',
+                      );
                     }
-                    
+
                     const notificationMessageToSeller = `
                     Great news! Your auction ${payment.auction.product.title}, just ended because a buyer used the Buy now option to purchase your item instantly.
                     
@@ -3178,7 +3248,7 @@ export class PaymentsService {
                 'delivery:newNotification',
                 isPaymentSuccess,
               );
-              this.auctionGateway.buyNowPurchase(isPaymentSuccess.auctionId)
+              this.auctionGateway.buyNowPurchase(isPaymentSuccess.auctionId);
             } else {
               throw new MethodNotAllowedException(
                 'Faild to complete the buy now payment',
@@ -3208,17 +3278,17 @@ export class PaymentsService {
     auctionId: number,
     type: PaymentType,
   ) {
-   try {
-    return await this.prismaService.payment.findFirst({
-      where: {
-        userId,
-        auctionId,
-        type: type,
-      },
-    });
-   } catch (error) {
-    console.log('get auction payment transaction error :',error)
-   }
+    try {
+      return await this.prismaService.payment.findFirst({
+        where: {
+          userId,
+          auctionId,
+          type: type,
+        },
+      });
+    } catch (error) {
+      console.log('get auction payment transaction error :', error);
+    }
   }
   async publishAuction(auctionId: number, currentUserEmail?: string) {
     const auction = await this.prismaService.auction.findUnique({
@@ -3317,17 +3387,16 @@ export class PaymentsService {
               6: `🚀 Tip: Share your auction link with friends or on social media to get more visibility.`,
               7: `You can track bids and view your auction anytime.`,
               8: updatedAuction.product.images[0].imageLink,
-              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`
-            }
-            
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+
             if (updatedAuction.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyToSellerAuctionLive,
                 updatedAuction.user.phone,
-                'alletre_common_utility_templet'
-              )
+                'alletre_common_utility_templet',
+              );
             }
-            
 
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
@@ -3336,8 +3405,10 @@ export class PaymentsService {
             //sending whatsapp messages to all users
             await this.whatsappService.sendAuctionToUsers(
               auctionId,
-              process.env.NODE_ENV === 'production' ?'EXISTING_USER' : 'NON_EXISTING_USER')
-
+              process.env.NODE_ENV === 'production'
+                ? 'EXISTING_USER'
+                : 'NON_EXISTING_USER',
+            );
           }
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule Daily auction
@@ -3443,26 +3514,28 @@ export class PaymentsService {
               6: `🚀 To boost your listing visibility, share it with your friends or on social media.`,
               7: `You can track bids and view your auction using the link below.`,
               8: updatedAuction.product.images[0].imageLink,
-              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`
-            }
-            
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+
             if (updatedAuction.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyToSellerAuctionLive,
                 updatedAuction.user.phone,
-                'alletre_common_utility_templet'
-              )
+                'alletre_common_utility_templet',
+              );
             }
-            
+
             await this.emailBatchService.sendBulkEmails(
               updatedAuction,
               currentUserEmail,
             );
             await this.whatsappService.sendAuctionToUsers(
               auctionId,
-              process.env.NODE_ENV === 'production' ?'EXISTING_USER' : 'NON_EXISTING_USER')
+              process.env.NODE_ENV === 'production'
+                ? 'EXISTING_USER'
+                : 'NON_EXISTING_USER',
+            );
           }
-
         } else if (auction.type === AuctionType.SCHEDULED) {
           // Set Schedule hours auction
           const startDate = auction.startDate;
@@ -3483,7 +3556,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() +   5 * 60 * 1000); 
+        : new Date(date.getTime() + 5 * 60 * 1000);
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

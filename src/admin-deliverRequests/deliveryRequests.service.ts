@@ -11,19 +11,18 @@ export class DeliveryRequestService {
     private readonly userAuctionService: UserAuctionsService,
   ) {}
 
-  async findDeliveryRequestsByAdmin(deliveryType : DeliveryType) {
+  async findDeliveryRequestsByAdmin(deliveryType: DeliveryType) {
     try {
-      console.log('deliveryType :',deliveryType)
+      console.log('deliveryType :', deliveryType);
       const deliveryRequestData = await this.prismaService.payment.findMany({
         where: {
           status: 'SUCCESS',
           type: {
             in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'], // Correct way to check for multiple values
           },
-          auction:{
+          auction: {
             deliveryType: deliveryType,
-          }
-
+          },
         },
         include: {
           user: {
@@ -37,7 +36,7 @@ export class DeliveryRequestService {
             },
           },
         },
-        orderBy: {createdAt:'desc'},
+        orderBy: { createdAt: 'desc' },
         // skip:0,
         // take:5,
       });
@@ -71,12 +70,12 @@ export class DeliveryRequestService {
           },
         });
 
-        if(status === 'DELIVERY_SUCCESS'){
-          await this.userAuctionService.confirmDelivery(
-            updatedDeliveryRequestData.userId, 
-            updatedDeliveryRequestData.auctionId
-          )
-        }
+      if (status === 'DELIVERY_SUCCESS') {
+        await this.userAuctionService.confirmDelivery(
+          updatedDeliveryRequestData.userId,
+          updatedDeliveryRequestData.auctionId,
+        );
+      }
 
       return updatedDeliveryRequestData;
     } catch (error) {

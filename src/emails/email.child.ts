@@ -20,7 +20,12 @@ process.on('uncaughtException', async (err) => {
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
-  console.error(' Unhandled Rejection in Child Process:', promise, 'reason:', reason);
+  console.error(
+    ' Unhandled Rejection in Child Process:',
+    promise,
+    'reason:',
+    reason,
+  );
   await cleanup();
   process.exit(1);
 });
@@ -37,7 +42,12 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-async function sendBatchEmails(users: string[], subject: string, text: string, html: string) {
+async function sendBatchEmails(
+  users: string[],
+  subject: string,
+  text: string,
+  html: string,
+) {
   const msg = {
     to: users,
     from: 'auctions@alletre.com',
@@ -45,7 +55,7 @@ async function sendBatchEmails(users: string[], subject: string, text: string, h
     text,
     html,
   };
-  
+
   console.log(' Memory Usage Before Sending Emails:', process.memoryUsage());
 
   try {

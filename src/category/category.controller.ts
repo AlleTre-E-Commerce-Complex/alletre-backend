@@ -66,31 +66,28 @@ export class CategoryController {
     };
   }
 
-
   @Post('/createNewCategory')
-  @UseGuards(AuthGuard,RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  async createNewCategory( @Body() body : CreateCategoryDTO
-  ){
+  async createNewCategory(@Body() body: CreateCategoryDTO) {
     return {
       success: true,
-      data: await this.categoryService.addNewCategory(body)
-    }
+      data: await this.categoryService.addNewCategory(body),
+    };
   }
 
   @Put('/editCategory/:categoryId')
-  @UseGuards(AuthGuard,RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
   async editCategory(
-     @Body() body : CreateCategoryDTO,
-     @Param('categoryId',ParseIntPipe) categoryId: number
-
-  ){
-    console.log('===>111 edit', body)
+    @Body() body: CreateCategoryDTO,
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+  ) {
+    console.log('===>111 edit', body);
     return {
       success: true,
-      data: await this.categoryService.updateCategory(body,categoryId)
-    }
+      data: await this.categoryService.updateCategory(body, categoryId),
+    };
   }
 
   @Get('/sub-categories')
@@ -129,15 +126,16 @@ export class CategoryController {
     };
   }
 
-
   @Get('/getOne/:categoryId')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  async getCategoryDataById(@Param('categoryId',ParseIntPipe) categoryId: number){
+  async getCategoryDataById(
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+  ) {
     return {
       success: true,
-      data: await this.categoryService.findParticularCatergory(categoryId)
-    }
+      data: await this.categoryService.findParticularCatergory(categoryId),
+    };
   }
 
   @Put('/:categoryId/upload-images')

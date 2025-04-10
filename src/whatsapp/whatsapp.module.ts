@@ -5,9 +5,9 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { PaymentsModule } from 'src/payments/payments.module';
 
 @Module({
-  imports:[PrismaModule],
+  imports: [PrismaModule],
   controllers: [WhatsAppController],
   providers: [WhatsAppService],
-  exports:[WhatsAppService]
+  exports: [WhatsAppService],
 })
 export class WhatsAppModule {}

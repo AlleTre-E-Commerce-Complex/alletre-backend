@@ -37,7 +37,6 @@ export class TasksService {
     private notificationService: NotificationsService,
     private auctionWebsocketGateWay: AuctionWebSocketGateway,
     private readonly whatsappService: WhatsAppService,
-    
   ) {}
 
   /**
@@ -139,15 +138,15 @@ export class TasksService {
           8: `${updatedAuction.product.images[0].imageLink}`,
           9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
         };
-        
+
         if (updatedAuction.user.phone) {
           await this.whatsappService.sendOtherUtilityMessages(
             whatsappBodyToSeller,
             updatedAuction.user.phone,
-            'alletre_common_utility_templet'
+            'alletre_common_utility_templet',
           );
         }
-        
+
         await this.emailService.sendEmail(
           updatedAuction.user.email,
           'token',
@@ -385,7 +384,8 @@ export class TasksService {
               } </li>
                 <li>Compensation: ${
                   Number(
-                    sellerPaymentData.auction.product.category.bidderDepositFixedAmount,
+                    sellerPaymentData.auction.product.category
+                      .bidderDepositFixedAmount,
                   ) * 0.5
                 } (50% of the bidder’s security deposit)</li>
 
@@ -409,21 +409,26 @@ export class TasksService {
               2: `We regret to inform you that the winning bidder for your auction *${sellerPaymentData.auction.product.title}* did not complete the payment within the required timeframe.`,
               3: `But don ot worry, here is what happens next:`,
               4: `• Your security deposit: ${sellerPaymentData.auction.product.category.sellerDepositFixedAmount}`,
-              5: `• Compensation: ${Number(sellerPaymentData.auction.product.category.bidderDepositFixedAmount) * 0.5} (50% of the bidders deposit)`,
+              5: `• Compensation: ${
+                Number(
+                  sellerPaymentData.auction.product.category
+                    .bidderDepositFixedAmount,
+                ) * 0.5
+              } (50% of the bidders deposit)`,
               6: `The compensation has been credited to your account and is available for use in future auctions.`,
               7: `👉 What is next? We recommend relisting your item to attract new bidders and secure a successful sale. Thank you for using *Alletre*! We are here to support you every step of the way.`,
               8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
               9: `https://www.alletre.com/`,
             };
-            
+
             if (sellerPaymentData.auction.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyForSeller,
                 sellerPaymentData.auction.user.phone,
-                'alletre_common_utility_templet'
+                'alletre_common_utility_templet',
               );
             }
-            
+
             //sendEmailtoBidder
             const auctionEndDate = new Date(
               sellerPaymentData.auction.expiryDate,
@@ -474,15 +479,15 @@ export class TasksService {
               8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
               9: `https://www.alletre.com/`,
             };
-            
+
             if (sellerPaymentData.auction.bids[0].user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyForBidder,
                 sellerPaymentData.auction.bids[0].user.phone,
-                'alletre_common_utility_templet'
+                'alletre_common_utility_templet',
               );
             }
-            
+
             const notificationMessageToSeller = ` 
                                 We are really sorry to say that, unfortunatly, the winner of your Auction of ${sellerPaymentData.auction.product.title}
                                 (Model:${sellerPaymentData.auction.product.model}) has not paid the full amount by time. 
@@ -775,15 +780,15 @@ export class TasksService {
             8: `${data.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
           };
-          
+
           if (data.user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyForPendingPayment,
               data.user.phone,
-              'alletre_common_utility_templet'
+              'alletre_common_utility_templet',
             );
           }
-          
+
           // Send email
           await this.emailService.sendEmail(
             data.user.email,
@@ -912,15 +917,14 @@ export class TasksService {
             8: `${data.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
           };
-          
+
           if (data.user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyForFinalHour,
               data.user.phone,
-              'alletre_common_utility_templet'
+              'alletre_common_utility_templet',
             );
           }
-          
 
           // Send email
           await this.emailService.sendEmail(
@@ -1136,8 +1140,7 @@ export class TasksService {
                         <p>The <b>Alletre</b> Team </p>
                         <p>P.S. Encourage buyers to leave feedback—it helps build trust and improve future experiences!</p>`,
               Button_text: 'View Auction Summary   ',
-              Button_URL:
-                ` https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
+              Button_URL: ` https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
             };
 
             const whatsappBodyForAuctionSuccess = {
@@ -1151,15 +1154,15 @@ export class TasksService {
               8: `${isAcutionUpdated.product.images[0].imageLink}`,
               9: `https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
             };
-            
+
             if (isAcutionUpdated.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyForAuctionSuccess,
                 isAcutionUpdated.user.phone,
-                'alletre_common_utility_templet'
+                'alletre_common_utility_templet',
               );
             }
-            
+
             await this.emailService.sendEmail(
               isAcutionUpdated.user.email,
               'token',
@@ -1295,15 +1298,15 @@ export class TasksService {
               8: `${isAcutionUpdated.product.images[0].imageLink}`,
               9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
             };
-            
+
             if (isAcutionUpdated.bids[0].user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyForAuctionWin,
                 isAcutionUpdated.bids[0].user.phone,
-                'alletre_common_utility_templet'
+                'alletre_common_utility_templet',
               );
             }
-            
+
             // create notification for winner
             const isCreateNotificationToWinner =
               await this.prismaService.notification.create({
@@ -1390,22 +1393,28 @@ export class TasksService {
                     1: `❌ Hi ${data.user.userName},`,
                     2: `Thank you for participating in the auction for *${isAcutionUpdated.product.title}*. While your bid was competitive, the auction has ended and you did not win this time.`,
                     3: `Auction summary:`,
-                    4: `• Item: ${isAcutionUpdated.product.title} • Your Highest Bid: ${isAcutionUpdated.bids.find(bid => bid.userId === isAcutionUpdated.user.id)?.amount} • Winning Bid: ${isAcutionUpdated.bids[0].amount}`,
+                    4: `• Item: ${
+                      isAcutionUpdated.product.title
+                    } • Your Highest Bid: ${
+                      isAcutionUpdated.bids.find(
+                        (bid) => bid.userId === isAcutionUpdated.user.id,
+                      )?.amount
+                    } • Winning Bid: ${isAcutionUpdated.bids[0].amount}`,
                     5: `Do not give up. There are many more exciting auctions waiting for you on Alletre.`,
                     6: `Tap below to explore live auctions and get ready for your next opportunity to win.`,
                     7: `We appreciate your enthusiasm and look forward to seeing you succeed next time. Keep bidding and keep winning with Alletre.`,
                     8: `${isAcutionUpdated.product.images[0].imageLink}`,
                     9: `https://www.alletre.com/`,
                   };
-                  
+
                   if (data.user.phone) {
                     await this.whatsappService.sendOtherUtilityMessages(
                       whatsappBodyForAuctionLost,
                       data.user.phone,
-                      'alletre_common_utility_templet'
+                      'alletre_common_utility_templet',
                     );
                   }
-                  
+
                   // create notification for winner
                   const isCreateNotificationToLoser =
                     await this.prismaService.notification.create({
@@ -1457,24 +1466,29 @@ export class TasksService {
             },
           );
 
-
-          for (const loser of losingBidders){
+          for (const loser of losingBidders) {
             try {
               const lostBidderPaymentData =
-              await this.paymentService.getAuctionPaymentTransaction(
-                loser.userId,
-                loser.auctionId,
-                PaymentType.BIDDER_DEPOSIT,
+                await this.paymentService.getAuctionPaymentTransaction(
+                  loser.userId,
+                  loser.auctionId,
+                  PaymentType.BIDDER_DEPOSIT,
+                );
+              await this.processRefundForLosingBidders(
+                lostBidderPaymentData,
+                this.prismaService,
               );
-              await this.processRefundForLosingBidders(lostBidderPaymentData, this.prismaService);
-              console.log(`Successfully processed refund for losing bidder: ${loser.userId}`);
+              console.log(
+                `Successfully processed refund for losing bidder: ${loser.userId}`,
+              );
             } catch (error) {
-              console.error(`Failed to process refund for losing bidder ${loser.userId}:`, error);
+              console.error(
+                `Failed to process refund for losing bidder ${loser.userId}:`,
+                error,
+              );
               const body = {
-                subject:
-                  `Failed to process refund for losing bidder ${loser.userId}:`,
-                title:
-                  `Failed to process refund for losing bidder ${loser.userId}:`,
+                subject: `Failed to process refund for losing bidder ${loser.userId}:`,
+                title: `Failed to process refund for losing bidder ${loser.userId}:`,
                 message1: `This is a test message from alletre backend when error occur at markPendingBidderPaymentAuctionsExpired function 
                                Transaction Failed ${error.message}`,
                 Button_text: 'Click here to continue ',
@@ -1488,7 +1502,7 @@ export class TasksService {
               );
             }
           }
-          
+
           // await Promise.all(
           //   losingBidders.map(async (loser) => {
           //     try {
@@ -1703,15 +1717,14 @@ export class TasksService {
                 8: `${auctionExpairyData.product.images[0].imageLink}`,
                 9: `https://www.alletre.com/`,
               };
-              
+
               if (auctionExpairyData.user.phone) {
                 await this.whatsappService.sendOtherUtilityMessages(
                   whatsappBodyForAuctionExpiredWithoutBids,
                   auctionExpairyData.user.phone,
-                  'alletre_common_utility_templet'
+                  'alletre_common_utility_templet',
                 );
               }
-              
             }
             const auctionExpireNotificationData =
               await this.prismaService.notification.create({
@@ -1749,24 +1762,29 @@ export class TasksService {
       }),
     );
   }
-  async  processRefundForLosingBidders(lostBidderPaymentData: any, prismaService: PrismaClient) {
-    console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
+  async processRefundForLosingBidders(
+    lostBidderPaymentData: any,
+    prismaService: PrismaClient,
+  ) {
+    console.log('lostBidderIswallet1', lostBidderPaymentData.isWalletPayment);
     if (!lostBidderPaymentData.isWalletPayment) {
       await this.stripeService.cancelDepositPaymentIntent(
         lostBidderPaymentData.paymentIntentId,
       );
-      return
-    } 
-      //logic to transfer to the wallet
-    console.log('lostBidderIswallet2',lostBidderPaymentData.isWalletPayment)
+      return;
+    }
+    //logic to transfer to the wallet
+    console.log('lostBidderIswallet2', lostBidderPaymentData.isWalletPayment);
     await prismaService.$transaction(async (prisma) => {
       //finding the last transaction balance of the losers
       const lastWalletTransactionBalanceOfBidder =
-        await this.walletService.findLastTransaction(lostBidderPaymentData.userId);
+        await this.walletService.findLastTransaction(
+          lostBidderPaymentData.userId,
+        );
       //finding the last transaction balance of the alletreWallet
       const lastBalanceOfAlletre =
         await this.walletService.findLastTransactionOfAlletre();
-      
+
       //wallet data for withdraw money from seller wallet
       const BidderWalletData = {
         status: WalletStatus.DEPOSIT,
@@ -1788,8 +1806,7 @@ export class TasksService {
         amount: Number(lostBidderPaymentData.amount),
         auctionId: Number(lostBidderPaymentData.auctionId),
         balance:
-          Number(lastBalanceOfAlletre) -
-          Number(lostBidderPaymentData.amount),
+          Number(lastBalanceOfAlletre) - Number(lostBidderPaymentData.amount),
       };
 
       await prisma.wallet.create({
@@ -1814,11 +1831,6 @@ export class TasksService {
           balance: alletreWalletData.balance,
         },
       });
-      
-    })
+    });
+  }
 }
- 
-}
-
-
-

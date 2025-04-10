@@ -160,7 +160,8 @@ async function main() {
                   type: 'text',
                   labelAr: 'موديل',
                   labelEn: 'Model',
-                },    {
+                },
+                {
                   key: 'graphicCard',
                   resKey: 'graphicCard',
                   type: 'text',
@@ -377,7 +378,6 @@ async function main() {
               ],
             },
           },
-          
         ],
       },
     },

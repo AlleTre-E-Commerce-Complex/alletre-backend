@@ -70,11 +70,11 @@ export class NotificationsController {
     @Body('notificationIds') notificationIds: number[],
   ) {
     try {
-     const data = await this.notificationsService.markNotificationsAsRead(
+      const data = await this.notificationsService.markNotificationsAsRead(
         account.id,
         notificationIds,
       );
-      console.log('markasread ',data)
+      console.log('markasread ', data);
       return {
         success: true,
         message: 'Notifications marked as read',

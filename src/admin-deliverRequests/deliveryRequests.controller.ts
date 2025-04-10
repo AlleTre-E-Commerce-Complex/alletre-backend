@@ -15,10 +15,12 @@ export class DeliveryRequestController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
   async findDeliveryRequestsByAdmin(
-    @Query('deliveryType') deliveryType: DeliveryType
+    @Query('deliveryType') deliveryType: DeliveryType,
   ) {
     const deliveryRequestData =
-      await this.deliveryRequestService.findDeliveryRequestsByAdmin(deliveryType);
+      await this.deliveryRequestService.findDeliveryRequestsByAdmin(
+        deliveryType,
+      );
 
     return {
       success: true,

@@ -82,7 +82,7 @@ export class WalletService {
 
   async findAllAdminWalletDetails() {
     const walletData = await this.prismaSevice.alletreWallet.findMany({
-      include:{ user: true}
+      include: { user: true },
     });
     // let balance = walletData[walletData.length-1]
     return walletData;
@@ -94,25 +94,25 @@ export class WalletService {
   ) {
     try {
       const prisma = prismaClient || this.prismaSevice;
-    const walletLastTransaction = await prisma.wallet.findFirst({
-      where: { userId },
-      orderBy: { id: 'desc' },
-    });
-    return walletLastTransaction?.balance;
+      const walletLastTransaction = await prisma.wallet.findFirst({
+        where: { userId },
+        orderBy: { id: 'desc' },
+      });
+      return walletLastTransaction?.balance;
     } catch (error) {
-      console.log('error at findLastTransaction :', error)
+      console.log('error at findLastTransaction :', error);
     }
   }
 
   async findLastTransactionOfAlletre(prismaClient?: Prisma.TransactionClient) {
     try {
       const prisma = prismaClient || this.prismaSevice;
-    const walletLastTransaction = await prisma.alletreWallet.findFirst({
-      orderBy: { id: 'desc' },
-    });
-    return walletLastTransaction?.balance;
+      const walletLastTransaction = await prisma.alletreWallet.findFirst({
+        orderBy: { id: 'desc' },
+      });
+      return walletLastTransaction?.balance;
     } catch (error) {
-      console.log('error at find last transaction of alletre :',error)
+      console.log('error at find last transaction of alletre :', error);
     }
   }
 
@@ -146,12 +146,20 @@ export class WalletService {
     } else {
       NumberOfWelcomeBonusUser = 100;
     }
-    console.log('all users wallet balance :',allUsersWalletBalance,alletreWalletBalance)
+    console.log(
+      'all users wallet balance :',
+      allUsersWalletBalance,
+      alletreWalletBalance,
+    );
     // Return the total balance (Alletre wallet + all user wallets)
-    const accountBalanceWithWelcomeBonus = alletreWalletBalance ? Number(alletreWalletBalance) + allUsersWalletBalance : allUsersWalletBalance
+    const accountBalanceWithWelcomeBonus = alletreWalletBalance
+      ? Number(alletreWalletBalance) + allUsersWalletBalance
+      : allUsersWalletBalance;
 
-    console.log('accountBalanceWithWelcomeBonus:',accountBalanceWithWelcomeBonus)
-
+    console.log(
+      'accountBalanceWithWelcomeBonus:',
+      accountBalanceWithWelcomeBonus,
+    );
 
     const accountBalanceWithOutWelcomeBonus =
       accountBalanceWithWelcomeBonus - NumberOfWelcomeBonusUser * 100;
