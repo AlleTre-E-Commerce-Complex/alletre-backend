@@ -52,7 +52,7 @@ export class UserController {
       const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
       allSheetsData.push(...sheetData); // Merge all sheets into one array
     });
-    
+
     return this.userService.saveExcelData(allSheetsData, parseInt(categoryId));
   }
 
@@ -64,8 +64,6 @@ export class UserController {
   //     data: await this.userService.getAllNonRegisteredUsers()
   //   }
   // }
-
-
 
   @Get('my-locations')
   @UseGuards(AuthGuard)
@@ -99,18 +97,20 @@ export class UserController {
     console.log('getAllUsers : ', paginationDTO);
     return {
       success: true,
-      data: await this.userService.getAllNonRegisteredUsers(paginationDTO, name),
+      data: await this.userService.getAllNonRegisteredUsers(
+        paginationDTO,
+        name,
+      ),
     };
   }
 
-  
   @Post('locations')
   @UseGuards(AuthGuard)
   async addNewLocationController(
     @Account() account: any,
-    @Body() locationDTO : LocationDTO,
+    @Body() locationDTO: LocationDTO,
   ) {
-    console.log('locationDto' , locationDTO)
+    console.log('locationDto', locationDTO);
     return {
       success: true,
       data: await this.userService.addNewLocation(account.id, locationDTO),

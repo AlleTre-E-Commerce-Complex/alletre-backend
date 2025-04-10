@@ -9,7 +9,12 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection in Worker:', promise, 'reason:', reason);
+  console.error(
+    '❌ Unhandled Rejection in Worker:',
+    promise,
+    'reason:',
+    reason,
+  );
 });
 
 async function sendBatchEmails(
@@ -26,8 +31,8 @@ async function sendBatchEmails(
     html,
   };
   console.log('SENDGRID_API_KEY : ', process.env.SENDGRID_API_KEY);
-   // ✅ 2. Log memory usage to check if it's consuming too much
-   console.log('🛠 Memory Usage Before Sending Emails:', process.memoryUsage());
+  // ✅ 2. Log memory usage to check if it's consuming too much
+  console.log('🛠 Memory Usage Before Sending Emails:', process.memoryUsage());
 
   try {
     console.log('test worker');
@@ -38,9 +43,6 @@ async function sendBatchEmails(
     parentPort?.postMessage({ success: false, error });
   }
 }
-
-
-
 
 // workerData includes data passed from the main thread
 sendBatchEmails(

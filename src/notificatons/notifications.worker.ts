@@ -1,4 +1,3 @@
-
 import { parentPort, workerData } from 'worker_threads';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as admin from 'firebase-admin';

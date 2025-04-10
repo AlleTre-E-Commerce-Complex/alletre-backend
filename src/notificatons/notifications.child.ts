@@ -21,7 +21,7 @@ async function cleanup() {
     }
     // Cleanup Firebase Admin resources
     if (admin.apps.length) {
-      await Promise.all(admin.apps.map(app => app?.delete()));
+      await Promise.all(admin.apps.map((app) => app?.delete()));
     }
   } catch (error) {
     console.error('Cleanup error:', error);
@@ -79,29 +79,31 @@ async function sendNotifications(
     // 3. Send Firebase push notifications in batches
     const fcmResults = [];
     if (userTokens.length > 0) {
-      const fcmMessages: admin.messaging.Message[] = userTokens.map((userToken) => ({
-        token: userToken.fcmToken,
-        notification: {
-          title: 'New Notification',
-          body: message,
-        },
-        data: {
-          auctionId: auctionId.toString(),
-          url: `/alletre/home/${auctionId}/details`,
-          imageLink,
-          productTitle,
-        },
-        android: {
-          priority: 'high' as const,
-        },
-        apns: {
-          payload: {
-            aps: {
-              contentAvailable: true,
+      const fcmMessages: admin.messaging.Message[] = userTokens.map(
+        (userToken) => ({
+          token: userToken.fcmToken,
+          notification: {
+            title: 'New Notification',
+            body: message,
+          },
+          data: {
+            auctionId: auctionId.toString(),
+            url: `/alletre/home/${auctionId}/details`,
+            imageLink,
+            productTitle,
+          },
+          android: {
+            priority: 'high' as const,
+          },
+          apns: {
+            payload: {
+              aps: {
+                contentAvailable: true,
+              },
             },
           },
-        },
-      }));
+        }),
+      );
 
       // Send in batches of 500 (Firebase limit)
       const batchSize = 500;

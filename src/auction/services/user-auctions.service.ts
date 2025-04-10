@@ -71,7 +71,6 @@ export class UserAuctionsService {
     private notificationService: NotificationsService,
     private auctionWebsocketGateway: AuctionWebSocketGateway,
     private readonly whatsappService: WhatsAppService,
-    
   ) {}
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
@@ -234,7 +233,7 @@ export class UserAuctionsService {
         const alletreWalletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
-          description: `Due to admin cancelled the auction`,
+          description: `Security deposit credited to Alletre wallet due to auction cancellation by admin.`,
           amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
           auctionId: Number(auctionId),
           balance: lastBalanceOfAlletre
@@ -292,17 +291,17 @@ export class UserAuctionsService {
           6: `Cancelling auctions with active bidders may affect user experience and platform trust. Please review policies before cancelling.`,
           7: `Need help or clarification Contact our support team anytime.`,
           8: auction.product.images[0].imageLink,
-          9: `https://www.alletre.com/`
-        }
-        
+          9: `https://www.alletre.com/`,
+        };
+
         if (auction.user.phone) {
           await this.whatsappService.sendOtherUtilityMessages(
             whatsappBodyToSellerAuctionCancelled,
             auction.user.phone,
-            'alletre_common_utility_templet'
-          )
+            'alletre_common_utility_templet',
+          );
         }
-        
+
         //create notification to seller
         const auctionCancelNotificationDataToSeller =
           await this.prismaService.notification.create({
@@ -408,7 +407,7 @@ export class UserAuctionsService {
             const lostBidderWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Due to admin cancelled the auction`,
+              description: `Security deposit transferred to Alletre wallet due to auction cancellation by admin.`,
               amount: Number(data.amount),
               auctionId: Number(auctionId),
               balance: lastWalletTransactionBalanceOfLostBidder
@@ -421,7 +420,7 @@ export class UserAuctionsService {
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Due to admin cancelled the auction`,
+              description: `Security deposit transferred to Alletre wallet due to auction cancellation by admin.`,
               amount: Number(data.amount),
               auctionId: Number(auctionId),
               balance: Number(lastBalanceOfAlletre) - Number(data.amount),
@@ -453,21 +452,25 @@ export class UserAuctionsService {
               2: `⚠️ The auction for *${auction.product.title}* you participated in has been cancelled by the admin.`,
               3: `*Reason:* ${adminMessage}`,
               4: `*Title:* ${auction.product.title}`,
-              5: `*Your Bid:* ${auction.bids.find((bid) => bid.userId === data.user.id)?.amount}`,
+              5: `*Your Bid:* ${
+                auction.bids.find((bid) => bid.userId === data.user.id)?.amount
+              }`,
               6: `*Auction End Date:* ${formattedEndDate} & ${formattedEndTime}`,
-              7: `Your security deposit has been refunded to your ${data.isWalletPayment ? 'wallet' : 'bank account'}.`,
+              7: `Your security deposit has been refunded to your ${
+                data.isWalletPayment ? 'wallet' : 'bank account'
+              }.`,
               8: auction.product.images[0].imageLink,
-              9: `https://www.alletre.com/`
-            }
-            
+              9: `https://www.alletre.com/`,
+            };
+
             if (data.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyToBiddersAuctionCancelled,
                 data.user.phone,
-                'alletre_common_utility_templet'
-              )
+                'alletre_common_utility_templet',
+              );
             }
-            
+
             await this.emailService.sendEmail(
               data.user.email,
               'token',
@@ -559,9 +562,10 @@ export class UserAuctionsService {
           const alletreWalletData = {
             status: WalletStatus.DEPOSIT,
             transactionType: WalletTransactionType.By_AUCTION,
-            description: `Due to seller cancelled the auction ${
+            description: `Auction cancelled by seller ${
               auction.status === 'ACTIVE' ? 'before' : 'after'
-            } expiry date.`,
+            } the expiry date.`,
+
             amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
             auctionId: Number(auctionId),
             balance: lastBalanceOfAlletre
@@ -621,17 +625,16 @@ export class UserAuctionsService {
             6: `*Ends:* ${formattedEndDate} & ${formattedEndTime}`,
             7: `Cancelling with bidders can affect trust in the platform.`,
             8: auction.product.images[0].imageLink,
-            9: `https://www.alletre.com/`
-          }
-          
+            9: `https://www.alletre.com/`,
+          };
+
           if (auction.user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyToSellerSelfCancelled,
               auction.user.phone,
-              'alletre_common_utility_templet'
-            )
+              'alletre_common_utility_templet',
+            );
           }
-          
 
           //create notification to seller
           const auctionCancelNotificationData =
@@ -754,9 +757,9 @@ export class UserAuctionsService {
                 const lostBidderWalletData = {
                   status: WalletStatus.DEPOSIT,
                   transactionType: WalletTransactionType.By_AUCTION,
-                  description: `Due to seller cancelled the auction ${
+                  description: `Auction cancelled by seller ${
                     auction.status === 'ACTIVE' ? 'before' : 'after'
-                  } expiry date.`,
+                  } the expiry date.`,
                   amount: Number(data.amount),
                   auctionId: Number(auctionId),
                   balance: lastWalletTransactionBalanceOfLostBidder
@@ -769,9 +772,9 @@ export class UserAuctionsService {
                 const alletreWalletData = {
                   status: WalletStatus.WITHDRAWAL,
                   transactionType: WalletTransactionType.By_AUCTION,
-                  description: `Due to seller cancelled the auction ${
+                  description: `Auction cancelled by seller ${
                     auction.status === 'ACTIVE' ? 'before' : 'after'
-                  } expiry date.`,
+                  } the expiry date.`,
                   amount: Number(data.amount),
                   auctionId: Number(auctionId),
                   balance: Number(lastBalanceOfAlletre) - Number(data.amount),
@@ -803,7 +806,8 @@ export class UserAuctionsService {
                   2: `⚠️ The auction for *${auction.product.title}* has been cancelled by the seller.`,
                   3: `*Category:* ${auction.product.category.nameEn}`,
                   4: `*Your Bid:* ${
-                    auction.bids.find((bid) => bid.userId === data.user.id)?.amount
+                    auction.bids.find((bid) => bid.userId === data.user.id)
+                      ?.amount
                   }`,
                   5: `*Ends:* ${formattedEndDate} & ${formattedEndTime}`,
                   6: `Your deposit has been refunded to your ${
@@ -815,17 +819,17 @@ export class UserAuctionsService {
                       : 'You can explore other exciting auctions now.'
                   }`,
                   8: auction.product.images[0].imageLink,
-                  9: `https://www.alletre.com/`
-                }
-                
+                  9: `https://www.alletre.com/`,
+                };
+
                 if (data.user.phone) {
                   await this.whatsappService.sendOtherUtilityMessages(
                     whatsappBodyToBiddersCancelledBySeller,
                     data.user.phone,
-                    'alletre_common_utility_templet'
-                  )
+                    'alletre_common_utility_templet',
+                  );
                 }
-                
+
                 await this.emailService.sendEmail(
                   data.user.email,
                   'token',
@@ -862,7 +866,8 @@ export class UserAuctionsService {
                 2: `⚠️ Auction for *${auction.product.title}* was cancelled by the seller.`,
                 3: `*Category:* ${auction.product.category.nameEn}`,
                 4: `*Your Bid:* ${
-                  auction.bids.find((bid) => bid.userId === data.user.id)?.amount
+                  auction.bids.find((bid) => bid.userId === data.user.id)
+                    ?.amount
                 }`,
                 5: `*Ends:* ${formattedEndDate} & ${formattedEndTime}`,
                 6: `Deposit refunded to your ${
@@ -876,15 +881,15 @@ export class UserAuctionsService {
                 8: auction.product.images[0].imageLink,
                 9: `https://www.alletre.com/`,
               };
-              
+
               if (data.user.phone) {
                 await this.whatsappService.sendOtherUtilityMessages(
                   whatsappBody,
                   data.user.phone,
-                  'alletre_common_utility_templet'
+                  'alletre_common_utility_templet',
                 );
               }
-              
+
               await this.emailService.sendEmail(
                 data.user.email,
                 'token',
@@ -938,9 +943,9 @@ export class UserAuctionsService {
           const highestBidderWalletData = {
             status: WalletStatus.DEPOSIT,
             transactionType: WalletTransactionType.By_AUCTION,
-            description: `Due to seller cancelled the auction ${
+            description: `Auction cancelled by seller ${
               auction.status === 'ACTIVE' ? 'before' : 'after'
-            } expiry date.`,
+            } the expiry date.`,
             amount: originalAmountToWinnedBidderWallet,
             auctionId: Number(auctionId),
             balance: lastWalletTransactionBalance
@@ -953,9 +958,9 @@ export class UserAuctionsService {
           const alletreWalletData = {
             status: WalletStatus.WITHDRAWAL,
             transactionType: WalletTransactionType.By_AUCTION,
-            description: `Due to seller cancelled the auction ${
+            description: `Auction cancelled by seller ${
               auction.status === 'ACTIVE' ? 'before' : 'after'
-            } expiry date.`,
+            } the expiry date.`,
             amount: originalAmountToWinnedBidderWallet,
             auctionId: Number(auctionId),
             balance:
@@ -1112,9 +1117,9 @@ export class UserAuctionsService {
             const sellerWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Due to you cancelled the auction ${
-                auction.status === 'ACTIVE' ? 'before' : 'after'
-              } expiry date.`,
+              description: `The auction was cancelled by you ${
+                auction.status === 'ACTIVE' ? 'prior to' : 'after'
+              } the expiry date. Applicable charges have been processed.`,
               amount: Number(sellerPaymentData.amount),
               auctionId: Number(auctionId),
               balance: lastWalletTransactionBalanceOfSeller
@@ -1127,9 +1132,9 @@ export class UserAuctionsService {
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Due to seller cancelled the auction ${
+              description: `Auction cancelled by seller ${
                 auction.status === 'ACTIVE' ? 'before' : 'after'
-              } expiry date.`,
+              } the expiry date.`,
               amount: Number(sellerPaymentData.amount),
               auctionId: Number(auctionId),
               balance:
@@ -1213,15 +1218,15 @@ export class UserAuctionsService {
               8: updatedDataOfCancellAuction.product.images[0].imageLink,
               9: `https://www.alletre.com/`,
             };
-            
+
             if (updatedDataOfCancellAuction.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBody,
                 updatedDataOfCancellAuction.user.phone,
-                'alletre_common_utility_templet'
+                'alletre_common_utility_templet',
               );
             }
-            
+
             const auctionCancelNotificationData =
               await this.prismaService.notification.create({
                 data: {
@@ -2532,7 +2537,7 @@ export class UserAuctionsService {
   async checkAuctionExistanceAndReturn(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
-      include:{bids: true}
+      include: { bids: true },
     });
 
     if (!auction)
@@ -2979,7 +2984,7 @@ export class UserAuctionsService {
             const BidderWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return security deposit after auction win - payment through bank`,
+              description: `Security deposit returned after auction win – payment processed via bank transfer.`,
               amount: Number(winnedBidderDepositPaymentData.amount),
               auctionId: Number(winnedBidderDepositPaymentData.auctionId),
               balance: lastWalletTransactionBalanceOfWinner
@@ -2992,7 +2997,7 @@ export class UserAuctionsService {
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return of bidder security deposit after auction win - payment through bank`,
+              description: `Return of bidder's security deposit after auction win – payment processed via bank transfer.`,
               amount: Number(winnedBidderDepositPaymentData.amount),
               auctionId: Number(winnedBidderDepositPaymentData.auctionId),
               balance:
@@ -3118,12 +3123,12 @@ export class UserAuctionsService {
           8: `${paymentData.auction.product.images[0].imageLink}`,
           9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
         };
-        
+
         if (paymentData.auction.user.phone) {
           await this.whatsappService.sendOtherUtilityMessages(
             whatsappBodyToSeller,
             paymentData.auction.user.phone,
-            'alletre_common_utility_templet'
+            'alletre_common_utility_templet',
           );
         }
 
@@ -3138,16 +3143,15 @@ export class UserAuctionsService {
           8: `${paymentSuccessData.auction.product.images[0].imageLink}`,
           9: `https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery`,
         };
-        
+
         if (paymentSuccessData.auction.bids[0].user.phone) {
           await this.whatsappService.sendOtherUtilityMessages(
             whatsappBodyToWinner,
             paymentSuccessData.auction.bids[0].user.phone,
-            'alletre_common_utility_templet'
+            'alletre_common_utility_templet',
           );
         }
-        
-        
+
         //send notification to the seller
         const notificationMessageToSeller = `The winner of your Auction of ${paymentData.auction.product.title}
                            (Model:${paymentData.auction.product.model}) has been paid the full amount. 
@@ -3315,25 +3319,31 @@ export class UserAuctionsService {
     //calculate the seller security deposite
     const startBidAmount = auction.startBidAmount;
     let amount = Number(auctionCategory.bidderDepositFixedAmount);
-    const categoryName = auctionCategory?.nameEn
+    const categoryName = auctionCategory?.nameEn;
 
     //checking whether the auction is luxuary or not
     if (
       auctionCategory.luxuaryAmount &&
       Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
     ) {
-      let total : number
+      let total: number;
       //calculating the security deposite
-       total = Number(
+      total = Number(
         (Number(startBidAmount) *
           Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
           100,
       );
 
-      if(categoryName === 'Cars' || categoryName === 'Properties'){
-        const latestBidAmount = auction?.bids?.reverse()[0]?.amount
-        total = Number(((latestBidAmount? Number(latestBidAmount): Number(startBidAmount) ) * Number(auctionCategory?.percentageOfLuxuarySD_forBidder) ) / 100)
-       }
+      if (categoryName === 'Cars' || categoryName === 'Properties') {
+        const latestBidAmount = auction?.bids?.reverse()[0]?.amount;
+        total = Number(
+          ((latestBidAmount
+            ? Number(latestBidAmount)
+            : Number(startBidAmount)) *
+            Number(auctionCategory?.percentageOfLuxuarySD_forBidder)) /
+            100,
+        );
+      }
       //checking the total is less than minimum security deposite
       if (
         auctionCategory.minimumLuxuarySD_forBidder &&
@@ -3820,6 +3830,7 @@ export class UserAuctionsService {
             subCategoryId: true,
             brandId: true,
             images: true,
+            usageStatus: true,
           },
         },
         Payment: { select: { createdAt: true, type: true } },
@@ -3929,7 +3940,7 @@ export class UserAuctionsService {
         const sellerReturnSecurityDepositWalletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
-          description: `Return Security deposit due to winner confirmed the delivery`,
+          description: `Return of security deposit after winner confirmed the delivery.`,
           amount: Number(sellerPaymentData.amount),
           auctionId: Number(auctionId),
           balance: lastWalletTransactionBalance
@@ -3942,7 +3953,7 @@ export class UserAuctionsService {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,
           description:
-            'Return Security deposit of seller due to winner confirmed the delivery',
+            "Return of seller's security deposit after winner confirmed the delivery.",
           amount: Number(sellerPaymentData.amount),
           auctionId: Number(auctionId),
           balance:
@@ -3989,7 +4000,7 @@ export class UserAuctionsService {
         const walletData = {
           status: WalletStatus.DEPOSIT,
           transactionType: WalletTransactionType.By_AUCTION,
-          description: 'Auction full payment',
+          description: 'Full payment for auction.',
           amount: Number(amountToSellerWallet),
           auctionId: Number(auctionId),
           balance: lastWalletTransactionBalance
@@ -4001,7 +4012,7 @@ export class UserAuctionsService {
         const walletDataToAlletre = {
           status: WalletStatus.WITHDRAWAL,
           transactionType: WalletTransactionType.By_AUCTION,
-          description: 'Send Auction full payment after deduct the fees',
+          description: 'Send full auction payment after deducting the fees.',
           amount: Number(amountToSellerWallet),
           auctionId: Number(auctionId),
           balance:
@@ -4188,12 +4199,12 @@ export class UserAuctionsService {
             8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/wallet`,
           };
-          
+
           if (sellerPaymentData.auction.user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyToSeller,
               sellerPaymentData.auction.user.phone,
-              'alletre_common_utility_templet'
+              'alletre_common_utility_templet',
             );
           }
 
@@ -4208,16 +4219,15 @@ export class UserAuctionsService {
             8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/purchased`,
           };
-          
+
           if (sellerPaymentData.auction.bids[0].user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyToWinner,
               sellerPaymentData.auction.bids[0].user.phone,
-              'alletre_common_utility_templet'
+              'alletre_common_utility_templet',
             );
           }
-          
-          
+
           await Promise.all([
             this.emailService.sendEmail(
               sellerPaymentData.user.email,
@@ -4308,7 +4318,6 @@ export class UserAuctionsService {
           Button_URL: process.env.FRONT_URL,
         };
 
-
         const auction = IsItemSend;
         const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. The seller has been sent the product  of Auction of ${
           IsItemSend.product.title
@@ -4378,22 +4387,24 @@ export class UserAuctionsService {
           1: `${highestBidder.userName}`,
           2: `📦 Your auction product *${IsItemSend.product.title}* (Model: ${IsItemSend.product.model}) has been sent by the seller for delivery!`,
           3: `The seller has shipped your auction win. Please confirm the delivery once you receive it by clicking the "Confirm Delivery" button.`,
-          4: `*Seller Message:* ${message ? message : 'No additional message from the seller.'}`,
+          4: `*Seller Message:* ${
+            message ? message : 'No additional message from the seller.'
+          }`,
           5: `Thanks for choosing *Alletre*! We're grateful to have you as part of our community.`,
           6: `Want to participate in another auction? Click below to explore new listings!`,
           7: `${IsItemSend.product.images[0].imageLink}`,
           8: `Thanks again for being part of *Alletre*!`,
           9: `https://www.alletre.com/`,
         };
-        
+
         if (highestBidder.phone) {
           await this.whatsappService.sendOtherUtilityMessages(
             whatsappBodyToWinner,
             highestBidder.phone,
-            'alletre_common_utility_templet'
+            'alletre_common_utility_templet',
           );
         }
-        
+
         await this.emailService.sendEmail(
           highestBidder.email,
           'token',
@@ -4695,10 +4706,10 @@ export class UserAuctionsService {
               ...productFilter,
               isAuctionProduct: false,
             },
-            AND:[
-              {ProductListingPrice: {gte: priceFrom}},
-              {ProductListingPrice: {lte: priceTo}},
-            ]
+            AND: [
+              { ProductListingPrice: { gte: priceFrom } },
+              { ProductListingPrice: { lte: priceTo } },
+            ],
           },
           include: {
             product: {
@@ -4838,9 +4849,9 @@ export class UserAuctionsService {
           en: 'Something Went Wrong While Fetching a Products',
         });
       }
-      const userLang = 'en'
-    
-      const formatedProduct = this.filtertProduct(product,userLang)
+      const userLang = 'en';
+
+      const formatedProduct = this.filtertProduct(product, userLang);
       console.log('product** :', formatedProduct);
       return formatedProduct;
     } catch (error) {
@@ -4848,7 +4859,7 @@ export class UserAuctionsService {
     }
   }
 
-  async filtertProduct (listedProduct : any, userLang:any){
+  async filtertProduct(listedProduct: any, userLang: any) {
     if (listedProduct['product']['city']) {
       const cityName =
         userLang === 'en'
@@ -4866,12 +4877,12 @@ export class UserAuctionsService {
       listedProduct['product']['country'] = countryName;
     }
 
-    
     for (const field in listedProduct['product']) {
-      if (listedProduct['product'][field] === null) delete listedProduct['product'][field];
+      if (listedProduct['product'][field] === null)
+        delete listedProduct['product'][field];
     }
 
-    return listedProduct
+    return listedProduct;
   }
   async findListedProductsAnalytics(userId: number) {
     try {

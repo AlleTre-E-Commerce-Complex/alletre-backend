@@ -87,14 +87,14 @@ export class AuthService {
   async signIn(email: string, password: string, userIp: string) {
     try {
       const { user, addedBonus } = await this.validateUser(email, password);
-      
+
       if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
-      
+
       // Clear old sessions for this user
       this.clearUserSessions(user.id);
-      
+
       if (user) await this.userService.updateUserIpAddress(user.id, userIp);
-      
+
       const { accessToken, refreshToken } = this.generateTokens({
         id: user.id,
         email: user.email,
@@ -127,7 +127,7 @@ export class AuthService {
     try {
       const userTokens = this.userSessions.get(userId);
       if (userTokens) {
-        userTokens.forEach(token => this.usedRefreshTokens.add(token));
+        userTokens.forEach((token) => this.usedRefreshTokens.add(token));
         this.userSessions.delete(userId);
       }
     } catch (error) {
@@ -538,9 +538,9 @@ export class AuthService {
 
   async logout(refreshToken: string) {
     if (!refreshToken) {
-      throw new NotFoundResponse({ 
-        ar: 'رمز التحديث غير موجود', 
-        en: 'Refresh token not found' 
+      throw new NotFoundResponse({
+        ar: 'رمز التحديث غير موجود',
+        en: 'Refresh token not found',
       });
     }
 
@@ -557,15 +557,15 @@ export class AuthService {
   async refreshToken(oldRefreshToken: string) {
     console.log('refreshToken', oldRefreshToken);
     if (!oldRefreshToken)
-      throw new NotFoundResponse({ 
-        ar: 'لا يوجد', 
-        en: 'not found' 
+      throw new NotFoundResponse({
+        ar: 'لا يوجد',
+        en: 'not found',
       });
 
     try {
       // decode refreshToken first to validate it
       const payload = this.decodeRefreshToken(oldRefreshToken);
-      
+
       // Check if token has been used or invalidated
       if (this.usedRefreshTokens.has(oldRefreshToken)) {
         // Clear all sessions for this user for security
@@ -618,7 +618,7 @@ export class AuthService {
     try {
       const adminTokens = this.adminSessions.get(adminId);
       if (adminTokens) {
-        adminTokens.forEach(token => this.usedAdminRefreshTokens.add(token));
+        adminTokens.forEach((token) => this.usedAdminRefreshTokens.add(token));
         this.adminSessions.delete(adminId);
       }
     } catch (error) {
@@ -692,9 +692,9 @@ export class AuthService {
   async adminRefreshToken(oldRefreshToken: string) {
     console.log('adminRefreshToken', oldRefreshToken);
     if (!oldRefreshToken)
-      throw new NotFoundResponse({ 
-        ar: 'لا يوجد', 
-        en: 'not found' 
+      throw new NotFoundResponse({
+        ar: 'لا يوجد',
+        en: 'not found',
       });
 
     try {
@@ -728,7 +728,7 @@ export class AuthService {
 
       // Check Admin Existence
       const admin = await this.adminService.getAdminByIdOr404(payload.id);
-      
+
       // Invalidate old refresh token
       adminTokens.delete(oldRefreshToken);
       this.usedAdminRefreshTokens.add(oldRefreshToken);

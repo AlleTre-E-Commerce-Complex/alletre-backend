@@ -115,15 +115,16 @@ export class NotificationsService {
       for (const batch of userBatches) {
         try {
           // 1. Save notifications to database in bulk
-          const notifications = await this.prismaService.notification.createMany({
-            data: batch.map((userId) => ({
-              userId: Number(userId),
-              message,
-              imageLink,
-              productTitle,
-              auctionId,
-            })),
-          });
+          const notifications =
+            await this.prismaService.notification.createMany({
+              data: batch.map((userId) => ({
+                userId: Number(userId),
+                message,
+                imageLink,
+                productTitle,
+                auctionId,
+              })),
+            });
 
           // 2. Get FCM tokens for these users
           // const userTokens = await this.prismaService.pushSubscription.findMany({

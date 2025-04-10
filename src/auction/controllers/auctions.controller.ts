@@ -65,7 +65,7 @@ export class AuctionsController {
   //     dest: 'uploads/',
   //   }),
   // )
-  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async publishAuctionController(
     @Account() account: any,
     @Body() auctionCreationDTO: AuctionCreationDTO,
@@ -96,7 +96,6 @@ export class AuctionsController {
     @Body() auctionCreationDTO: AuctionCreationDTO,
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Param('productId', ParseIntPipe) productId: number,
-
   ) {
     console.log('The form data convertListToAuction:', auctionCreationDTO);
     const isConvertProductToAuction = true;
@@ -107,7 +106,7 @@ export class AuctionsController {
         auctionCreationDTO,
         images,
         isConvertProductToAuction,
-        productId
+        productId,
       ),
     };
   }
@@ -119,16 +118,18 @@ export class AuctionsController {
   //     dest: 'uploads/',
   //   }),
   // )
-  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async saveAuctionAsDraftController(
     @Account() account: any,
     @Body() productDTO: ProductDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    console.log('productDTO',productDTO)
-     // Separate images and PDFs based on file extension
-     const images = files.filter(file => file.mimetype.startsWith('image/'));
-     const relatedDocuments = files.filter(file => file.mimetype === 'application/pdf');
+    console.log('productDTO', productDTO);
+    // Separate images and PDFs based on file extension
+    const images = files.filter((file) => file.mimetype.startsWith('image/'));
+    const relatedDocuments = files.filter(
+      (file) => file.mimetype === 'application/pdf',
+    );
 
     console.log('Images:', images);
     console.log('PDFs:', relatedDocuments);
@@ -928,7 +929,7 @@ export class AuctionsController {
   }
   @Post('/product-listing')
   @UseGuards(AuthGuard)
-  @UseInterceptors(AnyFilesInterceptor({dest: 'uploads/'}))
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async listOnlyProduct(
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Body('product') productDTO: ProductDTO,

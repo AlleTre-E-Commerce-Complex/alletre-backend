@@ -23,7 +23,6 @@ export class UserService {
     private paginationService: PaginationService,
     private emailService: EmailSerivce,
     private readonly whatsappService: WhatsAppService,
-    
   ) {}
 
   async register(UserSignData: UserSignUpDTO, hashedPassword: string) {
@@ -81,15 +80,18 @@ export class UserService {
               `Failed to insert: ${JSON.stringify(entry)}\nError details: ${
                 error.message
               }\nError code: ${error.code}\nError meta: ${JSON.stringify(
-                error.meta
+                error.meta,
               )}`,
-              error
+              error,
             );
             failedEntries.push({ ...entry, error: error.message });
           }
         }
       } catch (error) {
-        this.logger.error(`Failed to process row: ${JSON.stringify(row)}`, error);
+        this.logger.error(
+          `Failed to process row: ${JSON.stringify(row)}`,
+          error,
+        );
         failedEntries.push(row);
       }
     }
@@ -102,7 +104,6 @@ export class UserService {
     };
   }
 
-
   // New extractMobileNumbers function
   private extractMobileNumbers(mobileField: any): string[] {
     try {
@@ -114,41 +115,45 @@ export class UserService {
       // First split by common delimiters
       const numbers = mobileString
         .split(/\/|\n|,|\s+/)
-        .map((num:any) => num.trim())
-        .filter((num:any) => num.length > 0);
+        .map((num: any) => num.trim())
+        .filter((num: any) => num.length > 0);
 
       // Process and validate each number
-      return numbers.map((number:any) => {
-        try {
-          // Remove all hyphens and spaces
-          let cleanNumber = number.replace(/-|\s/g, '');
+      return numbers
+        .map((number: any) => {
+          try {
+            // Remove all hyphens and spaces
+            let cleanNumber = number.replace(/-|\s/g, '');
 
-          // Handle different formats and convert to standard format
-          if (cleanNumber.startsWith('+971')) {
-            // Format: +971XXXXXXXXX
-            cleanNumber = cleanNumber;
-          } else if (cleanNumber.startsWith('971')) {
-            // Format: 971XXXXXXXXX
-            cleanNumber = '+' + cleanNumber;
-          } else if (cleanNumber.startsWith('0')) {
-            // Format: 05XXXXXXXX
-            cleanNumber = '+971' + cleanNumber.substring(1);
-          } else if (cleanNumber.match(/^[5][0-9]{8}$/)) {
-            // Format: 5XXXXXXXX
-            cleanNumber = '+971' + cleanNumber;
+            // Handle different formats and convert to standard format
+            if (cleanNumber.startsWith('+971')) {
+              // Format: +971XXXXXXXXX
+              cleanNumber = cleanNumber;
+            } else if (cleanNumber.startsWith('971')) {
+              // Format: 971XXXXXXXXX
+              cleanNumber = '+' + cleanNumber;
+            } else if (cleanNumber.startsWith('0')) {
+              // Format: 05XXXXXXXX
+              cleanNumber = '+971' + cleanNumber.substring(1);
+            } else if (cleanNumber.match(/^[5][0-9]{8}$/)) {
+              // Format: 5XXXXXXXX
+              cleanNumber = '+971' + cleanNumber;
+            }
+
+            // Validate UAE mobile number format
+            const uaeRegex = /^\+971[5][0-9]{8}$/;
+            return uaeRegex.test(cleanNumber) ? cleanNumber : null;
+          } catch (error) {
+            this.logger.error(`Failed to process number: ${number}`, error);
+            return null;
           }
-
-          // Validate UAE mobile number format
-          const uaeRegex = /^\+971[5][0-9]{8}$/;
-          return uaeRegex.test(cleanNumber) ? cleanNumber : null;
-        } catch (error) {
-          this.logger.error(`Failed to process number: ${number}`, error);
-          return null;
-        }
-      })
-      .filter((num): num is string => num !== null); // Remove invalid numbers
+        })
+        .filter((num): num is string => num !== null); // Remove invalid numbers
     } catch (error) {
-      this.logger.error(`Failed to process mobile field: ${mobileField}`, error);
+      this.logger.error(
+        `Failed to process mobile field: ${mobileField}`,
+        error,
+      );
       return [];
     }
   }
@@ -229,15 +234,14 @@ export class UserService {
         7: `Thanks again for joining us. We look forward to seeing you in future bids.`,
         8: `https://www.alletre.com`,
       };
-      
+
       if (user.phone) {
         await this.whatsappService.sendOtherUtilityMessages(
           whatsappBodyForNewUserWelcome,
           user.phone,
-          'alletre_common_utility_templet'
+          'alletre_common_utility_templet',
         );
       }
-      
     }
     if (user && user.id <= 100) {
       const newUserWalletData = {
@@ -628,7 +632,6 @@ export class UserService {
       });
   }
 
-
   async getAllUsers(paginationDTO: PaginationDTO, name?: string) {
     const { page = 1, perPage = 10 } = paginationDTO;
 
@@ -653,7 +656,7 @@ export class UserService {
         createdAt: true,
         isBlocked: true,
         _count: { select: { auctions: true, JoinedAuction: true } },
-        wallet:true
+        wallet: true,
       },
       take: limit,
       skip,
@@ -678,9 +681,7 @@ export class UserService {
     console.log('limit', limit);
     const users = await this.prismaService.nonRegisteredUser.findMany({
       where: {
-        ...(name
-          ? { name: { startsWith: name, mode: 'insensitive' } }
-          : {}),
+        ...(name ? { name: { startsWith: name, mode: 'insensitive' } } : {}),
       },
       select: {
         id: true,

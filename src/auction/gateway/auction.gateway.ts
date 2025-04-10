@@ -72,7 +72,7 @@ export class AuctionWebSocketGateway
     //emit cancelled auction event
     this.server.emit('auction:buyNowPurchase', { auctionId });
   }
-  increaseBid(auction: any){
-    this.server.emit('auction:increaseBid',{auction})
+  increaseBid(auction: any) {
+    this.server.emit('auction:increaseBid', { auction });
   }
 }

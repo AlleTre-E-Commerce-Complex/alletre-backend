@@ -43,8 +43,9 @@ export class EmailBatchService {
         }
       }
 
-      console.log(`Bulk email sending completed. Success: ${successCount}, Failures: ${failureCount}`);
-
+      console.log(
+        `Bulk email sending completed. Success: ${successCount}, Failures: ${failureCount}`,
+      );
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;

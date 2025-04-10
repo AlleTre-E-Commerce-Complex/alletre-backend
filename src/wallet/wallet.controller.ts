@@ -56,7 +56,7 @@ export class WalletController {
   findAdminWalletBalance() {
     return this.walletService.findLastTransactionOfAlletre();
   }
-  
+
   @Get('get-account-balance')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
