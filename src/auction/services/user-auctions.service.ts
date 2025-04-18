@@ -1611,7 +1611,7 @@ export class UserAuctionsService {
           ? { status: auctionStatus }
           : {
               status: {
-                in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+                in: [AuctionStatus.ACTIVE],
               },
             }),
         ...auctionFilter,
@@ -1678,7 +1678,7 @@ export class UserAuctionsService {
           ? { status: auctionStatus }
           : {
               status: {
-                in: [AuctionStatus.ACTIVE, AuctionStatus.IN_SCHEDULED],
+                in: [AuctionStatus.ACTIVE],
               },
             }),
         ...auctionFilter,
@@ -2195,7 +2195,7 @@ export class UserAuctionsService {
     paginationDTO: PaginationDTO,
     userId?: number,
   ) {
-    const { page = 1, perPage = 4 } = paginationDTO;
+    const { page = 1, perPage = 10 } = paginationDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
       Number(page),
