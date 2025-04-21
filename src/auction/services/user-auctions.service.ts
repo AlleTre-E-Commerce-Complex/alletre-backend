@@ -14,6 +14,7 @@ import {
   GetListedProductByOhterUserDTO,
   PaginationDTO,
   ProductDTO,
+  AuctionUpdateDTO,
 } from '../dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import {
@@ -159,6 +160,46 @@ export class UserAuctionsService {
         }
         break;
     }
+  }
+
+  async updateAuctionDetails(
+    userId: number,
+    auctionId: number,
+    auctionUpdateBody: AuctionUpdateDTO,
+    files?: Express.Multer.File[],
+  ) {
+    // Separate images, video, pdfs as needed
+    const images = files?.filter((file) => file.mimetype.startsWith('image/')) || [];
+    const video = files?.filter((file) => file.mimetype.startsWith('video/')) || [];
+    const relatedDocuments = files?.filter((file) => file.mimetype === 'application/pdf') || [];
+  
+    // Optionally, validate permissions, check auction exists, etc.
+    const auction = await this.prismaService.auction.findUnique({ where: { id: +auctionId } });
+    if (!auction) throw new MethodNotAllowedResponse({
+      ar: 'Auction not found',
+      en: 'Auction not found',
+    });
+  
+    // Update product details as needed (if product is nested)
+    // Example: update product, then auction
+    await this._updateProduct(
+      auction.productId,
+      auctionUpdateBody.product || auctionUpdateBody
+    );
+  
+    // Update auction fields (adjust as needed)
+    const updatedAuction = await this.prismaService.auction.update({
+      where: { id: +auctionId },
+      data: {
+        // ...map auctionUpdateBody fields here
+        // e.g., startDate: auctionUpdateBody.startDate,
+        // durationUnit: auctionUpdateBody.durationUnit,
+        // etc.
+      },
+      include: { product: true },
+    });
+  
+    return updatedAuction;
   }
   async createDraftAuction(
     userId: number,
@@ -2214,8 +2255,6 @@ export class UserAuctionsService {
       0,
     );
 
-    console.log(startOfToday);
-
     const auctions = await this.prismaService.auction.findMany({
       where: {
         status: AuctionStatus.IN_SCHEDULED,
@@ -2265,7 +2304,7 @@ export class UserAuctionsService {
       },
       skip: skip,
       take: limit,
-      orderBy: { startBidAmount: 'desc' },
+      orderBy: { startDate: 'asc' },
     });
 
     const auctionsCount = await this.prismaService.auction.count({
