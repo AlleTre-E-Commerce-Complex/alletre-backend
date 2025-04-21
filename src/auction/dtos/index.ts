@@ -7,3 +7,4 @@ export * from './submitBid.dto';
 export * from './getJoinedAuctions.dto';
 export * from './getAuctionsByOtherUser';
 export * from './getListedProductsByOtherUser.dto';
+export * from './auction-update.dto';

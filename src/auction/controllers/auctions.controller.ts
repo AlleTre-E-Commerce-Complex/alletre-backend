@@ -31,6 +31,7 @@ import {
   PaginationDTO,
   ProductDTO,
   SubmitBidDTO,
+  AuctionUpdateDTO,
 } from '../dtos';
 import {
   FileInterceptor,
@@ -79,6 +80,29 @@ export class AuctionsController {
       data: await this.userAuctionsService.createPendingAuction(
         account.id,
         auctionCreationDTO,
+        files,
+      ),
+    };
+  }
+
+  @Put('user/:auctionId/update')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  async updateAuctionController(
+    @Account() account: any,
+    @Param('auctionId') auctionId: number,
+    @Body() auctionUpdateDTO: AuctionUpdateDTO,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    console.log('Auction update data:', auctionUpdateDTO);
+    console.log('Auction update files:', files);
+
+    return {
+      success: true,
+      data: await this.userAuctionsService.updateAuctionDetails(
+        account.id,
+        auctionId,
+        auctionUpdateDTO,
         files,
       ),
     };
