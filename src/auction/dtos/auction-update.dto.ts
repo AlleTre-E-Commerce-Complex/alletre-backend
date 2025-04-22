@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { DeliveryType } from '../enums/delivery-type.enum';
 import { ProductUpdateDTO } from './product-update.dto';
+import { ProductDTO } from './productCreation.dto';
 
 export class AuctionUpdateDTO {
   @IsOptional()
@@ -48,5 +49,5 @@ export class AuctionUpdateDTO {
 
   @IsOptional()
   @IsObject()
-  product?: ProductUpdateDTO;
+  product?: ProductDTO;
 }
