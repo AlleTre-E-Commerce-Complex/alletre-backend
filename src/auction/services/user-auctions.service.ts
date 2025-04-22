@@ -169,27 +169,30 @@ export class UserAuctionsService {
     files?: Express.Multer.File[],
   ) {
     // Separate images, video, pdfs as needed
-    const images = files?.filter((file) => file.mimetype.startsWith('image/')) || [];
-    const video = files?.filter((file) => file.mimetype.startsWith('video/')) || [];
-    const relatedDocuments = files?.filter((file) => file.mimetype === 'application/pdf') || [];
-  
+    const images =
+      files?.filter((file) => file.mimetype.startsWith('image/')) || [];
+    const video =
+      files?.filter((file) => file.mimetype.startsWith('video/')) || [];
+    const relatedDocuments =
+      files?.filter((file) => file.mimetype === 'application/pdf') || [];
+
     // Optionally, validate permissions, check auction exists, etc.
-    const auction = await this.prismaService.auction.findUnique({ where: { id: +auctionId } });
-    if (!auction) throw new MethodNotAllowedResponse({
-      ar: 'Auction not found',
-      en: 'Auction not found',
+    const auction = await this.prismaService.auction.findUnique({
+      where: { id: auctionId },
     });
-  
+    if (!auction)
+      throw new MethodNotAllowedResponse({
+        ar: 'Auction not found',
+        en: 'Auction not found',
+      });
+
     // Update product details as needed (if product is nested)
     // Example: update product, then auction
-    await this._updateProduct(
-      auction.productId,
-      auctionUpdateBody.product || auctionUpdateBody
-    );
-  
+    await this._updateProduct(auction.productId, auctionUpdateBody.product);
+
     // Update auction fields (adjust as needed)
     const updatedAuction = await this.prismaService.auction.update({
-      where: { id: +auctionId },
+      where: { id: auctionId },
       data: {
         // ...map auctionUpdateBody fields here
         // e.g., startDate: auctionUpdateBody.startDate,
@@ -198,7 +201,7 @@ export class UserAuctionsService {
       },
       include: { product: true },
     });
-  
+
     return updatedAuction;
   }
   async createDraftAuction(
