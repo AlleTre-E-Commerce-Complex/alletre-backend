@@ -1,5 +1,7 @@
 import { Body, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
+import { Worker } from 'worker_threads';
+import { join } from 'path';
 import {
   AuctionStatus,
   JoinedAuctionStatus,
@@ -1020,7 +1022,7 @@ export class TasksService {
   /**
    * Function will run every mintue to set all auction expired
    */
-  @Interval(6000)
+  @Interval(60000)
   async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
@@ -1886,6 +1888,317 @@ export class TasksService {
     console.error('auciton expire error :',error)
    }
   }
+
+
+  // @Cron(CronExpression.EVERY_5_MINUTES, { timeZone: 'Asia/Dubai' })
+  @Cron('0 0 * * MON', { timeZone: 'Asia/Dubai' })   // every Monday 00:00
+  async _sendWeeklyAuctionDigest() {
+    console.log('Send Weekly Auction Digest logs ')
+    // 1. Grab the last 4 auctions
+    const [activeAuctions, scheduledAuctions] = await Promise.all([
+      this.prismaService.auction.findMany({
+        where: { status: AuctionStatus.ACTIVE },
+        orderBy: { createdAt: 'desc' },
+        take: 4,
+        select: {
+          id: true,
+          startBidAmount: true,
+          acceptedAmount: true,
+          expiryDate: true,
+          startDate: true,
+          product: { select: { title: true, images: { select: { imageLink: true } } } },
+        },
+      }),
+      this.prismaService.auction.findMany({
+        where: { status: AuctionStatus.IN_SCHEDULED },
+        orderBy: { createdAt: 'desc' },
+        take: 4,
+        select: {
+          id: true,
+          startBidAmount: true,
+          acceptedAmount: true,
+          expiryDate: true,
+          startDate: true,
+          product: { select: { title: true, images: { select: { imageLink: true } } } },
+        },
+      }),
+    ]);
+    
+    const listedProduct = await this.prismaService.listedProducts.findMany({
+      orderBy:{createdAt: 'desc'},
+      take: 4,
+      select:{
+        id:true,
+        ProductListingPrice:true,
+        product: {
+          select: {
+            title: true,
+            images:{select:{
+              imageLink:true,
+            }}      // adjust to your actual image‑field name
+          },
+        },
+      }
+    })
+    console.log('Send Weekly Auction Digest logs ', activeAuctions.length)
+    console.log('Send Weekly Auction Digest logs ', scheduledAuctions.length)
+    console.log('Send Weekly Auction Digest logs ', listedProduct.length)
+    
+
+    if (!activeAuctions.length && !scheduledAuctions.length && !listedProduct.length) return;
+
+    // 2. Render email body
+    const html = this.renderDigestHtml(activeAuctions,scheduledAuctions,listedProduct);
+    const text =
+    'Check out the latest auctions on Alletre! Visit https://alletre.com to see more.';
+ // 3️⃣ Page through all eligible users and send in batches
+ const batchSize = 800; // safe chunk (< SendGrid 1000 limit)
+ for (let skip = 0; ; skip += batchSize) {
+   const users = await this.prismaService.user.findMany({
+     skip,
+     take: batchSize,
+     select: { email: true },
+   });
+   if (!users.length) break;
+
+   // Extract email strings
+   const emails = users.map((u) => u.email);
+
+   // 4️⃣ Spawn the existing email worker
+   await new Promise<void>((resolve, reject) => {
+     const worker = new Worker(
+       join(__dirname, '../emails/email.worker.js'), // compiled JS path
+       {
+         workerData: {
+           users: emails,                // <- matches workerData.users
+           subject:
+             '🔔 Last week on Alletre – Top 4 auctions you missed!',
+           text,
+           html,                         // <- matches workerData.html
+         },
+       },
+     );
+     worker.on('message', (msg) =>
+       msg.success ? resolve() : reject(msg.error),
+     );
+     worker.on('error', reject);
+   });
+ }
+}
+
+
+
+
+private renderDigestHtml(
+  activeAuctions: any[],
+  scheduledAuctions: any[],
+  listedProducts: any[],
+) {
+  /* ----------  helper to pretty‑print dates in GST  ---------- */
+  const fmtDate = (d: Date) =>
+    new Intl.DateTimeFormat(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Dubai',
+      timeZoneName: 'short', // “GST”
+    })
+      .format(d)
+      .replace(',', '');
+
+      
+
+  /* ----------  one auction/listing card  ---------- */
+  const makeCard = (
+    image: string,
+    title: string,
+    priceLabel: string,
+    timerLabel: string | undefined, // already pre‑formatted in caller
+    link: string,
+  ) => `
+  <tr>
+    <td style="padding:0 12px 24px 12px;">
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+        <!-- product image -->
+        <tr>
+          <td style="padding:0;">
+            <img src="${image}" width="100%" style="display:block;" alt="${title}" />
+          </td>
+        </tr>
+  
+        <!-- price ribbon -->
+        <tr>
+          <td style="padding:8px 12px 0 12px;">
+            <table cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td style="background:#a91d3a;color:#fff;font-size:13px;font-weight:600;padding:4px 8px;border-radius:4px;">
+                  ${priceLabel}
+                </td>
+                <!-- icons placeholder -->
+                <td style="text-align:right;font-size:0;">
+                  <!-- you could embed small 16×16 SVG icons here -->
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+  
+        <!-- title -->
+        <tr>
+          <td style="padding:8px 12px 0 12px;">
+            <p style="margin:0;font-size:16px;font-weight:600;color:#333;">${title}</p>
+          </td>
+        </tr>
+  
+        <!-- timer / bids -->
+        ${
+          timerLabel
+            ? `<tr>
+            <td style="padding:8px 12px 0 12px;font-size:13px;color:#555;">
+              ⏰ ${timerLabel}
+            </td>
+          </tr>`
+            : ''
+        }
+  
+        <!-- call‑to‑action -->
+        <tr>
+          <td style="padding:16px 12px 20px 12px;">
+            <a href="${link}"
+               style="display:block;text-align:center;background:#a91d3a;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:10px 0;border-radius:6px;">
+               Bid Now
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`;
+  
+
+  /** Split an array into chunks of 2 elements */
+const chunk2 = <T,>(arr: T[]) => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += 2) out.push(arr.slice(i, i + 2));
+  return out;
+};
+
+
+  /* ----------  build each card group  ---------- */
+  const activeCardHtmlArray = activeAuctions.map((a) =>
+    makeCard(
+      a.product?.images?.[0]?.imageLink ?? '',
+      a.product?.title ?? '',
+      `Starting Amount: <strong>${a.startBidAmount} AED</strong>`,
+      `Ends: <strong>${fmtDate(a.expiryDate)}</strong>`,
+      process.env.NODE_ENV === 'production'
+        ? `https://www.alletre.com/alletre/home/${a.id}/details`
+        : `http://localhost:3000/alletre/home/${a.id}/details`,
+    ),
+  );
+  
+
+  const activeCards = chunk2(activeCardHtmlArray)
+    .map(
+      (pair) => `
+    <tr>
+      ${pair.join('')}
+    </tr>`,
+    )
+    .join('');
+
+  const scheduledCardHtmlArray = scheduledAuctions.map((a) =>
+      makeCard(
+        a?.product?.images?.[0]?.imageLink ?? '',
+        a?.product?.title ?? '',
+        `Starting Amount: <strong>${a.startBidAmount} AED</strong>`,
+        `Starts: <strong>${fmtDate(a.startDate)}</strong>`,
+        process.env.NODE_ENV === 'production'
+          ? `https://www.alletre.com/alletre/home/${a.id}/details`
+          : `http://localhost:3000/alletre/home/${a.id}/details`,
+      ),
+    )
+ 
+
+    const scheduledCards = chunk2(scheduledCardHtmlArray)
+    .map(
+      (pair) => `
+    <tr>
+      ${pair.join('')}
+    </tr>`,
+    )
+    .join('');
+
+
+  const directBuyCardsHtmlArray = listedProducts
+    .map((p) =>
+      makeCard(
+        p?.product?.images?.[0]?.imageLink ?? '',
+        p?.product?.title ?? '',
+        `Price: <strong>${p.ProductListingPrice} AED</strong>`,
+        undefined,
+        process.env.NODE_ENV === 'production'
+          ? `https://www.alletre.com/alletre/my-product/${p.id}/details`
+          : `http://localhost:3000/alletre/my-product/${p.id}/details`,
+      ),
+    )
+
+
+    const directBuyCards = chunk2(directBuyCardsHtmlArray)
+    .map(
+      (pair) => `
+    <tr>
+      ${pair.join('')}
+    </tr>`,
+    )
+    .join('');
+
+  /* ----------  helper to render a section only when it has cards  ---------- */
+  const section = (heading: string, cardsHtml: string) =>
+    cardsHtml
+      ? `
+  <tr>
+    <td style="padding:12px 0;font-family:Arial,Helvetica,sans-serif;text-align:left;">
+      <h3 style="margin:0;font-size:20px;color:#a91d3a;">${heading}</h3>
+    </td>
+  </tr>
+  ${cardsHtml}`
+      : '';
+
+  /* ----------  full email HTML  ---------- */
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:auto;">
+  <!-- Logo -->
+  <tr>
+    <td style="padding:24px 0;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+      <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
+           alt="Alletre" width="140" style="display:block;margin:auto;" />
+    </td>
+  </tr>
+
+  <!-- Main title -->
+  <tr>
+    <td style="padding:12px 0 24px 0;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+      <h2 style="margin:0;font-size:24px;color:#a91d3a;">Last week’s top auctions</h2>
+    </td>
+  </tr>
+
+  ${section('Active Auctions', activeCards)}
+  ${section('Scheduled Auctions', scheduledCards)}
+  ${section('Direct‑Buy Products', directBuyCards)}
+
+  <!-- Footer -->
+  <tr>
+    <td style="padding-top:12px;font-size:12px;color:#888;font-family:Arial,Helvetica,sans-serif;text-align:center;">
+      You’re receiving this because you have an Alletre account.<br/>
+      <a href="https://alletre.com/settings/notifications" style="color:#888;text-decoration:underline;">Unsubscribe</a>
+    </td>
+  </tr>
+</table>`;
+}
 
 
 
