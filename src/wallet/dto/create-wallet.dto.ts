@@ -16,6 +16,10 @@ export class CreateWalletDto {
   @IsString()
   description: string;
 
+  @IsOptional()
+  @IsString()
+  transactionReference?: string;
+
   @Transform(({ value }): number => parseFloat(value))
   @IsNumber()
   amount: number;

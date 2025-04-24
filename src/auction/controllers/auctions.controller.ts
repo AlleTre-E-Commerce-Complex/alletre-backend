@@ -73,6 +73,7 @@ export class AuctionsController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     console.log('The form data of the publish auction :', auctionCreationDTO);
+    console.log('The form data of the publish auction :', auctionCreationDTO.product);
     console.log('The files of the publish auction :', files);
 
     return {
@@ -84,6 +85,114 @@ export class AuctionsController {
       ),
     };
   }
+
+  @Post('one-click-auction')
+  // @UseGuards(AuthGuard)
+  async createOneClickAuction(@Account() account: any) {
+    const auctionCreationDTO: AuctionCreationDTO = {
+      product: {
+        title: 'Apple iPhone 16 Pro Max',
+        categoryId: 1,
+        subCategoryId: 1,
+        brand: 'Apple',
+        usageStatus: 'NEW',
+        model: 'iPhone 16 Pro Max',
+        description: 'Brand new iPhone 16 Pro Max for auction',
+        
+        // Optional fields filled with undefined/defaults
+        color: undefined,
+        screenSize: undefined,
+        processor: undefined,
+        operatingSystem: undefined,
+        releaseYear: undefined,
+        regionOfManufacture: undefined,
+        ramSize: undefined,
+        cameraType: undefined,
+        material: undefined,
+        memory: undefined,
+        age: undefined,
+        totalArea: undefined,
+        numberOfRooms: undefined,
+        numberOfFloors: undefined,
+        landType: undefined,
+        countryId: undefined,
+        cityId: undefined,
+        isOffer: false,
+        offerAmount: undefined,
+        ProductListingPrice: undefined,
+        locationId: undefined,
+      },
+      startBidAmount: 500,
+      type: 'ON_TIME', // Make sure this matches an enum value in AuctionType
+      durationUnit: 'HOURS', // Make sure this matches an enum value in DurationUnits
+      durationInHours: 1,
+      durationInDays: 0,
+      locationId: 5,
+      
+      // Required properties based on DTO
+      isBuyNowAllowed: 'YES', // This needs to be 'YES' string, not a boolean
+      acceptedAmount: 0,
+      startDate: new Date(),
+      
+      // Optional properties that might be needed
+      IsDelivery: 'NO',
+      deliveryPolicyDescription: '',
+      numOfDaysOfExpecetdDelivery: 0,
+      DeliveryFees: 0,
+      IsRetrunPolicy: 'NO',
+      returnPolicyDescription: '',
+      IsWaranty: 'NO',
+      warrantyPolicyDescription: ''
+    }
+    // Fake file objects from `uploads/`
+    const files: Express.Multer.File[] = [
+      {
+        fieldname: 'images',
+        originalname: 'TV1.jpeg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'uploads/',
+        filename: '19f055955da3c0727ecc59fb814b2c15',
+        path: 'uploads/19f055955da3c0727ecc59fb814b2c15',
+        size: 8189,
+        buffer: null,
+        stream: null,
+      } as any,
+      {
+        fieldname: 'images',
+        originalname: 'TV2.jpeg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'uploads/',
+        filename: '5c7ab559c1e1602efe25772ea34df399',
+        path: 'uploads/5c7ab559c1e1602efe25772ea34df399',
+        size: 8147,
+        buffer: null,
+        stream: null,
+      } as any,
+      {
+        fieldname: 'images',
+        originalname: 'TV2.jpeg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'uploads/',
+        filename: '5c7ab559c1e1602efe25772ea34df399',
+        path: 'uploads/5c7ab559c1e1602efe25772ea34df399',
+        size: 8147,
+        buffer: null,
+        stream: null,
+      } as any,
+    ];
+  
+    const result = await this.userAuctionsService.createPendingAuction(
+      account.id,
+      auctionCreationDTO,
+      files,
+    );
+  
+    return { success: true, data: result };
+  }
+  
 
   @Put('user/:auctionId/update')
   @UseGuards(AuthGuard)

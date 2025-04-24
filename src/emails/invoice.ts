@@ -42,7 +42,9 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
 
     <table style="width: 100%; font-size: 16px; border-collapse: collapse;">
       <tr>
-        <td style="padding-bottom: 8px;"><strong>Billed To:</strong> ${invoiceData.auction.bids[0].user.userName}</td>
+        <td style="padding-bottom: 8px;"><strong>Billed To:</strong> ${
+          invoiceData.auction.bids[0].user.userName
+        }</td>
         <td style="text-align: right; padding-bottom: 8px;"><strong>Invoice No:</strong> ${invoiceNumber}</td>
       </tr>
       <tr>
@@ -55,7 +57,9 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
       <table style="width: 100%; font-size: 16px; border-collapse: collapse;">
         <tr>
           <td><strong>Alletre Service Fee / رسوم خدمة أليتري</strong></td>
-          <td style="text-align: right;"><strong>${serviceFee || 'N/A'} AED</strong></td>
+          <td style="text-align: right;"><strong>${
+            serviceFee || 'N/A'
+          } AED</strong></td>
         </tr>
       </table>
     </div>
@@ -87,7 +91,7 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
         marginTop: '0',
         marginBottom: '0',
         marginLeft: '0',
-        marginRight: '0'
+        marginRight: '0',
       });
 
       pdfStream.on('data', (chunk) => pdfChunks.push(chunk));
