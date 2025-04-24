@@ -47,7 +47,7 @@ export class EmailBody {
       "
     >
       <img
-        src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
+        src=" "
         alt="Alletre Logo"
         style="
           max-width: 80px;
