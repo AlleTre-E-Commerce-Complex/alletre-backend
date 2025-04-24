@@ -2018,6 +2018,7 @@ private renderDigestHtml(
     priceLabel: string,
     timerLabel: string | undefined, // already pre‑formatted in caller
     link: string,
+    buttonText : string,
   ) => `
   <tr>
     <td style="padding:0 12px 24px 12px;">
@@ -2070,7 +2071,7 @@ private renderDigestHtml(
           <td style="padding:16px 12px 20px 12px;">
             <a href="${link}"
                style="display:block;text-align:center;background:#a91d3a;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:10px 0;border-radius:6px;">
-               Bid Now
+               ${buttonText}
             </a>
           </td>
         </tr>
@@ -2097,6 +2098,7 @@ const chunk2 = <T,>(arr: T[]) => {
       process.env.NODE_ENV === 'production'
         ? `https://www.alletre.com/alletre/home/${a.id}/details`
         : `http://localhost:3000/alletre/home/${a.id}/details`,
+        'Bid Now'
     ),
   );
   
@@ -2119,6 +2121,7 @@ const chunk2 = <T,>(arr: T[]) => {
         process.env.NODE_ENV === 'production'
           ? `https://www.alletre.com/alletre/home/${a.id}/details`
           : `http://localhost:3000/alletre/home/${a.id}/details`,
+          'View Details'
       ),
     )
  
@@ -2143,6 +2146,7 @@ const chunk2 = <T,>(arr: T[]) => {
         process.env.NODE_ENV === 'production'
           ? `https://www.alletre.com/alletre/my-product/${p.id}/details`
           : `http://localhost:3000/alletre/my-product/${p.id}/details`,
+          'View Details',
       ),
     )
 
