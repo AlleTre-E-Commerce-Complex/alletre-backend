@@ -188,8 +188,9 @@ export class TasksService {
 
   /**
    * Function will run midnight to set all joined auction must be paid by bidder Expired_Payment
+   * If winner refuse to pay, we gives compensation to the seller here 
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(process.env.NODE_ENV === 'production' ? CronExpression.EVERY_DAY_AT_MIDNIGHT :  CronExpression.EVERY_5_MINUTES)
   async markPendingBidderPaymentAuctionsExpired() {
     // Get pending payment auctions
     const pendingPaymentAuction =
@@ -214,6 +215,18 @@ export class TasksService {
         },
         include: {
           user: true,
+          auction: {
+            include: {
+              product: { include: { images: true, category: true } },
+              bids: {
+                orderBy: { amount: 'desc' },
+                include: {
+                  user: true,
+                },
+              },
+              user: true,
+            },
+          },
         },
       });
       const sellerPaymentData = await this.prismaService.payment.findFirst({
@@ -238,11 +251,43 @@ export class TasksService {
           },
         },
       });
+
+        // //capturig the winner payment data
+        // let isWinnerSecurityDepositCaptured :any = false
+        // if(winnerSecurityDeposit.isWalletPayment){
+        //   //payment is already in the admin wallet
+        // }else if(winnerSecurityDeposit.paymentIntentId){
+        //    isWinnerSecurityDepositCaptured = 
+        //     await this.stripeService.captureDepositPaymentIntent(
+        //       winnerSecurityDeposit.paymentIntentId
+        //     )
+
+        //      //find the last transaction balane of the alletre
+        //       const lastBalanceOfAlletre =
+        //       await this.walletService.findLastTransactionOfAlletre();
+        //     //tranfering data for the alletre fees
+        //     const alletreWalletData = {
+        //       status: WalletStatus.DEPOSIT,
+        //       transactionType: WalletTransactionType.By_AUCTION,
+        //       description: `Capturing security deposit of winner due delay of complete payment`,
+        //       amount: Number(isWinnerSecurityDepositCaptured.amount) / 100, // Convert from cents to dollars
+        //       auctionId: Number(joinedAuction.auctionId),
+        //       balance: lastBalanceOfAlletre
+        //         ? Number(lastBalanceOfAlletre) +
+        //           Number(isWinnerSecurityDepositCaptured.amount) / 100
+        //         : Number(isWinnerSecurityDepositCaptured.amount) / 100, // Convert from cents to dollars
+        //     };
+        //     await this.walletService.addToAlletreWallet(
+        //       joinedAuction.userId,
+        //       alletreWalletData,
+        //     );
+        // }
+
+
       if (winnerSecurityDeposit) {
         try {
           let releaseSecurityDepositOfseller: any = false;
-          if (sellerPaymentData.isWalletPayment) {
-            // relese security deposit of seller if payment through wallet
+          // relese security deposit of seller
             const [lastWalletTransactionBalance, lastWalletTransactionAlletre] =
               await Promise.all([
                 this.walletService.findLastTransaction(
@@ -254,7 +299,7 @@ export class TasksService {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                'Return Security deposit due to winner Not paid the full amount',
+                `Return Security deposit due to winner Not paid the full amount. Product: ${sellerPaymentData.auction.product.title}`,
               amount: Number(sellerPaymentData.amount),
               auctionId: Number(sellerPaymentData.auctionId),
               balance: lastWalletTransactionBalance
@@ -266,7 +311,7 @@ export class TasksService {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                'Return Security deposit of seller due to winner confirmed the delivery',
+                `Return Security deposit of seller due to winner Not paid the full amount. Product: ${sellerPaymentData.auction.product.title}`,
               amount: Number(sellerPaymentData.amount),
               auctionId: Number(sellerPaymentData.auctionId),
               balance:
@@ -286,16 +331,10 @@ export class TasksService {
               ]);
             releaseSecurityDepositOfseller =
               sellerWalletCreationData && alletreWalletCreationData;
-          } else {
-            console.log('seller payment data ', sellerPaymentData);
-            // relese security deposit of seller if payment through stripe
-            releaseSecurityDepositOfseller =
-              await this.stripeService.cancelDepositPaymentIntent(
-                sellerPaymentData.paymentIntentId,
-              );
-          }
+
 
           if (releaseSecurityDepositOfseller) {
+            //logic for transfering compensation 
             //finding the last transaction balance of the seller
             const lastWalletTransactionBalance =
               await this.walletService.findLastTransaction(
@@ -304,37 +343,33 @@ export class TasksService {
             //finding the last transaction balance of the alletreWallet
             const lastBalanceOfAlletre =
               await this.walletService.findLastTransactionOfAlletre();
+
             //calculating the amount that need add to the highest bidder
             const compensationPercenatage = 30;
-            const amountToSellerWallet =
-              (Number(winnerSecurityDeposit.amount) * compensationPercenatage) /
-              100;
+            const compensationAmountToSellerWallet = (Number(winnerSecurityDeposit.amount) * compensationPercenatage) / 100;
 
-            // // calculating the amount that need add to the alletreWallet
-            // const amountToAlletreWallet = Number(winnerSecurityDeposit.amount) - amountToSellerWallet
-
-            //tranfering data for the copensation to the higherst bidder wallet.
+            //transfering data for the compensation to the  seller.
             const walletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                'compensation Due to full payment deley by the winned bidder.',
-              amount: amountToSellerWallet,
+                `Compensation Due to full payment delay by the winned bidder.  Product: ${sellerPaymentData.auction.product.title}`,
+              amount: compensationAmountToSellerWallet,
               auctionId: Number(joinedAuction.auctionId),
               balance: lastWalletTransactionBalance
-                ? Number(lastWalletTransactionBalance) + amountToSellerWallet
-                : amountToSellerWallet,
+                ? Number(lastWalletTransactionBalance) + compensationAmountToSellerWallet
+                : compensationAmountToSellerWallet,
             };
-            //tranfering data for the alletre fees
+            //tranfering data for the alletre 
 
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                'compensation Due to full payment delay by the winned bidder.',
-              amount: amountToSellerWallet,
+                `Compensation Due to full payment delay by the winned bidder.  Product: ${sellerPaymentData.auction.product.title}`,
+              amount: compensationAmountToSellerWallet,
               auctionId: Number(joinedAuction.auctionId),
-              balance: Number(lastBalanceOfAlletre) + amountToSellerWallet,
+              balance: Number(lastBalanceOfAlletre) - compensationAmountToSellerWallet,
             };
 
             await this.prismaService.$transaction(async (prisma) => {
@@ -699,6 +734,8 @@ export class TasksService {
   //     console.log(error);
   //   }
   // }
+
+
   //Function will run every minute to check the upcoming Pending payment by bidders and will send a warning email
 
   @Interval(60000)
@@ -983,52 +1020,128 @@ export class TasksService {
   /**
    * Function will run every mintue to set all auction expired
    */
-  @Interval(60000)
+  @Interval(6000)
   async markAuctionExpired() {
     await this._markExpiredAuctionsAndNotifyWinnerBidder();
   }
 
   async _markExpiredAuctionsAndNotifyWinnerBidder() {
-    console.log(' Start Expiration Schedular ');
-
+   try {
+    console.log(`Start Expiration Schedular[${new Date()}] `,new Date());
     // Get expiredAuctions
     const auctionsToBeExpired = await this.prismaService.auction.findMany({
       where: {
         expiryDate: {
-          lte: new Date(), // Filter auctions where expiryDate is less than or equal to the current date and time
+          lte: new Date()// Filter auctions where expiryDate is less than or equal to the current date and time
         },
         status: AuctionStatus.ACTIVE,
+        
       },
+      include:{Payment:{where:{type:'SELLER_DEPOSIT'}}}
     });
     console.log(' [IMPORTANT] auctionsToBeExpired: ', auctionsToBeExpired);
 
-    await Promise.all(
-      auctionsToBeExpired?.map(async (auction) => {
+    //if there is auctions to be expired
+    // await Promise.all(
+    //   auctionsToBeExpired?.map(async (auction) =>
+      for(const auction of auctionsToBeExpired)   {
         //get all bidders on an auction
         const BiddersForAuction = await this.prismaService.bids.findMany({
           where: { auctionId: auction.id },
           orderBy: { amount: 'desc' },
         });
+        const sellerPayment = auction.Payment
+        if (sellerPayment.length === 0){
+          // this is the case while the user is not pay the security deposit, there are cases when uses can put auction with out security deposite in special categories (ex: car under 5000),  
+          const adminMessage = "The auction has been cancelled because the seller did not comply with Alletre's guidelines"
+          this.userAuctionService.updateAuctionForCancellationByAdmin(auction.id, adminMessage)
+          return
+        }
 
-        // Get user with highest bids for auctions
+
+        // //capturig the seller payment data
+        // if(sellerPayment[0].isWalletPayment){
+        //   //payment is already in the admin wallet
+        // }else if(sellerPayment[0].paymentIntentId){
+        //  const isSellerPaymentCaptured =
+        //   await this.stripeService.captureDepositPaymentIntent(
+        //     sellerPayment[0].paymentIntentId,
+        //   );
+        // //find the last transaction balane of the alletre
+        // const lastBalanceOfAlletre =
+        //   await this.walletService.findLastTransactionOfAlletre();
+        // //tranfering data for the alletre fees
+        // const alletreWalletData = {
+        //   status: WalletStatus.DEPOSIT,
+        //   transactionType: WalletTransactionType.By_AUCTION,
+        //   description: `Capturing security deposit of seller due to auction expired`,
+        //   amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+        //   auctionId: Number(auction.id),
+        //   balance: lastBalanceOfAlletre
+        //     ? Number(lastBalanceOfAlletre) +
+        //       Number(isSellerPaymentCaptured.amount) / 100
+        //     : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+        // };
+        // await this.walletService.addToAlletreWallet(
+        //   sellerPayment[0].userId,
+        //   alletreWalletData,
+        // );
+        // }
 
         if (BiddersForAuction.length) {
+          // Get user with highest bids for auctions
           const highestBidForAuction = BiddersForAuction[0];
           console.log('Max Bid = ', highestBidForAuction);
 
-          // Get winner winnedBidderAuction
+          // Get winner winnedBidderJoinedAuction
           const winnedBidderAuction =
             await this.prismaService.joinedAuction.findFirst({
               where: {
                 userId: highestBidForAuction.userId,
                 auctionId: highestBidForAuction.auctionId,
               },
+              include:{
+                auction:{include:{Payment:{where:{userId:highestBidForAuction.userId,type:'BIDDER_DEPOSIT'}}}}
+              }
             });
+
+
+            //capturig the winner payment data
+            if(winnedBidderAuction.auction.Payment[0].isWalletPayment){
+              //payment is already in the admin wallet
+            }else if(winnedBidderAuction.auction.Payment[0].paymentIntentId){
+           const isWinnerPaymentCaptured = 
+            await this.stripeService.captureDepositPaymentIntent(
+              winnedBidderAuction.auction.Payment[0].paymentIntentId
+            )
+
+             //find the last transaction balane of the alletre
+              const lastBalanceOfAlletre =
+              await this.walletService.findLastTransactionOfAlletre();
+            //tranfering data for the alletre fees
+            const alletreWalletData = {
+              status: WalletStatus.DEPOSIT,
+              transactionType: WalletTransactionType.By_AUCTION,
+              description: `Capturing security deposit of winner due to auction expired`,
+              amount: Number(isWinnerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+              auctionId: Number(auction.id),
+              balance: lastBalanceOfAlletre
+                ? Number(lastBalanceOfAlletre) +
+                  Number(isWinnerPaymentCaptured.amount) / 100
+                : Number(isWinnerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+            };
+            await this.walletService.addToAlletreWallet(
+              sellerPayment[0].userId,
+              alletreWalletData,
+            );
+           }
 
           // Update winner joinedAuction to winner and waiting for payment & Set all joined to LOST
           const today = new Date();
-          const newDate = new Date(today.setDate(today.getDate() + 3));
-          // const newDate = new Date(today.getTime() + 5 * 60 * 1000); // Adds 5 minutes
+          // const newDate = new Date(today.setDate(today.getDate() + 3));
+          const newDate =  process.env.NODE_ENV === 'production' ?
+          new Date(today.setDate(today.getDate() + 2)):
+          new Date(today.getTime() + 20 * 60 * 1000); // Adds 5 minutes
 
           const {
             isAcutionUpdated,
@@ -1081,12 +1194,6 @@ export class TasksService {
             };
           });
 
-          console.log(
-            '------->',
-            isAcutionUpdated,
-            isHighestBidder_J_auctionUpdated,
-            isLostBidders_J_auctionUpdated,
-          );
 
           const auctionEndDate = new Date(isAcutionUpdated.expiryDate);
           const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
@@ -1102,23 +1209,23 @@ export class TasksService {
               img: isAcutionUpdated.product.images[0].imageLink,
               userName: `${isAcutionUpdated.user.userName}`,
               message1: ` 
-            <p>Exciting news! Your auction for ${isAcutionUpdated.product.title} has officially ended, and we have a winner!</p>
+             <p>Exciting news! Your auction for ${isAcutionUpdated.product.title} has officially ended, and we have a winner!</p>
                     <p>Here are the final details:</p>
-            <ul>
-            <li>	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
+              <ul>
+              <li>	Winning Bid Amount: ${isAcutionUpdated.bids[0].amount}</li>
               <li>	Winner: ${isAcutionUpdated.bids[0].user.userName} </li>
               <li> Auction Ended On: ${formattedEndDate} & ${formattedEndTime} </li>
-            </ul>
-            <h3>What’s Next? </h3>
-            <ul>
+             </ul>
+             <h3>What’s Next? </h3>
+             <ul>
               <li>1. Contact the Winner: Our team Coordinate with ${isAcutionUpdated.bids[0].user.userName} to finalize payment and delivery details.</li>
               <li>2. The winning bid amount and your security deposit will be credit to your wallet after the item delivery.</li>           </ul>
-            `,
+             `,
               message2: `<p>We’re thrilled about your successful auction and appreciate your trust in <b>Alletre</b>! If you need assistance, our support team is just a click away.</p>
                 <div style="text-align: center">
-          <a
-            href="https://www.alletre.com/"
-            style="
+             <a
+             href="https://www.alletre.com/"
+              style="
               display: inline-block;
               padding: 12px 20px;
               background-color: #a91d3a !important;
@@ -1130,17 +1237,18 @@ export class TasksService {
               font-weight: bold;
               margin: 20px 0;
               font-size: 18px;
-            "
-          >
-            Contact Support 
-          </a>
-         </div>
-         <p>Thank you for being part of our community. Here's to more successful auctions!</p>
-              <p>Warm regards,</p>
-                        <p>The <b>Alletre</b> Team </p>
-                        <p>P.S. Encourage buyers to leave feedback—it helps build trust and improve future experiences!</p>`,
-              Button_text: 'View Auction Summary   ',
-              Button_URL: ` https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
+              "
+              >
+              Contact Support 
+              </a>
+             </div>
+             <p>Thank you for being part of our community. Here's to more successful auctions!</p>
+                <p>Warm regards,</p>
+                          <p>The <b>Alletre</b> Team </p>
+                          <p>P.S. Encourage buyers to leave feedback—it helps build trust and improve future experiences!</p>`,
+                Button_text: 'View Auction Summary   ',
+                Button_URL:
+                ` https://www.alletre.com/alletre/home/${isAcutionUpdated.id}/details`,
             };
 
             const whatsappBodyForAuctionSuccess = {
@@ -1233,9 +1341,9 @@ export class TasksService {
                   <li>	<b>Pickup</b>: If you prefer, you can collect the item directly from the seller’s address. (Details will be provided after payment).</li>
                 </ul>
                      <div style="text-align: center">
-            <a
-              href="https://www.alletre.com/alletre/profile/my-bids/pending"
-              style="
+               <a
+                href="https://www.alletre.com/alletre/profile/my-bids/pending"
+                style="
                 display: inline-block;
                 padding: 12px 20px;
                 background-color: #a91d3a !important;
@@ -1247,39 +1355,39 @@ export class TasksService {
                 font-weight: bold;
                 margin: 20px 0;
                 font-size: 18px;
-              "
-            >
-             Select Delivery Option 
-            </a>
-            </div>
-            <p>3️⃣ <b> Confirm Item Collection:</b></p>
-                
-                 <p>If you choose to pick up the item, don’t forget to confirm that you’ve collected it. This ensures a smooth transaction for both you and the seller.</p>
-                           <div style="text-align: center">
-            <a
-              href="https://www.alletre.com/alletre/profile/my-bids/pending"
-              style="
-                display: inline-block;
-                padding: 12px 20px;
-                background-color: #a91d3a !important;
-                -webkit-background-color: #a91d3a !important;
-                -moz-background-color: #a91d3a !important;
-                color: #ffffff !important;
-                text-decoration: none;
-                border-radius: 10px;
-                font-weight: bold;
-                margin: 20px 0;
-                font-size: 18px;
-              "
-            >
-             Confirm Collection  
-            </a>
-            </div>
-                 <p>Warm regards,</p>
-                <p>The <b>Alletre</b> Team </p>`,
-              Button_text: 'Complete Payment ',
-              Button_URL:
-                'https://www.alletre.com/alletre/profile/my-bids/pending',
+               "
+               >
+                Select Delivery Option 
+               </a>
+               </div>
+               <p>3️⃣ <b> Confirm Item Collection:</b></p>
+                   
+                    <p>If you choose to pick up the item, don’t forget to confirm that you’ve collected it. This ensures a smooth transaction for both you and the seller.</p>
+                              <div style="text-align: center">
+               <a
+                 href="https://www.alletre.com/alletre/profile/my-bids/pending"
+                 style="
+                   display: inline-block;
+                   padding: 12px 20px;
+                   background-color: #a91d3a !important;
+                   -webkit-background-color: #a91d3a !important;
+                   -moz-background-color: #a91d3a !important;
+                   color: #ffffff !important;
+                   text-decoration: none;
+                   border-radius: 10px;
+                   font-weight: bold;
+                   margin: 20px 0;
+                   font-size: 18px;
+                 "
+               >
+                Confirm Collection  
+               </a>
+               </div>
+                    <p>Warm regards,</p>
+                   <p>The <b>Alletre</b> Team </p>`,
+                 Button_text: 'Complete Payment ',
+                 Button_URL:
+                   'https://www.alletre.com/alletre/profile/my-bids/pending',
             };
             await this.emailService.sendEmail(
               isHighestBidder_J_auctionUpdated.user.email,
@@ -1287,6 +1395,7 @@ export class TasksService {
               EmailsType.OTHER,
               body,
             );
+            //sending whatsapp message to winner
             const whatsappBodyForAuctionWin = {
               1: `🏆 Hi ${isAcutionUpdated.bids[0].user.userName},`,
               2: `Congrats! You won the auction for *${isAcutionUpdated.product.title}*. Now it is time to complete your payment and finalize the deal.`,
@@ -1455,7 +1564,7 @@ export class TasksService {
             }
           }
 
-          // Cancel payment authorizations for losing bidders
+          // finding losers peyment data to Cancel payment authorizations for losing bidders
           const losingBidders = await this.prismaService.joinedAuction.findMany(
             {
               where: {
@@ -1466,21 +1575,18 @@ export class TasksService {
             },
           );
 
-          for (const loser of losingBidders) {
+          console.log('lostBidders :',losingBidders)
+          for (const loser of losingBidders){
             try {
               const lostBidderPaymentData =
-                await this.paymentService.getAuctionPaymentTransaction(
-                  loser.userId,
-                  loser.auctionId,
-                  PaymentType.BIDDER_DEPOSIT,
-                );
-              await this.processRefundForLosingBidders(
-                lostBidderPaymentData,
-                this.prismaService,
+              await this.paymentService.getAuctionPaymentTransaction(
+                loser.userId,
+                loser.auctionId,
+                PaymentType.BIDDER_DEPOSIT,
               );
-              console.log(
-                `Successfully processed refund for losing bidder: ${loser.userId}`,
-              );
+              //releasing the security deposit of losers
+              await this.processRefundForLosingBidders(lostBidderPaymentData, this.prismaService);
+              console.log(`Successfully processed refund for losing bidder: ${loser.userId}`);
             } catch (error) {
               console.error(
                 `Failed to process refund for losing bidder ${loser.userId}:`,
@@ -1613,14 +1719,22 @@ export class TasksService {
                   type: 'SELLER_DEPOSIT',
                 },
               });
+
+              if (sellerPayment.length === 0){
+                // this is the case while the user is not pay the security deposit, there are cases when uses can put auction with out security deposite in special categories (ex: car under 5000),  
+                const adminMessage = "The auction has been cancelled because the You did not comply with Alletre's guidelines"
+                this.userAuctionService.updateAuctionForCancellationByAdmin(auction.id, adminMessage)
+                return
+              }
             let isSendBackS_D: any;
-            if (!sellerPaymentData.isWalletPayment) {
-              console.log('canceldeposit*******');
-              isSendBackS_D =
-                await this.stripeService.cancelDepositPaymentIntent(
-                  sellerPaymentData.paymentIntentId,
-                );
-            } else {
+            // if (!sellerPaymentData.isWalletPayment) {
+            //   console.log('canceldeposit*******');
+            //   isSendBackS_D =
+            //     await this.stripeService.cancelDepositPaymentIntent(
+            //       sellerPaymentData.paymentIntentId,
+            //     );
+            // } else
+              {
               try {
                 //logic to transfer to the wallet
                 //finding the last transaction balance of the Seller
@@ -1674,6 +1788,13 @@ export class TasksService {
                 );
               }
             }
+            // else {
+            //    //this is sinario is reached while the user cancell the auction with no or zero security deposit
+            //   //example : if the user cancell the auction which is CAR category, and the start bid amount is less than 5000, the we don't take the security deposit
+            //   // so in this situation the security deposite will be zero of the seller, so when we give the compensation to the winner, it will be deducted from the alletre account
+            //   isSendBackS_D =
+            //   sellerPaymentData.status === 'SUCCESS' ? true : false;
+            // }
             if (isSendBackS_D) {
               const body = {
                 subject: 'Your Auction Has Ended – Let’s Try Again!',
@@ -1683,7 +1804,7 @@ export class TasksService {
                 userName: `${auctionExpairyData.user.userName}`,
                 message1: ` 
                 <p>We noticed your auction for ${auctionExpairyData.product.title} has ended without any bids. While this can happen occasionally, don’t worry – we’re here to help!</p>
-                <p>Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.</p>
+                <p>${Number(sellerPaymentData.amount) > 0 ? `Good news: your security deposit of ${sellerPaymentData.amount} will be refunded to your account shortly.` :``}</p>
                 <p>Here’s what you can do to improve your chances next time:</p>
                 <ul>
                   <li>	Adjust Your Starting Bid: A lower starting bid might attract more interest.</li>
@@ -1759,14 +1880,17 @@ export class TasksService {
             }
           }
         }
-      }),
-    );
+      }
+    // ),);
+   } catch (error) {
+    console.error('auciton expire error :',error)
+   }
   }
-  async processRefundForLosingBidders(
-    lostBidderPaymentData: any,
-    prismaService: PrismaClient,
-  ) {
-    console.log('lostBidderIswallet1', lostBidderPaymentData.isWalletPayment);
+
+
+
+  async  processRefundForLosingBidders(lostBidderPaymentData: any, prismaService: PrismaClient) {
+    console.log('lostBidderIswallet1',lostBidderPaymentData.isWalletPayment)
     if (!lostBidderPaymentData.isWalletPayment) {
       await this.stripeService.cancelDepositPaymentIntent(
         lostBidderPaymentData.paymentIntentId,
@@ -1776,6 +1900,18 @@ export class TasksService {
     //logic to transfer to the wallet
     console.log('lostBidderIswallet2', lostBidderPaymentData.isWalletPayment);
     await prismaService.$transaction(async (prisma) => {
+      const existingRefund = await prisma.wallet.findFirst({
+        where: {
+          userId: lostBidderPaymentData.userId,
+          auctionId: lostBidderPaymentData.auctionId,
+          description: 'Return security deposit due to auction lost',
+        },
+      });
+    
+      if (existingRefund) {
+        console.log('Refund already processed. Skipping...');
+        return;
+      }
       //finding the last transaction balance of the losers
       const lastWalletTransactionBalanceOfBidder =
         await this.walletService.findLastTransaction(
@@ -1831,6 +1967,9 @@ export class TasksService {
           balance: alletreWalletData.balance,
         },
       });
-    });
-  }
+      
+    })
+}
+
+ 
 }

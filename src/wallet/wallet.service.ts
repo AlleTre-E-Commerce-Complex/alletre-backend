@@ -58,6 +58,7 @@ export class WalletService {
           auctionId: createWalletData.auctionId,
           purchaseId: createWalletData.purchaseId,
           balance: createWalletData.balance,
+          transactionReference: createWalletData?.transactionReference
         },
       });
       console.log('the create wallet transaction result : ==>', result);
@@ -82,8 +83,16 @@ export class WalletService {
 
   async findAllAdminWalletDetails() {
     const walletData = await this.prismaSevice.alletreWallet.findMany({
-      include: { user: true },
+      include:{
+        user: true,
+        auction:{
+          include:{
+            product:{include:{images:true}}
+          }
+        }
+      }
     });
+    // console.log('wallet data :',walletData)
     // let balance = walletData[walletData.length-1]
     return walletData;
   }

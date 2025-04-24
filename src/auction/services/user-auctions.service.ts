@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   MethodNotAllowedException,
+  Logger
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
@@ -58,6 +59,7 @@ import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 
 @Injectable()
 export class UserAuctionsService {
+  private readonly logger = new Logger(UserAuctionsService.name);
   constructor(
     private stripeService: StripeService,
     private prismaService: PrismaService,
@@ -91,6 +93,7 @@ export class UserAuctionsService {
     );
 
     let productId: number;
+    const user = await this.auctionsHelper._userHasCompleteProfile(userId);
     if (!isConvertProductToAuction) {
       const combinedfile = [...images, ...video];
       console.log('AAAA', combinedfile.length);
@@ -101,7 +104,6 @@ export class UserAuctionsService {
         });
 
       // Check user can create auction (hasCompleteProfile)
-      await this.auctionsHelper._userHasCompleteProfile(userId);
 
       // Create Product
       const createProductStatus = 'AUCTION';
@@ -123,18 +125,19 @@ export class UserAuctionsService {
       });
     }
     // Create Auction
+    let auction :any
     switch (durationUnit) {
       case DurationUnits.DAYS:
         if (type === AuctionType.ON_TIME) {
           // Create ON_TIME Daily auction
-          return await this._createOnTimeDailyAuction(
+          auction =  await this._createOnTimeDailyAuction(
             userId,
             productId,
             auctionCreationBody,
           );
         } else if (type === AuctionType.SCHEDULED) {
           // Create Schedule Daily auction
-          return await this._createScheduleDailyAuction(
+          auction =  await this._createScheduleDailyAuction(
             userId,
             productId,
             auctionCreationBody,
@@ -145,14 +148,14 @@ export class UserAuctionsService {
       case DurationUnits.HOURS:
         if (type === AuctionType.ON_TIME) {
           // Create ON_TIME hours auction
-          return await this._createOnTimeHoursAuction(
+          auction =  await this._createOnTimeHoursAuction(
             userId,
             productId,
             auctionCreationBody,
           );
         } else if (type === AuctionType.SCHEDULED) {
           // Create Schedule hours auction
-          return await this._createScheduleHoursAuction(
+          auction =  await this._createScheduleHoursAuction(
             userId,
             productId,
             auctionCreationBody,
@@ -160,6 +163,37 @@ export class UserAuctionsService {
         }
         break;
     }
+    console.log('created auction',auction)
+    if(auction.product.categoryId  === 4 && auction.startBidAmount < 5000){
+      // const paymentData = await this.prismaService.payment.create({
+      //   data: {
+      //     userId: userId,
+      //     auctionId: auction.id,
+      //     amount: 0,
+      //     type: PaymentType.SELLER_DEPOSIT,
+      //     isWalletPayment: false,
+      //     status: 'SUCCESS',
+      //   },
+      //   include: {
+      //     auction: {
+      //       include: { product: { include: { images: true } } },
+      //     },
+      //     user:true
+      //   },
+      // });
+
+      if (auction.product.categoryId  === 4 && auction.startBidAmount < 5000){
+        await this.paymentService.publishAuction(auction.id, user.email);
+      }else{
+        this.logger.error(`Payment creation failed for auction ID: ${auction.id}`);
+        throw new MethodNotAllowedResponse({
+          ar: 'حدث خطأ أثناء معالجة الدفع الخاص بالمزاد. يرجى المحاولة مرة أخرى أو التواصل مع فريق الدعم.',
+          en: 'An error occurred while processing the auction payment. Please try again or contact support.',
+        });
+      }
+    }
+
+    return auction
   }
 
   async updateAuctionDetails(
@@ -260,36 +294,42 @@ export class UserAuctionsService {
         },
       });
 
-      //capture SD of seller
-      let isSellerPaymentCaptured: any;
-      if (sellerSecurityDeposit.isWalletPayment) {
-        isSellerPaymentCaptured =
-          sellerSecurityDeposit.status === 'SUCCESS' ? true : false;
-      } else {
-        isSellerPaymentCaptured =
-          await this.stripeService.captureDepositPaymentIntent(
-            sellerSecurityDeposit.paymentIntentId,
-          );
-        //find the last transaction balane of the alletre
-        const lastBalanceOfAlletre =
-          await this.walletService.findLastTransactionOfAlletre();
-        //tranfering data for the alletre fees
-        const alletreWalletData = {
-          status: WalletStatus.DEPOSIT,
-          transactionType: WalletTransactionType.By_AUCTION,
-          description: `Security deposit credited to Alletre wallet due to auction cancellation by admin.`,
-          amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-          auctionId: Number(auctionId),
-          balance: lastBalanceOfAlletre
-            ? Number(lastBalanceOfAlletre) +
-              Number(isSellerPaymentCaptured.amount) / 100
-            : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-        };
-        await this.walletService.addToAlletreWallet(
-          sellerSecurityDeposit.userId,
-          alletreWalletData,
-        );
-      }
+      // //capture SD of seller
+      // let isSellerPaymentCaptured: any;
+      // if (sellerSecurityDeposit?.isWalletPayment) {
+      //   isSellerPaymentCaptured =
+      //     sellerSecurityDeposit.status === 'SUCCESS' ? true : false;
+      // } else if(sellerSecurityDeposit?.paymentIntentId){
+      //   isSellerPaymentCaptured =
+      //     await this.stripeService.captureDepositPaymentIntent(
+      //       sellerSecurityDeposit.paymentIntentId,
+      //     );
+      //   //find the last transaction balane of the alletre
+      //   const lastBalanceOfAlletre =
+      //     await this.walletService.findLastTransactionOfAlletre();
+      //   //tranfering data for the alletre fees
+      //   const alletreWalletData = {
+      //     status: WalletStatus.DEPOSIT,
+      //     transactionType: WalletTransactionType.By_AUCTION,
+      //     description: `Security deposit credited to Alletre wallet due to auction cancellation by admin.`,
+      //     amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+      //     auctionId: Number(auctionId),
+      //     balance: lastBalanceOfAlletre
+      //       ? Number(lastBalanceOfAlletre) +
+      //         Number(isSellerPaymentCaptured.amount) / 100
+      //       : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+      //   };
+      //   await this.walletService.addToAlletreWallet(
+      //     sellerSecurityDeposit.userId,
+      //     alletreWalletData,
+      //   );
+      // }else {
+      //   //this is sinario is reached while the user cancell the auction with no or zero security deposit
+      //   //example : if the user cancell the auction which is CAR category, and the start bid amount is less than 5000, the we don't take the security deposit
+      //   // so in this situation the security deposite will be zero of the seller, so when we give the compensation to the winner, it will be deducted from the alletre account
+      //   isSellerPaymentCaptured = true ;
+      // }
+      let isSellerPaymentCaptured = true
       const auctionEndDate = new Date(auction.expiryDate);
       const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
       const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
@@ -301,7 +341,7 @@ export class UserAuctionsService {
           img: auction.product.images[0].imageLink,
           userName: `${auction.user.userName}`,
           message1: ` 
-          <p>The admin has been cancelled your auction for ${auction.product.title}. The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy.</p>
+          <p>The admin has been cancelled your auction for ${auction.product.title}. ${sellerSecurityDeposit ? "":`The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy.`}</p>
           <p>Reason: ${adminMessage}</p>
                   <p>Auction Details:</p>
           <ul>
@@ -328,7 +368,7 @@ export class UserAuctionsService {
 
         const whatsappBodyToSellerAuctionCancelled = {
           1: `${auction.user.userName}`,
-          2: `⚠️ Your auction for *${auction.product.title}* has been cancelled by the admin. The security deposit of *${auction.product.category.sellerDepositFixedAmount}* has been forfeited as per company policy.`,
+          2: `⚠️ Your auction for *${auction.product.title}* has been cancelled by the admin. ${sellerSecurityDeposit? "":`The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy.`}`,
           3: `*Reason:* ${adminMessage}`,
           4: `*Title:* ${auction.product.title}`,
           5: `*Auction End Date:* ${formattedEndDate} & ${formattedEndTime}`,
@@ -351,7 +391,7 @@ export class UserAuctionsService {
           await this.prismaService.notification.create({
             data: {
               userId: auction.user.id,
-              message: `Your auction for "${auction.product.title}" (Model: ${auction.product.model}) has been  canceled by admin due to ${adminMessage}. Unfortunately, The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy. .`,
+              message: `Your auction for "${auction.product.title}" (Model: ${auction.product.model}) has been  canceled by admin due to ${adminMessage}. ${sellerSecurityDeposit ? "":`The security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our company policy.`}`,
               imageLink: auction.product.images[0].imageLink,
               productTitle: auction.product.title,
               auctionId: auction.id,
@@ -387,7 +427,8 @@ export class UserAuctionsService {
             user: true,
           },
         });
-        BiddersPaymentData?.map(async (data) => {
+        // BiddersPaymentData?.map(async (data) => 
+          for(const data of BiddersPaymentData) {
           //send email to bidders
           const emailBodyToBidders = {
             subject:
@@ -542,7 +583,8 @@ export class UserAuctionsService {
               console.log('sendNotificationToSpecificUsers error', error);
             }
           }
-        });
+        }
+      // );
       }
       //emiting cancel auction to remove the auction from users screen
       this.auctionWebsocketGateway.cancelAuction(auctionId);
@@ -569,8 +611,17 @@ export class UserAuctionsService {
             include: { images: true, category: true },
           },
           user: true,
+          Payment:{where:{type:'SELLER_DEPOSIT'}}
         },
       });
+
+      const sellerPayment = auction.Payment
+      if (sellerPayment.length === 0){
+        // this is the case while the user is not pay the security deposit, there are cases when uses can put auction with out security deposite in special categories (ex: car under 5000),  
+        const adminMessage = "The auction has been cancelled because the seller did not comply with Alletre's guidelines"
+        return this.updateAuctionForCancellationByAdmin(auction.id, adminMessage)
+      }
+      
       const BiddersData = await this.prismaService.bids.findMany({
         where: {
           auctionId,
@@ -590,38 +641,44 @@ export class UserAuctionsService {
             },
           });
 
-        let isSellerPaymentCaptured: any;
-        if (sellerSecurityDeposit.isWalletPayment) {
-          isSellerPaymentCaptured =
-            sellerSecurityDeposit.status === 'SUCCESS' ? true : false;
-        } else {
-          isSellerPaymentCaptured =
-            await this.stripeService.captureDepositPaymentIntent(
-              sellerSecurityDeposit.paymentIntentId,
-            );
-          //find the last transaction balane of the alletre
-          const lastBalanceOfAlletre =
-            await this.walletService.findLastTransactionOfAlletre();
-          //tranfering data for the alletre fees
-          const alletreWalletData = {
-            status: WalletStatus.DEPOSIT,
-            transactionType: WalletTransactionType.By_AUCTION,
-            description: `Auction cancelled by seller ${
-              auction.status === 'ACTIVE' ? 'before' : 'after'
-            } the expiry date.`,
+        // let isSellerPaymentCaptured: any;
+        // if (sellerSecurityDeposit?.isWalletPayment) {
+        //   isSellerPaymentCaptured =
+        //     sellerSecurityDeposit.status === 'SUCCESS' ? true : false;
+        // } else if(sellerSecurityDeposit?.paymentIntentId) {
+        //   isSellerPaymentCaptured =
+        //     await this.stripeService.captureDepositPaymentIntent(
+        //       sellerSecurityDeposit.paymentIntentId,
+        //     );
+        //   //find the last transaction balane of the alletre
+        //   const lastBalanceOfAlletre =
+        //     await this.walletService.findLastTransactionOfAlletre();
+        //   //tranfering data for the alletre fees
+        //   const alletreWalletData = {
+        //     status: WalletStatus.DEPOSIT,
+        //     transactionType: WalletTransactionType.By_AUCTION,
+        //     description: `Auction cancelled by seller ${
+        //       auction.status === 'ACTIVE' ? 'before' : 'after'
+        //     } the expiry date.`,
 
-            amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-            auctionId: Number(auctionId),
-            balance: lastBalanceOfAlletre
-              ? Number(lastBalanceOfAlletre) +
-                Number(isSellerPaymentCaptured.amount) / 100
-              : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
-          };
-          await this.walletService.addToAlletreWallet(
-            userId,
-            alletreWalletData,
-          );
-        }
+        //     amount: Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+        //     auctionId: Number(auctionId),
+        //     balance: lastBalanceOfAlletre
+        //       ? Number(lastBalanceOfAlletre) +
+        //         Number(isSellerPaymentCaptured.amount) / 100
+        //       : Number(isSellerPaymentCaptured.amount) / 100, // Convert from cents to dollars
+        //   };
+        //   await this.walletService.addToAlletreWallet(
+        //     userId,
+        //     alletreWalletData,
+        //   );
+        // }else {
+        //   //this is sinario is reached while the user cancell the auction with no or zero security deposit
+        //   //example : if the user cancell the auction which is CAR category, and the start bid amount is less than 5000, the we don't take the security deposit
+        //   // so in this situation the security deposite will be zero of the seller, so when we give the compensation to the winner, it will be deducted from the alletre account
+        //   isSellerPaymentCaptured =true;
+        // }
+        const isSellerPaymentCaptured = true
         const auctionEndDate = new Date(auction.expiryDate);
         const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
         const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
@@ -635,7 +692,7 @@ export class UserAuctionsService {
             img: auction.product.images[0].imageLink,
             userName: `${auction.user.userName}`,
             message1: ` 
-            <p>You have successfully cancelled your auction for ${auction.product.title}. However, since there were active bidders on this auction, the security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our cancellation policy.</p>
+            <p>You have successfully cancelled your auction for ${auction.product.title}.  ${sellerSecurityDeposit ? "": `However, since there were active bidders on this auction, the security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our cancellation policy`}.</p>
                     <p>Auction Details:</p>
             <ul>
               <li>Title: ${auction.product.title} </li>
@@ -663,7 +720,7 @@ export class UserAuctionsService {
           const whatsappBodyToSellerSelfCancelled = {
             1: `${auction.user.userName}`,
             2: `⚠️ You cancelled your auction for *${auction.product.title}*.`,
-            3: `Your security deposit of ${auction.product.category.sellerDepositFixedAmount} was forfeited as per our policy.`,
+            3: `${sellerSecurityDeposit ? `*Title:* ${auction.product.title}`:`Your security deposit of ${auction.product.category.sellerDepositFixedAmount} was forfeited as per our policy.`}`,
             4: `*Category:* ${auction.product.category.nameEn}`,
             5: `*Highest Bid:* ${auction.bids[0].amount}`,
             6: `*Ends:* ${formattedEndDate} & ${formattedEndTime}`,
@@ -685,7 +742,7 @@ export class UserAuctionsService {
             await this.prismaService.notification.create({
               data: {
                 userId: auction.user.id,
-                message: `Your auction for "${auction.product.title}" (Model: ${auction.product.model}) has been successfully canceled. Unfortunately, you have lost your security deposit as there were bidders on your auction.`,
+                message:`You have successfully cancelled your auction for ${auction.product.title}.  ${sellerSecurityDeposit ? "": `However, since there were active bidders on this auction, the security deposit of ${auction.product.category.sellerDepositFixedAmount} has been forfeited as per our cancellation policy`}.`,
                 imageLink: auction.product.images[0].imageLink,
                 productTitle: auction.product.title,
                 auctionId: auction.id,
@@ -724,7 +781,8 @@ export class UserAuctionsService {
           //find security Deposit of highest bidder // becuase when the acution complete, the S_D of winned bidder will be captured
           let highestBidderSecurityDeposit = 0;
 
-          BiddersPaymentData?.map(async (data) => {
+          // BiddersPaymentData?.map(async (data) => 
+            for(const data of BiddersPaymentData ){
             if (data.userId === highestBidderId) {
               highestBidderSecurityDeposit = Number(data.amount);
             }
@@ -961,7 +1019,8 @@ export class UserAuctionsService {
                 console.log('sendNotificationToSpecificUsers error', error);
               }
             }
-          });
+          }
+        // );
 
           //finding the last transaction balance of the highest bidder
           const lastWalletTransactionBalance =
@@ -987,7 +1046,7 @@ export class UserAuctionsService {
           const highestBidderWalletData = {
             status: WalletStatus.DEPOSIT,
             transactionType: WalletTransactionType.By_AUCTION,
-            description: `Auction cancelled by seller ${
+            description: `${auction.status === 'WAITING_FOR_PAYMENT' ? 'Return security deposit including Compensation':' Compensation Due To Auction cancelled by seller'} ${
               auction.status === 'ACTIVE' ? 'before' : 'after'
             } the expiry date.`,
             amount: originalAmountToWinnedBidderWallet,
@@ -1002,7 +1061,7 @@ export class UserAuctionsService {
           const alletreWalletData = {
             status: WalletStatus.WITHDRAWAL,
             transactionType: WalletTransactionType.By_AUCTION,
-            description: `Auction cancelled by seller ${
+            description: `Compensation Due To Auction cancelled by seller ${
               auction.status === 'ACTIVE' ? 'before' : 'after'
             } the expiry date.`,
             amount: originalAmountToWinnedBidderWallet,
@@ -1145,7 +1204,8 @@ export class UserAuctionsService {
           });
           //here need to check the depost is from wallet or not
           let isSendBackS_D: any;
-          if (sellerPaymentData.isWalletPayment) {
+          // if (sellerPaymentData.isWalletPayment)
+             {
             console.log(
               'security deposit of this cancelled auciton is via WALLET',
             );
@@ -1199,14 +1259,15 @@ export class UserAuctionsService {
             if (sellerWalletTranser && alleTreWalletTranser)
               isSendBackS_D = true;
             else isSendBackS_D = false;
-          } else {
-            console.log(
-              'security deposit of this cancelled auciton is via STRIPE',
-            );
-            isSendBackS_D = await this.stripeService.cancelDepositPaymentIntent(
-              sellerPaymentData.paymentIntentId,
-            );
           }
+          //  else {
+          //   console.log(
+          //     'security deposit of this cancelled auciton is via STRIPE',
+          //   );
+          //   isSendBackS_D = await this.stripeService.cancelDepositPaymentIntent(
+          //     sellerPaymentData.paymentIntentId,
+          //   );
+          // }
           const auctionEndDate = new Date(
             updatedDataOfCancellAuction.expiryDate,
           );
@@ -2519,6 +2580,7 @@ export class UserAuctionsService {
         location: {
           include: { city: true, country: true },
         },
+
         _count: { select: { bids: true } },
       },
     });
@@ -2562,6 +2624,7 @@ export class UserAuctionsService {
         latestBidAmount: isAuctionHasBidders
           ? await this._findLatestBidForAuction(auctionId)
           : undefined,
+        winnerSecurityDeposite:isDepositPaid
       };
     }
 
@@ -2579,7 +2642,7 @@ export class UserAuctionsService {
   async checkAuctionExistanceAndReturn(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
-      include: { bids: true },
+      include:{bids: true,product:true}
     });
 
     if (!auction)
@@ -2713,18 +2776,36 @@ export class UserAuctionsService {
     try {
       await this.auctionsHelper._isAuctionOwner(userId, auctionId);
       const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+      console.log('auction-->>',auction)
+     //cheking whether it car category or not
+     //if it is car category, then the user can list auction with out security deposit if the price below AED 5000
 
-      this.auctionStatusValidator.isActionValidForAuction(
-        auction,
-        AuctionActions.SELLER_DEPOSIT,
-      );
-
-      this.auctionStatusValidator.isStatusValidForAuction(
-        auction,
-        auction.type === AuctionType.ON_TIME
-          ? AuctionStatus.ACTIVE
-          : AuctionStatus.IN_SCHEDULED,
-      );
+     if(auction.status === 'CANCELLED_BY_ADMIN'){
+      throw new MethodNotAllowedResponse({
+        ar:"لا يمكن معالجة الدفع للمزاد الذي انتهت صلاحيته",
+        en: "Payment cannot be processed for an expired auction.",
+      });
+     }
+     const categoryId = Number(auction.product.categoryId);
+     const startBid = Number(auction.startBidAmount);
+     
+     const shouldValidate =
+       categoryId !== 4 || (categoryId === 4 && startBid >= 5000);
+     
+     if (shouldValidate) {
+       this.auctionStatusValidator.isActionValidForAuction(
+         auction,
+         AuctionActions.SELLER_DEPOSIT,
+       );
+     
+       this.auctionStatusValidator.isStatusValidForAuction(
+         auction,
+         auction.type === AuctionType.ON_TIME
+           ? AuctionStatus.ACTIVE
+           : AuctionStatus.IN_SCHEDULED,
+       );
+     }
+     
 
       const auctionCategory = await this.auctionsHelper._getAuctionCategory(
         auctionId,
@@ -2789,6 +2870,11 @@ export class UserAuctionsService {
       }
     } catch (error) {
       console.log('error at pay publish :', error);
+      
+      throw new MethodNotAllowedResponse({
+        ar: error.response.ar ||error.response.message.ar||'فشل في معالجة الدفع الشريطي',
+        en: error.response.en ||error.response.message.en||'Failed to process stripe payment',
+      });
     }
   }
 
@@ -3280,6 +3366,145 @@ export class UserAuctionsService {
     }
   }
 
+  // async payDepositByBidder(
+  //   userId: number,
+  //   auctionId: number,
+  //   bidAmount: number,
+  //   isWalletPayment?: boolean,
+  //   amount_forWalletPay?: number,
+  // ) {
+
+
+  //   console.log('payDepositByBidder test 1', bidAmount);
+
+  //   const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+  //   this.auctionStatusValidator.isActionValidForAuction(
+  //     auction,
+  //     AuctionActions.BIDDER_DEPOSIT,
+  //   );
+
+  //   // Check authorization
+  //   if (auction.userId === userId)
+  //     throw new MethodNotAllowedResponse({
+  //       ar: 'هذا الاعلان من احد إعلاناتك',
+  //       en: 'This auction is one of your created auctions',
+  //     });
+
+  //   // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
+  //   let latestBidAmount: Decimal;
+  //   const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+  //   if (isAuctionHasBidders) {
+  //     latestBidAmount = await this._findLatestBidForAuction(auctionId);
+  //     // Convert both to Decimal or both to number for proper comparison
+  //     const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+  //     const newBid = new Prisma.Decimal(bidAmount.toString());
+  //     console.log('currentBid : ', currentBid);
+  //     console.log('newBid : ', newBid);
+  //     if (currentBid.gte(newBid))
+  //       throw new MethodNotAllowedResponse({
+  //         ar: 'قم برفع السعر',
+  //         en: 'Bid Amount Must Be Greater Than Current Amount',
+  //       });
+  //   } else {
+  //     latestBidAmount = auction.startBidAmount;
+  //     console.log('latestBidAmount : ', latestBidAmount);
+  //     console.log('bidAmount : ', bidAmount);
+  //     console.log(
+  //       'latestBidAmount >= new Prisma.Decimal(bidAmount) : ',
+  //       latestBidAmount >= new Prisma.Decimal(bidAmount),
+  //     );
+  //     // Convert both to Decimal or both to number for proper comparison
+  //     const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+  //     const newBid = new Prisma.Decimal(bidAmount.toString());
+  //     if (currentBid.gte(newBid))
+  //       throw new MethodNotAllowedResponse({
+  //         ar: 'قم برفع السعر',
+  //         en: 'Bid Amount Must Be Greater Than Current Amount',
+  //       });
+  //   }
+
+  //   const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+  //     auctionId,
+  //   );
+
+  //   const user = await this.prismaService.user.findUnique({
+  //     where: { id: userId },
+  //     include: {
+  //       locations: { include: { country: true } },
+  //     },
+  //   });
+
+  //   const bidderMainLocation = user.locations.find((location) => {
+  //     if (location.isMain) return location;
+  //   });
+
+  //   if (!bidderMainLocation)
+  //     throw new MethodNotAllowedResponse({
+  //       ar: 'ادخل عنوان رئيسي',
+  //       en: 'Set one location as main',
+  //     });
+
+  //   console.log('payDepositByBidder test 2');
+  //   //calculate the seller security deposite
+  //   const startBidAmount = auction.startBidAmount;
+  //   let amount = Number(auctionCategory.bidderDepositFixedAmount);
+  //   const categoryName = auctionCategory?.nameEn;
+
+  //   //checking whether the auction is luxuary or not
+  //   if (
+  //     auctionCategory.luxuaryAmount &&
+  //     Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
+  //   ) {
+  //     let total: number;
+  //     //calculating the security deposite
+  //     total = Number(
+  //       (Number(startBidAmount) *
+  //         Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
+  //         100,
+  //     );
+
+  //     if (categoryName === 'Cars' || categoryName === 'Properties') {
+  //       const latestBidAmount = auction?.bids?.reverse()[0]?.amount;
+  //       total = Number(
+  //         ((latestBidAmount
+  //           ? Number(latestBidAmount)
+  //           : Number(startBidAmount)) *
+  //           Number(auctionCategory?.percentageOfLuxuarySD_forBidder)) /
+  //           100,
+  //       );
+  //     }
+  //     //checking the total is less than minimum security deposite
+  //     if (
+  //       auctionCategory.minimumLuxuarySD_forBidder &&
+  //       total < Number(auctionCategory.minimumLuxuarySD_forBidder)
+  //     ) {
+  //       amount = Number(auctionCategory.minimumLuxuarySD_forBidder);
+  //     } else {
+  //       amount = total;
+  //     }
+  //   }
+  //   if (!isWalletPayment) {
+  //     return await this.paymentService.payDepositByBidder(
+  //       user,
+  //       auctionId,
+  //       bidderMainLocation.country.currency,
+  //       amount,
+  //       bidAmount,
+  //     );
+  //   } else {
+  //     return await this.paymentService.walletPayDepositByBidder(
+  //       user,
+  //       auctionId,
+  //       // bidderMainLocation.country.currency,
+  //       // Number(auctionCategory.bidderDepositFixedAmount),
+  //       // amount_forWalletPay,
+  //       amount,
+  //       bidAmount,
+  //     );
+  //   }
+  // }
+
   async payDepositByBidder(
     userId: number,
     auctionId: number,
@@ -3287,115 +3512,136 @@ export class UserAuctionsService {
     isWalletPayment?: boolean,
     amount_forWalletPay?: number,
   ) {
+
+    const { user, auction, amount, bidderMainLocation } =
+    await this.prismaService.$transaction(async (tx) => {
+      
+         // Lock the auction row
+         await tx.$executeRawUnsafe(`
+          SELECT * FROM "Auction"
+          WHERE id = ${auctionId}
+          FOR UPDATE
+        `);
+    
+        const auction = await this.checkAuctionExistanceAndReturn(auctionId);
+
+        this.auctionStatusValidator.isActionValidForAuction(
+          auction,
+          AuctionActions.BIDDER_DEPOSIT,
+        );
+    
+        // Check authorization
+        if (auction.userId === userId)
+          throw new MethodNotAllowedResponse({
+            ar: 'هذا الاعلان من احد إعلاناتك',
+            en: 'This auction is one of your created auctions',
+          });
+    
+        // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
+        let latestBidAmount: Decimal;
+        const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+        if (isAuctionHasBidders) {
+          latestBidAmount = await this._findLatestBidForAuction(auctionId);
+          // Convert both to Decimal or both to number for proper comparison
+          const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+          const newBid = new Prisma.Decimal(bidAmount.toString());
+          console.log('currentBid : ', currentBid);
+          console.log('newBid : ', newBid);
+          if (currentBid.gte(newBid))
+            throw new MethodNotAllowedResponse({
+              ar: 'قم برفع السعر',
+              en: 'Bid Amount Must Be Greater Than Current Amount',
+            });
+        } else {
+          latestBidAmount = auction.startBidAmount;
+          console.log('latestBidAmount : ', latestBidAmount);
+          console.log('bidAmount : ', bidAmount);
+          console.log(
+            'latestBidAmount >= new Prisma.Decimal(bidAmount) : ',
+            latestBidAmount >= new Prisma.Decimal(bidAmount),
+          );
+          // Convert both to Decimal or both to number for proper comparison
+          const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+          const newBid = new Prisma.Decimal(bidAmount.toString());
+          if (currentBid.gte(newBid))
+            throw new MethodNotAllowedResponse({
+              ar: 'قم برفع السعر',
+              en: 'Bid Amount Must Be Greater Than Current Amount',
+            });
+        }
+    
+        const auctionCategory = await this.auctionsHelper._getAuctionCategory(
+          auctionId,
+        );
+    
+        const user = await this.prismaService.user.findUnique({
+          where: { id: userId },
+          include: {
+            locations: { include: { country: true } },
+          },
+        });
+    
+        const bidderMainLocation = user.locations.find((location) => {
+          if (location.isMain) return location;
+        });
+    
+        if (!bidderMainLocation)
+          throw new MethodNotAllowedResponse({
+            ar: 'ادخل عنوان رئيسي',
+            en: 'Set one location as main',
+          });
+    
+        console.log('payDepositByBidder test 2');
+        //calculate the seller security deposite
+        const startBidAmount = auction.startBidAmount;
+        let amount = Number(auctionCategory.bidderDepositFixedAmount);
+        const categoryName = auctionCategory?.nameEn;
+    
+        //checking whether the auction is luxuary or not
+        if (
+          auctionCategory.luxuaryAmount &&
+          Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
+        ) {
+          let total: number;
+          //calculating the security deposite
+          total = Number(
+            (Number(startBidAmount) *
+              Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
+              100,
+          );
+    
+          if (categoryName === 'Cars' || categoryName === 'Properties') {
+            const latestBidAmount = auction?.bids?.reverse()[0]?.amount;
+            total = Number(
+              ((latestBidAmount
+                ? Number(latestBidAmount)
+                : Number(startBidAmount)) *
+                Number(auctionCategory?.percentageOfLuxuarySD_forBidder)) /
+                100,
+            );
+          }
+          //checking the total is less than minimum security deposite
+          if (
+            auctionCategory.minimumLuxuarySD_forBidder &&
+            total < Number(auctionCategory.minimumLuxuarySD_forBidder)
+          ) {
+            amount = Number(auctionCategory.minimumLuxuarySD_forBidder);
+          } else {
+            amount = total;
+          }
+        }
+  
+      return {
+        user,
+        auction,
+        amount,
+        bidderMainLocation,
+      };
+    });
+
     console.log('payDepositByBidder test 1', bidAmount);
 
-    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
-
-    this.auctionStatusValidator.isActionValidForAuction(
-      auction,
-      AuctionActions.BIDDER_DEPOSIT,
-    );
-
-    // Check authorization
-    if (auction.userId === userId)
-      throw new MethodNotAllowedResponse({
-        ar: 'هذا الاعلان من احد إعلاناتك',
-        en: 'This auction is one of your created auctions',
-      });
-
-    // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
-    let latestBidAmount: Decimal;
-    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
-    if (isAuctionHasBidders) {
-      latestBidAmount = await this._findLatestBidForAuction(auctionId);
-      // Convert both to Decimal or both to number for proper comparison
-      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
-      const newBid = new Prisma.Decimal(bidAmount.toString());
-      console.log('currentBid : ', currentBid);
-      console.log('newBid : ', newBid);
-      if (currentBid.gte(newBid))
-        throw new MethodNotAllowedResponse({
-          ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
-        });
-    } else {
-      latestBidAmount = auction.startBidAmount;
-      console.log('latestBidAmount : ', latestBidAmount);
-      console.log('bidAmount : ', bidAmount);
-      console.log(
-        'latestBidAmount >= new Prisma.Decimal(bidAmount) : ',
-        latestBidAmount >= new Prisma.Decimal(bidAmount),
-      );
-      // Convert both to Decimal or both to number for proper comparison
-      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
-      const newBid = new Prisma.Decimal(bidAmount.toString());
-      if (currentBid.gte(newBid))
-        throw new MethodNotAllowedResponse({
-          ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount2',
-        });
-    }
-
-    const auctionCategory = await this.auctionsHelper._getAuctionCategory(
-      auctionId,
-    );
-
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      include: {
-        locations: { include: { country: true } },
-      },
-    });
-
-    const bidderMainLocation = user.locations.find((location) => {
-      if (location.isMain) return location;
-    });
-
-    if (!bidderMainLocation)
-      throw new MethodNotAllowedResponse({
-        ar: 'ادخل عنوان رئيسي',
-        en: 'Set one location as main',
-      });
-
-    console.log('payDepositByBidder test 2');
-    //calculate the seller security deposite
-    const startBidAmount = auction.startBidAmount;
-    let amount = Number(auctionCategory.bidderDepositFixedAmount);
-    const categoryName = auctionCategory?.nameEn;
-
-    //checking whether the auction is luxuary or not
-    if (
-      auctionCategory.luxuaryAmount &&
-      Number(startBidAmount) > Number(auctionCategory.luxuaryAmount)
-    ) {
-      let total: number;
-      //calculating the security deposite
-      total = Number(
-        (Number(startBidAmount) *
-          Number(auctionCategory.percentageOfLuxuarySD_forBidder)) /
-          100,
-      );
-
-      if (categoryName === 'Cars' || categoryName === 'Properties') {
-        const latestBidAmount = auction?.bids?.reverse()[0]?.amount;
-        total = Number(
-          ((latestBidAmount
-            ? Number(latestBidAmount)
-            : Number(startBidAmount)) *
-            Number(auctionCategory?.percentageOfLuxuarySD_forBidder)) /
-            100,
-        );
-      }
-      //checking the total is less than minimum security deposite
-      if (
-        auctionCategory.minimumLuxuarySD_forBidder &&
-        total < Number(auctionCategory.minimumLuxuarySD_forBidder)
-      ) {
-        amount = Number(auctionCategory.minimumLuxuarySD_forBidder);
-      } else {
-        amount = total;
-      }
-    }
+   
     if (!isWalletPayment) {
       return await this.paymentService.payDepositByBidder(
         user,
@@ -3417,6 +3663,8 @@ export class UserAuctionsService {
     }
   }
 
+  
+  
   async submitBidForAuction(
     userId: number,
     auctionId: number,
@@ -3469,6 +3717,7 @@ export class UserAuctionsService {
       include: {
         auction: {
           include: {
+            Payment: {where:{type:'SELLER_DEPOSIT'}},
             user: true,
             bids: {
               include: { user: true },
@@ -3480,6 +3729,16 @@ export class UserAuctionsService {
       },
     });
 
+    if(bidCreated){
+      const sellerPayment = bidCreated.auction.Payment
+      if(bidCreated.auction.product.categoryId === 4 &&
+        Number(bidCreated.auction.startBidAmount) < 5000 &&
+        bidAmount >= 5000 &&
+         sellerPayment.length === 0
+       ){
+        this.paymentService.notieceTheSellerToCompleteThePayment(bidCreated.auction.user,bidCreated.auction)
+      }
+    }
     // Get totalBids after my bid
     const totalBids = await this.prismaService.bids.count({
       where: { auctionId },
@@ -3731,31 +3990,31 @@ export class UserAuctionsService {
     const latestBidAmount = await this._findLatestBidForAuction(
       auctionWinner.auctionId,
     );
+    const winnerSecurityDepositData = await this.prismaService.payment.findFirst({
+      where: {
+        userId,
+        auctionId,
+        status: { in: [PaymentStatus.SUCCESS, PaymentStatus.HOLD] },
+        type: PaymentType.BIDDER_DEPOSIT,
+      },
+    });
     const baseValue = Number(latestBidAmount);
-    const auctionFee = (baseValue * 0.5) / 100;
-    const stripeFee = (baseValue * 2.9) / 100 + 1; // stripe takes 2.9% of the base value and additionally 1 dirham
-    const payingAmountWithFees = baseValue + auctionFee;
-    const payingAmountWithStripeAndAlletreFees =
-      payingAmountWithFees + stripeFee;
-    const payingAmount = !isWalletPayment
-      ? baseValue + auctionFee + stripeFee
-      : baseValue + auctionFee;
-    // const payingAmount =
-    //   Number(latestBidAmount) + (Number(latestBidAmount) * 0.5) / 100;
+    const {payingAmountOfWallet, payingAmountOfStripe} = 
+      this.paymentService.calculateWinnerPaymentAmount(Number(latestBidAmount),Number(winnerSecurityDepositData.amount))
     if (!isWalletPayment) {
       return await this.paymentService.payAuctionByBidder(
         user,
         auctionId,
         userMainLocation.country.currency,
         Number(baseValue),
-        Number(payingAmountWithStripeAndAlletreFees),
+        Number(payingAmountOfStripe),
       );
     } else {
       return await this.paymentService.payAuctionByBidderWithWallet(
         user,
         auctionId,
         // userMainLocation.country.currency,
-        Number(payingAmountWithFees),
+        Number(payingAmountOfWallet),
       );
     }
   }
@@ -3804,18 +4063,19 @@ export class UserAuctionsService {
 
     //TODO: CREATE PAYMENT TRANSACTION FOR BUY_NOW FLOW
     const baseValue = Number(auction.acceptedAmount);
-    const auctionFee = (baseValue * 0.5) / 100;
-    const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
-    const payingAmountWithFees = baseValue + auctionFee;
-    const payingAmountWithStripeAndAlletreFees =
-      payingAmountWithFees + stripeFee;
+    const {payingAmountOfWallet, payingAmountOfStripe} = this.paymentService.calculateWinnerPaymentAmount(baseValue)
+    // const auctionFee = (baseValue * 0.5) / 100;
+    // const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
+    // const payingAmountWithFees = baseValue + auctionFee;
+    // const payingAmountWithStripeAndAlletreFees =
+    //   payingAmountWithFees + stripeFee;
     if (!isWalletPayment) {
       return await this.paymentService.createBuyNowPaymentTransaction(
         user,
         auctionId,
         userMainLocation.country.currency,
         Number(baseValue),
-        Number(payingAmountWithStripeAndAlletreFees),
+        Number(payingAmountOfStripe),
       );
     } else {
       // need to crete the createBuyNowPaymentTransaction for wallet
@@ -3823,7 +4083,7 @@ export class UserAuctionsService {
         user,
         auctionId,
         Number(baseValue),
-        Number(payingAmountWithFees),
+        Number(payingAmountOfWallet),
       );
     }
   }
@@ -3964,15 +4224,14 @@ export class UserAuctionsService {
       console.log('sellerPaymentData :', sellerPaymentData);
       let isSellerDepositSendBack: any = false;
       //checking if seller deposit is through wallet or not
-      if (!sellerPaymentData.isWalletPayment) {
-        //if not through wallet (which means through stripe) then cancell the payment intent
-        isSellerDepositSendBack =
-          await this.stripeService.cancelDepositPaymentIntent(
-            sellerPaymentData.paymentIntentId,
-          );
-      } else {
-        // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
-        // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
+      // if (!sellerPaymentData.isWalletPayment) {
+      //   //if not through wallet (which means through stripe) then cancell the payment intent
+      //   isSellerDepositSendBack =
+      //     await this.stripeService.cancelDepositPaymentIntent(
+      //       sellerPaymentData.paymentIntentId,
+      //     );
+      // } else 
+      {
         const [lastWalletTransactionBalance, lastWalletTransactionAlletre] =
           await Promise.all([
             this.walletService.findLastTransaction(auction.userId),
@@ -4034,7 +4293,7 @@ export class UserAuctionsService {
         // const lastWalletTransactionBalance = await this.walletService.findLastTransaction(auction.userId)
         // const lastWalletTransactionAlletre = await this.walletService.findLastTransactionOfAlletre()
 
-        const [lastWalletTransactionBalance, lastWalletTransactionAlletre] =
+        const [lastWalletTransactionBalanceOfSeller, lastWalletTransactionAlletre] =
           await Promise.all([
             this.walletService.findLastTransaction(auction.userId),
             this.walletService.findLastTransactionOfAlletre(),
@@ -4045,8 +4304,8 @@ export class UserAuctionsService {
           description: 'Full payment for auction.',
           amount: Number(amountToSellerWallet),
           auctionId: Number(auctionId),
-          balance: lastWalletTransactionBalance
-            ? Number(lastWalletTransactionBalance) +
+          balance: lastWalletTransactionBalanceOfSeller
+            ? Number(lastWalletTransactionBalanceOfSeller) +
               Number(amountToSellerWallet)
             : Number(amountToSellerWallet),
         };
@@ -4738,7 +4997,7 @@ export class UserAuctionsService {
         usageStatus,
         title,
       });
-
+      console.log('123')
       const allListedProducts =
         await this.prismaService.listedProducts.findMany({
           where: {
@@ -4770,6 +5029,7 @@ export class UserAuctionsService {
           take: limit,
           orderBy: { id: 'desc' },
         });
+        console.log('allListedProductLocatin:',allListedProducts)
       const productsCount = await this.prismaService.listedProducts.count({
         where: {
           status,

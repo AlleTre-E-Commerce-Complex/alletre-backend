@@ -4,6 +4,7 @@ import {
   MethodNotAllowedException,
 } from '@nestjs/common';
 import {
+  Auction,
   AuctionStatus,
   AuctionType,
   DurationUnits,
@@ -27,6 +28,7 @@ import { AuctionWebSocketGateway } from 'src/auction/gateway/auction.gateway';
 import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
 import { timeout } from 'rxjs';
 import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
+import { MethodNotAllowedResponse } from 'src/common/errors';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -67,12 +69,27 @@ export class PaymentsService {
             'Auction Start Date Now Not Valid For Publishing.',
           );
         }
-
+         
         if (userPaymentForAuction.isWalletPayment) {
-          throw new MethodNotAllowedException('already paid');
+          // throw new MethodNotAllowedException('already paid');
+          throw new MethodNotAllowedResponse({
+            ar: 'تم الدفع بالفعل',
+            en: 'Already paid',
+          });
         }
         //check previous payment attempt thorugh stripe or not
         if (userPaymentForAuction.paymentIntentId) {
+            // Retrieve PaymentIntent and clientSecret for clientSide
+            const paymentIntent = await this.stripeService.retrievePaymentIntent(
+              userPaymentForAuction.paymentIntentId,
+            );
+    
+            if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')
+            {  throw new MethodNotAllowedResponse({
+                        ar: 'تم الدفع بالفعل',
+                        en: 'Already paid by stripe',
+                      });
+              }
           // throw new MethodNotAllowedException(
           //   'Wallet payment is not available for this auction. Please select an online payment method to proceed.',
           // );
@@ -140,29 +157,30 @@ export class PaymentsService {
       );
 
       if (paymentData) {
-        //checking again the wallet balance to avoid issues
-        const lastWalletTransactionBalanceOfSeller =
-          await this.walletService.findLastTransaction(user.id);
-        if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
-          throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+
+          //checking again the wallet balance to avoid issues
+          const lastWalletTransactionBalanceOfSeller =
+            await this.walletService.findLastTransaction(user.id);
+          if (Number(lastWalletTransactionBalanceOfSeller) < amount) {
+            throw new MethodNotAllowedException('Sorry, Insufficient Balance.');
+          }
+          //crete new transaction in seller wallet
+          const sellerWallet = await this.walletService.create(
+            user.id,
+            SellerWalletData);
+          //crete new transaction in alletre wallet
+          const alletreWallet = await this.walletService.addToAlletreWallet(
+            user.id,
+            alletreWalletData);
+          // create new payment database
+          if (!sellerWallet || !alletreWallet) {
+            throw new InternalServerErrorException(
+              'Failed to process wallet payment',
+            );
+          }
+        if(paymentData.auction.status !== 'ACTIVE'){
+          await this.publishAuction(auctionId,user.email);
         }
-        //crete new transaction in seller wallet
-        const sellerWallet = await this.walletService.create(
-          user.id,
-          SellerWalletData,
-        );
-        //crete new transaction in alletre wallet
-        const alletreWallet = await this.walletService.addToAlletreWallet(
-          user.id,
-          alletreWalletData,
-        );
-        // create new payment database
-        if (!sellerWallet || !alletreWallet) {
-          throw new InternalServerErrorException(
-            'Failed to process wallet payment',
-          );
-        }
-        await this.publishAuction(auctionId);
         if (paymentData.auction.type !== 'SCHEDULED') {
           const usersId = await this.notificationsService.getAllRegisteredUsers(
             user.id,
@@ -198,9 +216,14 @@ export class PaymentsService {
       return paymentData;
     } catch (error) {
       console.log('wallet pay deposit by seller error :', error);
-      throw new InternalServerErrorException(
-        'Failed to process wallet payment',
-      );
+      if(error.message){
+        throw new InternalServerErrorException(error.response.message);
+      }else{
+        throw new InternalServerErrorException(
+          'Failed to process wallet payment',
+        );
+      }
+
     }
   }
   async payDepositBySeller(
@@ -233,6 +256,7 @@ export class PaymentsService {
         PaymentType.SELLER_DEPOSIT,
       );
       if (userPaymentForAuction) {
+        console.log('***123',userPaymentForAuction)
         // Check startDate for auction
         const auction = await this.prismaService.auction.findFirst({
           where: { id: userPaymentForAuction.auctionId },
@@ -246,22 +270,40 @@ export class PaymentsService {
           );
         }
 
+        if (userPaymentForAuction.isWalletPayment) {
+          // throw new MethodNotAllowedException('already paid');
+          throw new MethodNotAllowedResponse({
+            ar: 'تم الدفع بالفعل',
+            en: 'Already paid by wallet',
+          });
+        }
         // Retrieve PaymentIntent and clientSecret for clientSide
         const paymentIntent = await this.stripeService.retrievePaymentIntent(
           userPaymentForAuction.paymentIntentId,
         );
 
-        if (paymentIntent.status === 'succeeded')
-          throw new MethodNotAllowedException('already paid');
-
+        if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')
+        {  throw new MethodNotAllowedResponse({
+                    ar: 'تم الدفع بالفعل',
+                    en: 'Already paid',
+                  });
+          }
         return {
           clientSecret: paymentIntent.client_secret,
           paymentIntentId: paymentIntent.id,
         };
       }
       console.log('stripeCustomerId :', stripeCustomerId);
+      // const { clientSecret, paymentIntentId } =
+      //   await this.stripeService.createDepositPaymentIntent(
+      //     stripeCustomerId,
+      //     amount,
+      //     currency,
+      //   );
+
+      // it will capture the deposite directly
       const { clientSecret, paymentIntentId } =
-        await this.stripeService.createDepositPaymentIntent(
+        await this.stripeService.createPaymentIntent(
           stripeCustomerId,
           amount,
           currency,
@@ -280,9 +322,14 @@ export class PaymentsService {
       return { clientSecret, paymentIntentId };
     } catch (error) {
       console.log('stripe pay deposit by seller error :', error);
-      throw new InternalServerErrorException(
-        'Failed to process stripe payment',
-      );
+      if(error.message){
+        throw new InternalServerErrorException(error.response.message);
+      }else{
+        throw new InternalServerErrorException(
+          'Failed to process stripe payment',
+        );
+      }
+     
     }
   }
 
@@ -394,12 +441,20 @@ export class PaymentsService {
                       orderBy: { amount: 'desc' },
                     },
                     product: { include: { images: true, category: true } },
+                    Payment: {where:{type:'SELLER_DEPOSIT'}}
                   },
                 },
                 user: true,
               },
-            });
-
+            }); 
+            const sellerPayment = paymentData.auction.Payment
+            if(paymentData.auction.product.categoryId === 4 &&
+              Number(paymentData.auction.startBidAmount) < 5000 &&
+              bidAmount >= 5000 &&
+               sellerPayment.length === 0
+             ){
+              this.notieceTheSellerToCompleteThePayment(paymentData.auction.user,paymentData.auction)
+            }
             return { paymentData };
           } catch (error) {
             console.log(
@@ -772,7 +827,7 @@ export class PaymentsService {
         currency,
         { bidAmount: Number(bidAmount) },
       );
-    console.log('test 8');
+    console.log('test 8, bid amount:',bidAmount,'amount:', amount);
 
     //TODO:  Add currency in payment model
     await this.prismaService.payment.create({
@@ -959,74 +1014,76 @@ export class PaymentsService {
             PaymentType.BIDDER_DEPOSIT,
           );
 
-        if (
-          !winnedBidderDepositPaymentData.isWalletPayment &&
-          winnedBidderDepositPaymentData.paymentIntentId
-        ) {
-          try {
-            const is_SD_SendBackToWinner =
-              await this.stripeService.cancelDepositPaymentIntent(
-                winnedBidderDepositPaymentData.paymentIntentId,
-              );
-            if (is_SD_SendBackToWinner) {
-              console.log('SD send back to winner - stripe');
-            }
-          } catch (error) {
-            console.error(
-              'Error when sending back SD  for winning bidder:',
-              error,
-            );
-          }
-        } else {
-          try {
-            //finding the last transaction balance of the winner
-            const lastWalletTransactionBalanceOfWinner =
-              await this.walletService.findLastTransaction(
-                winnedBidderDepositPaymentData.userId,
-              );
-            //finding the last transaction balance of the alletreWallet
-            const lastBalanceOfAlletre =
-              await this.walletService.findLastTransactionOfAlletre();
-            //wallet data for the winner bidder
-            const BidderWalletData = {
-              status: WalletStatus.DEPOSIT,
-              transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return security deposit after auction win`,
-              amount: Number(winnedBidderDepositPaymentData.amount),
-              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-              balance: lastWalletTransactionBalanceOfWinner
-                ? Number(lastWalletTransactionBalanceOfWinner) +
-                  Number(winnedBidderDepositPaymentData.amount)
-                : Number(winnedBidderDepositPaymentData.amount),
-            };
-            // wallet data for deposit to alletre wallet
+        // if (
+        //   !winnedBidderDepositPaymentData.isWalletPayment &&
+        //   winnedBidderDepositPaymentData.paymentIntentId
+        // ) {
+        //   try {
+        //     const is_SD_SendBackToWinner =
+        //       await this.stripeService.cancelDepositPaymentIntent(
+        //         winnedBidderDepositPaymentData.paymentIntentId,
+        //       );
+        //     if (is_SD_SendBackToWinner) {
+        //       console.log('SD send back to winner - stripe');
+        //     }
+        //   } catch (error) {
+        //     console.error(
+        //       'Error when sending back SD  for winning bidder:',
+        //       error,
+        //     );
+        //   }
+        // } else
+        //  {
+        //   try {
+        //     //finding the last transaction balance of the winner
+        //     const lastWalletTransactionBalanceOfWinner =
+        //       await this.walletService.findLastTransaction(
+        //         winnedBidderDepositPaymentData.userId,
+        //       );
+        //     //finding the last transaction balance of the alletreWallet
+        //     const lastBalanceOfAlletre =
+        //       await this.walletService.findLastTransactionOfAlletre();
+        //     //wallet data for the winner bidder
+        //     const BidderWalletData = {
+        //       status: WalletStatus.DEPOSIT,
+        //       transactionType: WalletTransactionType.By_AUCTION,
+        //       description: `Return security deposit after auction win`,
+        //       amount: Number(winnedBidderDepositPaymentData.amount),
+        //       auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+        //       balance: lastWalletTransactionBalanceOfWinner
+        //         ? Number(lastWalletTransactionBalanceOfWinner) +
+        //           Number(winnedBidderDepositPaymentData.amount)
+        //         : Number(winnedBidderDepositPaymentData.amount),
+        //     };
+        //     // wallet data for deposit to alletre wallet
 
-            const alletreWalletData = {
-              status: WalletStatus.WITHDRAWAL,
-              transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return of bidder security deposit after auction win`,
-              amount: Number(winnedBidderDepositPaymentData.amount),
-              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-              balance:
-                Number(lastBalanceOfAlletre) -
-                Number(winnedBidderDepositPaymentData.amount),
-            };
-            await this.walletService.create(
-              winnedBidderDepositPaymentData.userId,
-              BidderWalletData,
-            );
-            //crete new transaction in alletre wallet
-            await this.walletService.addToAlletreWallet(
-              winnedBidderDepositPaymentData.userId,
-              alletreWalletData,
-            );
-          } catch (error) {
-            console.error(
-              'Error when sending back SD  for winning bidder:',
-              error,
-            );
-          }
-        }
+        //     const alletreWalletData = {
+        //       status: WalletStatus.WITHDRAWAL,
+        //       transactionType: WalletTransactionType.By_AUCTION,
+        //       description: `Return of bidder security deposit after auction win`,
+        //       amount: Number(winnedBidderDepositPaymentData.amount),
+        //       auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+        //       balance:
+        //         Number(lastBalanceOfAlletre) -
+        //         Number(winnedBidderDepositPaymentData.amount),
+        //     };
+        //     await this.walletService.create(
+        //       winnedBidderDepositPaymentData.userId,
+        //       BidderWalletData,
+        //     );
+        //     //crete new transaction in alletre wallet
+        //     await this.walletService.addToAlletreWallet(
+        //       winnedBidderDepositPaymentData.userId,
+        //       alletreWalletData,
+        //     );
+        //   } catch (error) {
+        //     console.error(
+        //       'Error when sending back SD  for winning bidder:',
+        //       error,
+        //     );
+        //   }
+        // }
+
         //Email to winning bidder paid amount (wallet)
         const paymentSuccessData = paymentData;
         const invoicePDF = await generateInvoicePDF(paymentSuccessData);
@@ -1296,6 +1353,7 @@ export class PaymentsService {
       data: {
         userId: user.id,
         auctionId: auctionId,
+        // amount: payingAmount,
         amount: payingAmount,
         paymentIntentId: paymentIntentId,
         type: PaymentType.AUCTION_PURCHASE,
@@ -1587,8 +1645,9 @@ export class PaymentsService {
             },
           },
         });
-        await Promise.all(
-          auctionPaymentData.map(async (payment) => {
+        // await Promise.all(
+        //   auctionPaymentData.map(async (payment) => {
+            for(const payment of auctionPaymentData) {
             if (payment.type === 'BIDDER_DEPOSIT') {
               let is_SD_SendBackToBidder = false;
               if (payment.isWalletPayment) {
@@ -1623,17 +1682,25 @@ export class PaymentsService {
                   balance:
                     Number(lastBalanceOfAlletre) - Number(payment.amount),
                 };
-                //crete new transaction in bidder wallet
-                const bidderWalletReuslt = await this.walletService.create(
-                  payment.user.id,
-                  bidderWalletData,
-                );
-                //crete new transaction in alletre wallet
-                const alletreWalletResult =
-                  await this.walletService.addToAlletreWallet(
-                    payment.user.id,
-                    alletreWalletData,
-                  );
+                // //crete new transaction in bidder wallet
+                // const bidderWalletReuslt = await this.walletService.create(
+                //   payment.user.id,
+                //   bidderWalletData,
+                // );
+                // //crete new transaction in alletre wallet
+                // const alletreWalletResult =
+                //   await this.walletService.addToAlletreWallet(
+                //     payment.user.id,
+                //     alletreWalletData,
+                //   );
+                const [bidderWalletReuslt, alletreWalletResult] = await this.prismaService.$transaction(async (tx) => {
+                  const bidderRes = await this.walletService.create(payment.user.id, bidderWalletData, tx);
+                  const alletreRes = await this.walletService.addToAlletreWallet(payment.user.id, alletreWalletData, tx);
+                  return [bidderRes, alletreRes];
+                });
+                
+                
+                
                 if (bidderWalletReuslt && alletreWalletResult)
                   is_SD_SendBackToBidder = true;
               } else {
@@ -1841,8 +1908,8 @@ export class PaymentsService {
                 }
               }
             }
-          }),
-        );
+          }
+        // ),);
         //Notifying delivery request to admin
         this.adminGateway.emitEventToAdmins(
           'delivery:newNotification',
@@ -1955,15 +2022,17 @@ export class PaymentsService {
             where: { paymentIntentId: paymentIntent.id },
             include: {
               auction: {
-                include: {
-                  product: { include: { images: true } },
-                  user: true,
-                  bids: true,
+                include: { 
+                  product: { include: { images: true } }, 
+                  user: true, bids:true, 
+                  Payment: {where: {type:'SELLER_DEPOSIT'}}
                 },
               },
               user: true,
             },
           });
+
+
 
         switch (auctionHoldPaymentTransaction.type) {
           case PaymentType.BIDDER_DEPOSIT:
@@ -1993,6 +2062,28 @@ export class PaymentsService {
                 },
               }),
             ]);
+
+            console.log('call notieceTheSellerToCompleteThePayment1')
+             
+            const sellerPayment = auctionHoldPaymentTransaction.auction.Payment
+            console.log('**123',auctionHoldPaymentTransaction.auction.product.categoryId === 4 &&
+              Number(auctionHoldPaymentTransaction.auction.startBidAmount) < 5000 &&
+               paymentIntent.metadata.bidAmount >= 5000 &&
+              sellerPayment.length === 0)
+
+              console.log(',auctionHoldPaymentTransaction.auction.product.categoryId:',auctionHoldPaymentTransaction.auction.product.categoryId)
+              console.log(',Number(auctionHoldPaymentTransaction.auction.startBidAmount):',Number(auctionHoldPaymentTransaction.auction.startBidAmount))
+              console.log(',paymentIntent.metadata.bidAmount:',paymentIntent.metadata.bidAmount)
+              console.log(',sellerPayment.length:',sellerPayment.length)
+            if(auctionHoldPaymentTransaction.auction.product.categoryId === 4 &&
+               Number(auctionHoldPaymentTransaction.auction.startBidAmount) < 5000 &&
+                paymentIntent.metadata.bidAmount >= 5000 &&
+               sellerPayment.length === 0
+              ){
+            console.log('call notieceTheSellerToCompleteThePayment2')
+
+              this.notieceTheSellerToCompleteThePayment(auctionHoldPaymentTransaction.auction.user,auctionHoldPaymentTransaction.auction)
+            }
             const joinedBidders = await this.prismaService.bids.findMany({
               where: {
                 auctionId: auctionHoldPaymentTransaction.auctionId,
@@ -2134,30 +2225,30 @@ export class PaymentsService {
                 EmailsType.OTHER,
                 emailBodyToSecondLastBidder,
               );
+              const whatsappBodyTosecondLastBidders = {
+                1:`${joinedBidders[1].user.userName}`,
+                2:`Exciting things are happening on *${
+                      auctionHoldPaymentTransaction.auction.product.title
+                    }* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
+                3:`* Current Highest Bid:* ${
+                      joinedBidders.length > 1
+                        ? joinedBidders[0].amount
+                        : 'No bids yet'
+                    }`,
+                4:`*Your Last Bid*: ${joinedBidders[1]?.amount}`,
+                5:`*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
+                6:`Do not miss your chance to claim this one-of-a-kind *${
+                         auctionHoldPaymentTransaction.auction.product.title
+                       }* . The clock is ticking, and every second counts!`,
+                7:`Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
+                8: auctionHoldPaymentTransaction.auction.product.images[0].imageLink,
+                9:`https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              }
+              if(joinedBidders[1].user.phone){
+                await this.whatsappService.sendOtherUtilityMessages(whatsappBodyTosecondLastBidders,joinedBidders[1].user.phone,'alletre_common_utility_templet')
+              }
             }
-            const whatsappBodyTosecondLastBidders = {
-              1: `${joinedBidders[1].user.userName}`,
-              2: `Exciting things are happening on *${auctionHoldPaymentTransaction.auction.product.title}* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
-              3: `* Current Highest Bid:* ${
-                joinedBidders.length > 1
-                  ? joinedBidders[0].amount
-                  : 'No bids yet'
-              }`,
-              4: `*Your Last Bid*: ${joinedBidders[1]?.amount}`,
-              5: `*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
-              6: `Do not miss your chance to claim this one-of-a-kind *${auctionHoldPaymentTransaction.auction.product.title}* . The clock is ticking, and every second counts!`,
-              7: `Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
-              8: auctionHoldPaymentTransaction.auction.product.images[0]
-                .imageLink,
-              9: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
-            };
-            if (joinedBidders[1].user.phone) {
-              await this.whatsappService.sendOtherUtilityMessages(
-                whatsappBodyTosecondLastBidders,
-                joinedBidders[1].user.phone,
-                'alletre_common_utility_templet',
-              );
-            }
+           
             // create notification for seller
             const auction = auctionHoldPaymentTransaction.auction;
             const isCreateNotificationToSeller =
@@ -2311,6 +2402,16 @@ export class PaymentsService {
         const auctionPaymentTransaction =
           await this.prismaService.payment.findUnique({
             where: { paymentIntentId: paymentIntent.id },
+            include: {
+              auction: {
+                include: { 
+                  product: { include: { images: true } }, 
+                  user: true, bids:true, 
+                  Payment: {where: {type:'SELLER_DEPOSIT'}}
+                },
+              },
+              user: true,
+            },
           });
         console.log(
           'auctionPaymentTransaction :',
@@ -2351,14 +2452,132 @@ export class PaymentsService {
           case PaymentType.SELLER_DEPOSIT:
             console.log('Webhook SELLER_DEPOSIT ...');
 
-            // Update Auction
-            // await this.publishAuction(auctionPaymentTransaction.auctionId);
-
-            // Update payment transaction
-            await this.prismaService.payment.update({
-              where: { paymentIntentId: paymentIntent.id },
-              data: { status: PaymentStatus.SUCCESS },
+            
+            await this.prismaService.$transaction(async (tx) => {
+              const sellerPayment = await tx.payment.update({
+                where: { paymentIntentId: paymentIntent.id },
+                data: { status: PaymentStatus.SUCCESS },
+              });
+            
+              const existingWalletTransaction = await tx.alletreWallet.findFirst({
+                where: {
+                  userId: sellerPayment.userId,
+                  auctionId: sellerPayment.auctionId,
+                  amount: Number(sellerPayment.amount),
+                  transactionType: WalletTransactionType.By_AUCTION,
+                  status: WalletStatus.DEPOSIT,
+                  transactionReference: sellerPayment.paymentIntentId,
+                },
+              });
+            
+              if (!existingWalletTransaction) {
+                const lastBalanceOfAlletre =
+                  await this.walletService.findLastTransactionOfAlletre();
+            
+                const alletreWalletData = {
+                  status: WalletStatus.DEPOSIT,
+                  transactionType: WalletTransactionType.By_AUCTION,
+                  description: `Seller security payment to create new auction.`,
+                  amount: Number(sellerPayment.amount),
+                  auctionId: Number(sellerPayment.auctionId),
+                  transactionReference: sellerPayment.paymentIntentId,
+                  balance: lastBalanceOfAlletre
+                    ? Number(lastBalanceOfAlletre) + Number(sellerPayment.amount)
+                    : Number(sellerPayment.amount),
+                };
+            
+                await this.walletService.addToAlletreWallet(
+                  sellerPayment.userId,
+                  alletreWalletData,
+                );
+              } else {
+                console.log('Skipping duplicate wallet transaction...');
+              }
             });
+            
+
+            //   // Update payment transaction
+            //  const sellerPayment =  await this.prismaService.payment.update({
+            //     where: { paymentIntentId: paymentIntent.id },
+            //     data: { status: PaymentStatus.SUCCESS },
+            //   });
+            //   //assign  the seller payment to admin wallet
+            //  if(sellerPayment){
+
+            //   // Check if this paymentIntent has already been processed
+            //   const existingWalletTransaction = await this.prismaService.wallet.findFirst({
+            //     where: {
+            //       auctionId: sellerPayment.auctionId,
+            //       amount: Number(sellerPayment.amount),
+            //       transactionType: WalletTransactionType.By_AUCTION,
+            //       status: WalletStatus.DEPOSIT,
+            //     },
+            //   });
+            //       if(!existingWalletTransaction){
+            //         //find the last transaction balane of the alletre
+            //             const lastBalanceOfAlletre =
+            //             await this.walletService.findLastTransactionOfAlletre();
+            //           //tranfering data for the alletre fees
+            //           const alletreWalletData = {
+            //             status: WalletStatus.DEPOSIT,
+            //             transactionType: WalletTransactionType.By_AUCTION,
+            //             description: `Seller security payment to create new auction.`,
+            //             amount: Number(sellerPayment.amount) ,
+            //             auctionId: Number(sellerPayment.auctionId),
+            //             balance: lastBalanceOfAlletre
+            //               ? Number(lastBalanceOfAlletre) +
+            //                 Number(sellerPayment.amount) 
+            //               : Number(sellerPayment.amount) ,
+            //           };
+            //           await this.walletService.addToAlletreWallet(
+            //             sellerPayment.userId,
+            //             alletreWalletData,
+            //           );
+            //       }else{
+            //         console.log('Skipping duplicate wallet transaction...');
+            //       }
+            //   }
+            if(auctionPaymentTransaction.auction.status !== 'ACTIVE'){
+              await this.publishAuction(
+                auctionPaymentTransaction.auctionId,
+                auctionPaymentTransaction.auction.user.email,
+              );
+            }
+            if (auctionPaymentTransaction.auction.type !== 'SCHEDULED') {
+              await this.prismaService.notification.create({
+                data: {
+                  userId: auctionPaymentTransaction.userId,
+                  message:
+                    'Congratulations! Your auction has been published successfully.',
+                  imageLink:
+                    auctionPaymentTransaction.auction.product.images[0]
+                      .imageLink,
+                  productTitle:
+                    auctionPaymentTransaction.auction.product.title,
+                  auctionId: auctionPaymentTransaction.auctionId,
+                },
+              });
+              const currentUserId = auctionPaymentTransaction.userId;
+              const usersId =
+                await this.notificationsService.getAllRegisteredUsers(
+                  currentUserId,
+                );
+              const imageLink =
+                auctionPaymentTransaction.auction.product.images[0]
+                  .imageLink;
+              const productTitle =
+                auctionPaymentTransaction.auction.product.title;
+              const message = 'New Auction has been published.';
+              const isBidders = false;
+              await this.notificationsService.sendNotifications(
+                usersId,
+                message,
+                imageLink,
+                productTitle,
+                auctionPaymentTransaction.auctionId,
+                isBidders,
+              );
+            }
             break;
 
           case PaymentType.AUCTION_PURCHASE:
@@ -2416,108 +2635,136 @@ export class PaymentsService {
               });
 
             if (paymentSuccessData) {
+
+              const isPaymentAddedToAdminWallet = await this.prismaService.alletreWallet.findFirst({
+                where:{transactionReference:paymentSuccessData.paymentIntentId}
+              })
+
+              if(isPaymentAddedToAdminWallet){
+                console.warn(
+                  `Duplicate payment webhook received. Skipping wallet update for paymentIntentId: ${paymentSuccessData.paymentIntentId}`,
+                );
+                return;
+              }
+
+              const userId = auctionPaymentTransaction.userId
+              const auctionId = auctionPaymentTransaction.auctionId
+              const winnerSecurityDepositData = await this.prismaService.payment.findFirst({
+                where: {
+                  userId,
+                  auctionId,
+                  status: { in: [PaymentStatus.SUCCESS, PaymentStatus.HOLD] },
+                  type: PaymentType.BIDDER_DEPOSIT,
+                },
+              });
+             
               const lastBalanceOfAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
-              const baseValue = Number(paymentSuccessData.amount);
-              const auctionFee = (baseValue * 0.5) / 100;
-              const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
-              const payingAmountWithFees = baseValue + auctionFee;
-              const payingAmountWithStripeAndAlletreFees =
-                payingAmountWithFees + stripeFee;
-              const amountToAlletteWalletAfterStripeDeduction =
-                payingAmountWithStripeAndAlletreFees -
-                ((payingAmountWithStripeAndAlletreFees * 3) / 100 + 1);
-              const alletreWalletData = {
+                const baseValue = Number(paymentSuccessData.amount);
+
+                const {amountToAlletteWalletInTheStripeWEBHOOK,payingAmountWithStripeAndAlletreFees} =  
+                  this.calculateWinnerPaymentAmount(baseValue, Number(winnerSecurityDepositData.amount))
+
+                const amountToAlletteWalletAfterStripeDeduction = amountToAlletteWalletInTheStripeWEBHOOK   
+
+                const alletreWalletData = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
-                description: `Complete Payment of winner bidder`,
+                description: `Complete Payment of winner bidder  ( paying amount  before stripe stripe deduction ${payingAmountWithStripeAndAlletreFees})`,
                 amount: Number(amountToAlletteWalletAfterStripeDeduction),
                 auctionId: Number(paymentSuccessData.auctionId),
+                transactionReference:paymentSuccessData.paymentIntentId,
                 balance: lastBalanceOfAlletre
                   ? Number(lastBalanceOfAlletre) +
                     Number(amountToAlletteWalletAfterStripeDeduction)
                   : Number(amountToAlletteWalletAfterStripeDeduction),
-              };
-              await this.walletService.addToAlletreWallet(
-                paymentSuccessData.auction.user.id,
-                alletreWalletData,
-              );
+                
+               };
+
+             
+             
+               await this.walletService.addToAlletreWallet(
+                 paymentSuccessData.auction.user.id,
+                 alletreWalletData,
+               );
+
               //here need send the back the security deposit of winner
-              const winnedBidderDepositPaymentData =
-                await this.getAuctionPaymentTransaction(
-                  paymentSuccessData.userId,
-                  paymentSuccessData.auctionId,
-                  PaymentType.BIDDER_DEPOSIT,
-                );
+              // const winnedBidderDepositPaymentData =
+              //   await this.getAuctionPaymentTransaction(
+              //     paymentSuccessData.userId,
+              //     paymentSuccessData.auctionId,
+              //     PaymentType.BIDDER_DEPOSIT,
+              //   );
 
-              if (
-                !winnedBidderDepositPaymentData.isWalletPayment &&
-                winnedBidderDepositPaymentData.paymentIntentId
-              ) {
-                try {
-                  const is_SD_SendBackToWinner =
-                    await this.stripeService.cancelDepositPaymentIntent(
-                      winnedBidderDepositPaymentData.paymentIntentId,
-                    );
-                  if (is_SD_SendBackToWinner) {
-                    console.log('SD send back to winner - stripe');
-                  }
-                } catch (error) {
-                  console.error(
-                    'Error when sending back SD  for winning bidder:',
-                    error,
-                  );
-                }
-              } else {
-                try {
-                  //finding the last transaction balance of the winner
-                  const lastWalletTransactionBalanceOfWinner =
-                    await this.walletService.findLastTransaction(
-                      winnedBidderDepositPaymentData.userId,
-                    );
-                  //finding the last transaction balance of the alletreWallet
-                  const lastBalanceOfAlletre =
-                    await this.walletService.findLastTransactionOfAlletre();
-                  //wallet data for the winner bidder
-                  const BidderWalletData = {
-                    status: WalletStatus.DEPOSIT,
-                    transactionType: WalletTransactionType.By_AUCTION,
-                    description: `Return security deposit after auction win`,
-                    amount: Number(winnedBidderDepositPaymentData.amount),
-                    auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-                    balance: lastWalletTransactionBalanceOfWinner
-                      ? Number(lastWalletTransactionBalanceOfWinner) +
-                        Number(winnedBidderDepositPaymentData.amount)
-                      : Number(winnedBidderDepositPaymentData.amount),
-                  };
-                  // wallet data for deposit to alletre wallet
+              // if (
+              //   !winnedBidderDepositPaymentData.isWalletPayment &&
+              //   winnedBidderDepositPaymentData.paymentIntentId
+              // ) {
+              //   try {
+              //     const is_SD_SendBackToWinner =
+              //       await this.stripeService.cancelDepositPaymentIntent(
+              //         winnedBidderDepositPaymentData.paymentIntentId,
+              //       );
+              //     if (is_SD_SendBackToWinner) {
+              //       console.log('SD send back to winner - stripe');
+              //     }
+              //   } catch (error) {
+              //     console.error(
+              //       'Error when sending back SD  for winning bidder:',
+              //       error,
+              //     );
+              //   }
+              // } else
+              //  {
+              //   try {
+              //     //finding the last transaction balance of the winner
+              //     const lastWalletTransactionBalanceOfWinner =
+              //       await this.walletService.findLastTransaction(
+              //         winnedBidderDepositPaymentData.userId,
+              //       );
+              //     //finding the last transaction balance of the alletreWallet
+              //     const lastBalanceOfAlletre =
+              //       await this.walletService.findLastTransactionOfAlletre();
+              //     //wallet data for the winner bidder
+              //     const BidderWalletData = {
+              //       status: WalletStatus.DEPOSIT,
+              //       transactionType: WalletTransactionType.By_AUCTION,
+              //       description: `Return security deposit after auction win`,
+              //       amount: Number(winnedBidderDepositPaymentData.amount),
+              //       auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              //       balance: lastWalletTransactionBalanceOfWinner
+              //         ? Number(lastWalletTransactionBalanceOfWinner) +
+              //           Number(winnedBidderDepositPaymentData.amount)
+              //         : Number(winnedBidderDepositPaymentData.amount),
+              //     };
+              //     // wallet data for deposit to alletre wallet
 
-                  const alletreWalletData = {
-                    status: WalletStatus.WITHDRAWAL,
-                    transactionType: WalletTransactionType.By_AUCTION,
-                    description: `Return of bidder security deposit after aution win`,
-                    amount: Number(winnedBidderDepositPaymentData.amount),
-                    auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-                    balance:
-                      Number(lastBalanceOfAlletre) -
-                      Number(winnedBidderDepositPaymentData.amount),
-                  };
-                  await this.walletService.create(
-                    winnedBidderDepositPaymentData.userId,
-                    BidderWalletData,
-                  );
-                  //crete new transaction in alletre wallet
-                  await this.walletService.addToAlletreWallet(
-                    winnedBidderDepositPaymentData.userId,
-                    alletreWalletData,
-                  );
-                } catch (error) {
-                  console.error(
-                    'Error when sending back SD  for winning bidder:',
-                    error,
-                  );
-                }
-              }
+              //     const alletreWalletData = {
+              //       status: WalletStatus.WITHDRAWAL,
+              //       transactionType: WalletTransactionType.By_AUCTION,
+              //       description: `Return of bidder security deposit after aution win`,
+              //       amount: Number(winnedBidderDepositPaymentData.amount),
+              //       auctionId: Number(winnedBidderDepositPaymentData.auctionId),
+              //       balance:
+              //         Number(lastBalanceOfAlletre) -
+              //         Number(winnedBidderDepositPaymentData.amount),
+              //     };
+              //     await this.walletService.create(
+              //       winnedBidderDepositPaymentData.userId,
+              //       BidderWalletData,
+              //     );
+              //     //crete new transaction in alletre wallet
+              //     await this.walletService.addToAlletreWallet(
+              //       winnedBidderDepositPaymentData.userId,
+              //       alletreWalletData,
+              //     );
+              //   } catch (error) {
+              //     console.error(
+              //       'Error when sending back SD  for winning bidder:',
+              //       error,
+              //     );
+              //   }
+              // }
               // when the winner pays the full amount - to seller
               const emailBodyToSeller = {
                 subject: '🎉 Payment Received! Next Steps for Your Auction',
@@ -2650,7 +2897,7 @@ export class PaymentsService {
                 5: `*Buyer:*  ${paymentSuccessData.auction.bids[0].user.userName}`,
                 6: `*Delivery Option Chosen:* ${paymentSuccessData.auction.deliveryType}`,
                 7: `*What You Need to Do:* *If the buyer chose delivery:*   Our courier will visit your address to collect the item. Please prepare the item for shipment and ensure it is securely packaged. *If the buyer chose pickup:* The buyer will visit your address to collect the item. Please ensure they confirm the collection in their account after the item is handed over`,
-                8: auctionHoldPaymentTransaction.auction.product.images[0]
+                8: paymentSuccessData.auction.product.images[0]
                   .imageLink,
                 9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
               };
@@ -2822,6 +3069,16 @@ export class PaymentsService {
             );
 
             if (isPaymentSuccess) {
+              const isPaymentAddedToAdminWallet = await this.prismaService.alletreWallet.findFirst({
+                where:{transactionReference:isPaymentSuccess.paymentIntentId}
+              })
+
+              if(isPaymentAddedToAdminWallet){
+                console.warn(
+                  `Duplicate payment webhook received. Skipping wallet update for paymentIntentId: ${isPaymentSuccess.paymentIntentId}`,
+                );
+                return;
+              }
               console.log(
                 'Buy now payment is success :',
                 isPaymentSuccess.user.email,
@@ -2829,22 +3086,24 @@ export class PaymentsService {
               // adding the buynow purchase money to alletre wallet for
               const lastWalletTransactionAlletre =
                 await this.walletService.findLastTransactionOfAlletre();
-              const baseValue = Number(isPaymentSuccess.amount);
-              const auctionFee = (baseValue * 0.5) / 100;
-              const stripeFee = (baseValue * 3) / 100 + 1; // stripe takes 3% of the base value and additionally 1 dirham
-              const payingAmountWithFees = baseValue + auctionFee;
-              const payingAmountWithStripeAndAlletreFees =
-                payingAmountWithFees + stripeFee;
-              const amountToAlletteWalletAfterStripeDeduction =
-                payingAmountWithStripeAndAlletreFees -
-                ((payingAmountWithStripeAndAlletreFees * 3) / 100 + 1);
+
+                const baseValue = Number(isPaymentSuccess.amount);
+                
+                const {amountToAlletteWalletInTheStripeWEBHOOK,payingAmountWithStripeAndAlletreFees} =  
+                  this.calculateWinnerPaymentAmount(baseValue)
+
+                // const auctionFee = ((baseValue * 0.5) / 100)
+                // const stripeFee = (((baseValue * 3) /100) + 1 )// stripe takes 3% of the base value and additionally 1 dirham
+                // const payingAmountWithFees = baseValue + auctionFee
+                // const payingAmountWithStripeAndAlletreFees =  (payingAmountWithFees+ stripeFee) 
+              const amountToAlletteWalletAfterStripeDeduction = amountToAlletteWalletInTheStripeWEBHOOK
               const walletDataToAlletre = {
                 status: WalletStatus.DEPOSIT,
                 transactionType: WalletTransactionType.By_AUCTION,
-                description:
-                  'Buy Now purchase amount after deducting the amount of stripe fee',
+                description: `Buy Now purchase amount after deducting the amount of stripe fee ( paying amount  before stripe stripe deduction ${payingAmountWithStripeAndAlletreFees})`,
                 amount: Number(amountToAlletteWalletAfterStripeDeduction),
                 auctionId: Number(isPaymentSuccess.auctionId),
+                transactionReference: isPaymentSuccess.paymentIntentId,
                 balance: Number(lastWalletTransactionAlletre)
                   ? Number(lastWalletTransactionAlletre) +
                     Number(amountToAlletteWalletAfterStripeDeduction)
@@ -2976,8 +3235,9 @@ export class PaymentsService {
                   },
                 });
               console.log('auctionPaymentData', auctionPaymentData);
-              await Promise.all(
-                auctionPaymentData.map(async (payment) => {
+              // await Promise.all(
+              //   auctionPaymentData.map(async (payment) => 
+                  for(const payment of auctionPaymentData){
                   if (payment.type === 'BIDDER_DEPOSIT') {
                     let is_SD_SendBackToBidder = false;
                     if (payment.isWalletPayment) {
@@ -3241,8 +3501,8 @@ export class PaymentsService {
                       }
                     }
                   }
-                }),
-              );
+                }
+              // ),);
               //Notifying delivery request to admin
               this.adminGateway.emitEventToAdmins(
                 'delivery:newNotification',
@@ -3552,11 +3812,106 @@ export class PaymentsService {
     }
   }
 
+
+
+ async notieceTheSellerToCompleteThePayment(user:User, auction:any){
+  console.log('call notieceTheSellerToCompleteThePayment3')
+
+    const auctionEndDate = new Date(auction.expiryDate);
+    const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+    const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+    //notify by sending email 
+    const emailBodyToSeller = {
+      subject: 'Action Required: Pay Security Deposit to Keep Your Auction Live!',
+      title: 'Your Auction Has Reached AED 5000!',
+      Product_Name: auction.product.title,
+      img: auction.product.images[0].imageLink,
+      userName: `${auction.user.userName}`,
+      message1: ` 
+        <p>Great news! Your auction <b>${auction.product.title}</b> has reached a bid of <b>AED 5000</b>.</p>
+        <p>To keep your auction running and allow more bids, you are now required to pay the <b>Security Deposit</b>. If the deposit is not paid before the auction ends on <b>${formattedEndDate}</b> at <b>${formattedEndTime}</b>, the auction will be <span style="color: red;"><b>automatically cancelled</b></span>.</p>
+        <p>Please make the payment as soon as possible to continue enjoying the auction momentum.</p>
+        <ul>
+          <li>Product Name: ${auction.product.title}</li>
+          <li>Auction Ends: ${formattedEndDate} at ${formattedEndTime}</li>
+        </ul>
+      `,
+      message2: ` 
+        <p>Thank you for using <b>Alletre</b>. We're here to help your auction succeed!</p>
+        <p style="margin-bottom: 0;">Best regards,</p>
+        <p style="margin-top: 0;"><b>The Alletre Team</b></p>
+      `,
+      Button_text: 'Pay Deposit',
+      Button_URL: process.env.NODE_ENV === 'production' ?
+      `https://www.alletre.com/alletre/home/create-auction/product-details/auction-details/shipping-details/payment-details?auctionId=${auction.id}` :
+      `http://localhost:3000/alletre/home/create-auction/product-details/auction-details/shipping-details/payment-details?auctionId=${auction.id}`    
+    };
+
+    this.emailService.sendEmail(
+      auction.user.email,
+      'token',
+      EmailsType.OTHER,
+      emailBodyToSeller,
+    );
+    
+      //notify by sending notification 
+          const isCreateNotificationToSeller =
+            await this.prismaService.notification.create({
+              data: {
+                userId: user.id,
+                message: `Your auction "${auction.product.title}" has reached AED 5000. Please pay the security deposit now to keep it running. Auction will be cancelled if the deposit is not paid before expiry.`,
+                imageLink: auction.product.images[0].imageLink,
+                productTitle: auction.product.title,
+                auctionId: auction.id,
+              },
+            });
+    
+          if (isCreateNotificationToSeller) {
+            // Send notification to seller
+            const sellerUserId = auction.userId;
+    
+            const notification = {
+              status: 'ON_BIDDING',
+              userType: 'FOR_SELLER',
+              usersId: sellerUserId,
+              message: isCreateNotificationToSeller.message,
+              imageLink: auction.product.images[0].imageLink,
+              productTitle: auction.product.title,
+              auctionId: isCreateNotificationToSeller.auctionId,
+            };
+            try {
+              this.notificationsService.sendNotificationToSpecificUsers(
+                notification,
+              );
+            } catch (error) {
+              console.log('sendNotificationToSpecificUsers error', error);
+            }
+          }
+
+    //notify by sending whatsapp messages
+    const whatsappBodyToSeller = {
+      1: `${auction.user.userName}`,
+      2: `🚨 Your auction *${auction.product.title}* has reached a bid of *AED 5000*!`,
+      3: `To continue the auction and allow more bids, please pay the *Security Deposit* immediately.`,
+      4: `If the deposit is not paid before the auction ends on *${formattedEndDate} at ${formattedEndTime}*, your auction will be *automatically cancelled*.`,
+      5: `*Auction Ends*: ${formattedEndDate} at ${formattedEndTime}`,
+      6: `Don not miss out—keep the momentum going!`,
+      7: `Click the Button below to complete your deposit and manage the auction:`,
+      8:  auction.product.images[0].imageLink,
+      9: `https://www.alletre.com/alletre/home/${auction.id}/details`,
+    };
+    
+    if(auction.user.phone){
+      await this.whatsappService.sendOtherUtilityMessages(whatsappBodyToSeller,auction.user.phone,'alletre_common_utility_templet')
+    }
+  }
+
+
   addHours(date: Date, hours: number) {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() + 5 * 60 * 1000);
+        : new Date(date.getTime() +   7 * 60 * 1000); 
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;
@@ -3566,5 +3921,21 @@ export class PaymentsService {
     const currentDate = date;
     const newDate = new Date(currentDate.setDate(currentDate.getDate() + days));
     return newDate;
+  }
+
+  calculateWinnerPaymentAmount(lastBid:number,winnerSecurityDeposit:number = 0){
+    const lastBidAmount = lastBid
+    const auctionFee = (lastBidAmount * 0.5) / 100 ;
+    const payingAmountWithAlletreFee = lastBidAmount + auctionFee
+    const stripeCardFee = (((payingAmountWithAlletreFee * 3) / 100) + 4 ) // stripe takes 3% of the base value and additionally 1 USD(4 dirham)
+    const AmountOfStripePayment = payingAmountWithAlletreFee + stripeCardFee
+    const payingAmountOfStripe =  AmountOfStripePayment - winnerSecurityDeposit
+    const amountToAlletteWalletInTheStripeWEBHOOK = payingAmountOfStripe - (((payingAmountOfStripe * 3)/100) + 4 )
+    return {
+      payingAmountOfWallet : payingAmountWithAlletreFee - winnerSecurityDeposit,
+      payingAmountOfStripe,
+      amountToAlletteWalletInTheStripeWEBHOOK,
+      payingAmountWithStripeAndAlletreFees : payingAmountOfStripe
+    }
   }
 }
