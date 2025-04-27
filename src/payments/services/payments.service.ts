@@ -406,13 +406,31 @@ export class PaymentsService {
           try {
             console.log('test of wallet pay of bidder deposite 3');
 
-            // Join user to auction
-            await prisma.joinedAuction.create({
-              data: {
+              // Check if user already joined the auction
+            const existing = await prisma.joinedAuction.findFirst({
+              where: {
                 userId: user.id,
                 auctionId: auctionId,
               },
             });
+            // Join user to auction
+            if (!existing) {
+              const createdNewJoinedAuction = await prisma.joinedAuction.create({
+                data: {
+                  userId: user.id,
+                  auctionId: auctionId,
+                },
+              });
+              console.log('createdNewJoinedAuction', createdNewJoinedAuction);
+            } else {
+              console.log('already joined', existing);
+            }
+            // await prisma.joinedAuction.create({
+            //   data: {
+            //     userId: user.id,
+            //     auctionId: auctionId,
+            //   },
+            // });
             console.log('bidAmount :', bidAmount);
             // Create bid for user
             await prisma.bids.create({
@@ -2663,7 +2681,7 @@ export class PaymentsService {
                 const baseValue = Number(paymentSuccessData.amount);
 
                 const {amountToAlletteWalletInTheStripeWEBHOOK,payingAmountWithStripeAndAlletreFees} =  
-                  this.calculateWinnerPaymentAmount(baseValue, Number(winnerSecurityDepositData.amount))
+                  this.calculateWinnerPaymentAmount(baseValue,winnerSecurityDepositData? Number(winnerSecurityDepositData.amount) : 0)
 
                 const amountToAlletteWalletAfterStripeDeduction = amountToAlletteWalletInTheStripeWEBHOOK   
 
@@ -3911,7 +3929,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() +   7 * 60 * 1000); 
+        : new Date(date.getTime() +   10 * 60 * 1000); 
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

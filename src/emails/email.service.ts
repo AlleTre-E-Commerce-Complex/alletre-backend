@@ -498,7 +498,6 @@ The <b>Alletre</b> Team
     );
     try {
       const sendEmailresult = await this.transporter.sendMail(mailOptions);
-      console.log(sendEmailresult);
     } catch (error) {
       console.log(error);
     }

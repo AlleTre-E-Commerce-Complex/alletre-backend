@@ -399,13 +399,13 @@ model Wallet {
   userId                Int
   auctionId             Int?
   purchaseId            Int?
-  amount                Decimal
+  amount                Decimal               @db.Decimal(30, 30)
   date                  DateTime              @default(now())
   description           String
   status                WalletStatus
   transactionType       WalletTransactionType
   transactionReference  String?               @unique
-  balance               Decimal
+  balance               Decimal               @db.Decimal(30, 30)
   auction               Auction?              @relation(fields: [auctionId], references: [id])
   purchase              Purchase?             @relation(fields: [purchaseId], references: [id])
   user                  User                  @relation(fields: [userId], references: [id])
@@ -417,12 +417,12 @@ model AlletreWallet {
   userId                 Int
   auctionId              Int?
   purchaseId             Int?
-  amount                 Decimal
+  amount                 Decimal               @db.Decimal(30, 30)
   date                   DateTime              @default(now())
   description            String
   status                 WalletStatus
   transactionType        WalletTransactionType
-  balance                Decimal
+  balance                Decimal               @db.Decimal(30, 30)
   transactionReference   String?               @unique
   auction                Auction?              @relation(fields: [auctionId], references: [id])
   purchase               Purchase?             @relation(fields: [purchaseId], references: [id])

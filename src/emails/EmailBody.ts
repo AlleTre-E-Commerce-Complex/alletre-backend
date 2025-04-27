@@ -5,7 +5,6 @@ export class EmailBody {
     const imgSrc = body.img ? body.img : '';
     const message = body.message ? body.message : '';
     const Product_Name = body.Product_Name ? body.Product_Name : '';
-    console.log('emial body :', body);
     let data: any;
     for (const [key, value] of Object.entries(body)) {
       if (
