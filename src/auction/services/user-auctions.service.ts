@@ -165,23 +165,6 @@ export class UserAuctionsService {
     }
     console.log('created auction',auction)
     if(auction.product.categoryId  === 4 && auction.startBidAmount < 5000){
-      // const paymentData = await this.prismaService.payment.create({
-      //   data: {
-      //     userId: userId,
-      //     auctionId: auction.id,
-      //     amount: 0,
-      //     type: PaymentType.SELLER_DEPOSIT,
-      //     isWalletPayment: false,
-      //     status: 'SUCCESS',
-      //   },
-      //   include: {
-      //     auction: {
-      //       include: { product: { include: { images: true } } },
-      //     },
-      //     user:true
-      //   },
-      // });
-
       if (auction.product.categoryId  === 4 && auction.startBidAmount < 5000){
         await this.paymentService.publishAuction(auction.id, user.email);
       }else{
@@ -492,7 +475,7 @@ export class UserAuctionsService {
             const lostBidderWalletData = {
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Security deposit transferred to Alletre wallet due to auction cancellation by admin.`,
+              description: `Return Security deposit due to auction cancellation by admin.`,
               amount: Number(data.amount),
               auctionId: Number(auctionId),
               balance: lastWalletTransactionBalanceOfLostBidder
@@ -505,7 +488,7 @@ export class UserAuctionsService {
             const alletreWalletData = {
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
-              description: `Security deposit transferred to Alletre wallet due to auction cancellation by admin.`,
+              description: `Return Security deposit due to auction cancellation by admin.`,
               amount: Number(data.amount),
               auctionId: Number(auctionId),
               balance: Number(lastBalanceOfAlletre) - Number(data.amount),
@@ -2642,7 +2625,17 @@ export class UserAuctionsService {
   async checkAuctionExistanceAndReturn(auctionId: number) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
-      include:{bids: true,product:true}
+      // include:{bids: true,product:true}
+      include: {
+        user: true,
+        product: { include: { images: true, category: true } },
+        bids: {
+          orderBy: { amount: 'desc' },
+          include: {
+            user: true,
+          },
+        },
+      },
     });
 
     if (!auction)
@@ -3637,6 +3630,9 @@ export class UserAuctionsService {
         amount,
         bidderMainLocation,
       };
+    },
+    {
+      timeout: 15000, // 15 seconds timeout instead of 5 seconds
     });
 
     console.log('payDepositByBidder test 1', bidAmount);
@@ -3712,23 +3708,83 @@ export class UserAuctionsService {
     }
 
     // Create new bid
-    const bidCreated = await this.prismaService.bids.create({
-      data: { userId, auctionId, amount: bidAmount },
-      include: {
-        auction: {
-          include: {
-            Payment: {where:{type:'SELLER_DEPOSIT'}},
-            user: true,
-            bids: {
-              include: { user: true },
-              orderBy: { amount: 'desc' },
+    // const bidCreated = await this.prismaService.bids.create({
+    //   data: { userId, auctionId, amount: bidAmount },
+    //   include: {
+    //     auction: {
+    //       include: {
+    //         Payment: {where:{type:'SELLER_DEPOSIT'}},
+    //         user: true,
+    //         bids: {
+    //           include: { user: true },
+    //           orderBy: { amount: 'desc' },
+    //         },
+    //         product: { include: { images: true, category: true } },
+    //       },
+    //     },
+    //   },
+    // });
+
+    // const existing = await this.prismaService.joinedAuction.findFirst({
+    //   where: {
+    //     userId: userId,
+    //     auctionId: auctionId,
+    //   },
+    // });
+    // console.log('isExist',existing)
+    // if (!existing) {
+    //   const cretednewJoinedAuction = await this.prismaService.joinedAuction.create({
+    //     data: {
+    //       userId: userId,
+    //       auctionId: auctionId,
+    //     },
+    //   });
+    //   console.log('cretednewJoinedAuction',cretednewJoinedAuction)
+    // }
+    
+    const bidCreated = await this.prismaService.$transaction(async (prisma) => {
+      // Create new bid
+      const bidCreated = await prisma.bids.create({
+        data: { userId, auctionId, amount: bidAmount },
+        include: {
+          auction: {
+            include: {
+              Payment: { where: { type: 'SELLER_DEPOSIT' } },
+              user: true,
+              bids: {
+                include: { user: true },
+                orderBy: { amount: 'desc' },
+              },
+              product: { include: { images: true, category: true } },
             },
-            product: { include: { images: true, category: true } },
           },
         },
-      },
+      });
+    
+      // Check if user already joined the auction
+      const existing = await prisma.joinedAuction.findFirst({
+        where: {
+          userId: userId,
+          auctionId: auctionId,
+        },
+      });
+    
+      if (!existing) {
+        const createdNewJoinedAuction = await prisma.joinedAuction.create({
+          data: {
+            userId: userId,
+            auctionId: auctionId,
+          },
+        });
+        console.log('createdNewJoinedAuction', createdNewJoinedAuction);
+      } else {
+        console.log('already joined', existing);
+      }
+    
+      return bidCreated;
     });
-
+    
+    
     if(bidCreated){
       const sellerPayment = bidCreated.auction.Payment
       if(bidCreated.auction.product.categoryId === 4 &&
@@ -4000,7 +4056,8 @@ export class UserAuctionsService {
     });
     const baseValue = Number(latestBidAmount);
     const {payingAmountOfWallet, payingAmountOfStripe} = 
-      this.paymentService.calculateWinnerPaymentAmount(Number(latestBidAmount),Number(winnerSecurityDepositData.amount))
+      this.paymentService.calculateWinnerPaymentAmount(Number(latestBidAmount),winnerSecurityDepositData? Number(winnerSecurityDepositData?.amount) : 0)
+      console.log("***122",{payingAmountOfWallet, payingAmountOfStripe, baseValue, winnerSecurityDepositData})
     if (!isWalletPayment) {
       return await this.paymentService.payAuctionByBidder(
         user,
@@ -4223,7 +4280,8 @@ export class UserAuctionsService {
       });
       console.log('sellerPaymentData :', sellerPaymentData);
       let isSellerDepositSendBack: any = false;
-      //checking if seller deposit is through wallet or not
+  if(sellerPaymentData){   
+     //checking if seller deposit is through wallet or not
       // if (!sellerPaymentData.isWalletPayment) {
       //   //if not through wallet (which means through stripe) then cancell the payment intent
       //   isSellerDepositSendBack =
@@ -4277,6 +4335,11 @@ export class UserAuctionsService {
         //  if(sellerWalletCreationData && alletreWalletCreationData) isSellerDepositSendBack = true ; else isSellerDepositSendBack = false
         isSellerDepositSendBack =
           sellerWalletCreationData && alletreWalletCreationData;
+      }}
+      else{
+        // in this case the seller has not paid the security deposit, 
+        // so here we consider as seller security deposit has send back.
+        isSellerDepositSendBack = true
       }
 
       if (isSellerDepositSendBack) {
@@ -4332,7 +4395,16 @@ export class UserAuctionsService {
                   },
                 },
               },
-              include: { auction: true, user: true },
+              include: { auction: { include: {
+                user: true,
+                product: { include: { images: true, category: true } },
+                bids: {
+                  orderBy: { amount: 'desc' },
+                  include: {
+                    user: true,
+                  },
+                },
+              },}, user: true },
             });
 
             return Promise.all([confirmDeliveryResult]);
@@ -4367,16 +4439,16 @@ export class UserAuctionsService {
               '🎉 Success! Your Item Has Been Delivered & Payment Received',
             title:
               'Your Auction Sale is Complete – Payment Credited to Your Wallet!',
-            Product_Name: sellerPaymentData.auction.product.title,
-            img: sellerPaymentData.auction.product.images[0].imageLink,
-            userName: `${sellerPaymentData.auction.user.userName}`,
+            Product_Name: confirmDeliveryResult.auction.product.title,
+            img: confirmDeliveryResult.auction.product.images[0].imageLink,
+            userName: `${confirmDeliveryResult.auction.user.userName}`,
             message1: ` 
-            <p>Congratulations! Your item ${sellerPaymentData.auction.product.title} has been successfully received by the buyer, and the selling amount has been credited to your wallet.</p>
+            <p>Congratulations! Your item ${confirmDeliveryResult.auction.product.title} has been successfully received by the buyer, and the selling amount has been credited to your wallet.</p>
             <p>Auction Details:</p>
             <ul>
-              <li>Title: ${sellerPaymentData.auction.product.title} </li>
-              <li>Sold For: ${sellerPaymentData.auction.bids[0].amount}</li>
-              <li>Buyer: ${sellerPaymentData.auction.bids[0].user.userName}</li>
+              <li>Title: ${confirmDeliveryResult.auction.product.title} </li>
+              <li>Sold For: ${confirmDeliveryResult.auction.bids[0].amount}</li>
+              <li>Buyer: ${confirmDeliveryResult.auction.bids[0].user.userName}</li>
               <li>Payment Status: Payment credited to your wallet</li>
             </ul>
             <h3>What’s Next?</h3>
@@ -4395,17 +4467,17 @@ export class UserAuctionsService {
           const emailBodyToWinner = {
             subject: '📦 Delivery Confirmed! Enjoy Your Auction Win!',
             title: 'Your Auction Item Has Been Successfully Delivered!',
-            Product_Name: sellerPaymentData.auction.product.title,
-            img: sellerPaymentData.auction.product.images[0].imageLink,
-            userName: `${sellerPaymentData.auction.bids[0].user.userName}`,
+            Product_Name: confirmDeliveryResult.auction.product.title,
+            img: confirmDeliveryResult.auction.product.images[0].imageLink,
+            userName: `${confirmDeliveryResult.auction.bids[0].user.userName}`,
             message1: `
-                <p>Hi ${sellerPaymentData.auction.bids[0].user.userName},</p>
-                <p>We’re excited to let you know that your auction win, <b>${sellerPaymentData.auction.product.title}</b>, has been successfully delivered!</p>
+                <p>Hi ${confirmDeliveryResult.auction.bids[0].user.userName},</p>
+                <p>We’re excited to let you know that your auction win, <b>${confirmDeliveryResult.auction.product.title}</b>, has been successfully delivered!</p>
                 <p>Auction Details:</p>
                 <ul>
-                  <li>Title: ${sellerPaymentData.auction.product.title}</li>
-                  <li>Winning Bid: ${sellerPaymentData.auction.bids[0].amount}</li>
-                  <li>Seller: ${sellerPaymentData.auction.user.userName}</li>
+                  <li>Title: ${confirmDeliveryResult.auction.product.title}</li>
+                  <li>Winning Bid: ${confirmDeliveryResult.auction.bids[0].amount}</li>
+                  <li>Seller: ${confirmDeliveryResult.auction.user.userName}</li>
                   <li>Payment Status: Payment received successfully</li>
                 </ul>
                 <h3>What’s Next?</h3>
@@ -4422,24 +4494,24 @@ export class UserAuctionsService {
             Button_URL: 'https://www.alletre.com/alletre/profile/purchased',
           };
 
-          const auction = sellerPaymentData.auction;
-          const notificationMessageToSeller = ` Hi, ${sellerPaymentData.user.userName}, 
-                   Thank you for choosing Alle Tre Auction. The winner of your Auction of ${sellerPaymentData.auction.product.title}
-                   (Model:${sellerPaymentData.auction.product.model}) has been Confrimed the delivery. 
+          const auction = confirmDeliveryResult.auction;
+          const notificationMessageToSeller = ` Hi, ${confirmDeliveryResult.auction.user.userName}, 
+                   Thank you for choosing Alle Tre Auction. The winner of your Auction of ${confirmDeliveryResult.auction.product.title}
+                   (Model:${confirmDeliveryResult.auction.product.model}) has been Confrimed the delivery. 
                    The money paid by the winner will be creadited to Alle Tre wallet and the security deposite will be send back to your account. 
                    From the wallet either you can withdraw the money to your bank account or you can keep it in the wallet and can continue the Auction. `;
 
-          const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. The delivery has been confirmed of Auction of ${sellerPaymentData.auction.product.title}
-                   (Model:${sellerPaymentData.auction.product.model}). 
+          const notificationMessageToBidder = ` Thank you for choosing Alle Tre Auction. The delivery has been confirmed of Auction of ${confirmDeliveryResult.auction.product.title}
+                   (Model:${confirmDeliveryResult.auction.product.model}). 
                     We would like to thank you and appreciate you for choosing Alle Tre.`;
           const notificationBodyToSeller = {
             status: 'ON_CONFIRM_DELIVERY',
             userType: 'FOR_SELLER',
-            usersId: sellerPaymentData.userId,
+            usersId: confirmDeliveryResult.auction.userId,
             message: notificationMessageToSeller,
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
-            auctionId: sellerPaymentData.auctionId,
+            auctionId: confirmDeliveryResult.auctionId,
           };
           const notificationBodyToBidder = {
             status: 'ON_CONFIRM_DELIVERY',
@@ -4448,16 +4520,16 @@ export class UserAuctionsService {
             message: notificationMessageToBidder,
             imageLink: auction.product.images[0].imageLink,
             productTitle: auction.product.title,
-            auctionId: sellerPaymentData.auctionId,
+            auctionId: confirmDeliveryResult.auctionId,
           };
           const createSellerNotificationData =
             await this.prismaService.notification.create({
               data: {
-                userId: sellerPaymentData.userId,
+                userId: confirmDeliveryResult.auction.userId,
                 message: notificationMessageToSeller,
                 imageLink: notificationBodyToSeller.imageLink,
                 productTitle: notificationBodyToSeller.productTitle,
-                auctionId: sellerPaymentData.auctionId,
+                auctionId: confirmDeliveryResult.auctionId,
               },
             });
           const createWinnerNotificationData =
@@ -4490,48 +4562,48 @@ export class UserAuctionsService {
           }
 
           const whatsappBodyToSeller = {
-            1: `${sellerPaymentData.auction.user.userName}`,
-            2: `🎉 Your item *${sellerPaymentData.auction.product.title}* has been delivered, and the payment is now in your wallet.`,
-            3: `*Sold For:* ${sellerPaymentData.auction.bids[0].amount}`,
-            4: `*Buyer:* ${sellerPaymentData.auction.bids[0].user.userName}`,
+            1: `${confirmDeliveryResult.auction.user.userName}`,
+            2: `🎉 Your item *${confirmDeliveryResult.auction.product.title}* has been delivered, and the payment is now in your wallet.`,
+            3: `*Sold For:* ${confirmDeliveryResult.auction.bids[0].amount}`,
+            4: `*Buyer:* ${confirmDeliveryResult.auction.bids[0].user.userName}`,
             5: `You can now withdraw your earnings from your wallet anytime.`,
             6: `Relist your item or post something new — we’re here to support your next auction!`,
             7: `Thanks for using *Alletre*!`,
-            8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
+            8: `${confirmDeliveryResult.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/wallet`,
           };
 
-          if (sellerPaymentData.auction.user.phone) {
+          if (confirmDeliveryResult.auction.user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyToSeller,
-              sellerPaymentData.auction.user.phone,
+              confirmDeliveryResult.auction.user.phone,
               'alletre_common_utility_templet',
             );
           }
 
           const whatsappBodyToWinner = {
-            1: `${sellerPaymentData.auction.bids[0].user.userName}`,
-            2: `📦 Your auction item *${sellerPaymentData.auction.product.title}* has been delivered successfully!`,
-            3: `*Winning Bid:* ${sellerPaymentData.auction.bids[0].amount}`,
-            4: `*Seller:* ${sellerPaymentData.auction.user.userName}`,
+            1: `${confirmDeliveryResult.auction.bids[0].user.userName}`,
+            2: `📦 Your auction item *${confirmDeliveryResult.auction.product.title}* has been delivered successfully!`,
+            3: `*Winning Bid:* ${confirmDeliveryResult.auction.bids[0].amount}`,
+            4: `*Seller:* ${confirmDeliveryResult.auction.user.userName}`,
             5: `We hope you enjoy your purchase! Please check the item and let us know your thoughts.`,
             6: `Don't forget to leave a review to help other buyers!`,
             7: `Thanks for being part of *Alletre*!`,
-            8: `${sellerPaymentData.auction.product.images[0].imageLink}`,
+            8: `${confirmDeliveryResult.auction.product.images[0].imageLink}`,
             9: `https://www.alletre.com/alletre/profile/purchased`,
           };
 
-          if (sellerPaymentData.auction.bids[0].user.phone) {
+          if (confirmDeliveryResult.auction.bids[0].user.phone) {
             await this.whatsappService.sendOtherUtilityMessages(
               whatsappBodyToWinner,
-              sellerPaymentData.auction.bids[0].user.phone,
+              confirmDeliveryResult.auction.bids[0].user.phone,
               'alletre_common_utility_templet',
             );
           }
 
           await Promise.all([
             this.emailService.sendEmail(
-              sellerPaymentData.user.email,
+              confirmDeliveryResult.auction.user.email,
               'token',
               EmailsType.OTHER,
               emailBodyToSeller,

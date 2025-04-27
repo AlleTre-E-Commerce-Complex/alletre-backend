@@ -28,20 +28,18 @@ export class WhatsAppService {
   }
 
   async sendMessage(to: string, message: string) {
-    try {
-      console.log('-----___----____--->', to, message);
+    if(process.env.NODE_ENV === 'production'){
+      try {
       const response = await this.client.messages.create({
         from: this.fromNumber,
         to: `whatsapp:${to}`, // Example: whatsapp:+971XXXXXXXXX
         body: message,
       });
-
-      console.log('Message sent:', response.sid);
       return response;
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw error;
-    }
+    }}
   }
 
   async sendOtherUtilityMessages(
@@ -49,7 +47,8 @@ export class WhatsAppService {
     mobile: any,
     templateName: string,
   ) {
-    try {
+   if(process.env.NODE_ENV === 'production'){
+     try {
       console.log('sendOtherUtilitymessage');
       if (mobile.startsWith('+971')) {
         mobile = mobile.substring(4);
@@ -127,7 +126,7 @@ export class WhatsAppService {
         );
 
         // Log response or handle success/failure
-        console.log(`Message sent to ${mobile}:`, response.data);
+        // console.log(`Message sent to ${mobile}:`, response.data);
       } catch (error) {
         console.log(
           `Failed to send message to: ${mobile} | Error: ${error.message}`,
@@ -137,14 +136,15 @@ export class WhatsAppService {
     } catch (error) {
       console.error('Error sending WhatsApp messages:', error);
       throw error;
-    }
+    }}
   }
 
   async sendAuctionToUsers(
     auctionId: any,
     userType: 'EXISTING_USER' | 'NON_EXISTING_USER',
   ) {
-    try {
+ if(process.env.NODE_ENV === 'production'){
+     try {
       const auction = await this.prismaService.auction.findFirst({
         where: { id: Number(auctionId) },
         include: { product: { include: { images: true } } },
@@ -179,7 +179,7 @@ export class WhatsAppService {
       } else if (userType === 'EXISTING_USER') {
         allUsersList = await this.prismaService.user.findMany();
       }
-
+      // console.log('allUsersList',allUsersList)
       const batchSize = 1000;
       const userBatches = [];
 
@@ -225,7 +225,7 @@ export class WhatsAppService {
     } catch (error) {
       console.error('Error sending WhatsApp messages:', error);
       throw error;
-    }
+    }}
   }
 
   async sendCommonMessageToUsers(
@@ -237,16 +237,8 @@ export class WhatsAppService {
     skip?: number,
     categoryId?: number,
   ) {
-    console.log(
-      'message123:',
-      messages,
-      mediaUrl,
-      buttonUrl,
-      skip,
-      limit,
-      categoryId,
-    );
-    try {
+    if(process.env.NODE_ENV === 'production'){
+      try {
       const messageTemplateParams = {
         // 1: '*🏡 Properties | 🚗 Cars | 💎 Jewelry | 📱 Electronics | 🏠 Home Appliances | 🏺 Antiques | 🛋️ Furniture*',
         1: messages[0],
@@ -258,7 +250,7 @@ export class WhatsAppService {
         4: mediaUrl,
       };
 
-      console.log('mesage 999', messageTemplateParams);
+      // console.log('mesage 999', messageTemplateParams);
       let allUsersList: any[] = []; // Initialize as an empty array
 
       if (userType === 'NON_EXISTING_USER') {
@@ -291,10 +283,10 @@ export class WhatsAppService {
         userBatches.push(allUsersList.slice(i, i + batchSize));
       }
 
-      console.log(
-        'Worker file exists:',
-        fs.existsSync(path.join(__dirname, 'whatsappWorker.js')),
-      );
+      // console.log(
+      //   'Worker file exists:',
+      //   fs.existsSync(path.join(__dirname, 'whatsappWorker.js')),
+      // );
 
       const workers = userBatches.map((batch) => {
         return new Promise((resolve, reject) => {
@@ -337,7 +329,7 @@ export class WhatsAppService {
     } catch (error) {
       console.error('Error sending WhatsApp messages:', error);
       throw error;
-    }
+    }}
   }
 
   async handleWhatsAppWhebhook(webhookBody: any) {

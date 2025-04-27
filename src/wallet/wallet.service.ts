@@ -61,7 +61,6 @@ export class WalletService {
           transactionReference: createWalletData?.transactionReference
         },
       });
-      console.log('the create wallet transaction result : ==>', result);
     } catch (error) {
       console.log(error);
       throw new MethodNotAllowedResponse({
@@ -75,9 +74,23 @@ export class WalletService {
   async findAll(userId: number) {
     const walletData = await this.prismaSevice.wallet.findMany({
       where: { userId },
+      include:{
+        user: true,
+        auction:{
+          include:{
+            product:{include:{images:true}}
+          }
+        }
+      },
+      orderBy: {id:'desc'}
     });
+
+    const one = await this.prismaSevice.wallet.findFirst({
+      where:{id:521}
+    })
     // console.log('wallet data :',walletData)
     // let balance = walletData[walletData.length-1]
+    console.log('walletDataof1',one)
     return walletData;
   }
 

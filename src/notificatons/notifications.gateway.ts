@@ -27,8 +27,6 @@ export class NotificationGateway
   }
 
   sendNotificationToAll(notification: any) {
-    console.log('sendNotificationToAll', notification);
-
     this.server.emit('notification', notification); // This sends to all connected clients
   }
 }
