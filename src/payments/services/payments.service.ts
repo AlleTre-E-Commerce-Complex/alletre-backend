@@ -11,6 +11,7 @@ import {
   JoinedAuctionStatus,
   PaymentStatus,
   PaymentType,
+  Prisma,
   User,
   WalletStatus,
   WalletTransactionType,
@@ -29,6 +30,7 @@ import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
 import { timeout } from 'rxjs';
 import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
+import { BidsWebSocketGateway } from 'src/auction/gateway/bids.gateway';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -41,6 +43,8 @@ export class PaymentsService {
     private readonly auctionGateway: AuctionWebSocketGateway,
     private readonly adminGateway: AdminWebSocketGateway,
     private readonly whatsappService: WhatsAppService,
+    private bidsWebSocketGateway: BidsWebSocketGateway,
+    
   ) {}
 
   async walletPayDepositBySeller(
@@ -401,29 +405,28 @@ export class PaymentsService {
           ? Number(lastBalanceOfAlletre) + amount
           : amount,
       };
+
+       
       const { paymentData } = await this.prismaService.$transaction(
         async (prisma) => {
           try {
             console.log('test of wallet pay of bidder deposite 3');
 
-              // Check if user already joined the auction
-            const existing = await prisma.joinedAuction.findFirst({
-              where: {
-                userId: user.id,
-                auctionId: auctionId,
-              },
-            });
+             // Check if user already joined the auction
+         const existingJoinedAuction = await this.prismaService.joinedAuction.findFirst({
+          where: {
+            userId: user.id,
+            auctionId: auctionId,
+          },
+        });
             // Join user to auction
-            if (!existing) {
-              const createdNewJoinedAuction = await prisma.joinedAuction.create({
+            if (!existingJoinedAuction) {
+          await prisma.joinedAuction.create({
                 data: {
                   userId: user.id,
                   auctionId: auctionId,
                 },
               });
-              console.log('createdNewJoinedAuction', createdNewJoinedAuction);
-            } else {
-              console.log('already joined', existing);
             }
             // await prisma.joinedAuction.create({
             //   data: {
@@ -489,6 +492,8 @@ export class PaymentsService {
         },
       );
       if (paymentData) {
+
+       
         //checking again the wallet balance to avoid issues
         const lastWalletTransactionBalanceOfBidder =
           await this.walletService.findLastTransaction(user.id);
@@ -761,6 +766,12 @@ export class PaymentsService {
           }
         }
         console.log('test of wallet pay of bidder deposite 4');
+          // emit to all biders using socket instance
+          this.bidsWebSocketGateway.userSubmitBidEventHandler(
+            auctionId,
+            new Prisma.Decimal(bidAmount),
+            paymentData.auction.bids.length,
+          );
         this.auctionGateway.increaseBid(paymentData.auction);
         return paymentData;
       }
@@ -2056,43 +2067,68 @@ export class PaymentsService {
           case PaymentType.BIDDER_DEPOSIT:
             console.log('Webhook BIDDER_DEPOSIT ...');
 
-            await this.prismaService.$transaction([
-              // Update payment transaction
-              this.prismaService.payment.update({
+            // await this.prismaService.$transaction([
+            //   // Update payment transaction
+            //   this.prismaService.payment.update({
+            //     where: { paymentIntentId: paymentIntent.id },
+            //     data: { status: PaymentStatus.HOLD },
+            //   }),
+
+            //   // Join user to auction
+              
+            //   this.prismaService.joinedAuction.create({
+            //     data: {
+            //       userId: auctionHoldPaymentTransaction.userId,
+            //       auctionId: auctionHoldPaymentTransaction.auctionId,
+            //     },
+            //   }),
+
+            //   // Create bid for user
+            //   this.prismaService.bids.create({
+            //     data: {
+            //       userId: auctionHoldPaymentTransaction.userId,
+            //       auctionId: auctionHoldPaymentTransaction.auctionId,
+            //       amount: paymentIntent.metadata.bidAmount,
+            //     },
+            //   }),
+            // ]);
+
+            await this.prismaService.$transaction(async (prisma) =>{
+               // Update payment transaction
+               await prisma.payment.update({
                 where: { paymentIntentId: paymentIntent.id },
                 data: { status: PaymentStatus.HOLD },
-              }),
+              })
 
               // Join user to auction
-              this.prismaService.joinedAuction.create({
-                data: {
+              const existing = await prisma.joinedAuction.findFirst({
+                where: {
                   userId: auctionHoldPaymentTransaction.userId,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
                 },
-              }),
+              });
+              if(existing){
+               await prisma.joinedAuction.create({
+                  data: {
+                    userId: auctionHoldPaymentTransaction.userId,
+                    auctionId: auctionHoldPaymentTransaction.auctionId,
+                  },
+                })
+              }
 
               // Create bid for user
-              this.prismaService.bids.create({
+             await prisma.bids.create({
                 data: {
                   userId: auctionHoldPaymentTransaction.userId,
                   auctionId: auctionHoldPaymentTransaction.auctionId,
                   amount: paymentIntent.metadata.bidAmount,
                 },
-              }),
-            ]);
+              })
+            })
 
             console.log('call notieceTheSellerToCompleteThePayment1')
              
             const sellerPayment = auctionHoldPaymentTransaction.auction.Payment
-            console.log('**123',auctionHoldPaymentTransaction.auction.product.categoryId === 4 &&
-              Number(auctionHoldPaymentTransaction.auction.startBidAmount) < 5000 &&
-               paymentIntent.metadata.bidAmount >= 5000 &&
-              sellerPayment.length === 0)
-
-              console.log(',auctionHoldPaymentTransaction.auction.product.categoryId:',auctionHoldPaymentTransaction.auction.product.categoryId)
-              console.log(',Number(auctionHoldPaymentTransaction.auction.startBidAmount):',Number(auctionHoldPaymentTransaction.auction.startBidAmount))
-              console.log(',paymentIntent.metadata.bidAmount:',paymentIntent.metadata.bidAmount)
-              console.log(',sellerPayment.length:',sellerPayment.length)
             if(auctionHoldPaymentTransaction.auction.product.categoryId === 4 &&
                Number(auctionHoldPaymentTransaction.auction.startBidAmount) < 5000 &&
                 paymentIntent.metadata.bidAmount >= 5000 &&
@@ -2123,6 +2159,13 @@ export class PaymentsService {
                 id: 'desc',
               },
             });
+            this.auctionGateway.increaseBid(joinedBidders[0].auction);
+            // emit to all biders using socket instance
+            this.bidsWebSocketGateway.userSubmitBidEventHandler(
+              joinedBidders[0].auctionId,
+              new Prisma.Decimal(paymentIntent.metadata.bidAmount),
+              joinedBidders[0].auction.bids.length,
+            );
             const auctionEndDate = new Date(
               auctionHoldPaymentTransaction.auction.expiryDate,
             );
@@ -2355,8 +2398,8 @@ export class PaymentsService {
                 console.log('sendNotificationToSpecificUsers error', error);
               }
             }
-            this.auctionGateway.increaseBid(joinedBidders[0].auction);
-
+           
+            
             break;
           case PaymentType.SELLER_DEPOSIT:
             console.log('Webhook SELLER_DEPOSIT ...');
@@ -3052,6 +3095,7 @@ export class PaymentsService {
                 //------------------------------------------------------------
                 // Join user to auction
                 console.log('operation 3 started');
+                
 
                 await prisma.joinedAuction.create({
                   data: {
@@ -3929,7 +3973,7 @@ export class PaymentsService {
     const newDate =
       process.env.NODE_ENV === 'production'
         ? new Date(date.getTime() + hours * 60 * 60 * 1000)
-        : new Date(date.getTime() +   10 * 60 * 1000); 
+        : new Date(date.getTime() +   15 * 60 * 1000); 
     // const newDate = new Date(date.getTime() + 6 * 60 * 1000);
 
     return newDate;

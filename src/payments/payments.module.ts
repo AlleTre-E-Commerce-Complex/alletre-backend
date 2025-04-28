@@ -18,6 +18,7 @@ import { PaginationService } from 'src/common/services/pagination.service';
 import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
 import { WhatsAppModule } from 'src/whatsapp/whatsapp.module';
 import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
+import { BidsWebSocketGateway } from 'src/auction/gateway/bids.gateway';
 @Module({
   imports: [PrismaModule, NotificationsModule, WhatsAppModule],
   controllers: [PaymentsController],
@@ -37,6 +38,7 @@ import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
     AdminService,
     PaginationService,
     WhatsAppService,
+    BidsWebSocketGateway,
   ],
   exports: [PaymentsService],
 })

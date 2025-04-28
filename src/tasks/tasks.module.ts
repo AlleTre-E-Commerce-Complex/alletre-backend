@@ -17,6 +17,7 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import { AdminService } from 'src/admin/admin.service';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
+import { BidsWebSocketGateway } from 'src/auction/gateway/bids.gateway';
 
 @Module({
   imports: [PrismaModule, AuctionModule, NotificationsModule],
@@ -36,6 +37,7 @@ import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
     FirebaseService,
     AdminService,
     PaginationService,
+    BidsWebSocketGateway,
   ],
 })
 export class TasksModule {}
