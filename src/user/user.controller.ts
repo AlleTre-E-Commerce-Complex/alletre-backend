@@ -227,4 +227,22 @@ export class UserController {
       data,
     };
   }
+
+  @Patch('/updateUserBlockStatus')
+  @UseGuards(AuthGuard)
+  @Roles(Role.Admin)
+  async blockOrDeleteUserAccount(
+    @Account() account: any,
+    @Query('currentStatus') currentStatus: boolean,
+  ) {
+    const data = await this.userService.updateBlockStatus(
+      account.id,
+      currentStatus,
+    );
+
+    return {
+      success: true,
+      data,
+    };
+  }
 }

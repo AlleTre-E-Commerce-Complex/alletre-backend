@@ -5101,7 +5101,7 @@ export class UserAuctionsService {
           take: limit,
           orderBy: { id: 'desc' },
         });
-        console.log('allListedProductLocatin:',allListedProducts)
+        console.log('allListedProductLocatin:',allListedProducts.length)
       const productsCount = await this.prismaService.listedProducts.count({
         where: {
           status,

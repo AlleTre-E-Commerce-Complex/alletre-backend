@@ -337,12 +337,14 @@ The <b>Alletre</b> Team
     const emails = [];
     let skip = 0;
     let batch: any;
+    let batch2 : any;
+
 
     try {
       do {
         batch = await this.prismaService.user.findMany({
           skip: skip,
-          take: batchSize,
+          take: batchSize/2,
           select: {
             email: true,
           },
@@ -351,7 +353,16 @@ The <b>Alletre</b> Team
           },
         });
 
+        batch = await this.prismaService.nonRegisteredUser.findMany({
+          skip: skip,
+          take: batchSize/2,
+          select: {
+            email: true,
+          },
+        });
+
         emails.push(...batch.map((user: any) => user.email));
+        emails.push(...batch2.map((user: any) => user.email));
 
         skip += batchSize;
       } while (batch.length > 0);
