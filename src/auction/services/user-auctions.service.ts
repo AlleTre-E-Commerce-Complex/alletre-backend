@@ -3796,15 +3796,33 @@ export class UserAuctionsService {
       }
     }
     // Get totalBids after my bid
-    const totalBids = await this.prismaService.bids.count({
-      where: { auctionId },
+    const joinedBidders = await this.prismaService.bids.findMany({
+      where: {
+        auctionId: auctionId,
+      },
+      include: {
+        user: true,
+        auction: {
+          include: {
+            user: true,
+            bids: {
+              include: { user: true },
+              orderBy: { amount: 'desc' },
+            },
+            product: { include: { images: true, category: true } },
+          },
+        },
+      },
+      orderBy: {
+        id: 'desc',
+      },
     });
 
     // emit to all biders using socket instance
     this.bidsWebSocketGateway.userSubmitBidEventHandler(
       auctionId,
       new Prisma.Decimal(bidAmount),
-      totalBids,
+      joinedBidders?.length,
     );
     this.auctionWebsocketGateway.increaseBid(bidCreated.auction);
 
@@ -3878,6 +3896,143 @@ export class UserAuctionsService {
           auctionId,
           isBidders,
         );
+      }
+
+      const auctionEndDate = new Date(bidCreated.auction.expiryDate);
+      const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+      const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+      const emailBodyToSeller = {
+        subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
+        title: 'Your Auction is Officially in Motion!',
+        Product_Name: bidCreated.auction.product.title,
+        img: bidCreated.auction.product.images[0].imageLink,
+        userName: `${bidCreated.auction.user.userName}`,
+        message1: ` 
+                <p>Congratulations! Your auction ${
+                  bidCreated.auction.product.title
+                } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
+                <p>Here’s the latest update:</p>
+                <ul>
+                <li>First Bid Amount: ${
+                  joinedBidders[joinedBidders.length - 1].amount
+                }</li>
+                <li>Bidder’s Username: ${
+                  joinedBidders[joinedBidders.length - 1].user.userName
+                } </li>
+                  <li>Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                </ul>
+                   <p>This is just the beginning—more bidders could be on their way!<p>       
+                  <h3>What can you do now?</h3>
+                    <ul>
+                <li>Share your auction to attract even more bids.</li>
+                <li>Keep an eye on the activity to stay informed about the progress.</li>
+                </ul>
+                `,
+        message2: ` 
+                             <p>Thank you for choosing <b>Alletre</b>. We can’t wait to see how this unfolds!</p>
+                
+           
+                             <p style="margin-bottom: 0;">Good luck,</p>
+                            <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                            <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
+        Button_text: 'View My Auction ',
+        Button_URL: `https://www.alletre.com/alletre/home/${bidCreated.auction.id}/details`,
+      };
+
+      const emailBodyToSecondLastBidder = {
+        subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
+        title: 'Your Bid Just Got Beaten!',
+        Product_Name: bidCreated.auction.product.title,
+        img: bidCreated.auction.product.images[0].imageLink,
+        userName: `${joinedBidders[1]?.user.userName}`,
+        message1: ` 
+                <p>Exciting things are happening on ${
+                  bidCreated.auction.product.title
+                }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.</p>
+                <p>Here’s the current standing:</p>
+                <ul>
+                <li> Current Highest Bid: ${
+                  joinedBidders.length > 1
+                    ? joinedBidders[0].amount
+                    : 'No bids yet'
+                }</li>
+                <li>Your Last Bid: ${joinedBidders[1]?.amount}  </li>
+              
+                </ul>
+                   <p>Don’t miss your chance to claim this one-of-a-kind ${
+                     bidCreated.auction.product.title
+                   } . The clock is ticking, and every second counts!</p>       
+                   <p><b>Reclaim Your Spot as the Top Bidder Now!</b></p>
+                `,
+        message2: ` 
+                             <p>Stay ahead of the competition and secure your win!</p>
+                
+           
+                             <p style="margin-bottom: 0;">Good luck,</p>
+                            <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                            <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
+        Button_text: 'Place a Higher Bid',
+        Button_URL: `https://www.alletre.com/alletre/home/${bidCreated.auction.id}/details`,
+      };
+      if (joinedBidders.length === 1) {
+        this.emailService.sendEmail(
+          joinedBidders[0].auction.user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSeller,
+        );
+        const whatsappBodyToLostBidders = {
+          1: `${bidCreated.auction.user.userName}`,
+          2: `Congratulations! Your auction ${bidCreated.auction.product.title} has received its first bid! This is an exciting milestone, and the competition has officially begun.`,
+          3: `*First Bid Amount:* ${
+            joinedBidders[joinedBidders.length - 1].amount
+          }`,
+          4: `*Bidder Username:* ${
+            joinedBidders[joinedBidders.length - 1].user.userName
+          }`,
+          5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+          6: `This is just the beginning—more bidders could be on their way!`,
+          7: `*What can you do now?* -> Share your auction to attract even more bids. Keep an eye on the activity to stay informed about the progress.`,
+          8: bidCreated.auction.product.images[0].imageLink,
+          9: `https://www.alletre.com/alletre/home/${bidCreated.auction.id}/details`,
+        };
+        if (bidCreated.auction.user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyToLostBidders,
+            bidCreated.auction.user.phone,
+            'alletre_common_utility_templet',
+          );
+        }
+      }
+      if (joinedBidders[1]) {
+        console.log('joinedBidders222222', joinedBidders[1]);
+        this.emailService.sendEmail(
+          joinedBidders[1].user.email,
+          'token',
+          EmailsType.OTHER,
+          emailBodyToSecondLastBidder,
+        );
+
+        const whatsappBodyTosecondLastBidders = {
+          1: `${joinedBidders[1].user.userName}`,
+          2: `Exciting things are happening on ${bidCreated.auction.product.title}! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.`,
+          3: `*Here’s the current standing:*`,
+          4: `*Current Highest Bid:* ${
+            joinedBidders.length > 1 ? joinedBidders[0].amount : 'No bids yet'
+          }`,
+          5: `*Your Last Bid:* ${joinedBidders[1]?.amount}`,
+          6: `Don’t miss your chance to claim this one-of-a-kind ${bidCreated.auction.product.title} . The clock is ticking, and every second counts!`,
+          7: `*Reclaim Your Spot as the Top Bidder Now!*`,
+          8: bidCreated.auction.product.images[0].imageLink,
+          9: `https://www.alletre.com/alletre/home/${bidCreated.auction.id}/details`,
+        };
+        if (joinedBidders[1].user.phone) {
+          await this.whatsappService.sendOtherUtilityMessages(
+            whatsappBodyTosecondLastBidders,
+            joinedBidders[1].user.phone,
+            'alletre_common_utility_templet',
+          );
+        }
       }
     } catch (error) {
       console.error('Error sending bid notifications:', error);
