@@ -328,7 +328,7 @@ The <b>Alletre</b> Team
 
   private chunkArray(array: string[], size: number): string[][] {
     const result: string[][] = [];
-    for (let i = 0; i < array.length; i += size) {
+    for (let i = 0; i < array?.length; i += size) {
       result.push(array.slice(i, i + size));
     }
     return result;
@@ -353,7 +353,7 @@ The <b>Alletre</b> Team
           },
         });
 
-        batch = await this.prismaService.nonRegisteredUser.findMany({
+        batch2 = await this.prismaService.nonRegisteredUser.findMany({
           skip: skip,
           take: batchSize/2,
           select: {
@@ -361,11 +361,11 @@ The <b>Alletre</b> Team
           },
         });
 
-        emails.push(...batch.map((user: any) => user.email));
-        emails.push(...batch2.map((user: any) => user.email));
+        emails.push(...batch?.map((user: any) => user?.email));
+        emails.push(...batch2?.map((user: any) => user?.email));
 
         skip += batchSize;
-      } while (batch.length > 0);
+      } while (batch?.length > 0);
 
       return emails;
     } catch (error) {
