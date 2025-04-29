@@ -3509,12 +3509,16 @@ export class UserAuctionsService {
     const { user, auction, amount, bidderMainLocation } =
     await this.prismaService.$transaction(async (tx) => {
       
-         // Lock the auction row
-         await tx.$executeRawUnsafe(`
-          SELECT * FROM "Auction"
-          WHERE id = ${auctionId}
-          FOR UPDATE
-        `);
+      //    // Lock the auction row
+      //    await tx.$executeRaw`
+      //    SELECT * FROM "Auction"
+      //    WHERE id = ${auctionId}
+      //    FOR UPDATE
+      //  `;
+
+      await tx.$executeRawUnsafe(`
+        SELECT pg_advisory_xact_lock(${auctionId})
+      `);
     
         const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
@@ -3666,83 +3670,76 @@ export class UserAuctionsService {
     auctionId: number,
     bidAmount: number,
   ) {
-    const auction = await this.checkAuctionExistanceAndReturn(auctionId);
-
-    this.auctionStatusValidator.isActionValidForAuction(
-      auction,
-      AuctionActions.SUBMIT_BID,
-    );
-
-    // Check authorization
-    if (auction.userId === userId)
-      throw new MethodNotAllowedResponse({
-        ar: 'هذا الاعلان من احد إعلاناتك',
-        en: 'This auction is one of your created auctions',
-      });
-
-    // Validate CurrentBidAmount with bidAmount if there is no bidders else validate with latest bidAmount
-    let latestBidAmount: Decimal;
-    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
-    if (isAuctionHasBidders) {
-      latestBidAmount = await this._findLatestBidForAuction(auctionId);
-      console.log('latestBidAmount : ', latestBidAmount);
-      console.log('bidAmount : ', bidAmount);
-      // Convert both to Decimal or both to number for proper comparison
-      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
-      const newBid = new Prisma.Decimal(bidAmount.toString());
-      if (currentBid.gte(newBid)) {
-        throw new MethodNotAllowedResponse({
-          ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
-        });
-      }
-    } else {
-      latestBidAmount = auction.startBidAmount;
-      const currentBid = new Prisma.Decimal(latestBidAmount.toString());
-      const newBid = new Prisma.Decimal(bidAmount.toString());
-      if (currentBid.gte(newBid))
-        throw new MethodNotAllowedResponse({
-          ar: 'قم برفع السعر',
-          en: 'Bid Amount Must Be Greater Than Current Amount',
-        });
-    }
-
-    // Create new bid
-    // const bidCreated = await this.prismaService.bids.create({
-    //   data: { userId, auctionId, amount: bidAmount },
-    //   include: {
-    //     auction: {
-    //       include: {
-    //         Payment: {where:{type:'SELLER_DEPOSIT'}},
-    //         user: true,
-    //         bids: {
-    //           include: { user: true },
-    //           orderBy: { amount: 'desc' },
-    //         },
-    //         product: { include: { images: true, category: true } },
-    //       },
-    //     },
-    //   },
-    // });
-
-    // const existing = await this.prismaService.joinedAuction.findFirst({
-    //   where: {
-    //     userId: userId,
-    //     auctionId: auctionId,
-    //   },
-    // });
-    // console.log('isExist',existing)
-    // if (!existing) {
-    //   const cretednewJoinedAuction = await this.prismaService.joinedAuction.create({
-    //     data: {
-    //       userId: userId,
-    //       auctionId: auctionId,
-    //     },
-    //   });
-    //   console.log('cretednewJoinedAuction',cretednewJoinedAuction)
-    // }
+  try {
     
+  
     const bidCreated = await this.prismaService.$transaction(async (prisma) => {
+
+    try {
+      await prisma.$executeRawUnsafe(`
+        SELECT pg_advisory_xact_lock(${auctionId})
+      `);
+      
+
+      const auction = await prisma.auction.findUnique({
+        where: { id: auctionId },
+        // include:{bids: true,product:true}
+        include: {
+          user: true,
+          product: { include: { images: true, category: true } },
+          bids: {
+            orderBy: { amount: 'desc' },
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+  
+      if (!auction)
+        throw new NotFoundResponse({
+          ar: 'لا يوجد هذا الاعلان',
+          en: 'Auction Not Found',
+        });
+
+        this.auctionStatusValidator.isActionValidForAuction(
+          auction,
+          AuctionActions.SUBMIT_BID,
+        );
+    
+        // Check authorization
+        if (auction.userId === userId)
+          throw new MethodNotAllowedResponse({
+            ar: 'هذا الاعلان من احد إعلاناتك',
+            en: 'This auction is one of your created auctions',
+          });
+      let latestBidAmount: Decimal;
+      const maxBid = await prisma.bids.findFirst({
+        where: { auctionId },
+        orderBy: { amount: 'desc' },
+      });
+      if (maxBid) {
+        latestBidAmount = maxBid?.amount
+        // Convert both to Decimal or both to number for proper comparison
+        const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+        const newBid = new Prisma.Decimal(bidAmount.toString());
+        if (currentBid.gte(newBid)) {
+          throw new MethodNotAllowedResponse({
+            ar: 'قم برفع السعر',
+            en: 'Bid Amount Must Be Greater Than Current Amount',
+          });
+        }
+      } else {
+        
+        latestBidAmount = auction.startBidAmount;
+        const currentBid = new Prisma.Decimal(latestBidAmount.toString());
+        const newBid = new Prisma.Decimal(bidAmount.toString());
+        if (currentBid.gte(newBid))
+          throw new MethodNotAllowedResponse({
+            ar: 'قم برفع السعر',
+            en: 'Bid Amount Must Be Greater Than Current Amount',
+          });
+      }
       // Create new bid
       const bidCreated = await prisma.bids.create({
         data: { userId, auctionId, amount: bidAmount },
@@ -3782,7 +3779,10 @@ export class UserAuctionsService {
       }
     
       return bidCreated;
-    });
+    } catch (error) {
+      throw Error(error)
+    }
+    },{timeout:10000});
     
     
     if(bidCreated){
@@ -3882,6 +3882,9 @@ export class UserAuctionsService {
     } catch (error) {
       console.error('Error sending bid notifications:', error);
     }
+  } catch (error) {
+    console.log('Error while submit bid for auction', error)
+  }
   }
 
   async getBidderJoindAuctions(
