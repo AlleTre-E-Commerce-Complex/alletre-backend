@@ -846,7 +846,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
               <p>P.S. Need help or have questions? Contact our support team for assistance.</p>`,
             Button_text: 'Complete My Payment Now',
             Button_URL:
-              ' https://www.alletre.com/alletre/profile/my-bids/pending',
+              'https://www.alletre.com/alletre/profile/my-bids/pending',
           };
 
           const whatsappBodyForPendingPayment = {
@@ -858,7 +858,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
             6: `We recommend acting quickly to avoid losing both your winning bid and your deposit.`,
             7: `Thanks for being part of *Alletre*! Completing your payment helps ensure a smooth experience for everyone.`,
             8: `${data.auction.product.images[0].imageLink}`,
-            9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+            9: `alletre/profile/my-bids/pending`,
           };
 
           if (data.user.phone) {
@@ -995,7 +995,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
             6: `Do not miss out! Complete your payment now to secure your win and avoid losing your deposit.`,
             7: `Thanks for using *Alletre*! We are here to help you complete this transaction smoothly.`,
             8: `${data.auction.product.images[0].imageLink}`,
-            9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+            9: `alletre/profile/my-bids/pending`,
           };
 
           if (data.user.phone) {
@@ -1452,7 +1452,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
               6: `Step 2 Choose delivery or pickup: • Delivery: We ship to your address (shipping charges may apply) • Pickup: Collect directly from the seller (details shared after payment)`,
               7: `Step 3 If picking up, confirm once collected. This helps ensure a smooth and secure transaction. Thanks for being part of *Alletre*!`,
               8: `${isAcutionUpdated.product.images[0].imageLink}`,
-              9: `https://www.alletre.com/alletre/profile/my-bids/pending`,
+              9: `alletre/profile/my-bids/pending`,
             };
 
             if (isAcutionUpdated.bids[0].user.phone) {
@@ -1560,7 +1560,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
                     6: `Tap below to explore live auctions and get ready for your next opportunity to win.`,
                     7: `We appreciate your enthusiasm and look forward to seeing you succeed next time. Keep bidding and keep winning with Alletre.`,
                     8: `${isAcutionUpdated.product.images[0].imageLink}`,
-                    9: `https://www.alletre.com/`,
+                    9: `https://www.alletre.com`,
                   };
 
                   if (data.user.phone) {
