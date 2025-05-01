@@ -387,6 +387,100 @@ export class WhatsAppService {
     });
     return !!user;
   }
+
+  async SendInspectionDetails(currentUserId:string, aucitonId: string, mobile: string) {
+
+    try {
+     console.log('SendInspectionDetails');
+     if (mobile.startsWith('+971')) {
+       mobile = mobile.substring(4);
+     } else if (mobile.startsWith('0')) {
+       mobile = mobile.substring(1);
+     }
+     if (!/^\d{9}$/.test(mobile)) {
+       console.log(`Invalid number skipped: ${mobile}`);
+       return;
+       // throw Error('`Invalid number skipped: ${mobile}`')
+     }
+     const aucitonData = await this.prismaService.auction.findFirst({
+      where:{
+        id: Number(aucitonId)
+      },
+      include:{
+        user: true,
+        location: true,
+      }
+     })
+     const currentUserData = await this.prismaService.user.findFirst({
+      where :{id:Number(currentUserId)}
+     })
+     try {
+       const templateName ='send_inpection_details'
+       console.log('lat ...',aucitonData.location.lat)
+       const googleLocationLink  = aucitonData.location.lat ? `🗺️ Google map: https://www.google.com/maps?q=${aucitonData.location.lat},${aucitonData.location.lng}` : ' ';
+       const messageTemplateParams = {
+         1 : currentUserData.userName,
+         2 : aucitonData.user.userName,
+         3 : aucitonData.user.phone,
+         4 : aucitonData.location.address,
+         5 : googleLocationLink,
+       }
+       console.log('messageTemplateParams',messageTemplateParams)
+       // Construct the Gupshup API payload
+       const payload = {
+         messaging_product: 'whatsapp',
+         recipient_type: 'individual',
+         to: `971${mobile}`, // Correct format for the recipient number
+         type: 'template',
+         template: {
+           name: templateName,
+           language: { code: 'en' },
+           components: [
+             {
+               type: 'body',
+               parameters: [
+                 { type: 'text', text: messageTemplateParams[1] },
+                 { type: 'text', text: messageTemplateParams[2] },
+                 { type: 'text', text: messageTemplateParams[3] },
+                 { type: 'text', text: messageTemplateParams[4] },
+                 { type: 'text', text: messageTemplateParams[5] },
+               ],
+             },
+           ].filter(Boolean), // Removes null/false values
+         },
+       };
+
+       // Send the request to Gupshup
+       const response = await axios.post(
+         'https://partner.gupshup.io/partner/app/196a6e5a-95bf-4ba8-8a30-0f8627d75447/v3/message',
+         payload,
+         {
+           headers: {
+             accept: 'application/json',
+             Authorization: 'sk_808029f6198240c788d9037099017a4a',
+             'Content-Type': 'application/json',
+           },
+         },
+       );
+
+       // Log response or handle success/failure
+       console.log(`Message sent to ${mobile}:`, response.data);
+       if(response){
+        return {success : true}
+       }else{
+        return {success : false}
+       }
+     } catch (error) {
+       console.log(
+         `Failed to send message to: ${mobile} | Error: ${error.message}`,
+       );
+       // failedMessages.push({ user: mobile, error: error.message });
+     }
+   } catch (error) {
+     console.error('Error sending WhatsApp messages:', error);
+     throw error;
+   }
+  } 
   // async sendAuctionToUsers(auctionId: string) {
   //   try {
   //     // Fetch auction details

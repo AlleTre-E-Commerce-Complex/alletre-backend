@@ -8,9 +8,12 @@ import {
   Req,
   Res,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { WhatsAppService } from './whatsapp.service';
 import { Request, Response } from 'express';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Account } from 'src/auth/decorators/account.decorator';
 
 @Controller('whatsapp')
 export class WhatsAppController {
@@ -34,6 +37,19 @@ export class WhatsAppController {
     return this.whatsappService.sendAuctionToUsers(
       body.auctionId,
       'NON_EXISTING_USER',
+    );
+  }
+  @Post('Send-Inspection-Details')
+    @UseGuards(AuthGuard)
+  async SendInspectionDetails(
+    @Account() account: any,
+    @Query('auctionId') auctionId:string) {
+      console.log('Account--',account)
+      console.log('auctionId',auctionId)
+    return this.whatsappService.SendInspectionDetails(
+      account.id,
+      auctionId,
+      account.phone,
     );
   }
   @Post('send-commentMessage-ToNonExistingUser')
