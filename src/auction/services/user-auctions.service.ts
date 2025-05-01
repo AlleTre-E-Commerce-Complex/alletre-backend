@@ -1673,10 +1673,10 @@ export class UserAuctionsService {
     // here all data of the getAuctionDTO will come when we do a search and filter in home screen
     // console.log( '===>', page ,perPage ,brands,categories,countries,priceFrom,priceTo,sellingType,usageStatus,title, auctionStatus,);
 
-    const { limit, skip } = this.paginationService.getSkipAndLimit(
-      Number(page),
-      Number(perPage),
-    );
+    // const { limit, skip } = this.paginationService.getSkipAndLimit(
+    //   Number(page),
+    //   Number(perPage),
+    // );
 
     const productFilter = this.auctionsHelper._productFilterApplied({
       brands,
@@ -1756,8 +1756,8 @@ export class UserAuctionsService {
       orderBy: {
         createdAt: 'desc',
       },
-      skip: skip,
-      take: limit,
+      // skip: skip,
+      // take: limit,
     });
 
     const auctionsCount = await this.prismaService.auction.count({
@@ -2043,6 +2043,7 @@ export class UserAuctionsService {
               AuctionStatus.DRAFTED,
               AuctionStatus.CANCELLED_AFTER_EXP_DATE,
               AuctionStatus.CANCELLED_BEFORE_EXP_DATE,
+              AuctionStatus.CANCELLED_BY_ADMIN,
             ],
           },
         },
@@ -5215,10 +5216,10 @@ export class UserAuctionsService {
         title,
       } = getListedProductDTO;
       // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
-      const { limit, skip } = this.paginationService.getSkipAndLimit(
-        Number(page),
-        Number(perPage),
-      );
+      // const { limit, skip } = this.paginationService.getSkipAndLimit(
+      //   Number(page),
+      //   Number(perPage),
+      // );
 
       const productFilter = this.auctionsHelper._productFilterApplied({
         brands,
@@ -5255,8 +5256,8 @@ export class UserAuctionsService {
             },
             location: { include: { city: true, country: true } },
           },
-          skip: skip,
-          take: limit,
+          // skip: skip,
+          // take: limit,
           orderBy: { id: 'desc' },
         });
         console.log('allListedProductLocatin:',allListedProducts.length)
