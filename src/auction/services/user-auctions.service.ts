@@ -2452,51 +2452,55 @@ export class UserAuctionsService {
   }
 
   async findOwnerAuctionByIdOr404(auctionId: number) {
-    const auction = await this.prismaService.auction.findUnique({
-      where: { id: auctionId },
-      include: {
-        product: {
-          include: {
-            category: true,
-            // brand: true,
-            subCategory: true,
-            city: true,
-            country: true,
-            images: true,
+    try {
+      const auction = await this.prismaService.auction.findUnique({
+        where: { id: auctionId },
+        include: {
+          product: {
+            include: {
+              category: true,
+              // brand: true,
+              subCategory: true,
+              city: true,
+              country: true,
+              images: true,
+            },
           },
+          user: { select: { lang: true } },
+          location: {
+            include: { city: true, country: true },
+          },
+          _count: { select: { bids: true } },
         },
-        user: { select: { lang: true } },
-        location: {
-          include: { city: true, country: true },
-        },
-        _count: { select: { bids: true } },
-      },
-    });
-
-    if (!auction)
-      throw new NotFoundResponse({
-        ar: 'لا يوجد هذا الاعلان',
-        en: 'Auction Not Found',
       });
-
-    const formatedAuction = this.auctionsHelper._reformatAuctionObject(
-      auction.user.lang,
-      auction,
-    );
-
-    const resultAuction = await this.auctionsHelper._injectIsSavedKeyToAuction(
-      auction.userId,
-      formatedAuction,
-    );
-    const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
-
-    return {
-      ...resultAuction,
-      hasBids: isAuctionHasBidders,
-      latestBidAmount: isAuctionHasBidders
-        ? await this._findLatestBidForAuction(auctionId)
-        : undefined,
-    };
+  
+      if (!auction)
+        throw new NotFoundResponse({
+          ar: 'لا يوجد هذا الاعلان',
+          en: 'Auction Not Found',
+        });
+  
+      const formatedAuction = this.auctionsHelper._reformatAuctionObject(
+        auction.user.lang,
+        auction,
+      );
+  
+      const resultAuction = await this.auctionsHelper._injectIsSavedKeyToAuction(
+        auction.userId,
+        formatedAuction,
+      );
+      const isAuctionHasBidders = await this._isAuctionHasBidders(auctionId);
+  
+      return {
+        ...resultAuction,
+        hasBids: isAuctionHasBidders,
+        latestBidAmount: isAuctionHasBidders
+          ? await this._findLatestBidForAuction(auctionId)
+          : undefined,
+      };
+    } catch (error) {
+      console.log('findOwnerAuctionByIdOr404 error :',error)
+    }
   }
 
   async getSellerLocation(auctionId: number) {

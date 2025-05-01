@@ -99,6 +99,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         roles: [Role.User],
+        phone:user.phone,
       });
 
       // Manage new session
@@ -174,6 +175,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       roles: [Role.User],
+      phone: user.phone,
     });
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
@@ -251,6 +253,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       roles: [Role.User],
+      phone: user.phone,
     });
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
@@ -578,6 +581,7 @@ export class AuthService {
 
       // Check user existence
       const user = await this.getUserByRole(payload.id, payload.roles[0]);
+
       if (!user) {
         throw new ForbiddenResponse({
           en: 'User not found',
@@ -589,11 +593,14 @@ export class AuthService {
       this.usedRefreshTokens.add(oldRefreshToken);
 
       // Generate new tokens
+      const userWithPhone = user as { phone: string | null };
       const { accessToken, refreshToken } = this.generateTokens({
         id: user.id,
         email: user.email,
         roles: payload.roles,
+        phone: userWithPhone.phone,
       });
+      
 
       // Update session with new refresh token
       this.manageUserSession(user.id, refreshToken);
@@ -756,7 +763,7 @@ export class AuthService {
     }
   }
 
-  generateTokens(payload: { id: number; email: string; roles: string[] }) {
+  generateTokens(payload: { id: number; email: string; roles: string[], phone?:string, }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '15m',

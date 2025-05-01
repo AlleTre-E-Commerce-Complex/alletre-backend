@@ -3,11 +3,16 @@ import { WhatsAppService } from './whatsapp.service';
 import { WhatsAppController } from './whatsapp.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PaymentsModule } from 'src/payments/payments.module';
+import { UserService } from 'src/user/user.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { WalletService } from 'src/wallet/wallet.service';
+import { PaginationService } from 'src/common/services/pagination.service';
+import { EmailSerivce } from 'src/emails/email.service';
 
 @Module({
   imports: [PrismaModule],
   controllers: [WhatsAppController],
-  providers: [WhatsAppService],
+  providers: [WhatsAppService,UserService,FirebaseService,WalletService,PaginationService,EmailSerivce],
   exports: [WhatsAppService],
 })
 export class WhatsAppModule {}
