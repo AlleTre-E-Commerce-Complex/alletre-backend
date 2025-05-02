@@ -430,7 +430,7 @@ export class WhatsAppService {
        const payload = {
          messaging_product: 'whatsapp',
          recipient_type: 'individual',
-         to: `971${mobile}`, // Correct format for the recipient number
+         to: `971${currentUserData?.phone}`, // Correct format for the recipient number
          type: 'template',
          template: {
            name: templateName,
