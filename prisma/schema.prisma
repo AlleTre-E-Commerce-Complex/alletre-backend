@@ -300,6 +300,10 @@ model Auction {
   Payment                     Payment[]
   Wallet                      Wallet[]
   watchLists                  WatchList[]
+  isLocked                    Boolean?                 @default(false)
+  lockedByUserId              Int?                    // user who locked it
+  lockedAt                    DateTime?             
+
 }
 
 model ListedProducts {
@@ -399,13 +403,13 @@ model Wallet {
   userId                Int
   auctionId             Int?
   purchaseId            Int?
-  amount                Decimal               @db.Decimal(30, 30)
+  amount                Decimal               
   date                  DateTime              @default(now())
   description           String
   status                WalletStatus
   transactionType       WalletTransactionType
   transactionReference  String?               @unique
-  balance               Decimal               @db.Decimal(30, 30)
+  balance               Decimal               
   auction               Auction?              @relation(fields: [auctionId], references: [id])
   purchase              Purchase?             @relation(fields: [purchaseId], references: [id])
   user                  User                  @relation(fields: [userId], references: [id])
@@ -417,12 +421,12 @@ model AlletreWallet {
   userId                 Int
   auctionId              Int?
   purchaseId             Int?
-  amount                 Decimal               @db.Decimal(30, 30)
+  amount                 Decimal               
   date                   DateTime              @default(now())
   description            String
   status                 WalletStatus
   transactionType        WalletTransactionType
-  balance                Decimal               @db.Decimal(30, 30)
+  balance                Decimal               
   transactionReference   String?               @unique
   auction                Auction?              @relation(fields: [auctionId], references: [id])
   purchase               Purchase?             @relation(fields: [purchaseId], references: [id])

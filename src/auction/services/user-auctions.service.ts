@@ -2,7 +2,10 @@ import {
   Injectable,
   InternalServerErrorException,
   MethodNotAllowedException,
-  Logger
+  Logger,
+  NotFoundException,
+  ConflictException,
+  BadRequestException
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationService } from '../../common/services/pagination.service';
@@ -1733,7 +1736,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
-
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -1870,6 +1875,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -1969,6 +1977,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -2076,6 +2087,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -2178,6 +2192,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -2336,6 +2353,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -2425,6 +2445,9 @@ export class UserAuctionsService {
         warrantyPolicyDescription: true,
         deliveryType: true,
         deliveryRequestsStatus: true,
+        isLocked :true,
+        lockedByUserId :true,
+        lockedAt :true,
         product: {
           select: {
             id: true,
@@ -3668,6 +3691,50 @@ export class UserAuctionsService {
     }
   }
 
+  async lockAuction(auctionId: number, userId: string, bidAmount: number) {
+    console.log('lock auction')
+    const auction = await this.prismaService.auction.findUnique({ where: { id: auctionId } });
+  
+    if (!auction) throw new NotFoundException('Auction not found');
+    
+    if (auction.isLocked) {
+      throw new ConflictException('Auction is currently locked for bidding');
+    }
+    const bids = await this.prismaService.bids.findMany({
+      where:{
+        auctionId:auction.id
+      },
+      orderBy:{createdAt:'desc'}
+    })
+    console.log(bids.length)
+    console.log(auction.acceptedAmount , bidAmount )
+    if(bids.length){
+      if (bids[0].amount && Number(bidAmount) <= Number(bids[0].amount)) {
+        console.log('Bid must be higher than current price 1');
+          throw new MethodNotAllowedResponse({
+              ar: 'قم برفع السعر',
+              en: 'Bid Amount Must Be Greater Than Current Amount',
+            });
+      }
+    }else if (auction.startBidAmount && Number(bidAmount) <= Number(auction.startBidAmount)) {
+      console.log('Bid must be higher than current price 2');
+        throw new MethodNotAllowedResponse({
+              ar: 'قم برفع السعر',
+              en: 'Bid Amount Must Be Greater Than Current Amount',
+            });
+    }
+  
+    await this.prismaService.auction.update({
+      where: { id: auctionId },
+      data: {
+        isLocked: true,
+        lockedByUserId: Number(userId),
+        lockedAt: new Date(),
+      },
+    });
+  
+    return { success: true };
+  }
   
   
   async submitBidForAuction(
@@ -3676,10 +3743,7 @@ export class UserAuctionsService {
     bidAmount: number,
   ) {
   try {
-    
-  
     const bidCreated = await this.prismaService.$transaction(async (prisma) => {
-
     try {
       await prisma.$executeRawUnsafe(`
         SELECT pg_advisory_xact_lock(${auctionId})
@@ -3778,16 +3842,28 @@ export class UserAuctionsService {
             auctionId: auctionId,
           },
         });
-        console.log('createdNewJoinedAuction', createdNewJoinedAuction);
+        console.log('createdNewJoinedAuction', createdNewJoinedAuction); 
       } else {
         console.log('already joined', existing);
       }
     
       return bidCreated;
     } catch (error) {
-      throw Error(error)
+      console.log('submit bid error at $transaction',error)
+      if(error?.response?.message?.en === 'Bid Amount Must Be Greater Than Current Amount'){
+        throw new MethodNotAllowedResponse({
+          ar: 'تم تجاوز عرضك! يُرجى زيادة مبلغ المزايدة.',
+          en: 'You’ve been outbid! Please increase your bid amount.',
+        });
+      }else{
+        throw new MethodNotAllowedResponse({
+          ar: 'لم يتم تقديم العرض! يُرجى إعادة المحاولة.',
+          en: 'Bid submission failed! Please try again.',
+        });
+      }
+     
     }
-    },{timeout:10000});
+    },{timeout:20000});
     
     
     if(bidCreated){
@@ -3799,7 +3875,10 @@ export class UserAuctionsService {
        ){
         this.paymentService.notieceTheSellerToCompleteThePayment(bidCreated.auction.user,bidCreated.auction)
       }
+    }else{
+      throw new Error('There is proble while submiting the bid, please try again later')
     }
+    try {
     // Get totalBids after my bid
     const joinedBidders = await this.prismaService.bids.findMany({
       where: {
@@ -3831,7 +3910,7 @@ export class UserAuctionsService {
     );
     this.auctionWebsocketGateway.increaseBid(bidCreated.auction);
 
-    try {
+   
       const imageLink = bidCreated.auction.product.images[0]?.imageLink;
       const productTitle = bidCreated.auction.product.title;
 
@@ -4041,9 +4120,17 @@ export class UserAuctionsService {
       }
     } catch (error) {
       console.error('Error sending bid notifications:', error);
+      // throw new MethodNotAllowedResponse({
+      //   ar: 'خطأ أثناء إخطار الآخرين',
+      //   en: 'Error while notifying others.',
+      // });
     }
   } catch (error) {
     console.log('Error while submit bid for auction', error)
+    throw new MethodNotAllowedResponse({
+      ar: error.response.ar ||error.response.message.ar||'فشل في إرسال العرض، يرجى المحاولة مرة أخرى.',
+      en: error.response.en ||error.response.message.en||'Failed to submit bid, please try again.',
+    });
   }
   }
 
