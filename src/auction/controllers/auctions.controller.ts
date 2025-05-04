@@ -52,6 +52,7 @@ import {
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
 import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 import { GetListedProductDTO } from '../dtos/getListedProducts.dto';
+import { LockAuctionDto } from 'src/payments/LockAuctionDto';
 
 @Controller('auctions')
 export class AuctionsController {
@@ -903,6 +904,15 @@ export class AuctionsController {
       ),
     };
   }
+  @Post('/lock-auction')
+  @UseGuards(AuthGuard)
+    async lockAuction(
+      @Account() account : any,
+      @Body() dto: LockAuctionDto
+    ) {
+    return this.userAuctionsService.lockAuction(Number(dto.auctionId),account.id,dto.bidAmount);
+  }
+
 
   @Post('/user/:auctionId/bidder-purchase')
   @UseGuards(AuthGuard)

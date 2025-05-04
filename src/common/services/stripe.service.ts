@@ -189,12 +189,25 @@ export class StripeService {
     console.log(`[IMPORTANT] event type : ${event.type}`);
 
     // Handle the event
+    
     switch (event.type) {
       case 'payment_intent.amount_capturable_updated':
         const holdPaymentIntent = event.data.object;
         console.log(
           `PaymentIntent for ${holdPaymentIntent.amount} was Holded (authorized)!`,
         );
+        const intent = event.data.object;
+        const { auctionId, userId, bidAmount } = intent.metadata;
+  
+        // ✅ Safely release auction lock and set accepted amount
+        await this.prismaService.auction.update({
+          where: { id: Number(auctionId) },
+          data: {
+            isLocked: false,
+            lockedByUserId: null,
+            lockedAt: null,
+          },
+        });
         return {
           status: PaymentStatus.HOLD,
           paymentIntent: holdPaymentIntent,
@@ -222,6 +235,25 @@ export class StripeService {
         console.log(
           `PaymentIntent for ${failedPaymentIntent.amount} was failed!`,
         );
+        const failedIntent = event.data.object;
+        const { auction_Id } = failedIntent.metadata;
+        const auctionIdNum = Number(auction_Id);
+        const auction = await this.prismaService.auction.findUnique({
+          where:{
+            id:auctionId
+          }
+        })
+        if(auction?.isLocked){
+          await this.prismaService.auction.update({
+            where: { id: auctionIdNum },
+            data: {
+              isLocked: false,
+              lockedByUserId: null,
+              lockedAt: null,
+            },
+          });
+        }
+       
         return {
           status: PaymentStatus.FAILED,
           paymentIntent: failedPaymentIntent,

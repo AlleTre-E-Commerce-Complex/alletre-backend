@@ -14,18 +14,20 @@ export class WalletService {
   ) {
     let result: any;
     try {
+      const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
+      const roundedBalance = Number(Number(createWalletData.balance).toFixed(2));
       console.log('wallet.service is called', createWalletData);
       const prisma = prismaClient || this.prismaSevice;
       result = await prisma.wallet.create({
         data: {
           userId,
           description: createWalletData.description,
-          amount: createWalletData.amount,
+          amount: roundedAmount,
           status: createWalletData.status,
           transactionType: createWalletData.transactionType,
           auctionId: createWalletData.auctionId,
           purchaseId: createWalletData.purchaseId,
-          balance: createWalletData.balance,
+          balance: roundedBalance,
         },
       });
       console.log('the create wallet transaction result : ==>', result);
@@ -48,16 +50,18 @@ export class WalletService {
     let result: any;
     try {
       const prisma = prismaClient || this.prismaSevice;
+      const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
+      const roundedBalance = Number(Number(createWalletData.balance).toFixed(2));
       result = await prisma.alletreWallet.create({
         data: {
           userId,
           description: createWalletData.description,
-          amount: createWalletData.amount,
+          amount: roundedAmount,
           status: createWalletData.status,
           transactionType: createWalletData.transactionType,
           auctionId: createWalletData.auctionId,
           purchaseId: createWalletData.purchaseId,
-          balance: createWalletData.balance,
+          balance: roundedBalance,
           transactionReference: createWalletData?.transactionReference
         },
       });

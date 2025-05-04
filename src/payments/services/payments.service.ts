@@ -413,12 +413,12 @@ export class PaymentsService {
             console.log('test of wallet pay of bidder deposite 3');
 
              // Check if user already joined the auction
-         const existingJoinedAuction = await this.prismaService.joinedAuction.findFirst({
-          where: {
-            userId: user.id,
-            auctionId: auctionId,
-          },
-        });
+            const existingJoinedAuction = await this.prismaService.joinedAuction.findFirst({
+              where: {
+                userId: user.id,
+                auctionId: auctionId,
+              },
+            });
             // Join user to auction
             if (!existingJoinedAuction) {
           await prisma.joinedAuction.create({
@@ -854,7 +854,10 @@ export class PaymentsService {
         stripeCustomerId,
         amount,
         currency,
-        { bidAmount: Number(bidAmount) },
+        { bidAmount: Number(bidAmount),
+          auctionId,
+          userId : user.id,
+         },
       );
     console.log('test 8, bid amount:',bidAmount,'amount:', amount);
 
@@ -2515,6 +2518,7 @@ export class PaymentsService {
 
             
             await this.prismaService.$transaction(async (tx) => {
+             try {
               const sellerPayment = await tx.payment.update({
                 where: { paymentIntentId: paymentIntent.id },
                 data: { status: PaymentStatus.SUCCESS },
@@ -2547,13 +2551,35 @@ export class PaymentsService {
                     : Number(sellerPayment.amount),
                 };
             
-                await this.walletService.addToAlletreWallet(
-                  sellerPayment.userId,
-                  alletreWalletData,
-                );
+                // await this.walletService.addToAlletreWallet(
+                //   sellerPayment.userId,
+                //   alletreWalletData,
+                //   tx,
+                // );
+                const roundedAmount = Number(Number(alletreWalletData.amount).toFixed(2));
+                const roundedBalance = Number(Number(alletreWalletData.balance).toFixed(2));
+                console.log('roundedAmount',roundedAmount)
+                console.log('roundedBalance',roundedBalance)
+               await tx.alletreWallet.create({
+                  data: {
+                    userId:sellerPayment.userId,
+                    description: alletreWalletData.description,
+                    amount: roundedAmount,
+                    status: alletreWalletData.status,
+                    transactionType: alletreWalletData.transactionType,
+                    auctionId: alletreWalletData.auctionId,
+                    // purchaseId: alletreWalletData.purchaseId,
+                    balance: roundedBalance,
+                    transactionReference: alletreWalletData?.transactionReference
+                  },
+                });
               } else {
                 console.log('Skipping duplicate wallet transaction...');
               }
+             } catch (error) {
+              console.log('seller deposit error webhook--:',error)
+              throw error; 
+             }
             });
             
 
