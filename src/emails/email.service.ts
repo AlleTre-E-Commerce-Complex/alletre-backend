@@ -2,10 +2,15 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { EmailsType } from '../auth/enums/emails-type.enum';
 import { EmailBody } from './EmailBody';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { EmailBatchService } from './email-batch.service';
 
 @Injectable()
 export class EmailSerivce extends EmailBody {
-  constructor() {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly emailBatchService: EmailBatchService
+  ) {
     super();
     /* TODO document why this constructor is empty */
   }
@@ -500,6 +505,27 @@ The <b>Alletre</b> Team
       const sendEmailresult = await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.log(error);
+    }
+  }
+
+
+  async sendBulkEmail(auctionId: string){
+    try {
+      const auction = await this.prismaService.auction.findUnique({
+        where:{
+          id:Number(auctionId)
+        },
+        include: {
+          bids: true,
+          user: true,
+          product: { include: { images: true, category: true } },
+        },
+      })
+      if(auction){
+        await this.emailBatchService.sendBulkEmails(auction)
+      }
+    } catch (error) {
+      console.log('sendbulkEamil error :',error)
     }
   }
 }

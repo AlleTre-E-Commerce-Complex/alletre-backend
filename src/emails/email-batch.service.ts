@@ -53,8 +53,12 @@ export class EmailBatchService {
   }
 
   private generateEmailTemplate(updatedAuction: any): string {
-    const expiryDate = new Date(updatedAuction.expiryDate);
-    const formattedDate = expiryDate.toLocaleString('en-US', {
+    const date = updatedAuction.type === 'SCHEDULED' 
+    ? new Date(updatedAuction.startDate) 
+    : new Date(updatedAuction.expiryDate);
+
+  
+    const formattedDate = date.toLocaleString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -98,7 +102,7 @@ export class EmailBatchService {
           color: #a91d3a;
         "
       >
-        A New Auction Just Went Live!
+        ${updatedAuction.type === 'SCHEDULED' ? `A New Auction Has Just Listed`:`A New Auction Just Went Live!`}
       </h3>
       <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
         Hi Alletre member,
@@ -122,7 +126,7 @@ export class EmailBatchService {
   <li>Title: ${updatedAuction.product.title}</li>
   <li>Category: ${updatedAuction.product.category.nameEn}</li>
   <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
-  <li>Ends On: ${formattedDate}</li>
+  <li>${updatedAuction.type === 'SCHEDULED' ? 'Starts On': 'Ends On'}: ${formattedDate}</li>
 </ul>
 
         <p>This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!</p>
@@ -357,18 +361,18 @@ The <b>Alletre</b> Team
       });
 
       // For `nonRegisteredUser` table
-      batch = await this.prismaService.nonRegisteredUser.findMany({
-        skip: skip,
-        take: batchSize,
-        select: {
-          email: true,
-        },
-        where: {
-          email: {
-            not: null,
-          },
-        },
-      });
+      // batch = await this.prismaService.nonRegisteredUser.findMany({
+      //   skip: skip,
+      //   take: batchSize,
+      //   select: {
+      //     email: true,
+      //   },
+      //   where: {
+      //     email: {
+      //       not: null,
+      //     },
+      //   },
+      // });
 
         // console.log('barch1',batch)
         // console.log('normal users,',batch.length)
