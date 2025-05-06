@@ -1448,7 +1448,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
               2: `Congrats! You won the auction for *${isAcutionUpdated.product.title}*. Now it is time to complete your payment and finalize the deal.`,
               3: `Auction details:`,
               4: `• Item: ${isAcutionUpdated.product.title} • Winning Bid: ${isAcutionUpdated.bids[0].amount} • Seller: ${isAcutionUpdated.user.userName} • Payment Due By: ${PaymentEndDate} & ${formattedEndTime}`,
-              5: `Step 1 Complete your payment now to secure your item.`,
+              5: `Step 1 Complete your payment go to *alletre.com*, login to your account, and Click the button below this message to begin the payment process securely .`,
               6: `Step 2 Choose delivery or pickup: • Delivery: We ship to your address (shipping charges may apply) • Pickup: Collect directly from the seller (details shared after payment)`,
               7: `Step 3 If picking up, confirm once collected. This helps ensure a smooth and secure transaction. Thanks for being part of *Alletre*!`,
               8: `${isAcutionUpdated.product.images[0].imageLink}`,
