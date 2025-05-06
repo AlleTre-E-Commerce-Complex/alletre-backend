@@ -17,6 +17,7 @@ import { NotificationsModule } from 'src/notificatons/notifications.module';
 import { AuctionWebSocketGateway } from './gateway/auction.gateway';
 import { UserModule } from 'src/user/user.module';
 import { WhatsAppModule } from 'src/whatsapp/whatsapp.module';
+import { EmailBatchService } from 'src/emails/email-batch.service';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { WhatsAppModule } from 'src/whatsapp/whatsapp.module';
     StripeService,
     EmailSerivce,
     NotificationsService,
+    EmailBatchService,
   ],
   controllers: [AuctionsController],
   exports: [UserAuctionsService, AuctionWebSocketGateway],
