@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { CreateWalletDto } from './dto/create-wallet.dto';
@@ -16,6 +17,7 @@ import { Account } from 'src/auth/decorators/account.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { CreateWalletDtoFromAdminSide } from './dto/createWalletDtoFromAdminside';
 
 @Controller('wallet')
 export class WalletController {
@@ -23,10 +25,19 @@ export class WalletController {
     console.log('wallet called-->');
   }
 
-  @Post()
+  @Post('/admin/add-to-user-wallet')
   @UseGuards(AuthGuard)
-  create(@Account() account: any, @Body() createWalletDto: CreateWalletDto) {
-    return this.walletService.create(account.id, createWalletDto);
+  create(
+    @Account() account: any, 
+    @Body() createWalletDto: CreateWalletDtoFromAdminSide
+  ) {
+    return this.walletService.addToUserWalletByAdmin(account.id, createWalletDto);
+  }
+
+  @Post('/admin/add-to-alletre-wallet')
+  @UseGuards(AuthGuard)
+  addToAlletreWallet(@Account() account: any, @Body() createWalletDto: CreateWalletDtoFromAdminSide) {
+    return this.walletService.addToAlletreWalletByAdmin(account.id, createWalletDto);
   }
 
   @Get('get_from_wallet')

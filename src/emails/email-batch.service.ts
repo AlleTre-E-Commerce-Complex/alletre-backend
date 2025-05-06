@@ -353,20 +353,19 @@ The <b>Alletre</b> Team
           },
         });
 
-        batch2 = await this.prismaService.nonRegisteredUser.findMany({
+        batch= await this.prismaService.nonRegisteredUser.findMany({
           skip: skip,
           take: batchSize/2,
           select: {
             email: true,
           },
         });
-
+        console.log('barch1',batch)
+        console.log('normal users,',batch.length)
         emails.push(...batch?.map((user: any) => user?.email));
-        emails.push(...batch2?.map((user: any) => user?.email));
-
         skip += batchSize;
       } while (batch?.length > 0);
-
+      console.log('allUsersEmail :',emails.length)
       return emails;
     } catch (error) {
       console.log(

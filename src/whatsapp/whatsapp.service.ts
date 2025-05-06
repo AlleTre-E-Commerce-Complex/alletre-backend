@@ -155,14 +155,6 @@ export class WhatsAppService {
       const { product } = auction;
       const mediaUrl = product.images[0]?.imageLink || '';
 
-      // const messageTemplateParams = {
-      //     1: product.title,
-      //     2: auction.startBidAmount.toString(),
-      //     3: new Date(auction.startDate).toDateString(),
-      //     4: new Date(auction.expiryDate).toDateString(),
-      //     5: mediaUrl,
-      //     6: `${auction.id}/details`,
-      // };
       const messageTemplateParams = {
         1: `*${
           product.title
@@ -215,7 +207,8 @@ export class WhatsAppService {
         });
       });
 
-      const results = await Promise.allSettled(workers);
+      // const results = await Promise.allSettled(workers);
+      const results = []
 
       return {
         success: true,
@@ -318,7 +311,8 @@ export class WhatsAppService {
         });
       });
 
-      const results = await Promise.allSettled(workers);
+      // const results = await Promise.allSettled(workers);
+      const results = []
 
       return {
         success: true,
