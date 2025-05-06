@@ -2110,7 +2110,7 @@ export class PaymentsService {
                   auctionId: auctionHoldPaymentTransaction.auctionId,
                 },
               });
-              if(existing){
+              if(!existing){
                await prisma.joinedAuction.create({
                   data: {
                     userId: auctionHoldPaymentTransaction.userId,

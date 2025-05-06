@@ -4,6 +4,7 @@ import { UpdateWalletDto } from './dto/update-wallet.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 import { Prisma } from '@prisma/client';
+import { CreateWalletDtoFromAdminSide } from './dto/createWalletDtoFromAdminside';
 @Injectable()
 export class WalletService {
   constructor(private prismaSevice: PrismaService) {}
@@ -30,6 +31,45 @@ export class WalletService {
           balance: roundedBalance,
         },
       });
+      console.log('the create wallet transaction result : ==>', result);
+    } catch (error) {
+      console.log('create wallet error :', error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إجراء معاملتك',
+        en: 'Something went wrong while processing your transaction.',
+      });
+    }
+    return result;
+  }
+
+  async addToUserWalletByAdmin(
+    userId: number,
+    createWalletData: CreateWalletDtoFromAdminSide,
+  ) {
+    let result: any;
+    try {
+      const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
+      console.log('wallet.service is called', createWalletData);
+
+      await this.prismaSevice.$transaction(async (prisma)=>{
+        const lastUserWalletBalance = this.findLastTransaction(createWalletData.userId, prisma)
+        const newBalanceToUserWallet = createWalletData.status === 'WITHDRAWAL' ?
+          Number(lastUserWalletBalance) - Number(createWalletData.amount) :
+          Number(lastUserWalletBalance) + Number(createWalletData.amount) 
+        const roundedBalance = Number(Number(newBalanceToUserWallet).toFixed(2));
+        result = await prisma.wallet.create({
+          data: {
+            userId,
+            description: createWalletData.description,
+            amount: roundedAmount,
+            status: createWalletData.status,
+            transactionType: createWalletData.transactionType,
+            auctionId: createWalletData.auctionId,
+            purchaseId: createWalletData.purchaseId,
+            balance: roundedBalance,
+          },
+        });
+      })
       console.log('the create wallet transaction result : ==>', result);
     } catch (error) {
       console.log('create wallet error :', error);
@@ -75,6 +115,51 @@ export class WalletService {
     return result;
   }
 
+
+
+  async addToAlletreWalletByAdmin(
+    userId: number,
+    createWalletData: CreateWalletDtoFromAdminSide,
+  ) {
+    let result: any;
+    try {
+      console.log('wallet.service is called admin', createWalletData);
+
+      const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
+      await this.prismaSevice.$transaction(async (prisma)=>{
+        
+        const lastAdminWalletBalance = this.findLastTransactionOfAlletre(prisma)
+        const newBalanceToAlletre = createWalletData.status === 'WITHDRAWAL' ?
+          Number(lastAdminWalletBalance) - Number(createWalletData.amount) :
+          Number(lastAdminWalletBalance) + Number(createWalletData.amount) 
+        const roundedBalance = Number(Number(newBalanceToAlletre).toFixed(2));
+        result = await prisma.alletreWallet.create({
+          data: {
+            userId,
+            description: createWalletData.description,
+            amount: roundedAmount,
+            status: createWalletData.status,
+            transactionType: createWalletData.transactionType,
+            auctionId: createWalletData.auctionId,
+            purchaseId: createWalletData.purchaseId,
+            balance: roundedBalance,
+            transactionReference: createWalletData?.transactionReference
+          },
+        });
+      })
+    
+   
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إجراء معاملتك',
+        en: 'Something went wrong while processing your transaction.',
+      });
+    }
+    return result;
+  }
+
+  
   async findAll(userId: number) {
     const walletData = await this.prismaSevice.wallet.findMany({
       where: { userId },
