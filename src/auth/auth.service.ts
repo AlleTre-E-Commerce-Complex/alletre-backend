@@ -461,8 +461,7 @@ export class AuthService {
       />
             <div class="modal-body">
               <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
-              <a href=${process.env.FRONT_URL}>Login with webiste</a>
-              <a href="alletre://login">Login with application</a>
+              <a href=${process.env.FRONT_URL}>Login </a>
             </div>
           </div>
         </body>
