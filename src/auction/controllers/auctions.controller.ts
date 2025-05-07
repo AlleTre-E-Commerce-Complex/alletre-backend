@@ -362,12 +362,12 @@ export class AuctionsController {
   @UseGuards(AuthOrGuestGuard)
   async getUpCommingAuctions(
     @Account() account: any,
-    @Query() paginationDTO: PaginationDTO,
+    @Query() getAuctionsDTO: GetAuctionsDTO,
   ) {
     const auctionsPaginated =
       await this.userAuctionsService.findUpCommingAuctionsForUser(
         account.roles,
-        paginationDTO,
+        getAuctionsDTO,
         account.roles.includes(Role.User) ? Number(account.id) : undefined,
       );
 

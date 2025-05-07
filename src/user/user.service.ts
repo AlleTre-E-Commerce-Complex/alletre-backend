@@ -421,6 +421,12 @@ export class UserService {
         ]);
       }
     } catch (error) {
+      if (error?.code === 'P2002' && error?.meta?.target?.includes('phone')) {
+        throw new MethodNotAllowedResponse({
+          ar: 'رقم الهاتف مستخدم بالفعل من قبل مستخدم آخر',
+          en: 'Phone number is already used by another user',
+        });
+      }
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في إضافة العنوان الخاص بك',
         en: 'Something went wrong while adding your location',
@@ -694,8 +700,8 @@ export class UserService {
       skip,
     });
 
-    const count = await this.prismaService.nonRegisteredUser.count({
-      where: { ...(name ? { name: { startsWith: name } } : {}) },
+    const count = await this.prismaService.user.count({
+      where: { ...(name ? { userName: { startsWith: name } } : {}) },
     });
     return {
       pagination: this.paginationService.getPagination(count, page, perPage),
