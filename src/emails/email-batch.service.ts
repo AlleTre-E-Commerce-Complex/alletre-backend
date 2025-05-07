@@ -2,55 +2,71 @@ import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as sgMail from '@sendgrid/mail';
+import { fork } from 'child_process';
 
 @Injectable()
 export class EmailBatchService {
   constructor(private readonly prismaService: PrismaService) {}
-  private batchSize = 100; // Customize batch size as needed
+  // private batchSize = 100; // Customize batch size as needed
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
     try {
-      const users = await this.getAllRegisteredUsers(
-        1000,
+      const emails = await this.getAllRegisteredUsers(
         updatedAuction.user.email,
       );
-
+      console.log('email length:',emails.length)
       const subject = `🚨 New Auction Alert: Don't Miss Out!`;
       const text = `A new auction has been listed: ${updatedAuction.product.title}`;
       const html = this.generateEmailTemplate(updatedAuction);
 
-      // Simple direct implementation for now
-      const userBatches = this.chunkArray(users, this.batchSize);
-      let successCount = 0;
-      let failureCount = 0;
+      const childPath = path.join(__dirname, 'email.child.js'); // adjust path if needed
+      const child = fork(childPath);
 
-      for (const batch of userBatches) {
-        try {
-          const msg = {
-            to: batch,
-            from: 'auctions@alletre.com',
-            subject,
-            text,
-            html,
-          };
+      child.send({ users: emails, subject, text, html });
 
-          await sgMail.sendMultiple(msg);
-          successCount++;
-          console.log(`Batch sent successfully`);
-        } catch (error) {
-          failureCount++;
-          console.error(`Batch failed:`, error);
+      child.on('message', (message:any) => {
+        if (message?.success) {
+          console.log('✅ Email sending succeeded in child process');
+        } else {
+          console.error('❌ Email sending failed in child process:', message.error);
         }
-      }
+      });
 
-      console.log(
-        `Bulk email sending completed. Success: ${successCount}, Failures: ${failureCount}`,
-      );
+      child.on('exit', (code) => {
+        console.log(`📤 Email child process exited with code ${code}`);
+      });
+
+
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;
     }
   }
+
+  async getAllRegisteredUsers(currentUserEmail?: string): Promise<string[]> {
+    // Fire both queries in parallel
+    const [normal, nonReg] = await Promise.all([
+      this.prismaService.user.findMany({
+        select: { email: true },
+        where: {
+          email: { not: null, ...(currentUserEmail ? { notIn: [currentUserEmail] } : {}) }
+        }
+      }),
+      this.prismaService.nonRegisteredUser.findMany({
+        select: { email: true },
+        where: { email: { not: null } }
+      })
+    ]);
+  
+    const emails = [
+      ...normal.map(u => u.email),
+      ...nonReg.map(u => u.email)
+    ];
+  
+    console.log(`Fetched ${emails.length} emails`);
+    return emails;
+  }
+  
 
   private generateEmailTemplate(updatedAuction: any): string {
     const date = updatedAuction.type === 'SCHEDULED' 
@@ -337,56 +353,5 @@ The <b>Alletre</b> Team
     }
     return result;
   }
-  async getAllRegisteredUsers(batchSize = 1000, currentUserEmail?: string) {
-    const emails = [];
-    let skip = 0;
-    let batch: any;
-
-
-    try {
-      do {
-      // For `user` table
-      batch = await this.prismaService.user.findMany({
-        skip: skip,
-        take: batchSize,
-        select: {
-          email: true,
-        },
-        where: {
-          email: {
-            not: null,
-            ...(currentUserEmail ? { notIn: [currentUserEmail] } : {}),
-          },
-        },
-      });
-
-      // For `nonRegisteredUser` table
-      batch = await this.prismaService.nonRegisteredUser.findMany({
-        skip: skip,
-        take: batchSize,
-        select: {
-          email: true,
-        },
-        where: {
-          email: {
-            not: null,
-          },
-        },
-      });
-
-        // console.log('barch1',batch)
-        // console.log('normal users,',batch.length)
-        emails.push(...batch?.map((user: any) => user?.email));
-        skip += batchSize;
-      } while (batch?.length > 0);
-      console.log('allUsersEmail :',emails.length)
-      console.log('allUsersEmail 2:',emails)
-      return emails;
-    } catch (error) {
-      console.log(
-        'Error while fetching user email address for bulk email:',
-        error,
-      );
-    }
-  }
+  
 }
