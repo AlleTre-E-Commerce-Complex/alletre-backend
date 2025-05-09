@@ -43,33 +43,56 @@ export class WalletService {
   }
 
   async addToUserWalletByAdmin(
-    userId: number,
-    createWalletData: CreateWalletDtoFromAdminSide,
+    createWalletData: any,
   ) {
     let result: any;
     try {
       const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
-      console.log('wallet.service is called', createWalletData);
+      console.log('addToUserWalletByAdmin is called', createWalletData);
 
       await this.prismaSevice.$transaction(async (prisma)=>{
-        const lastUserWalletBalance = this.findLastTransaction(createWalletData.userId, prisma)
+        const lastUserWalletBalance =await this.findLastTransaction(createWalletData.userId, prisma)
         const newBalanceToUserWallet = createWalletData.status === 'WITHDRAWAL' ?
           Number(lastUserWalletBalance) - Number(createWalletData.amount) :
           Number(lastUserWalletBalance) + Number(createWalletData.amount) 
         const roundedBalance = Number(Number(newBalanceToUserWallet).toFixed(2));
         result = await prisma.wallet.create({
           data: {
-            userId,
+            userId: createWalletData.userId,
             description: createWalletData.description,
             amount: roundedAmount,
             status: createWalletData.status,
-            transactionType: createWalletData.transactionType,
-            auctionId: createWalletData.auctionId,
+            transactionType: 'By_AUCTION',
+            auctionId: createWalletData.auctionId ? createWalletData.auctionId : null,
             purchaseId: createWalletData.purchaseId,
             balance: roundedBalance,
           },
         });
+
+        if(createWalletData.adminChanges){
+          //here based on this condition, we are deduct or add money of admin wallet
+          const lastAlletreWalletBalance = await this.findLastTransactionOfAlletre(prisma)
+          //here we check the status === WITHDRAWAL , it is status of user trasaction
+          //if the admin  WITHDRAW money, then it is need to add in to alletre wallet
+          const newBalanceToUserWallet = createWalletData.status === 'WITHDRAWAL' ?
+            Number(lastAlletreWalletBalance) + Number(createWalletData.amount) :
+            Number(lastAlletreWalletBalance) - Number(createWalletData.amount) 
+          const roundedBalance = Number(Number(newBalanceToUserWallet).toFixed(2));
+          const createWalletDataForAdmin = {
+            userId: createWalletData.userId,
+            description: createWalletData.description,
+            amount: roundedAmount,
+            status: createWalletData.status === 'WITHDRAWAL' ? 'DEPOSIT' :'WITHDRAWAL',
+            transactionType: 'By_AUCTION',
+            auctionId: createWalletData.auctionId ? createWalletData.auctionId : null,
+            purchaseId: createWalletData.purchaseId,
+            balance: roundedBalance,
+          }
+           await this.addToAlletreWalletByAdmin(createWalletData.userId, createWalletDataForAdmin)
+      }
       })
+
+      
       console.log('the create wallet transaction result : ==>', result);
     } catch (error) {
       console.log('create wallet error :', error);
@@ -119,7 +142,7 @@ export class WalletService {
 
   async addToAlletreWalletByAdmin(
     userId: number,
-    createWalletData: CreateWalletDtoFromAdminSide,
+    createWalletData: any,
   ) {
     let result: any;
     try {
@@ -128,7 +151,7 @@ export class WalletService {
       const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
       await this.prismaSevice.$transaction(async (prisma)=>{
         
-        const lastAdminWalletBalance = this.findLastTransactionOfAlletre(prisma)
+        const lastAdminWalletBalance = await this.findLastTransactionOfAlletre(prisma)
         const newBalanceToAlletre = createWalletData.status === 'WITHDRAWAL' ?
           Number(lastAdminWalletBalance) - Number(createWalletData.amount) :
           Number(lastAdminWalletBalance) + Number(createWalletData.amount) 
@@ -139,10 +162,10 @@ export class WalletService {
             description: createWalletData.description,
             amount: roundedAmount,
             status: createWalletData.status,
-            transactionType: createWalletData.transactionType,
-            auctionId: createWalletData.auctionId,
+            transactionType: 'By_AUCTION',
+            auctionId: createWalletData.auctionId ? createWalletData.auctionId : null,
             purchaseId: createWalletData.purchaseId,
-            balance: roundedBalance,
+            balance:createWalletData.balace ? createWalletData.balace : roundedBalance,
             transactionReference: createWalletData?.transactionReference
           },
         });

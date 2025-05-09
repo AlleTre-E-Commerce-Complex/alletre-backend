@@ -8,7 +8,7 @@ export class CreateWalletDtoFromAdminSide {
   @IsIn(Object.keys(WalletStatus))
   status: WalletStatus;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsIn(Object.keys(WalletTransactionType))
   transactionType: WalletTransactionType;
 

@@ -3642,7 +3642,6 @@ export class PaymentsService {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
-    console.log('publish auction for checking 1:-->', auction);
 
     switch (auction.durationUnit) {
       case DurationUnits.DAYS:
@@ -3692,9 +3691,9 @@ export class PaymentsService {
                   
                     <p>You can track bids and view your auction here:</p>
                     <div style="text-align: center">
-          <a
-            href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
-            style="
+              <a
+                href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+                style="
               display: inline-block;
               padding: 12px 20px;
               background-color: #a91d3a !important;
@@ -3706,14 +3705,14 @@ export class PaymentsService {
               font-weight: bold;
               margin: 20px 0;
               font-size: 18px;
-            "
-          >
-            View My Auction 
-          </a>
-            </div>
+                "
+              >
+                View My Auction 
+              </a>
+                </div>
 
                     <p style="margin-bottom: 0;">Best regards,</p>
-            <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+             <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                     <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
                   `,
               Button_text: 'Share My Auction ',
@@ -3763,13 +3762,112 @@ export class PaymentsService {
           const startDate = auction.startDate;
           const expiryDate = this.addDays(startDate, auction.durationInDays);
 
-          await this.prismaService.auction.update({
+          const updatedAuction = await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
               status: AuctionStatus.IN_SCHEDULED,
               expiryDate: expiryDate,
             },
+            include: {
+              bids: true,
+              user: true,
+              product: { include: { images: true, category: true } },
+            },
           });
+          const auctionEndDate = new Date(updatedAuction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+          if (updatedAuction) {
+            //emiting the new auction to all online users
+            this.auctionGateway.listingNewAuction(updatedAuction);
+
+            const emailBodyToSeller = {
+              subject: '🎉 Your Auction is Live! Let the Bidding Begin!',
+              title: 'Your Listing is Now Live!',
+              Product_Name: updatedAuction.product.title,
+              img: updatedAuction.product.images[0].imageLink,
+              userName: `${updatedAuction.user.userName}`,
+              message1: `
+                    <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
+                    <p>Here’s a summary of your listing:</p>
+                    <ul>
+                      <li>Title: ${updatedAuction.product.title}</li>                     
+                      <li>Category: ${updatedAuction.product.category.nameEn}</li>
+                      <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
+                      <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                    </ul>
+                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
+                  `,
+              message2: `
+                  
+                    <p>You can track bids and view your auction here:</p>
+                    <div style="text-align: center">
+              <a
+                href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+                style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+                "
+              >
+                View My Auction 
+              </a>
+                </div>
+
+                    <p style="margin-bottom: 0;">Best regards,</p>
+             <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
+                  `,
+              Button_text: 'Share My Auction ',
+              Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+            await this.emailService.sendEmail(
+              updatedAuction.user.email,
+              'token',
+              EmailsType.OTHER,
+              emailBodyToSeller,
+            );
+
+            const whatsappBodyToSellerAuctionLive = {
+              1: `${updatedAuction.user.userName}`,
+              2: `🎉 Congratulations! Your auction listing *${updatedAuction.product.title}* is now live on Alletre. Buyers can now find and bid on your item.`,
+              3: `*Title:* ${updatedAuction.product.title}`,
+              4: `*Starting Bid:* ${updatedAuction.startBidAmount}`,
+              5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+              6: `🚀 Tip: Share your auction link with friends or on social media to get more visibility.`,
+              7: `You can track bids and view your auction anytime.`,
+              8: updatedAuction.product.images[0].imageLink,
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+
+            if (updatedAuction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyToSellerAuctionLive,
+                updatedAuction.user.phone,
+                'alletre_common_utility_templet',
+              );
+            }
+
+            await this.emailBatchService.sendBulkEmails(
+              updatedAuction,
+              currentUserEmail,
+            );
+            //sending whatsapp messages to all users
+            await this.whatsappService.sendAuctionToUsers(
+              auctionId,
+              process.env.NODE_ENV === 'production'
+                ? 'EXISTING_USER'
+                : 'NON_EXISTING_USER',
+            );
+          }
         }
         break;
 
@@ -3889,13 +3987,113 @@ export class PaymentsService {
           const startDate = auction.startDate;
           const expiryDate = this.addHours(startDate, auction.durationInHours);
 
-          await this.prismaService.auction.update({
+          const updatedAuction = await this.prismaService.auction.update({
             where: { id: auctionId },
             data: {
               status: AuctionStatus.IN_SCHEDULED,
               expiryDate: expiryDate,
             },
+            include: {
+              bids: true,
+              user: true,
+              product: { include: { images: true, category: true } },
+            },
           });
+
+          const auctionEndDate = new Date(updatedAuction.expiryDate);
+          const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
+          const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
+          if (updatedAuction) {
+            //emiting the new auction to all online users
+            this.auctionGateway.listingNewAuction(updatedAuction);
+
+            const emailBodyToSeller = {
+              subject: '🎉 Your Auction is Live! Let the Bidding Begin!',
+              title: 'Your Listing is Now Live!',
+              Product_Name: updatedAuction.product.title,
+              img: updatedAuction.product.images[0].imageLink,
+              userName: `${updatedAuction.user.userName}`,
+              message1: `
+                    <p>Congratulations! Your auction listing ${updatedAuction.product.title}, has been successfully posted on <b>Alletre</b>. Buyers can now discover and bid on your item.</p>
+                    <p>Here’s a summary of your listing:</p>
+                    <ul>
+                      <li>Title: ${updatedAuction.product.title}</li>                     
+                      <li>Category: ${updatedAuction.product.category.nameEn}</li>
+                      <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
+                      <li>	Auction Ends: ${formattedEndDate} & ${formattedEndTime} </li>
+                    </ul>
+                    <p>To maximize your listing’s visibility, share it with your friends or on social media!</p> 
+                  `,
+              message2: `
+                  
+                    <p>You can track bids and view your auction here:</p>
+                    <div style="text-align: center">
+              <a
+                href='https://www.alletre.com/alletre/home/${updatedAuction.id}/details'
+                style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #a91d3a !important;
+              -webkit-background-color: #a91d3a !important;
+              -moz-background-color: #a91d3a !important;
+              color: #ffffff !important;
+              text-decoration: none;
+              border-radius: 10px;
+              font-weight: bold;
+              margin: 20px 0;
+              font-size: 18px;
+                "
+              >
+                View My Auction 
+              </a>
+                </div>
+
+                    <p style="margin-bottom: 0;">Best regards,</p>
+             <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
+                    <p>P.S. Keep an eye on your email for updates on bids and messages from interested buyers.</p>
+                  `,
+              Button_text: 'Share My Auction ',
+              Button_URL: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+            await this.emailService.sendEmail(
+              updatedAuction.user.email,
+              'token',
+              EmailsType.OTHER,
+              emailBodyToSeller,
+            );
+
+            const whatsappBodyToSellerAuctionLive = {
+              1: `${updatedAuction.user.userName}`,
+              2: `🎉 Congratulations! Your auction listing *${updatedAuction.product.title}* is now live on Alletre. Buyers can now find and bid on your item.`,
+              3: `*Title:* ${updatedAuction.product.title}`,
+              4: `*Starting Bid:* ${updatedAuction.startBidAmount}`,
+              5: `*Auction Ends:* ${formattedEndDate} & ${formattedEndTime}`,
+              6: `🚀 Tip: Share your auction link with friends or on social media to get more visibility.`,
+              7: `You can track bids and view your auction anytime.`,
+              8: updatedAuction.product.images[0].imageLink,
+              9: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+            };
+
+            if (updatedAuction.user.phone) {
+              await this.whatsappService.sendOtherUtilityMessages(
+                whatsappBodyToSellerAuctionLive,
+                updatedAuction.user.phone,
+                'alletre_common_utility_templet',
+              );
+            }
+
+            await this.emailBatchService.sendBulkEmails(
+              updatedAuction,
+              currentUserEmail,
+            );
+            //sending whatsapp messages to all users
+            await this.whatsappService.sendAuctionToUsers(
+              auctionId,
+              process.env.NODE_ENV === 'production'
+                ? 'EXISTING_USER'
+                : 'NON_EXISTING_USER',
+            );
+          }
         }
     }
   }

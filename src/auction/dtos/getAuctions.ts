@@ -2,6 +2,7 @@ import { AuctionStatus, AuctionType, UsageStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -75,4 +76,10 @@ export class GetAuctionsDTO {
   @IsOptional()
   @IsIn(Object.keys(AuctionStatus))
   auctionStatus: AuctionStatus;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  isHome: boolean;
+
 }
