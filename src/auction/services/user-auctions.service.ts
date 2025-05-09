@@ -5445,13 +5445,15 @@ export class UserAuctionsService {
         sellingType,
         usageStatus,
         title,
+        isHome,
       } = getListedProductDTO;
+      console.log('fetchAllListedOnlyProduct',getListedProductDTO)
       // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
-      // const { limit, skip } = this.paginationService.getSkipAndLimit(
-      //   Number(page),
-      //   Number(perPage),
-      // );
-
+      const { limit, skip } = this.paginationService.getSkipAndLimit(
+        Number(page),
+        Number(perPage),
+      );
+      console.log('limit and skip',limit , skip)
       const productFilter = this.auctionsHelper._productFilterApplied({
         brands,
         categories,
@@ -5459,37 +5461,48 @@ export class UserAuctionsService {
         usageStatus,
         title,
       });
-      const allListedProducts =
-        await this.prismaService.listedProducts.findMany({
-          where: {
-            status,
-            userId,
-            product: {
-              ...productFilter,
-              isAuctionProduct: false,
-            },
-            AND: [
-              { ProductListingPrice: { gte: priceFrom } },
-              { ProductListingPrice: { lte: priceTo } },
-            ],
+      console.log('productfilteer,',productFilter)
+      const queryOptions : any = {
+        where: {
+          status,
+          userId,
+          product: {
+            ...productFilter,
+            isAuctionProduct: false,
           },
-          include: {
-            product: {
-              include: {
-                images: true,
-                user: {
-                  include: {
-                    locations: { include: { country: true, city: true } },
-                  },
+          AND: [
+            { ProductListingPrice: { gte: priceFrom } },
+            { ProductListingPrice: { lte: priceTo } },
+          ],
+        },
+        include: {
+          product: {
+            include: {
+              category: true,
+              subCategory: true,
+              images: true,
+              user: {
+                include: {
+                  locations: { include: { country: true, city: true } },
                 },
               },
+
             },
-            location: { include: { city: true, country: true } },
           },
-          // skip: skip,
-          // take: limit,
-          orderBy: { id: 'desc' },
-        });
+          location: { include: { city: true, country: true } },
+        },
+        orderBy: { id: 'desc' },
+      }
+        // Conditionally add pagination
+    if (!isHome) {
+      queryOptions.skip = skip;
+      queryOptions.take = limit;
+    }
+    
+      const allListedProducts =
+        await this.prismaService.listedProducts.findMany(queryOptions);
+
+        
       const productsCount = await this.prismaService.listedProducts.count({
         where: {
           status,
@@ -5506,7 +5519,10 @@ export class UserAuctionsService {
         page,
         perPage,
       );
+
       console.log('pagination:', pagination);
+      console.log('allListedProducts.length:', allListedProducts.length);
+
 
       return {
         products: allListedProducts,

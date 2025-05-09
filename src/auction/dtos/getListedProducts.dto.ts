@@ -2,6 +2,7 @@ import { ListedProductsStatus, UsageStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -76,4 +77,9 @@ export class GetListedProductDTO {
   @IsNotEmpty()
   @IsIn(Object.keys(ListedProductsStatus))
   status: ListedProductsStatus;
+
+    @IsOptional()
+    @Transform(({ value }) => value === 'true')
+    @IsBoolean()
+    isHome: boolean;
 }
