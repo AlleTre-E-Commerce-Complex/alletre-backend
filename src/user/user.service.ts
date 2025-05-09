@@ -700,8 +700,8 @@ export class UserService {
       skip,
     });
 
-    const count = await this.prismaService.user.count({
-      where: { ...(name ? { userName: { startsWith: name } } : {}) },
+    const count = await this.prismaService.nonRegisteredUser.count({
+      where: { ...(name ? { name: { startsWith: name } } : {}) },
     });
     return {
       pagination: this.paginationService.getPagination(count, page, perPage),
