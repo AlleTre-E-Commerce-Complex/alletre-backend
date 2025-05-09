@@ -31,7 +31,7 @@ export class WalletController {
     @Account() account: any, 
     @Body() createWalletDto: CreateWalletDtoFromAdminSide
   ) {
-    return this.walletService.addToUserWalletByAdmin(account.id, createWalletDto);
+    return this.walletService.addToUserWalletByAdmin(createWalletDto);
   }
 
   @Post('/admin/add-to-alletre-wallet')

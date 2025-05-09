@@ -164,7 +164,6 @@ export class UserAuctionsService {
         }
         break;
     }
-    console.log('created auction', auction);
     if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
       if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
         await this.paymentService.publishAuction(auction.id, user.email);
@@ -1714,14 +1713,15 @@ export class UserAuctionsService {
       usageStatus,
       title,
       auctionStatus,
+      isHome,
     } = getAuctionsDTO;
     // here all data of the getAuctionDTO will come when we do a search and filter in home screen
     // console.log( '===>', page ,perPage ,brands,categories,countries,priceFrom,priceTo,sellingType,usageStatus,title, auctionStatus,);
 
-    // const { limit, skip } = this.paginationService.getSkipAndLimit(
-    //   Number(page),
-    //   Number(perPage),
-    // );
+    const { limit, skip } = this.paginationService.getSkipAndLimit(
+      Number(page),
+      Number(perPage),
+    );
 
     const productFilter = this.auctionsHelper._productFilterApplied({
       brands,
@@ -1738,7 +1738,7 @@ export class UserAuctionsService {
       sellingType,
     });
 
-    const auctions = await this.prismaService.auction.findMany({
+    const queryOptions: any = {
       where: {
         ...(auctionStatus
           ? { status: auctionStatus }
@@ -1803,9 +1803,16 @@ export class UserAuctionsService {
       orderBy: {
         createdAt: 'desc',
       },
-      // skip: skip,
-      // take: limit,
-    });
+    };
+    
+    // Conditionally add pagination
+    if (!isHome) {
+      queryOptions.skip = skip;
+      queryOptions.take = limit;
+    }
+    
+    const auctions = await this.prismaService.auction.findMany(queryOptions);
+    
 
     const auctionsCount = await this.prismaService.auction.count({
       where: {
@@ -2356,6 +2363,7 @@ export class UserAuctionsService {
       sellingType,
       usageStatus,
       title,
+      isHome
     } = getAuctionsDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -2392,7 +2400,7 @@ export class UserAuctionsService {
     console.log('PPPPPP', productFilter);
     console.log('auctionFilter', auctionFilter);
 
-    const auctions = await this.prismaService.auction.findMany({
+    const queryOptions: any = {
       where: {
         status: AuctionStatus.IN_SCHEDULED,
         startDate: { gte: startOfToday },
@@ -2447,8 +2455,15 @@ export class UserAuctionsService {
       skip: skip,
       take: limit,
       orderBy: { startDate: 'asc' },
-    });
+    };
 
+      // Conditionally add pagination
+      if (!isHome) {
+        queryOptions.skip = skip;
+        queryOptions.take = limit;
+      }
+      
+      const auctions = await this.prismaService.auction.findMany(queryOptions);
     const auctionsCount = await this.prismaService.auction.count({
       where: {
         status: AuctionStatus.IN_SCHEDULED,
@@ -6265,7 +6280,6 @@ export class UserAuctionsService {
       }
 
       if (imagesHolder?.length) {
-        console.log('imagesHolder ===>', imagesHolder);
         for (const image of imagesHolder) {
           const createdImage = await this.prismaService.image.create({
             data: {
@@ -6274,7 +6288,6 @@ export class UserAuctionsService {
               imagePath: image.filePath,
             },
           });
-          console.log('createdImage ===>', createdImage);
         }
       }
     } catch (error) {
