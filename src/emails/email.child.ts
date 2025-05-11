@@ -121,13 +121,15 @@ async function sendBatchEmails(
   subject: string,
   text: string,
   html: string,
-  batchSize: number = 1000,
+  batchSize: number = 100,
   delayMs: number = 1000 // delay between batches
 ) {
   console.log('Memory Usage Before Sending Emails:', process.memoryUsage());
 
   let successCount = 0;
   let failureCount = 0;
+
+  
 
   for (let i = 0; i < users.length; i += batchSize) {
     const batch = users.slice(i, i + batchSize);
