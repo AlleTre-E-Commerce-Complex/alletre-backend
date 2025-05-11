@@ -58,6 +58,8 @@ export class EmailBatchService {
       })
     ]);
   
+    console.log('normalEmails:',normal.length)
+    console.log('nonRegEmails:',nonReg.length)
     const emails = [
       ...normal.map(u => u.email),
       ...nonReg.map(u => u.email)
