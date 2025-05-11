@@ -12,6 +12,12 @@ export class FirebaseService {
 
   async uploadImage(image: Express.Multer.File, prefix = 'uploadedImage') {
     const fileId = uuidv4();
+    const isVideo = image.mimetype.startsWith('video/');
+
+    // Use special handling for videos
+    if (isVideo) {
+      prefix = 'AlletreVideo';
+    }
 
     // Extract the file extension from the original filename
     const fileExtension = image.originalname.split('.').pop(); // e.g., 'jpg' or 'png'
@@ -23,17 +29,20 @@ export class FirebaseService {
     };
 
     // Construct the file path with the correct extension
-    const filePath = `${prefix}-${fileId}.${fileExtension}`;
+    const filePath = isVideo
+      ? `${prefix}.${fileExtension}`
+      : `${prefix}-${fileId}.${fileExtension}`;
 
     console.log('file Path : ', filePath);
 
     let data: any;
     try {
       data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
-        gzip: true,
+        gzip: !isVideo, // Don't use gzip for videos
         metadata: metadata,
         destination: filePath, // Save with the correct filename
       });
+      console.log('data11 : ', data);
     } catch (error) {
       console.error('Error code uploading to Firebase:', error.code);
       console.error('Error message uploading to Firebase:', error.message);
@@ -43,7 +52,6 @@ export class FirebaseService {
       });
     }
 
-    // Remove the local uploaded file
     await unlink(`${process.cwd()}/uploads/${image.filename}`).catch(
       (error) => {
         console.log(error);
@@ -78,7 +86,6 @@ export class FirebaseService {
       await unlink(`${process.cwd()}/uploads/${pdf.filename}`).catch((error) =>
         console.log(error),
       );
-
       return {
         fileName: pdf.originalname,
         fileLink: this.getDownloadLink(data[0], fileId),
@@ -112,7 +119,6 @@ export class FirebaseService {
       console.error(error);
     }
   }
-
   async verifyIdToken(idToken: string) {
     try {
       await FirebaseApp.auth().verifyIdToken(idToken);
