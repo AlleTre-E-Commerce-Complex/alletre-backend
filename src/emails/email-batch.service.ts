@@ -58,15 +58,23 @@ export class EmailBatchService {
       })
     ]);
   
-    console.log('normalEmails:',normal.length)
-    console.log('nonRegEmails:',nonReg.length)
-    const emails = [
+    const allEmails = [
       ...normal.map(u => u.email),
       ...nonReg.map(u => u.email)
     ];
   
-    console.log(`Fetched ${emails.length} emails`);
-    return emails;
+    // Email regex (standard format)
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  
+    // Filter only valid emails
+    const validEmails = allEmails.filter(email => emailRegex.test(email));
+  
+    console.log('normalEmails:', normal.length);
+    console.log('nonRegEmails:', nonReg.length);
+    console.log(`Fetched ${allEmails.length} emails`);
+    console.log(`Valid emails: ${validEmails.length}, Invalid: ${allEmails.length - validEmails.length}`);
+  
+    return validEmails;
   }
   
 
