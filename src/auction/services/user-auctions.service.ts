@@ -5462,10 +5462,11 @@ export class UserAuctionsService {
         title,
       });
       console.log('productfilteer,',productFilter)
+   
       const queryOptions : any = {
         where: {
           status,
-          userId,
+          ...(roles.includes(Role.Admin) ? {} : { userId }),
           product: {
             ...productFilter,
             isAuctionProduct: false,
@@ -5506,7 +5507,7 @@ export class UserAuctionsService {
       const productsCount = await this.prismaService.listedProducts.count({
         where: {
           status,
-          userId,
+          ...(roles.includes(Role.Admin) ? {} : { userId }),
           product: {
             is: {
               isAuctionProduct: false,

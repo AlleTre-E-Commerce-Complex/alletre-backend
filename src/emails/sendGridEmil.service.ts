@@ -18,7 +18,9 @@ export class SendGridEmailService {
     };
 
     try {
-      await sgMail.sendMultiple(msg); // sendMultiple for bulk emails
+      if(process.env.NODE_ENV === 'production'){
+        await sgMail.sendMultiple(msg); // sendMultiple for bulk emails
+      }
     } catch (error) {
       console.error('Error sending email:', error);
     }

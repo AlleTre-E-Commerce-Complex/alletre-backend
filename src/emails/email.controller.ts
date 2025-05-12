@@ -18,8 +18,15 @@ export class EmailController {
 
   @Post('send-auction-bulk-email')
   async sendAuctionToBulkUsers(@Body() body: { auctionId: string }) {
-    return this.emailService.sendBulkEmail(
+    return this.emailService.sendAuctionBulkEmail(
       body.auctionId,
+    );
+  }
+
+  @Post('send-listedProduct-bulk-email')
+  async sendListedProductToBulkUsers(@Body() body: { ListedId: string }) {
+    return this.emailService.sendListedProductBulkEmail(
+      body.ListedId,
     );
   }
   
