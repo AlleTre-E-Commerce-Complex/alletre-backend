@@ -502,14 +502,16 @@ The <b>Alletre</b> Team
       userName,
     );
     try {
-      const sendEmailresult = await this.transporter.sendMail(mailOptions);
+      if(process.env.NODE_ENV === 'production'){
+        const sendEmailresult = await this.transporter.sendMail(mailOptions);
+      }
     } catch (error) {
       console.log(error);
     }
   }
 
 
-  async sendBulkEmail(auctionId: string){
+  async sendAuctionBulkEmail(auctionId: string){
     try {
       const auction = await this.prismaService.auction.findUnique({
         where:{
@@ -523,6 +525,25 @@ The <b>Alletre</b> Team
       })
       if(auction){
         await this.emailBatchService.sendBulkEmails(auction)
+      }
+    } catch (error) {
+      console.log('sendbulkEamil error :',error)
+    }
+  }
+
+  async sendListedProductBulkEmail(listedId: string){
+    try {
+      const listedProduct = await this.prismaService.listedProducts.findUnique({
+        where:{
+          id:Number(listedId)
+        },
+        include: {
+          user: true,
+          product: { include: { images: true, category: true } },
+        },
+      })
+      if(listedProduct){
+        await this.emailBatchService.sendListedProdcutBulkEmails(listedProduct)
       }
     } catch (error) {
       console.log('sendbulkEamil error :',error)

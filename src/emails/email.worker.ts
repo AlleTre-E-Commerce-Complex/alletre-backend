@@ -36,8 +36,10 @@ async function sendBatchEmails(
 
   try {
     console.log('test worker');
-    await sgMail.sendMultiple(msg);
-    parentPort?.postMessage({ success: true });
+    if(process.env.NODE_ENV === 'production'){
+      await sgMail.sendMultiple(msg);
+      parentPort?.postMessage({ success: true });
+    }
   } catch (error) {
     console.error('❌ Worker Error:', error);
     parentPort?.postMessage({ success: false, error });
