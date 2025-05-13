@@ -141,23 +141,23 @@ async function sendBatchEmails(
       subject,
       text,
       html,
+      asm: {
+        groupId: 173176,
+        groupsToDisplay: [173176],
+      },
+      
     };
 
     console.log(`Sending batch ${batchNumber} (${batch.length} users)`);
 
-  try {
-  if (process.env.NODE_ENV === 'production') {
-    await sgMail.sendMultiple(msg);
-    console.log(`Batch ${batchNumber} sent successfully`);
-    successCount += batch.length;
-  } else {
-    console.log(`Skipping email send in non-production environment`);
-  }
-} catch (error) {
-  console.error(`Error sending batch ${batchNumber}:`, error.message);
-  failureCount += batch.length;
-}
-
+    try {
+      await sgMail.sendMultiple(msg);
+      console.log(`Batch ${batchNumber} sent successfully`);
+      successCount += batch.length;
+    } catch (error) {
+      console.error(`Error sending batch ${batchNumber}:`, error.message);
+      failureCount += batch.length;
+    }
 
     if (i + batchSize < users.length) {
       console.log(`Waiting ${delayMs}ms before next batch...`);

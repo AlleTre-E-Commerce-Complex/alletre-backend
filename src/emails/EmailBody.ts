@@ -248,7 +248,7 @@ export class EmailBody {
       like to receive new, Auctions, and updates from Alletre. If you don't want
       to receive such emails in the future, please
       <a
-        href="unsubscribe-link-here"
+        href="<%asm_preferences_raw_url%>"
         style="
           display: inline-block;
           color: blue; /* Text color */

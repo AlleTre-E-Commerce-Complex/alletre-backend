@@ -29,5 +29,10 @@ export class EmailController {
       body.ListedId,
     );
   }
+
+  @Post('unsubscribe-emails')
+  async unsubscribeEmails(){
+    return this.emailService.unsubscribeEmais('')
+  }
   
 }

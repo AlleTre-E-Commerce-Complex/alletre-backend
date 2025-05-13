@@ -11,7 +11,7 @@ export class EmailBatchService {
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
     try {
-      if(process.env.NODE_ENV === 'production'){
+   
         const emails = await this.getAllRegisteredUsers(
           updatedAuction.user.email,
         );
@@ -37,7 +37,7 @@ export class EmailBatchService {
           console.log(`📤 Email child process exited with code ${code}`);
         });
     
-      }
+      
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;
@@ -46,16 +46,33 @@ export class EmailBatchService {
 
   async getAllRegisteredUsers(currentUserEmail?: string): Promise<string[]> {
     // Fire both queries in parallel
+    const unsubscribedUser = await this.prismaService.unsubscribedUser.findMany({
+      select:{email: true}
+    })
+    const unsubscribedEmails  = unsubscribedUser.map(u => u.email);
     const [normal, nonReg] = await Promise.all([
       this.prismaService.user.findMany({
         select: { email: true },
         where: {
-          email: { not: null, ...(currentUserEmail ? { notIn: [currentUserEmail] } : {}) }
+          // email: { not: null, ...(currentUserEmail ? { notIn: [currentUserEmail] } : {}) }
+          email: {
+            not: null,
+            notIn: [
+              ...(currentUserEmail ? [currentUserEmail] : []),
+              ...unsubscribedEmails
+            ]
+          }
         }
       }),
       this.prismaService.nonRegisteredUser.findMany({
         select: { email: true },
-        where: { email: { not: null } }
+        // where: { email: { not: null } }
+        where: {
+          email: {
+            not: null,
+            notIn: unsubscribedEmails
+          }
+        }
       })
     ]);
   
@@ -337,7 +354,7 @@ The <b>Alletre</b> Team
   This email was sent to you
   because you indicated that you'd like to receive new, Auctions, and updates from Alletre. If you don't want to receive such emails in the future, please 
   <a 
-    href="unsubscribe-link-here" 
+    href="<%asm_preferences_raw_url%>"
     style="
       display: inline-block;
       color: blue; /* Text color */
@@ -635,7 +652,7 @@ The <b>Alletre</b> Team
   This email was sent to you
   because you indicated that you'd like to receive new, Auctions, and updates from Alletre. If you don't want to receive such emails in the future, please 
   <a 
-    href="unsubscribe-link-here" 
+    href="<%asm_preferences_raw_url%>"
     style="
       display: inline-block;
       color: blue; /* Text color */
