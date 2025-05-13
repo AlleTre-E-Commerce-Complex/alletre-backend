@@ -68,6 +68,7 @@ model SubscribedUser {
 model UnsubscribedUser {
   id        Int      @id @default(autoincrement())
   phone     String   @unique
+  email     String?
   reason    String?
   createdAt DateTime @default(now())
 }

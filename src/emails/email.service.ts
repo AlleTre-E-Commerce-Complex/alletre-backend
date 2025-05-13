@@ -502,9 +502,7 @@ The <b>Alletre</b> Team
       userName,
     );
     try {
-      if(process.env.NODE_ENV === 'production'){
         const sendEmailresult = await this.transporter.sendMail(mailOptions);
-      }
     } catch (error) {
       console.log(error);
     }
@@ -548,5 +546,31 @@ The <b>Alletre</b> Team
     } catch (error) {
       console.log('sendbulkEamil error :',error)
     }
+  }
+
+  async unsubscribeEmais(email:string){
+    try {
+      const isAlreadyUnsubscribed = await this.isUnsubscribed(email)
+      if(isAlreadyUnsubscribed){
+        return
+      }
+      const unsubscribed = await this.prismaService.unsubscribedUser.create({
+        data:{
+          email,
+          phone: null,
+          reason:'user unsubscribed by email'
+        }
+      })
+      return unsubscribed
+    } catch (error) {
+      console.log('unsubscribe email error:',error)
+    }
+  }
+
+  async isUnsubscribed(email: string): Promise<boolean> {
+    const user = await this.prismaService.unsubscribedUser.findFirst({
+      where: { email },
+    });
+    return !!user;
   }
 }

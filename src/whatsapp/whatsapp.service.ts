@@ -165,11 +165,27 @@ export class WhatsAppService {
         5: `${auction.id}/details`,
       };
       let allUsersList: any[] = []; // Initialize as an empty array
+      const unsubscribedUser = await this.prismaService.unsubscribedUser.findMany({
+        select:{phone: true}
+      })
+      const unsubscribedPhones = unsubscribedUser.map(u => u.phone);
 
       if (userType === 'NON_EXISTING_USER') {
-        allUsersList = await this.prismaService.nonRegisteredUser.findMany();
+        allUsersList = await this.prismaService.nonRegisteredUser.findMany({
+          where:{
+            mobile: {
+              notIn : unsubscribedPhones
+            }
+          },
+        });
       } else if (userType === 'EXISTING_USER') {
-        allUsersList = await this.prismaService.user.findMany();
+        allUsersList = await this.prismaService.user.findMany({
+          where:{
+            phone: {
+              notIn : unsubscribedPhones
+            }
+          },
+        });
       }
       // console.log('allUsersList',allUsersList)
       const batchSize = 1000;
@@ -245,9 +261,17 @@ export class WhatsAppService {
 
       // console.log('mesage 999', messageTemplateParams);
       let allUsersList: any[] = []; // Initialize as an empty array
-
+      const unsubscribedUser = await this.prismaService.unsubscribedUser.findMany({
+        select:{phone: true}
+      })
+      const unsubscribedPhones = unsubscribedUser.map(u => u.phone);
       if (userType === 'NON_EXISTING_USER') {
         allUsersList = await this.prismaService.nonRegisteredUser.findMany({
+          where:{
+            mobile: {
+              notIn : unsubscribedPhones
+            }
+          },
           ...(typeof categoryId === 'number' && !isNaN(categoryId)
             ? { where: { categoryId } }
             : {}),
@@ -260,6 +284,11 @@ export class WhatsAppService {
         });
       } else if (userType === 'EXISTING_USER') {
         allUsersList = await this.prismaService.user.findMany({
+          where: {
+            phone: {
+              notIn: unsubscribedPhones
+            }
+          },
           ...(typeof limit === 'number' && !isNaN(limit) && limit > 0
             ? { take: limit }
             : {}),
@@ -271,7 +300,7 @@ export class WhatsAppService {
 
       const batchSize = 1000;
       const userBatches = [];
-
+      
       for (let i = 0; i < allUsersList.length; i += batchSize) {
         userBatches.push(allUsersList.slice(i, i + batchSize));
       }
