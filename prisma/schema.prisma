@@ -151,6 +151,8 @@ model Category {
   bannerPath                      String?
   sliderLink                      String?
   sliderPath                      String?
+  bannerLinkAr                    String?
+  bannerPathAr                    String?
   maxStartPrice                   Decimal?
   maxBidLimit                     Decimal?
   luxuaryAmount                   Decimal?
