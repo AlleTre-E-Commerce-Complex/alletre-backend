@@ -4731,7 +4731,7 @@ export class UserAuctionsService {
 
         const feesAmountOfAlletre =
           (Number(auctionWinnerBidAmount) * 0.5) / 100;
-
+        const companyProfit = feesAmountOfAlletre *2
         const amountToSellerWallet =
           Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
 
@@ -4767,7 +4767,7 @@ export class UserAuctionsService {
             Number(lastWalletTransactionAlletre) - Number(amountToSellerWallet),
         };
 
-        const [confirmDeliveryResult] = await this.prismaService.$transaction(
+        const confirmDeliveryResult= await this.prismaService.$transaction(
           async (prisma) => {
             const confirmDeliveryResult = await prisma.joinedAuction.update({
               where: { id: auctionWinner.id },
@@ -4795,8 +4795,17 @@ export class UserAuctionsService {
                 user: true,
               },
             });
+            
+            await prisma.profit.create({
+              data:{
+                amount :companyProfit,
+                description : 'Profit after confirm delivery by bidder',
+                auctionId: confirmDeliveryResult.auctionId,
+                userId : auctionWinner.userId,
+              }
+            })
 
-            return Promise.all([confirmDeliveryResult]);
+            return confirmDeliveryResult
           },
         );
         if (confirmDeliveryResult) {
