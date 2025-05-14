@@ -149,8 +149,6 @@ model Category {
   bannerPath                      String?
   sliderLink                      String?
   sliderPath                      String?
-  bannerLinkAr                    String?
-  bannerPathAr                    String?
   sliderLinkAr                    String?
   sliderPathAr                    String?
   maxStartPrice                   Decimal?
