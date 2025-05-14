@@ -190,7 +190,7 @@ export class CategoryService {
     categoryId: number,
     banner?: Express.Multer.File,
     slider?: Express.Multer.File,
-    // bannerAr?: Express.Multer.File,
+    bannerAr?: Express.Multer.File,
     // sliderAr?: Express.Multer.File,
   ) {
     console.log(banner, slider);
@@ -207,9 +207,9 @@ export class CategoryService {
     let bannerLink: string,
       bannerPath: string,
       sliderLink: string,
-      sliderPath: string;
-    // bannerLinkAr: string,
-    // bannerPathAr: string,
+      sliderPath: string,
+      bannerLinkAr: string,
+      bannerPathAr: string;
     // sliderLinkAr: string,
     // sliderPathAr: string;
 
@@ -230,13 +230,13 @@ export class CategoryService {
       sliderPath = filePath;
     }
 
-    // if (bannerAr) {
-    //   const { fileLink, filePath } = await this.firebaseService.uploadImage(
-    //     bannerAr,
-    //   );
-    //   bannerLinkAr = fileLink;
-    //   bannerPathAr = filePath;
-    // }
+    if (bannerAr) {
+      const { fileLink, filePath } = await this.firebaseService.uploadImage(
+        bannerAr,
+      );
+      bannerLinkAr = fileLink;
+      bannerPathAr = filePath;
+    }
     // if (sliderAr) {
     //   const { fileLink, filePath } = await this.firebaseService.uploadImage(
     //     sliderAr,
@@ -250,7 +250,7 @@ export class CategoryService {
       data: {
         ...(bannerLink ? { bannerLink, bannerPath } : {}),
         ...(sliderLink ? { sliderLink, sliderPath } : {}),
-        // ...(bannerLinkAr ? { bannerLinkAr, bannerPathAr } : {}),
+        ...(bannerLinkAr ? { bannerLinkAr, bannerPathAr } : {}),
         // ...(sliderLinkAr ? { sliderLinkAr, sliderPathAr } : {}),
       },
     });
