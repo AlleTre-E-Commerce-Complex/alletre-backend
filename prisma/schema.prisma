@@ -42,6 +42,8 @@ model User {
   wallet                   Wallet[]
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
+  profit                   Profit[]
+
 }
 
 model NonRegisteredUser {
@@ -149,8 +151,6 @@ model Category {
   bannerPath                      String?
   sliderLink                      String?
   sliderPath                      String?
-  sliderLinkAr                    String?
-  sliderPathAr                    String?
   maxStartPrice                   Decimal?
   maxBidLimit                     Decimal?
   luxuaryAmount                   Decimal?
@@ -303,6 +303,7 @@ model Auction {
   Payment                     Payment[]
   Wallet                      Wallet[]
   watchLists                  WatchList[]
+  profit                      Profit[]
   isLocked                    Boolean?                 @default(false)
   lockedByUserId              Int?                    // user who locked it
   lockedAt                    DateTime?             
@@ -333,6 +334,8 @@ model Purchase {
   totalAmount     Decimal
   alletreWallet   AlletreWallet[]
   Wallet          Wallet[]
+  profit          Profit[]
+
 }
 
 model WatchList {
@@ -431,6 +434,19 @@ model AlletreWallet {
   transactionType        WalletTransactionType
   balance                Decimal               
   transactionReference   String?               @unique
+  auction                Auction?              @relation(fields: [auctionId], references: [id])
+  purchase               Purchase?             @relation(fields: [purchaseId], references: [id])
+  user                   User                  @relation(fields: [userId], references: [id])
+}
+
+model Profit {
+  id                     Int                   @id @default(autoincrement())
+  userId                 Int
+  auctionId              Int?
+  purchaseId             Int?
+  amount                 Decimal               
+  createdAt              DateTime              @default(now())
+  description            String
   auction                Auction?              @relation(fields: [auctionId], references: [id])
   purchase               Purchase?             @relation(fields: [purchaseId], references: [id])
   user                   User                  @relation(fields: [userId], references: [id])
