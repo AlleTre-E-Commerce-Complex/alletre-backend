@@ -46,10 +46,10 @@ export class EmailBatchService {
 
   async getAllRegisteredUsers(currentUserEmail?: string): Promise<string[]> {
     // Fire both queries in parallel
-    const unsubscribedUser = await this.prismaService.unsubscribedUser.findMany({
-      select:{email: true}
-    })
-    const unsubscribedEmails  = unsubscribedUser.map(u => u.email);
+    // const unsubscribedUser = await this.prismaService.unsubscribedUser.findMany({
+    //   select:{email: true}
+    // })
+    // const unsubscribedEmails  = unsubscribedUser.map(u => u.email);
     const [normal, nonReg] = await Promise.all([
       this.prismaService.user.findMany({
         select: { email: true },
@@ -59,7 +59,7 @@ export class EmailBatchService {
             not: null,
             notIn: [
               ...(currentUserEmail ? [currentUserEmail] : []),
-              ...unsubscribedEmails
+              // ...unsubscribedEmails
             ]
           }
         }
@@ -70,7 +70,7 @@ export class EmailBatchService {
         where: {
           email: {
             not: null,
-            notIn: unsubscribedEmails
+            // notIn: unsubscribedEmails
           }
         }
       })
