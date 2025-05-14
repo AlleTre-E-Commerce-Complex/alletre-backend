@@ -146,6 +146,8 @@ export class CategoryController {
       [
         { name: 'banner', maxCount: 1 },
         { name: 'slider', maxCount: 1 },
+        { name: 'bannerAr', maxCount: 1 },
+        { name: 'sliderAr', maxCount: 1 },
       ],
       { dest: 'uploads/' },
     ),
@@ -156,6 +158,8 @@ export class CategoryController {
     files: {
       banner?: Express.Multer.File[];
       slider?: Express.Multer.File[];
+      bannerAr?: Express.Multer.File[];
+      sliderAr?: Express.Multer.File[];
     },
   ) {
     if (!files)
@@ -170,6 +174,8 @@ export class CategoryController {
         categoryId,
         files.banner?.length ? files.banner[0] : undefined,
         files.slider?.length ? files.slider[0] : undefined,
+        files.bannerAr?.length ? files.bannerAr[0] : undefined,
+        files.sliderAr?.length ? files.sliderAr[0] : undefined,
       ),
     };
   }
