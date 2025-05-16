@@ -16,7 +16,8 @@ export class EmailBatchService {
           updatedAuction.user.email,
         );
         console.log('email length:',emails.length)
-        const subject = `🚨 New Auction Alert: Don't Miss Out!`;
+        console.log('updatedAuction:',updatedAuction)
+        const subject = updatedAuction.bids.length > 0 ? '🔥 This Auction Is Heating Up – Don’t Miss Out!' : `🚨 New Auction Alert: Don't Miss Out!`;
         const text = `A new auction has been listed: ${updatedAuction.product.title}`;
         const html = this.generateEmailTemplate(updatedAuction);
   
@@ -100,8 +101,14 @@ export class EmailBatchService {
     const date = updatedAuction.type === 'SCHEDULED' 
     ? new Date(updatedAuction.startDate) 
     : new Date(updatedAuction.expiryDate);
+    const lastBid = updatedAuction.bids[updatedAuction.bids.length - 1];
+    const CurrentBidAmount = lastBid ? lastBid.amount : 0;
+    const subjectLine = updatedAuction.bids.length
+  ? 'This Auction Is Heating Up – Don’t Miss Out!'
+  : updatedAuction.type === 'SCHEDULED'
+    ? 'A New Auction Has Just Listed'
+    : 'A New Auction Just Went Live!';
 
-  
     const formattedDate = date.toLocaleString('en-US', {
       weekday: 'short',
       year: 'numeric',
@@ -146,7 +153,7 @@ export class EmailBatchService {
           color: #a91d3a;
         "
       >
-        ${updatedAuction.type === 'SCHEDULED' ? `A New Auction Has Just Listed`:`A New Auction Just Went Live!`}
+      ${subjectLine}
       </h3>
       <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
         Hi Alletre member,
@@ -163,17 +170,26 @@ export class EmailBatchService {
         "
       >
         <p>
-          Exciting news! A brand-new auction has just been listed on <b>Alletre</b>, and we think you’ll love it.
+          ${updatedAuction.bids.length > 0 
+            ? `🔥 The bidding is getting intense! The auction titled "Test in" has just reached AED ${CurrentBidAmount} and interest is growing fast. If you’ve been thinking about joining in—now’s the time!`
+            :'Exciting news! A brand-new auction has just been listed on <b>Alletre</b>, and we think you’ll love it.'}
         </p>
       <p>Auction Details:</p>
-<ul style="margin: 0; padding-left: 20px; color:  #333; font-size: min(13px, 3vw);">
-  <li>Title: ${updatedAuction.product.title}</li>
-  <li>Category: ${updatedAuction.product.category.nameEn}</li>
-  <li>Starting Bid: ${updatedAuction.startBidAmount}</li>
-  <li>${updatedAuction.type === 'SCHEDULED' ? 'Starts On': 'Ends On'}: ${formattedDate}</li>
-</ul>
+      <ul style="margin: 0; padding-left: 20px; color:  #333; font-size: min(13px, 3vw);">
+        <li>Title: ${updatedAuction.product.title}</li>
+        <li>Category: ${updatedAuction.product.category.nameEn}</li>
+        <li>
+        ${updatedAuction.bids.length > 0 ? 'Current Bid' : 'Starting Bid'}: 
+        ${updatedAuction.bids.length > 0 ? CurrentBidAmount : updatedAuction.startBidAmount}
+      </li>
+        <li>${updatedAuction.type === 'SCHEDULED' ? 'Starts On': 'Ends On'}: ${formattedDate}</li>
+      </ul>
 
-        <p>This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!</p>
+       <p>
+          ${updatedAuction.bids.length > 0 
+            ? 'Why wait and miss out? This could be your chance to grab a deal or outbid the competition in the final stretch.'
+            :'This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!'}
+        </p>
 
         <div style="text-align: center;">
           <a
