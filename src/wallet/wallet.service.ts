@@ -182,7 +182,36 @@ export class WalletService {
     return result;
   }
 
-  
+  async findAdminProfitData(){
+    let result: any;
+    try {
+    
+      const [profitData, totalProfit] = await this.prismaSevice.$transaction([
+        this.prismaSevice.profit.findMany({
+          orderBy: { createdAt: 'desc' }, // optional
+        }),
+        this.prismaSevice.profit.aggregate({
+          _sum: {
+            amount: true,
+          },
+        }),
+      ]);
+      
+      return {
+        profitData,
+        totalAmount: totalProfit._sum.amount || 0,
+      };
+
+    } catch (error) {
+      console.log(error);
+      throw new MethodNotAllowedResponse({
+        ar: 'لقد حدث خطأ ما أثناء إجراء معاملتك',
+        en: 'Something went wrong while processing your transaction.',
+      });
+    }
+    return result;
+  }
+
   async findAll(userId: number) {
     const walletData = await this.prismaSevice.wallet.findMany({
       where: { userId },
