@@ -30,7 +30,7 @@ export class FirebaseService {
 
     // Construct the file path with the correct extension
     const filePath = isVideo
-      ? `${prefix}.${fileExtension}`
+      ? `${fileId}-${prefix}.${fileExtension}`
       : `${prefix}-${fileId}.${fileExtension}`;
 
     console.log('file Path : ', filePath);
