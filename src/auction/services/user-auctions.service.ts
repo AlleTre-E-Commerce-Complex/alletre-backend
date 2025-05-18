@@ -1057,10 +1057,13 @@ export class UserAuctionsService {
           const amountToWinnedBidderWallet =
             (Number(sellerSecurityDeposit.amount) * compensationPersenatage) /
             100;
+          const companyProfit_whenCancellAuction = Number(sellerSecurityDeposit.amount) -amountToWinnedBidderWallet
+
           const originalAmountToWinnedBidderWallet =
             auction.status === 'WAITING_FOR_PAYMENT'
               ? amountToWinnedBidderWallet + highestBidderSecurityDeposit
               : amountToWinnedBidderWallet;
+
 
           // //calculating the amount that need add to the alletreWallet
           // const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
@@ -1113,6 +1116,16 @@ export class UserAuctionsService {
                 prisma,
               );
 
+              await prisma.profit.create({
+                data:{
+                  amount :companyProfit_whenCancellAuction,
+                  description : `Compensation Due To Auction cancelled by seller ${
+                                  auction.status === 'ACTIVE' ? 'before' : 'after'
+                                } the expiry date.`,
+                  auctionId: auctionId,
+                  userId : userId,
+                }
+              })
               await prisma.auction.update({
                 where: {
                   id: auctionId,
@@ -4616,11 +4629,13 @@ export class UserAuctionsService {
       const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
       // Check authorization
-      if (auction.userId === winnerId)
+      if (auction?.userId === winnerId)
         throw new MethodNotAllowedResponse({
           ar: 'هذا الاعلان من احد إعلاناتك',
           en: 'This auction is one of your created auctions',
         });
+
+
 
       // Check winner of auction
       const auctionWinner = await this.prismaService.joinedAuction.findFirst({
@@ -4628,7 +4643,18 @@ export class UserAuctionsService {
           auctionId: auctionId,
           status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
         },
+        include: {
+          auction : true
+        }
       });
+
+      if(auctionWinner.auction.deliveryRequestsStatus === 'DELIVERY_SUCCESS'){
+        throw new MethodNotAllowedResponse({
+          ar: 'تم تسليم المنتج بنجاح. إذا لم يكن الأمر كذلك، يرجى التواصل مع فريق دعم Alletre.',
+          en: 'The item has already been delivered. If not, please contact the Alletre support team.',
+        });
+        
+      }
       console.log(
         'auctionWinner data from joined Auction :===>',
         auctionWinner,
@@ -4701,22 +4727,34 @@ export class UserAuctionsService {
               Number(lastWalletTransactionAlletre) -
               Number(sellerPaymentData.amount),
           };
+
+          const isAlreadySendBack = await this.prismaService.wallet.findFirst({
+            where:{
+              userId: auction.userId,
+              auctionId: Number(auctionId),
+              status: WalletStatus.DEPOSIT,
+              amount: Number(sellerPaymentData.amount  ),
+              description: 'Return of security deposit after winner confirmed the delivery.'
+            }
+          })
           //  const sellerWalletCreationData = await this.walletService.create(auction.userId, sellerReturnSeucurityDepositWalletData);
           //  const alletreWalletCreationData = await this.walletService.addToAlletreWallet(auction.userId,walletDataToAlletreWhenRetrunSecurityDepositToSeller)
-          const [sellerWalletCreationData, alletreWalletCreationData] =
-            await Promise.all([
-              this.walletService.create(
-                auction.userId,
-                sellerReturnSecurityDepositWalletData,
-              ),
-              this.walletService.addToAlletreWallet(
-                auction.userId,
-                walletDataToAlletreWhenRetrunSecurityDepositToSeller,
-              ),
-            ]);
-          //  if(sellerWalletCreationData && alletreWalletCreationData) isSellerDepositSendBack = true ; else isSellerDepositSendBack = false
-          isSellerDepositSendBack =
-            sellerWalletCreationData && alletreWalletCreationData;
+          if(!isAlreadySendBack){
+            const [sellerWalletCreationData, alletreWalletCreationData] =
+              await Promise.all([
+                this.walletService.create(
+                  auction.userId,
+                  sellerReturnSecurityDepositWalletData,
+                ),
+                this.walletService.addToAlletreWallet(
+                  auction.userId,
+                  walletDataToAlletreWhenRetrunSecurityDepositToSeller,
+                ),
+              ]);
+            //  if(sellerWalletCreationData && alletreWalletCreationData) isSellerDepositSendBack = true ; else isSellerDepositSendBack = false
+            isSellerDepositSendBack =
+              sellerWalletCreationData && alletreWalletCreationData;
+          }
         }
       } else {
         // in this case the seller has not paid the security deposit,
@@ -4731,7 +4769,27 @@ export class UserAuctionsService {
 
         const feesAmountOfAlletre =
           (Number(auctionWinnerBidAmount) * 0.5) / 100;
-        const companyProfit = feesAmountOfAlletre *2
+          //finding winner lastpaid amount
+        const winnerFullPaymentData = await this.prismaService.payment.findFirst({
+          where:{
+            userId: auctionWinner.userId,
+            auctionId:auctionWinner.auctionId,
+            status:'SUCCESS',
+            type: {
+              in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'],
+            },
+          },
+        })
+        let companyProfit : number
+        console.log('winnerFullPaymentData',winnerFullPaymentData)
+        if(!winnerFullPaymentData?.isWalletPayment){
+          //fetching winner paid amount in case of stripe payment
+          const {amountToAlletteWalletInTheStripeWEBHOOK} = this.paymentService.calculateWinnerPaymentAmount(Number(auctionWinnerBidAmount))
+          companyProfit = (Number(amountToAlletteWalletInTheStripeWEBHOOK)  -     Number(auctionWinnerBidAmount)) + feesAmountOfAlletre
+
+        }else{
+           companyProfit = feesAmountOfAlletre *2
+        }
         const amountToSellerWallet =
           Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
 
@@ -4812,8 +4870,18 @@ export class UserAuctionsService {
           console.log(
             'sending email to seller and bidder after delivery confirmation',
           );
-          //full amount to seller wallet after duducting the fees
-          const walletCreationData = await this.walletService.create(
+
+          const isAlreadySendFullAmount = await this.prismaService.wallet.findFirst({
+            where:{
+              userId:  confirmDeliveryResult.auction.userId,
+              auctionId: Number(auctionId),
+              status: WalletStatus.DEPOSIT,
+              amount: walletData.amount
+            }
+          })
+         if(!isAlreadySendFullAmount){
+           //full amount to seller wallet after duducting the fees
+           const walletCreationData = await this.walletService.create(
             confirmDeliveryResult.auction.userId,
             walletData,
           );
@@ -4831,6 +4899,7 @@ export class UserAuctionsService {
               'Failed to process wallet payment',
             );
           }
+         }
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
             subject:
