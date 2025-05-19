@@ -391,16 +391,15 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
             
 
             await this.prismaService.$transaction(async (prisma) => {
-              // Transfer to the highest bidder wallet
+
               await this.walletService.create(
                 joinedAuction.auction.userId,
                 walletData,
                 prisma,
               );
 
-              // Transfer to the alletre wallet
               await this.walletService.addToAlletreWallet(
-                joinedAuction.userId,
+                joinedAuction.auction.userId,
                 alletreWalletData,
                 prisma,
               );

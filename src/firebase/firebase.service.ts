@@ -29,8 +29,9 @@ export class FirebaseService {
     };
 
     // Construct the file path with the correct extension
+    const timestamp = Date.now();
     const filePath = isVideo
-      ? `${fileId}-${prefix}.${fileExtension}`
+      ? `${timestamp}-${prefix}.${fileExtension}`
       : `${prefix}-${fileId}.${fileExtension}`;
 
     console.log('file Path : ', filePath);
