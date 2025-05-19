@@ -18,6 +18,7 @@ import { NotificationsModule } from './notificatons/notifications.module';
 import { DeliveryRequestModule } from './admin-deliverRequests/deliveryRequests.module';
 import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     WithdrawalModule,
     DeliveryRequestModule,
     WhatsAppModule,
+    DashboardModule,
   ],
 })
 export class AppModule {
