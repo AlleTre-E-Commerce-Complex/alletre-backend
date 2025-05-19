@@ -1111,7 +1111,7 @@ export class UserAuctionsService {
               //transfer to the  alletre wallet
 
               await this.walletService.addToAlletreWallet(
-                userId,
+                highestBidderId,
                 alletreWalletData,
                 prisma,
               );
