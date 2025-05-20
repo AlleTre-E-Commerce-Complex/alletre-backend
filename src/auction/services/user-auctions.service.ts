@@ -5544,9 +5544,11 @@ export class UserAuctionsService {
           status,
           ...(roles.includes(Role.Admin) ? {} : { userId }),
           product: {
-            ...productFilter,
-            isAuctionProduct: false,
-          },
+            is: {
+              ...productFilter,
+              isAuctionProduct: false,
+            },
+          },          
           AND: [
             { ProductListingPrice: { gte: priceFrom } },
             { ProductListingPrice: { lte: priceTo } },
@@ -5584,9 +5586,11 @@ export class UserAuctionsService {
           ...(roles.includes(Role.Admin) ? {} : { userId }),
           product: {
             is: {
+              ...productFilter,
               isAuctionProduct: false,
             },
           },
+          
         },
       });
       const pagination = this.paginationService.getPagination(
