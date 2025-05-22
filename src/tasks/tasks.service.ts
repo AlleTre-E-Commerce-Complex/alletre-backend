@@ -294,7 +294,7 @@ export class TasksService {
         //     );
         // }
 
-console.log('winnerSecurityDeposit',winnerSecurityDeposit)
+      console.log('winnerSecurityDeposit',winnerSecurityDeposit)
       // if (winnerSecurityDeposit) 
         {
         try {
@@ -332,6 +332,22 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
                 Number(lastWalletTransactionAlletre) -
                 Number(sellerPaymentData.amount),
             };
+
+            const isAlreadySendS_DBack = await this.prismaService.wallet.findFirst({
+              where:{
+                status : sellerReturnSecurityDepositWalletData.status,
+                transactionType: sellerReturnSecurityDepositWalletData.transactionType,
+                description : sellerReturnSecurityDepositWalletData.description,
+                amount : sellerReturnSecurityDepositWalletData.amount,
+                auctionId : sellerReturnSecurityDepositWalletData.auctionId
+              } 
+            })
+            console.log('isAlreadySendS_DBack',isAlreadySendS_DBack)
+            if (isAlreadySendS_DBack){
+              console.log('already send security deposit ')
+              continue;
+ 
+            }
             const [sellerWalletCreationData, alletreWalletCreationData] =
               await Promise.all([
                 this.walletService.create(
@@ -370,7 +386,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
               status: WalletStatus.DEPOSIT,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                `Compensation Due to full payment delay by the winned bidder.  `,
+                `Compensation Due to full payment delay by the winned bidder. ---kamaru`,
               amount: compensationAmountToSellerWallet,
               auctionId: Number(joinedAuction.auctionId),
               balance: lastWalletTransactionBalance
@@ -383,26 +399,67 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
               status: WalletStatus.WITHDRAWAL,
               transactionType: WalletTransactionType.By_AUCTION,
               description:
-                `Compensation Due to full payment delay by the winned bidder.  `,
+                `Compensation Due to full payment delay by the winned bidder. ---kamaru`,
               amount: compensationAmountToSellerWallet,
               auctionId: Number(joinedAuction.auctionId),
               balance: Number(lastBalanceOfAlletre) - compensationAmountToSellerWallet,
             };
             
+            const isAlreadySendCompensationBack = await this.prismaService.wallet.findFirst({
+              where:{
+                status : walletData.status,
+                transactionType: walletData.transactionType,
+                description : walletData.description,
+                amount : walletData.amount,
+                auctionId : walletData.auctionId
+              } 
+            })
+            console.log('isAlreadySendCompensationBack',isAlreadySendCompensationBack)
+
+            if (isAlreadySendCompensationBack){
+              console.log('already send Compensation deposit ')
+              continue;
+ 
+            }
 
             await this.prismaService.$transaction(async (prisma) => {
 
-              await this.walletService.create(
-                joinedAuction.auction.userId,
-                walletData,
-                prisma,
-              );
+              // await this.walletService.create(
+              //   joinedAuction.auction.userId,
+              //   walletData,
+              //   prisma,
+              // );
 
-              await this.walletService.addToAlletreWallet(
-                joinedAuction.auction.userId,
-                alletreWalletData,
-                prisma,
-              );
+              await prisma.wallet.create({
+                data: {
+                  userId : joinedAuction.auction.userId,
+                  description: walletData.description,
+                  amount: Number(Number(walletData.amount).toFixed(2)),
+                  status: walletData.status,
+                  transactionType: walletData.transactionType,
+                  auctionId: walletData.auctionId,
+                  balance: Number(Number(walletData.balance).toFixed(2)),
+                },
+              });
+
+              // await this.walletService.addToAlletreWallet(
+              //   joinedAuction.auction.userId,
+              //   alletreWalletData,
+              //   prisma,
+              // );
+
+
+             await prisma.alletreWallet.create({
+                data: {
+                  userId:joinedAuction.auction.userId,
+                  description: alletreWalletData.description,
+                  amount: Number(Number(alletreWalletData.amount).toFixed(2)),
+                  status: alletreWalletData.status,
+                  transactionType: alletreWalletData.transactionType,
+                  auctionId: alletreWalletData.auctionId,
+                  balance: Number(Number(alletreWalletData.balance).toFixed(2)),
+                },
+              });
 
               // Update auction and joined auction statuses
               await prisma.auction.update({
@@ -1187,7 +1244,7 @@ console.log('winnerSecurityDeposit',winnerSecurityDeposit)
           // const newDate = new Date(today.setDate(today.getDate() + 3));
           const newDate =  process.env.NODE_ENV === 'production' ?
           new Date(today.setDate(today.getDate() + 2)):
-          new Date(today.getTime() + 5 * 60 * 1000); // Adds 5 minutes
+          new Date(today.getTime() + 3 * 60 * 1000); // Adds 5 minutes
 
           const {
             isAcutionUpdated,
