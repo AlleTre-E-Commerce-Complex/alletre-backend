@@ -43,7 +43,6 @@ export class FirebaseService {
         metadata: metadata,
         destination: filePath, // Save with the correct filename
       });
-      console.log('data11 : ', data);
     } catch (error) {
       console.error('Error code uploading to Firebase:', error.code);
       console.error('Error message uploading to Firebase:', error.message);

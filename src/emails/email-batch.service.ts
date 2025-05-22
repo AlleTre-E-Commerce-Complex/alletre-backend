@@ -62,7 +62,8 @@ export class EmailBatchService {
               ...(currentUserEmail ? [currentUserEmail] : []),
               // ...unsubscribedEmails
             ]
-          }
+          },
+          isBlocked: false
         }
       }),
       this.prismaService.nonRegisteredUser.findMany({

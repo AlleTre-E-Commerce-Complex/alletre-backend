@@ -164,20 +164,34 @@ export class UserAuctionsService {
         }
         break;
     }
-    if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
-      if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
-        await this.paymentService.publishAuction(auction.id, user.email);
-      } else {
-        this.logger.error(
-          `Payment creation failed for auction ID: ${auction.id}`,
-        );
-        throw new MethodNotAllowedResponse({
-          ar: 'حدث خطأ أثناء معالجة الدفع الخاص بالمزاد. يرجى المحاولة مرة أخرى أو التواصل مع فريق الدعم.',
-          en: 'An error occurred while processing the auction payment. Please try again or contact support.',
-        });
-      }
-    }
+    // if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
+    //   if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
+    //     await this.paymentService.publishAuction(auction.id, user.email);
+    //   } else {
+    //     this.logger.error(
+    //       `Payment creation failed for auction ID: ${auction.id}`,
+    //     );
+    //     throw new MethodNotAllowedResponse({
+    //       ar: 'حدث خطأ أثناء معالجة الدفع الخاص بالمزاد. يرجى المحاولة مرة أخرى أو التواصل مع فريق الدعم.',
+    //       en: 'An error occurred while processing the auction payment. Please try again or contact support.',
+    //     });
+    //   }
+    // }
 
+    const specialCategories = [
+      { categoryId: 4, maxPrice: 5000 },
+      { categoryId: 7, maxPrice: 1000 },
+    ];
+    
+    const matchedCategory = specialCategories.find(
+      (rule) =>
+        auction.product.categoryId === rule.categoryId &&
+        auction.startBidAmount < rule.maxPrice
+    );
+    console.log('matchedCategory',matchedCategory)
+    if (matchedCategory) {
+      await this.paymentService.publishAuction(auction.id, user.email);
+    }
     return auction;
   }
 
@@ -3168,11 +3182,12 @@ export class UserAuctionsService {
               Number(updatedBankTransferRequestData.amount)
             : Number(updatedBankTransferRequestData.amount),
         };
-        const isAlletreWalletCreted =
-          await this.walletService.addToAlletreWallet(
-            updatedBankTransferRequestData.userId,
-            alletreWalletData,
-          );
+        
+        // const isAlletreWalletCreted =
+        //   await this.walletService.addToAlletreWallet(
+        //     updatedBankTransferRequestData.userId,
+        //     alletreWalletData,
+        //   );
 
         const joinedAuction = await this.prismaService.joinedAuction.findFirst({
           where: {
@@ -3184,8 +3199,21 @@ export class UserAuctionsService {
           },
         });
 
-        if (isAlletreWalletCreted) {
+
           await this.prismaService.$transaction(async (prisma) => {
+
+            const isAlletreWalletCreted = await  prisma.alletreWallet.create({
+              data: {
+                userId: updatedBankTransferRequestData.userId,
+                description: alletreWalletData.description,
+                amount: Number(Number(alletreWalletData.amount).toFixed(2)),
+                status: alletreWalletData.status,
+                transactionType: alletreWalletData.transactionType,
+                auctionId: alletreWalletData.auctionId,
+                balance: Number(Number(alletreWalletData.balance).toFixed(2)),
+              },
+            });
+  
             // Update joinedAuction for bidder to WAITING_DELIVERY
             await prisma.joinedAuction.update({
               where: { id: joinedAuction.id },
@@ -3200,89 +3228,8 @@ export class UserAuctionsService {
             });
           });
         }
-      }
       const paymentData = updatedBankTransferRequestData;
       if (paymentData) {
-        const auctionEndDate = new Date(paymentData.auction.expiryDate);
-        const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
-        auctionEndDate.setDate(auctionEndDate.getDate() + 3);
-        const PaymentEndDate = auctionEndDate.toISOString().split('T')[0];
-        //here need send the back the security deposit of winner
-        const winnedBidderDepositPaymentData =
-          await this.paymentService.getAuctionPaymentTransaction(
-            paymentData.userId,
-            paymentData.auctionId,
-            PaymentType.BIDDER_DEPOSIT,
-          );
-
-        if (
-          !winnedBidderDepositPaymentData.isWalletPayment &&
-          winnedBidderDepositPaymentData.paymentIntentId
-        ) {
-          try {
-            const is_SD_SendBackToWinner =
-              await this.stripeService.cancelDepositPaymentIntent(
-                winnedBidderDepositPaymentData.paymentIntentId,
-              );
-            if (is_SD_SendBackToWinner) {
-              console.log('SD send back to winner - stripe');
-            }
-          } catch (error) {
-            console.error(
-              'Error when sending back SD  for winning bidder:',
-              error,
-            );
-          }
-        } else {
-          try {
-            //finding the last transaction balance of the winner
-            const lastWalletTransactionBalanceOfWinner =
-              await this.walletService.findLastTransaction(
-                winnedBidderDepositPaymentData.userId,
-              );
-            //finding the last transaction balance of the alletreWallet
-            const lastBalanceOfAlletre =
-              await this.walletService.findLastTransactionOfAlletre();
-            //wallet data for the winner bidder
-            const BidderWalletData = {
-              status: WalletStatus.DEPOSIT,
-              transactionType: WalletTransactionType.By_AUCTION,
-              description: `Security deposit returned after auction win – payment processed via bank transfer.`,
-              amount: Number(winnedBidderDepositPaymentData.amount),
-              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-              balance: lastWalletTransactionBalanceOfWinner
-                ? Number(lastWalletTransactionBalanceOfWinner) +
-                  Number(winnedBidderDepositPaymentData.amount)
-                : Number(winnedBidderDepositPaymentData.amount),
-            };
-            // wallet data for deposit to alletre wallet
-
-            const alletreWalletData = {
-              status: WalletStatus.WITHDRAWAL,
-              transactionType: WalletTransactionType.By_AUCTION,
-              description: `Return of bidder's security deposit after auction win – payment processed via bank transfer.`,
-              amount: Number(winnedBidderDepositPaymentData.amount),
-              auctionId: Number(winnedBidderDepositPaymentData.auctionId),
-              balance:
-                Number(lastBalanceOfAlletre) -
-                Number(winnedBidderDepositPaymentData.amount),
-            };
-            await this.walletService.create(
-              winnedBidderDepositPaymentData.userId,
-              BidderWalletData,
-            );
-            //crete new transaction in alletre wallet
-            await this.walletService.addToAlletreWallet(
-              winnedBidderDepositPaymentData.userId,
-              alletreWalletData,
-            );
-          } catch (error) {
-            console.error(
-              'Error when sending back SD  for winning bidder:',
-              error,
-            );
-          }
-        }
         //Email to winning bidder paid amount (wallet)
         const paymentSuccessData = paymentData;
         const invoicePDF = await generateInvoicePDF(paymentSuccessData);
