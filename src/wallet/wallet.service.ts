@@ -51,7 +51,7 @@ export class WalletService {
       console.log('addToUserWalletByAdmin is called', createWalletData);
 
       await this.prismaSevice.$transaction(async (prisma)=>{
-        const lastUserWalletBalance =await this.findLastTransaction(createWalletData.userId, prisma)
+        const lastUserWalletBalance =await this.findLastTransaction(createWalletData.userId, prisma) 
         const newBalanceToUserWallet = createWalletData.status === 'WITHDRAWAL' ?
           Number(lastUserWalletBalance) - Number(createWalletData.amount) :
           Number(lastUserWalletBalance) + Number(createWalletData.amount) 
@@ -261,11 +261,13 @@ export class WalletService {
         where: { userId },
         orderBy: { id: 'desc' },
       });
-      return walletLastTransaction?.balance;
+      return walletLastTransaction?.balance ?? 0;
     } catch (error) {
       console.log('error at findLastTransaction :', error);
+      return 0;
     }
   }
+  
 
   async findLastTransactionOfAlletre(prismaClient?: Prisma.TransactionClient) {
     try {
