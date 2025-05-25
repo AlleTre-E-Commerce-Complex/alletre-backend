@@ -218,6 +218,24 @@ export class TasksService {
     console.log('pendingPaymentAuction :', pendingPaymentAuction);
     for (const joinedAuction of pendingPaymentAuction) {
       //find the security deposit Of Winned bidder
+
+      const isWinnerCompletedFullPayment =  await this.prismaService.payment.findFirst({
+        where:{
+          auctionId: joinedAuction.auctionId,
+          userId: joinedAuction.userId,
+          type:'AUCTION_PURCHASE',
+          status:'BANK_STATEMENT_UPLOADED'
+        }
+      })
+      console.log('chekking winner payment1', isWinnerCompletedFullPayment)
+
+      if(isWinnerCompletedFullPayment){
+      console.log('chekking winner payment2')
+
+        console.log('winner has submitted a bank tranfer form')
+        continue
+      }
+      console.log('chekking winner payment3')
       const winnerSecurityDeposit = await this.prismaService.payment.findFirst({
         where: {
           auctionId: joinedAuction.auctionId,
@@ -240,6 +258,7 @@ export class TasksService {
           },
         },
       });
+      
       const sellerPaymentData = await this.prismaService.payment.findFirst({
         where: {
           auctionId: joinedAuction.auctionId,
