@@ -5897,10 +5897,10 @@ export class UserAuctionsService {
     });
 
     // Check auction images validation
-    if (auction.product.images.length >= 5)
+    if (auction.product.images.length >= 50)
       throw new MethodNotAllowedResponse({
         ar: 'لا يمكنك إضافة الصورة',
-        en: 'You Can Not Upload Image, You have been uploaded 5 images',
+        en: 'You Can Not Upload Image, You have been uploaded 50 images',
       });
 
     try {
