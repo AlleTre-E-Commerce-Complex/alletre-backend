@@ -266,10 +266,11 @@ export class AuctionsHelper {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
     });
-    if (auction.status != AuctionStatus.DRAFTED)
-      throw new MethodNotAllowedResponse({
-        ar: 'لا يمكنك إجراء تعديل علي هذا الاعلان',
-        en: 'You Can Not Update Auction',
+    if (!auction) {
+      throw new NotFoundResponse({
+        ar: 'الاعلان غير موجود',
+        en: 'Auction Not Found',
       });
+    }
   }
 }
