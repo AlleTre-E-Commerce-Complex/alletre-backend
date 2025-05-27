@@ -5,7 +5,7 @@ import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
 import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import * as bcrypt from 'bcrypt';
-import { OAuthType, WalletStatus, WalletTransactionType } from '@prisma/client';
+import { OAuthType, ProblemStatus, WalletStatus, WalletTransactionType } from '@prisma/client';
 import { PaginationDTO } from 'src/auction/dtos';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { WalletService } from 'src/wallet/wallet.service';
@@ -636,6 +636,59 @@ export class UserService {
         ar: 'لايمكنك حذف عنوانك الرئيسي',
         en: 'You Can Not Delete Your Main Location',
       });
+  }
+
+  async getAllUsersComplaints(){
+    try {
+      const allUsersComplaints = await this.prismaService.auctionComplaints.findMany({
+        include :{
+          images: true,
+          user: {include: {locations: {include: {city : true, country : true}}}},
+          auction: {
+            include: {product: {include :{images: true}}, user: {include: {locations: {include: {city : true, country : true}}}}}, 
+          }
+        }
+      })
+      return allUsersComplaints
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: '',
+        en: 'Error while fetching the users complaits',
+      });
+    }
+  }
+
+  async updateUserComplaitStatus(complaintId: number, status: ProblemStatus){
+    try {
+      return await this.prismaService.auctionComplaints.update({
+        where:{
+          id:complaintId,
+        },
+        data:{
+          problemStatus: status
+        },
+        include: {
+          user: true,
+          auction: {
+            include: {
+              bids: {
+                include: { user: true },
+                orderBy: { amount: 'desc' },
+              },
+              product: {
+                include: { images: true, category: true },
+              },
+              user: true,
+            },
+          },
+        },
+      })
+    } catch (error) {
+      throw new MethodNotAllowedResponse({
+        ar: '',
+        en: 'Error while updating the complait status',
+      });
+    }
   }
 
   async getAllUsers(paginationDTO: PaginationDTO, name?: string) {
