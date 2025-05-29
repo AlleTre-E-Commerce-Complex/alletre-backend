@@ -250,16 +250,15 @@ export class AuctionsHelper {
       where: { id: auctionId },
       include: { product: { include: { images: true } } },
     });
-
     const auctionImagesIds = auction.product.images.map((image) => {
       return image.id;
     });
 
-    if (!auctionImagesIds.includes(imageId))
-      throw new MethodNotAllowedResponse({
-        ar: 'هذه الصورة غير تابعة لهذا الاعلان',
-        en: 'Image is not related to Auction',
-      });
+    // if (!auctionImagesIds.includes(imageId) )
+    //   throw new MethodNotAllowedResponse({
+    //     ar: 'هذه الصورة غير تابعة لهذا الاعلان',
+    //     en: 'Image is not related to Auction',
+    //   });
   }
 
   async _isAuctionValidForUpdate(auctionId: number) {
