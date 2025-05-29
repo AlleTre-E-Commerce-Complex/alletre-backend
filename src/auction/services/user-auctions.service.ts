@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ProductUpdateDTO } from '../dtos/product-update.dto';
 import { PaginationService } from '../../common/services/pagination.service';
 import {
   AuctionCreationDTO,
@@ -39,7 +40,6 @@ import {
 import { MethodNotAllowedResponse, NotFoundResponse } from 'src/common/errors';
 import { Role } from 'src/auth/enums/role.enum';
 import { AuctionsHelper } from '../helpers/auctions-helper';
-// import { Decimal } from '@prisma/client/runtime';
 import Decimal from 'decimal.js';
 import { BidsWebSocketGateway } from '../gateway/bids.gateway';
 import { PaymentsService } from 'src/payments/services/payments.service';
@@ -182,13 +182,13 @@ export class UserAuctionsService {
       { categoryId: 4, maxPrice: 5000 },
       { categoryId: 7, maxPrice: 1000 },
     ];
-    
+
     const matchedCategory = specialCategories.find(
       (rule) =>
         auction.product.categoryId === rule.categoryId &&
-        auction.startBidAmount < rule.maxPrice
+        auction.startBidAmount < rule.maxPrice,
     );
-    console.log('matchedCategory',matchedCategory)
+    console.log('matchedCategory', matchedCategory);
     if (matchedCategory) {
       await this.paymentService.publishAuction(auction.id, user.email);
     }
@@ -1071,13 +1071,13 @@ export class UserAuctionsService {
           const amountToWinnedBidderWallet =
             (Number(sellerSecurityDeposit.amount) * compensationPersenatage) /
             100;
-          const companyProfit_whenCancellAuction = Number(sellerSecurityDeposit.amount) -amountToWinnedBidderWallet
+          const companyProfit_whenCancellAuction =
+            Number(sellerSecurityDeposit.amount) - amountToWinnedBidderWallet;
 
           const originalAmountToWinnedBidderWallet =
             auction.status === 'WAITING_FOR_PAYMENT'
               ? amountToWinnedBidderWallet + highestBidderSecurityDeposit
               : amountToWinnedBidderWallet;
-
 
           // //calculating the amount that need add to the alletreWallet
           // const amountToAlletteWallet = Number(sellerSecurityDeposit.amount) - originalAmountToWinnedBidderWallet
@@ -1131,15 +1131,15 @@ export class UserAuctionsService {
               );
 
               await prisma.profit.create({
-                data:{
-                  amount :companyProfit_whenCancellAuction,
-                  description : `Compensation Due To Auction cancelled by seller ${
-                                  auction.status === 'ACTIVE' ? 'before' : 'after'
-                                } the expiry date.`,
+                data: {
+                  amount: companyProfit_whenCancellAuction,
+                  description: `Compensation Due To Auction cancelled by seller ${
+                    auction.status === 'ACTIVE' ? 'before' : 'after'
+                  } the expiry date.`,
                   auctionId: auctionId,
-                  userId : userId,
-                }
-              })
+                  userId: userId,
+                },
+              });
               await prisma.auction.update({
                 where: {
                   id: auctionId,
@@ -3182,7 +3182,7 @@ export class UserAuctionsService {
               Number(updatedBankTransferRequestData.amount)
             : Number(updatedBankTransferRequestData.amount),
         };
-        
+
         // const isAlletreWalletCreted =
         //   await this.walletService.addToAlletreWallet(
         //     updatedBankTransferRequestData.userId,
@@ -3199,35 +3199,33 @@ export class UserAuctionsService {
           },
         });
 
+        await this.prismaService.$transaction(async (prisma) => {
+          // const isAlletreWalletCreted = await prisma.alletreWallet.create({
+          //   data: {
+          //     userId: updatedBankTransferRequestData.userId,
+          //     description: alletreWalletData.description,
+          //     amount: Number(Number(alletreWalletData.amount).toFixed(2)),
+          //     status: alletreWalletData.status,
+          //     transactionType: alletreWalletData.transactionType,
+          //     auctionId: alletreWalletData.auctionId,
+          //     balance: Number(Number(alletreWalletData.balance).toFixed(2)),
+          //   },
+          // });
 
-          await this.prismaService.$transaction(async (prisma) => {
-
-            const isAlletreWalletCreted = await  prisma.alletreWallet.create({
-              data: {
-                userId: updatedBankTransferRequestData.userId,
-                description: alletreWalletData.description,
-                amount: Number(Number(alletreWalletData.amount).toFixed(2)),
-                status: alletreWalletData.status,
-                transactionType: alletreWalletData.transactionType,
-                auctionId: alletreWalletData.auctionId,
-                balance: Number(Number(alletreWalletData.balance).toFixed(2)),
-              },
-            });
-  
-            // Update joinedAuction for bidder to WAITING_DELIVERY
-            await prisma.joinedAuction.update({
-              where: { id: joinedAuction.id },
-              data: {
-                status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
-              },
-            });
-            // Update auction status to sold
-            await prisma.auction.update({
-              where: { id: updatedBankTransferRequestData.auctionId },
-              data: { status: AuctionStatus.SOLD },
-            });
+          // Update joinedAuction for bidder to WAITING_DELIVERY
+          await prisma.joinedAuction.update({
+            where: { id: joinedAuction.id },
+            data: {
+              status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
+            },
           });
-        }
+          // Update auction status to sold
+          await prisma.auction.update({
+            where: { id: updatedBankTransferRequestData.auctionId },
+            data: { status: AuctionStatus.SOLD },
+          });
+        });
+      }
       const paymentData = updatedBankTransferRequestData;
       if (paymentData) {
         //Email to winning bidder paid amount (wallet)
@@ -4582,8 +4580,6 @@ export class UserAuctionsService {
           en: 'This auction is one of your created auctions',
         });
 
-
-
       // Check winner of auction
       const auctionWinner = await this.prismaService.joinedAuction.findFirst({
         where: {
@@ -4591,16 +4587,15 @@ export class UserAuctionsService {
           status: JoinedAuctionStatus.WAITING_FOR_DELIVERY,
         },
         include: {
-          auction : true
-        }
+          auction: true,
+        },
       });
 
-      if(auctionWinner.auction.deliveryRequestsStatus === 'DELIVERY_SUCCESS'){
+      if (auctionWinner.auction.deliveryRequestsStatus === 'DELIVERY_SUCCESS') {
         throw new MethodNotAllowedResponse({
           ar: 'تم تسليم المنتج بنجاح. إذا لم يكن الأمر كذلك، يرجى التواصل مع فريق دعم Alletre.',
           en: 'The item has already been delivered. If not, please contact the Alletre support team.',
         });
-        
       }
       console.log(
         'auctionWinner data from joined Auction :===>',
@@ -4676,17 +4671,18 @@ export class UserAuctionsService {
           };
 
           const isAlreadySendBack = await this.prismaService.wallet.findFirst({
-            where:{
+            where: {
               userId: auction.userId,
               auctionId: Number(auctionId),
               status: WalletStatus.DEPOSIT,
-              amount: Number(sellerPaymentData.amount  ),
-              description: 'Return of security deposit after winner confirmed the delivery.'
-            }
-          })
+              amount: Number(sellerPaymentData.amount),
+              description:
+                'Return of security deposit after winner confirmed the delivery.',
+            },
+          });
           //  const sellerWalletCreationData = await this.walletService.create(auction.userId, sellerReturnSeucurityDepositWalletData);
           //  const alletreWalletCreationData = await this.walletService.addToAlletreWallet(auction.userId,walletDataToAlletreWhenRetrunSecurityDepositToSeller)
-          if(!isAlreadySendBack){
+          if (!isAlreadySendBack) {
             const [sellerWalletCreationData, alletreWalletCreationData] =
               await Promise.all([
                 this.walletService.create(
@@ -4716,26 +4712,32 @@ export class UserAuctionsService {
 
         const feesAmountOfAlletre =
           (Number(auctionWinnerBidAmount) * 0.5) / 100;
-          //finding winner lastpaid amount
-        const winnerFullPaymentData = await this.prismaService.payment.findFirst({
-          where:{
-            userId: auctionWinner.userId,
-            auctionId:auctionWinner.auctionId,
-            status:'SUCCESS',
-            type: {
-              in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'],
+        //finding winner lastpaid amount
+        const winnerFullPaymentData =
+          await this.prismaService.payment.findFirst({
+            where: {
+              userId: auctionWinner.userId,
+              auctionId: auctionWinner.auctionId,
+              status: 'SUCCESS',
+              type: {
+                in: ['AUCTION_PURCHASE', 'BUY_NOW_PURCHASE'],
+              },
             },
-          },
-        })
-        let companyProfit : number
-        console.log('winnerFullPaymentData',winnerFullPaymentData)
-        if(!winnerFullPaymentData?.isWalletPayment){
+          });
+        let companyProfit: number;
+        console.log('winnerFullPaymentData', winnerFullPaymentData);
+        if (!winnerFullPaymentData?.isWalletPayment) {
           //fetching winner paid amount in case of stripe payment
-          const {amountToAlletteWalletInTheStripeWEBHOOK} = this.paymentService.calculateWinnerPaymentAmount(Number(auctionWinnerBidAmount))
-          companyProfit = (Number(amountToAlletteWalletInTheStripeWEBHOOK)  -     Number(auctionWinnerBidAmount)) + feesAmountOfAlletre
-
-        }else{
-           companyProfit = feesAmountOfAlletre *2
+          const { amountToAlletteWalletInTheStripeWEBHOOK } =
+            this.paymentService.calculateWinnerPaymentAmount(
+              Number(auctionWinnerBidAmount),
+            );
+          companyProfit =
+            Number(amountToAlletteWalletInTheStripeWEBHOOK) -
+            Number(auctionWinnerBidAmount) +
+            feesAmountOfAlletre;
+        } else {
+          companyProfit = feesAmountOfAlletre * 2;
         }
         const amountToSellerWallet =
           Number(auctionWinnerBidAmount) - feesAmountOfAlletre;
@@ -4772,7 +4774,7 @@ export class UserAuctionsService {
             Number(lastWalletTransactionAlletre) - Number(amountToSellerWallet),
         };
 
-        const confirmDeliveryResult= await this.prismaService.$transaction(
+        const confirmDeliveryResult = await this.prismaService.$transaction(
           async (prisma) => {
             const confirmDeliveryResult = await prisma.joinedAuction.update({
               where: { id: auctionWinner.id },
@@ -4800,17 +4802,17 @@ export class UserAuctionsService {
                 user: true,
               },
             });
-            
-            await prisma.profit.create({
-              data:{
-                amount :companyProfit,
-                description : 'Profit after confirm delivery by bidder',
-                auctionId: confirmDeliveryResult.auctionId,
-                userId : auctionWinner.userId,
-              }
-            })
 
-            return confirmDeliveryResult
+            await prisma.profit.create({
+              data: {
+                amount: companyProfit,
+                description: 'Profit after confirm delivery by bidder',
+                auctionId: confirmDeliveryResult.auctionId,
+                userId: auctionWinner.userId,
+              },
+            });
+
+            return confirmDeliveryResult;
           },
         );
         if (confirmDeliveryResult) {
@@ -4818,35 +4820,36 @@ export class UserAuctionsService {
             'sending email to seller and bidder after delivery confirmation',
           );
 
-          const isAlreadySendFullAmount = await this.prismaService.wallet.findFirst({
-            where:{
-              userId:  confirmDeliveryResult.auction.userId,
-              auctionId: Number(auctionId),
-              status: WalletStatus.DEPOSIT,
-              amount: walletData.amount
-            }
-          })
-         if(!isAlreadySendFullAmount){
-           //full amount to seller wallet after duducting the fees
-           const walletCreationData = await this.walletService.create(
-            confirmDeliveryResult.auction.userId,
-            walletData,
-          );
-
-          //sending the full amount from alle tre wallet to seller wallet
-          //(due to  buyer pay the full amount, it has already in the alletre wallet )
-          const alletreWalletCreationData =
-            await this.walletService.addToAlletreWallet(
+          const isAlreadySendFullAmount =
+            await this.prismaService.wallet.findFirst({
+              where: {
+                userId: confirmDeliveryResult.auction.userId,
+                auctionId: Number(auctionId),
+                status: WalletStatus.DEPOSIT,
+                amount: walletData.amount,
+              },
+            });
+          if (!isAlreadySendFullAmount) {
+            //full amount to seller wallet after duducting the fees
+            const walletCreationData = await this.walletService.create(
               confirmDeliveryResult.auction.userId,
-              walletDataToAlletre,
+              walletData,
             );
 
-          if (!walletCreationData && !alletreWalletCreationData) {
-            throw new InternalServerErrorException(
-              'Failed to process wallet payment',
-            );
+            //sending the full amount from alle tre wallet to seller wallet
+            //(due to  buyer pay the full amount, it has already in the alletre wallet )
+            const alletreWalletCreationData =
+              await this.walletService.addToAlletreWallet(
+                confirmDeliveryResult.auction.userId,
+                walletDataToAlletre,
+              );
+
+            if (!walletCreationData && !alletreWalletCreationData) {
+              throw new InternalServerErrorException(
+                'Failed to process wallet payment',
+              );
+            }
           }
-         }
           //sending email to seller and bidder after delivery confirmation
           const emailBodyToSeller = {
             subject:
@@ -5495,7 +5498,7 @@ export class UserAuctionsService {
               ...productFilter,
               isAuctionProduct: false,
             },
-          },          
+          },
           AND: [
             { ProductListingPrice: { gte: priceFrom } },
             { ProductListingPrice: { lte: priceTo } },
@@ -5537,7 +5540,6 @@ export class UserAuctionsService {
               isAuctionProduct: false,
             },
           },
-          
         },
       });
       const pagination = this.paginationService.getPagination(
@@ -5645,7 +5647,7 @@ export class UserAuctionsService {
           location: { include: { city: true, country: true } },
         },
       });
-
+      console.log('1111', product);
       if (!product) {
         throw new MethodNotAllowedResponse({
           ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
@@ -5715,6 +5717,177 @@ export class UserAuctionsService {
       };
     } catch (error) {
       console.log('find product error : ', error);
+    }
+  }
+
+  private async _updateListedProduct(productId: number, updateDTO: any) {
+    const updateData: any = {};
+    const productData = updateDTO.product || updateDTO;
+
+    // String fields
+    if (productData?.title) updateData.title = productData?.title;
+    if (productData?.description)
+      updateData.description = productData?.description;
+    if (productData?.usageStatus)
+      updateData.usageStatus = productData?.usageStatus;
+    if (productData?.brand) updateData.brand = productData?.brand;
+    if (productData?.color) updateData.color = productData?.color;
+    if (productData?.landType) updateData.landType = productData?.landType;
+    if (productData?.cameraType)
+      updateData.cameraType = productData?.cameraType;
+    if (productData?.carType) updateData.carType = productData?.carType;
+    if (productData?.material) updateData.material = productData?.material;
+    if (productData?.memory) updateData.memory = productData?.memory;
+    if (productData?.model) updateData.model = productData?.model;
+    if (productData?.processor) updateData.processor = productData?.processor;
+    if (productData?.operatingSystem)
+      updateData.operatingSystem = productData?.operatingSystem;
+    if (productData?.regionOfManufacture)
+      updateData.regionOfManufacture = productData?.regionOfManufacture;
+
+    // Decimal fields
+    if (productData?.ProductListingPrice) {
+      updateData.ProductListingPrice = new Decimal(
+        productData?.ProductListingPrice,
+      ).toNumber();
+    }
+
+    // Integer fields
+    if (productData?.age) updateData.age = parseInt(productData?.age);
+    if (productData?.ramSize)
+      updateData.ramSize = parseInt(productData?.ramSize);
+    if (productData?.numberOfFloors)
+      updateData.numberOfFloors = parseInt(productData?.numberOfFloors);
+    if (productData?.numberOfRooms)
+      updateData.numberOfRooms = parseInt(productData?.numberOfRooms);
+
+    // String fields that look like numbers but should remain strings
+    if (productData?.releaseYear)
+      updateData.releaseYear = productData?.releaseYear.toString();
+
+    // Float fields
+    if (productData?.screenSize)
+      updateData.screenSize = parseFloat(productData?.screenSize);
+    if (productData?.totalArea)
+      updateData.totalArea = parseFloat(productData?.totalArea);
+
+    // Handle relationships using connect
+    if (productData?.categoryId) {
+      updateData.category = {
+        connect: { id: parseInt(productData?.categoryId) },
+      };
+    }
+    if (productData?.subCategoryId) {
+      updateData.subCategory = {
+        connect: { id: parseInt(productData?.subCategoryId) },
+      };
+    }
+    if (productData?.cityId) {
+      updateData.city = {
+        connect: { id: parseInt(productData?.cityId) },
+      };
+    }
+    if (productData?.countryId) {
+      updateData.country = {
+        connect: { id: parseInt(productData?.countryId) },
+      };
+    }
+
+    return await this.prismaService.product.update({
+      where: { id: productId },
+      data: updateData,
+      include: {
+        images: true,
+        category: true,
+        listedProducts: true,
+      },
+    });
+  }
+
+  async updateListedProductDetails(
+    userId: number,
+    productId: number,
+    productUpdateDTO: ProductUpdateDTO,
+    files: Array<Express.Multer.File>,
+  ) {
+    try {
+      // Verify product ownership and get existing product
+      const existingProduct = await this.prismaService.product.findFirst({
+        where: {
+          id: productId,
+          userId: userId,
+        },
+        include: {
+          images: true,
+          category: true,
+          listedProducts: true,
+        },
+      });
+
+      if (!existingProduct) {
+        throw new MethodNotAllowedResponse({
+          ar: 'المنتج غير موجود أو غير مصرح لك بتحديثه',
+          en: 'Product not found or you are not authorized to update it',
+        });
+      }
+
+      if (!existingProduct.listedProducts) {
+        throw new MethodNotAllowedResponse({
+          ar: 'هذا المنتج غير مدرج للبيع',
+          en: 'This product is not listed for sale',
+        });
+      }
+
+      // Process images if provided
+      const images =
+        files?.filter((file) => file.mimetype.startsWith('image/')) || [];
+      let imageUrls = [];
+
+      if (images.length > 0) {
+        imageUrls = await Promise.all(
+          images.map(async (file) => {
+            const uploadedImage = await this.firebaseService.uploadImage(file);
+            return uploadedImage;
+          }),
+        );
+      }
+
+      // Begin transaction to update product and images with increased timeout
+      const updatedProduct = await this.prismaService.$transaction(
+        async (prisma) => {
+          // Update product details
+          const updated = await this._updateListedProduct(
+            productId,
+            productUpdateDTO,
+          );
+
+          // Create new image records if any
+          if (imageUrls.length > 0) {
+            await Promise.all(
+              imageUrls.map((image) =>
+                prisma.image.create({
+                  data: {
+                    productId: productId,
+                    imageLink: image.fileLink,
+                    imagePath: image.filePath,
+                  },
+                }),
+              ),
+            );
+          }
+
+          // Get the updated product directly from the update result
+          return updated;
+        },
+        {
+          timeout: 10000, // Increase timeout to 10 seconds
+        },
+      );
+
+      return updatedProduct;
+    } catch (error) {
+      console.error('Update listed product error:', error);
+      throw error;
     }
   }
 
@@ -5887,10 +6060,13 @@ export class UserAuctionsService {
     }
   }
 
-  async uploadImageForAuction(auctionId: number, image: Express.Multer.File) {
+  async uploadImageForAuction(
+    auctionId: number,
+    image: Express.Multer.File,
+    isListing: boolean,
+  ) {
     // Check auction validation for update
     await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
-
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
       include: { product: { include: { images: true } } },
@@ -5913,7 +6089,7 @@ export class UserAuctionsService {
         data: {
           imageLink: fileLink,
           imagePath: filePath,
-          productId: auction.productId,
+          productId: isListing ? auction.id : auction.productId,
         },
       });
     } catch (error) {

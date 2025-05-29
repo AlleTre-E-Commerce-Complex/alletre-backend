@@ -50,8 +50,9 @@ import {
   PaymentType,
 } from '@prisma/client';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
-import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 import { GetListedProductDTO } from '../dtos/getListedProducts.dto';
+import { ProductUpdateDTO } from '../dtos/product-update.dto';
+import { DeliveryTypeDTO } from '../dtos/DeliveryType.dto';
 import { LockAuctionDto } from 'src/payments/LockAuctionDto';
 
 @Controller('auctions')
@@ -74,7 +75,10 @@ export class AuctionsController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     console.log('The form data of the publish auction :', auctionCreationDTO);
-    console.log('The form data of the publish auction :', auctionCreationDTO.product);
+    console.log(
+      'The form data of the publish auction :',
+      auctionCreationDTO.product,
+    );
     console.log('The files of the publish auction :', files);
 
     return {
@@ -99,7 +103,7 @@ export class AuctionsController {
         usageStatus: 'NEW',
         model: 'iPhone 16 Pro Max',
         description: 'Brand new iPhone 16 Pro Max for auction',
-        
+
         // Optional fields filled with undefined/defaults
         color: undefined,
         screenSize: undefined,
@@ -129,12 +133,12 @@ export class AuctionsController {
       durationInHours: 1,
       durationInDays: 0,
       locationId: 5,
-      
+
       // Required properties based on DTO
       isBuyNowAllowed: 'YES', // This needs to be 'YES' string, not a boolean
       acceptedAmount: 0,
       startDate: new Date(),
-      
+
       // Optional properties that might be needed
       IsDelivery: 'NO',
       deliveryPolicyDescription: '',
@@ -143,8 +147,8 @@ export class AuctionsController {
       IsRetrunPolicy: 'NO',
       returnPolicyDescription: '',
       IsWaranty: 'NO',
-      warrantyPolicyDescription: ''
-    }
+      warrantyPolicyDescription: '',
+    };
     // Fake file objects from `uploads/`
     const files: Express.Multer.File[] = [
       {
@@ -184,16 +188,15 @@ export class AuctionsController {
         stream: null,
       } as any,
     ];
-  
+
     const result = await this.userAuctionsService.createPendingAuction(
       account.id,
       auctionCreationDTO,
       files,
     );
-  
+
     return { success: true, data: result };
   }
-  
 
   @Put('user/:auctionId/update')
   @UseGuards(AuthGuard)
@@ -204,15 +207,32 @@ export class AuctionsController {
     @Body() auctionUpdateDTO: AuctionUpdateDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    console.log('Auction update data:', auctionUpdateDTO);
-    console.log('Auction update files:', files);
-
     return {
       success: true,
       data: await this.userAuctionsService.updateAuctionDetails(
         account.id,
         auctionId,
         auctionUpdateDTO,
+        files,
+      ),
+    };
+  }
+
+  @Put('listedProducts/:productId/update')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  async updateListedProductController(
+    @Account() account: any,
+    @Param('productId') productId: number,
+    @Body() productUpdateDTO: ProductUpdateDTO,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.updateListedProductDetails(
+        account.id,
+        productId,
+        productUpdateDTO,
         files,
       ),
     };
@@ -843,9 +863,14 @@ export class AuctionsController {
   async addAuctionImage(
     @Param('auctionId', ParseIntPipe) auctionId: number,
     @UploadedFile() image: Express.Multer.File,
+    @Query('isListing') isListing: boolean,
   ) {
     console.log('[IMPORTANT] images===>', image);
-    await this.userAuctionsService.uploadImageForAuction(auctionId, image);
+    await this.userAuctionsService.uploadImageForAuction(
+      auctionId,
+      image,
+      isListing,
+    );
     return {
       success: true,
     };
@@ -906,13 +931,13 @@ export class AuctionsController {
   }
   @Post('/lock-auction')
   @UseGuards(AuthGuard)
-    async lockAuction(
-      @Account() account : any,
-      @Body() dto: LockAuctionDto
-    ) {
-    return this.userAuctionsService.lockAuction(Number(dto.auctionId),account.id,dto.bidAmount);
+  async lockAuction(@Account() account: any, @Body() dto: LockAuctionDto) {
+    return this.userAuctionsService.lockAuction(
+      Number(dto.auctionId),
+      account.id,
+      dto.bidAmount,
+    );
   }
-
 
   @Post('/user/:auctionId/bidder-purchase')
   @UseGuards(AuthGuard)
