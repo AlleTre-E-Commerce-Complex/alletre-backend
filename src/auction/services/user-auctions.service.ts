@@ -1460,6 +1460,7 @@ export class UserAuctionsService {
     auctionId: number,
     auctionCreationDTO: AuctionCreationDTO,
     userId: number,
+    files?: Express.Multer.File[],
   ) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
@@ -1467,9 +1468,38 @@ export class UserAuctionsService {
       auction,
       AuctionActions.AUCTION_UPDATE,
     );
-    // await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
 
     const { type, durationUnit, startDate, product } = auctionCreationDTO;
+    // Handle image uploads if files are provided
+    if (files && files.length > 0) {
+      // Handle both images and videos
+      const mediaFiles = files.filter(
+        (file) =>
+          file.mimetype.startsWith('image/') ||
+          file.mimetype.startsWith('video/'),
+      );
+      let mediaUrls: any;
+      if (mediaFiles.length > 0) {
+        mediaUrls = await Promise.all(
+          mediaFiles.map(async (file) => {
+            return await this.firebaseService.uploadImage(file);
+          }),
+        );
+
+        // Update product images and videos in database
+        await this.prismaService.product.update({
+          where: { id: auction.productId },
+          data: {
+            images: {
+              create: mediaUrls.map((mediaUrl) => ({
+                imagePath: mediaUrl.filePath,
+                imageLink: mediaUrl.fileLink,
+              })),
+            },
+          },
+        });
+      }
+    }
 
     const productId = await this._updateProduct(auction.productId, product);
 
@@ -6426,6 +6456,7 @@ export class UserAuctionsService {
       offerAmount,
       brand,
       ProductListingPrice,
+      carType,
     } = productBody;
 
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
@@ -6444,6 +6475,7 @@ export class UserAuctionsService {
       isOffer,
       brand,
       isAuctionProduct,
+      carType,
     };
     let createdProduct: Product;
     try {

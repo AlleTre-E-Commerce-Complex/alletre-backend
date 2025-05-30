@@ -140,4 +140,8 @@ export class ProductDTO {
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   locationId: number;
+
+  @IsOptional()
+  @IsString()
+  carType: string;
 }

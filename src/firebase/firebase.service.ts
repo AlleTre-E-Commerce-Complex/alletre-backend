@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 //Import firebase classes
 import { FirebaseApp, FirebaseBucket } from './firebase.config';
-import { MethodNotAllowedResponse } from 'src/common/errors';
+import { MethodNotAllowedResponse } from '../common/errors/MethodNotAllowedResponse';
 import { unlink } from 'fs/promises';
 
 @Injectable()
@@ -38,11 +38,27 @@ export class FirebaseService {
 
     let data: any;
     try {
-      data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
-        gzip: !isVideo, // Don't use gzip for videos
-        metadata: metadata,
-        destination: filePath, // Save with the correct filename
-      });
+      if (image.buffer) {
+        // If we have a buffer, upload it directly
+        data = await FirebaseBucket.file(filePath).save(image.buffer, {
+          metadata: metadata,
+          contentType: image.mimetype,
+          gzip: !isVideo, // Don't use gzip for videos
+        });
+
+        // Get the file reference for metadata
+        const file = FirebaseBucket.file(filePath);
+        data = [file];
+      } else if (image.filename) {
+        // If we have a filename, use the upload method
+        data = await FirebaseBucket.upload(`uploads/${image.filename}`, {
+          gzip: !isVideo, // Don't use gzip for videos
+          metadata: metadata,
+          destination: filePath, // Save with the correct filename
+        });
+      } else {
+        throw new Error('No valid file data found');
+      }
     } catch (error) {
       console.error('Error code uploading to Firebase:', error.code);
       console.error('Error message uploading to Firebase:', error.message);
