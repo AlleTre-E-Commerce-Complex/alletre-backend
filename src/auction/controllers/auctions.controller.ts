@@ -126,6 +126,7 @@ export class AuctionsController {
         offerAmount: undefined,
         ProductListingPrice: undefined,
         locationId: undefined,
+        carType: undefined,
       },
       startBidAmount: 500,
       type: 'ON_TIME', // Make sure this matches an enum value in AuctionType
@@ -278,7 +279,6 @@ export class AuctionsController {
     @Body() productDTO: ProductDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    console.log('productDTO', productDTO);
     // Separate images and PDFs based on file extension
     const images = files.filter((file) => file.mimetype.startsWith('image/'));
     const relatedDocuments = files.filter(
@@ -785,6 +785,7 @@ export class AuctionsController {
     @Account() account: any,
     @Body() auctionCreationDTO: AuctionCreationDTO,
     @Param('auctionId', ParseIntPipe) auctionId: number,
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     return {
       success: true,
@@ -792,6 +793,7 @@ export class AuctionsController {
         auctionId,
         auctionCreationDTO,
         account.id,
+        files,
       ),
     };
   }
