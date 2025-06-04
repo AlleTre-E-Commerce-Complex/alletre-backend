@@ -3724,7 +3724,13 @@ export class PaymentsService {
               EmailsType.OTHER,
               emailBodyToSeller,
             );
-
+            const applisxNotificationData = {
+              notification_title: `Title : ${updatedAuction.product.title}`,
+              notification_body: `Starting Bid: ${updatedAuction.startBidAmount}`,
+              open_link_url: `https://www.alletre.com/alletre/home/${updatedAuction.id}/details`,
+              notification_image: updatedAuction.product.images[0].imageLink,
+            }
+           await this.notificationsService.sendPushNotificationToApplixUser(applisxNotificationData)
             const whatsappBodyToSellerAuctionLive = {
               1: `${updatedAuction.user.userName}`,
               2: `🎉 Congratulations! Your auction listing *${updatedAuction.product.title}* is now live on Alletre. Buyers can now find and bid on your item.`,
