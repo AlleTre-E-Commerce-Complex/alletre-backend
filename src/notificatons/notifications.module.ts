@@ -5,11 +5,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationGateway } from './notifications.gateway';
 import { UserModule } from 'src/user/user.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [PrismaModule, UserModule],
+  imports: [PrismaModule, UserModule, HttpModule],
   controllers: [NotificationsController],
   providers: [NotificationsService, PrismaService, NotificationGateway],
-  exports: [NotificationsService, NotificationGateway],
+  exports: [NotificationsService, NotificationGateway,HttpModule],
 })
 export class NotificationsModule {}

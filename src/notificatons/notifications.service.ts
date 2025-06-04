@@ -1,4 +1,7 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
+import * as qs from 'qs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
@@ -9,6 +12,7 @@ export class NotificationsService {
   constructor(
     private prismaService: PrismaService,
     private notificationGateway: NotificationGateway,
+    private readonly httpService: HttpService,
   ) {
     // Initialize Firebase Admin
     if (!admin.apps.length) {
@@ -46,6 +50,49 @@ export class NotificationsService {
       this.notificationGateway.sendNotificationToAll(notification);
     } catch (error) {
       console.log('Error sending notifications to all users: ', error);
+    }
+  }
+
+  async sendPushNotificationToApplixUser(notificationData: {
+    notification_title: string;
+    notification_body: string;
+    open_link_url?: string;
+    notification_image?: string;
+  }) {
+    try {
+      const formData = {
+        app_key: process.env.APPLIX_APP_KEY,
+        api_key: process.env.APPLIX_API_KEY,
+        notification_title: notificationData.notification_title,
+        notification_body: notificationData.notification_body,
+      };
+
+      if (notificationData.open_link_url) {
+        formData['open_link_url'] = notificationData.open_link_url;
+      }
+
+      if (notificationData.notification_image) {
+        formData['notification_image'] = notificationData.notification_image;
+      }
+
+      console.log('applix form data : ',formData)
+      const response = await lastValueFrom(
+        this.httpService.post(
+          'https://appilix.com/api/push-notification',
+          qs.stringify(formData),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
+        ),
+      );
+
+      console.log('Push notification response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error sending push notification:', error?.response?.data || error.message);
+      throw error;
     }
   }
 
