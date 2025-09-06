@@ -30,17 +30,17 @@ export class UserService {
     // Check email
     const isEmailExist = await this.findUserByEmail(email);
     if (isEmailExist)
-      throw new MethodNotAllowedResponse({
+      throw new BadRequestException({
+        message: 'Email is already exist',
         ar: 'البريد الالكتروني مسجل من قبل',
-        en: 'Email is already exist',
       });
 
     // Check phone
     const isPhoneExist = await this.findUserByPhone(phone);
     if (isPhoneExist)
-      throw new MethodNotAllowedResponse({
+      throw new BadRequestException({
+        message: 'Phone is already exist',
         ar: 'الهاتف مسجل من قبل',
-        en: 'Phone is already exist',
       });
 
     // Create User

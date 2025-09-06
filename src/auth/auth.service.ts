@@ -99,7 +99,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         roles: [Role.User],
-        phone:user.phone,
+        phone: user.phone,
       });
 
       // Manage new session
@@ -599,7 +599,7 @@ export class AuthService {
         roles: payload.roles,
         phone: userWithPhone.phone,
       });
-      
+
 
       // Update session with new refresh token
       this.manageUserSession(user.id, refreshToken);
@@ -658,6 +658,11 @@ export class AuthService {
 
     //  Compare password with userPassword
     try {
+      const hashedPassword = await bcrypt.hash(
+        password,
+        parseInt(process.env.SALT),
+      );
+      console.log(hashedPassword);
       const isPasswordMatches = await bcrypt.compare(password, admin.password);
       if (!isPasswordMatches)
         throw new MethodNotAllowedResponse({
@@ -762,7 +767,7 @@ export class AuthService {
     }
   }
 
-  generateTokens(payload: { id: number; email: string; roles: string[], phone?:string, }) {
+  generateTokens(payload: { id: number; email: string; roles: string[], phone?: string, }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '15m',
