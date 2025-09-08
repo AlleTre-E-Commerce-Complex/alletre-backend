@@ -55,13 +55,13 @@ export class AuthService {
       const isPasswordMatches = await bcrypt.compare(password, user.password);
       if (!isPasswordMatches)
         throw new MethodNotAllowedResponse({
-          ar: 'خطأ في بيانات المستخدم',
-          en: 'Invalid user credentials',
+          ar: 'كلمة مرور غير صالحة',
+          en: 'Invalid user password',
         });
     } catch (error) {
       throw new MethodNotAllowedResponse({
-        ar: 'خطأ في بيانات المستخدم',
-        en: 'Invalid user credentials',
+        ar: 'كلمة مرور غير صالحة',
+        en: 'Invalid user password',
       });
     }
 
@@ -117,10 +117,7 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
-      throw new HttpException(
-        'An error occurred during sign in',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(error.response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -600,7 +597,6 @@ export class AuthService {
         phone: userWithPhone.phone,
       });
 
-
       // Update session with new refresh token
       this.manageUserSession(user.id, refreshToken);
 
@@ -767,7 +763,12 @@ export class AuthService {
     }
   }
 
-  generateTokens(payload: { id: number; email: string; roles: string[], phone?: string, }) {
+  generateTokens(payload: {
+    id: number;
+    email: string;
+    roles: string[];
+    phone?: string;
+  }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '15m',
