@@ -346,8 +346,7 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
     }
-    console.log(payload)
-
+    
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
     );

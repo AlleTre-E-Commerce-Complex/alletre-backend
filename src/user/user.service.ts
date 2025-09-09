@@ -333,7 +333,6 @@ export class UserService {
 
   async verifyUserEmail(email: string) {
     try {
-      console.log('verify user');
       const user = await this.prismaService.user.update({
         where: { email: email },
         data: { isVerified: true },
@@ -341,8 +340,6 @@ export class UserService {
 
       return { status: 'SUCCESS', user };
     } catch (error) {
-      console.log('verify failed')
-      console.log(error)
       return { status: 'FAILED' };
     }
   }
