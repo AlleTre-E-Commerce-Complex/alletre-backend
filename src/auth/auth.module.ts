@@ -13,7 +13,9 @@ import { WalletModule } from 'src/wallet/wallet.module';
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({}),
+    JwtModule.register({
+      signOptions:{expiresIn:'1h'}
+    }),
     UserModule,
     FirebaseModule,
     EmailModule,
