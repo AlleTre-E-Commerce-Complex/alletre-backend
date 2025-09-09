@@ -341,6 +341,8 @@ export class UserService {
 
       return { status: 'SUCCESS', user };
     } catch (error) {
+      console.log('verify failed')
+      console.log(error)
       return { status: 'FAILED' };
     }
   }
