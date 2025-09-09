@@ -39,7 +39,6 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      console.log('allowed origins : '+JSON.stringify(allowedOrigins))
       if (!origin || allowedOrigins.includes(origin)) {
         // Allow requests with valid origin or no origin (e.g., Postman)
         callback(null, true);
