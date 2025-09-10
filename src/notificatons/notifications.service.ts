@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import * as qs from 'qs';
@@ -75,7 +75,7 @@ export class NotificationsService {
         formData['notification_image'] = notificationData.notification_image;
       }
 
-      console.log('applix form data : ',formData)
+      console.log('applix form data : ', formData);
       const response = await lastValueFrom(
         this.httpService.post(
           'https://appilix.com/api/push-notification',
@@ -91,7 +91,10 @@ export class NotificationsService {
       console.log('Push notification response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error sending push notification:', error?.response?.data || error.message);
+      console.error(
+        'Error sending push notification:',
+        error?.response?.data || error.message,
+      );
       throw error;
     }
   }

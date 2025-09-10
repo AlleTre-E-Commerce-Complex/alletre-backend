@@ -11,34 +11,37 @@ export class EmailBatchService {
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
     try {
-   
-        const emails = await this.getAllRegisteredUsers(
-          updatedAuction.user.email,
-        );
-        console.log('email length:',emails.length)
-        console.log('updatedAuction:',updatedAuction)
-        const subject = updatedAuction.bids.length > 0 ? '🔥 This Auction Is Heating Up – Don’t Miss Out!' : `🚨 New Auction Alert: Don't Miss Out!`;
-        const text = `A new auction has been listed: ${updatedAuction.product.title}`;
-        const html = this.generateEmailTemplate(updatedAuction);
-  
-        const childPath = path.join(__dirname, 'email.child.js'); // adjust path if needed
-        const child = fork(childPath);
-  
-        child.send({ users: emails, subject, text, html });
-  
-        child.on('message', (message:any) => {
-          if (message?.success) {
-            console.log('✅ Email sending succeeded in child process');
-          } else {
-            console.error('❌ Email sending failed in child process:', message.error);
-          }
-        });
-  
-        child.on('exit', (code) => {
-          console.log(`📤 Email child process exited with code ${code}`);
-        });
-    
-      
+      const emails = await this.getAllRegisteredUsers(
+        updatedAuction.user.email,
+      );
+      console.log('email length:', emails.length);
+      console.log('updatedAuction:', updatedAuction);
+      const subject =
+        updatedAuction.bids.length > 0
+          ? '🔥 This Auction Is Heating Up – Don’t Miss Out!'
+          : `🚨 New Auction Alert: Don't Miss Out!`;
+      const text = `A new auction has been listed: ${updatedAuction.product.title}`;
+      const html = this.generateEmailTemplate(updatedAuction);
+
+      const childPath = path.join(__dirname, 'email.child.js'); // adjust path if needed
+      const child = fork(childPath);
+
+      child.send({ users: emails, subject, text, html });
+
+      child.on('message', (message: any) => {
+        if (message?.success) {
+          console.log('✅ Email sending succeeded in child process');
+        } else {
+          console.error(
+            '❌ Email sending failed in child process:',
+            message.error,
+          );
+        }
+      });
+
+      child.on('exit', (code) => {
+        console.log(`📤 Email child process exited with code ${code}`);
+      });
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;
@@ -61,10 +64,10 @@ export class EmailBatchService {
             notIn: [
               ...(currentUserEmail ? [currentUserEmail] : []),
               // ...unsubscribedEmails
-            ]
+            ],
           },
-          isBlocked: false
-        }
+          isBlocked: false,
+        },
       }),
       this.prismaService.nonRegisteredUser.findMany({
         select: { email: true },
@@ -73,42 +76,46 @@ export class EmailBatchService {
           email: {
             not: null,
             // notIn: unsubscribedEmails
-          }
-        }
-      })
+          },
+        },
+      }),
     ]);
-  
+
     const allEmails = [
-      ...normal.map(u => u.email),
-      ...nonReg.map(u => u.email)
+      ...normal.map((u) => u.email),
+      ...nonReg.map((u) => u.email),
     ];
-  
+
     // Email regex (standard format)
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-  
+
     // Filter only valid emails
-    const validEmails = allEmails.filter(email => emailRegex.test(email));
-  
+    const validEmails = allEmails.filter((email) => emailRegex.test(email));
+
     console.log('normalEmails:', normal.length);
     console.log('nonRegEmails:', nonReg.length);
     console.log(`Fetched ${allEmails.length} emails`);
-    console.log(`Valid emails: ${validEmails.length}, Invalid: ${allEmails.length - validEmails.length}`);
-  
+    console.log(
+      `Valid emails: ${validEmails.length}, Invalid: ${
+        allEmails.length - validEmails.length
+      }`,
+    );
+
     return validEmails;
   }
-  
 
   private generateEmailTemplate(updatedAuction: any): string {
-    const date = updatedAuction.type === 'SCHEDULED' 
-    ? new Date(updatedAuction.startDate) 
-    : new Date(updatedAuction.expiryDate);
+    const date =
+      updatedAuction.type === 'SCHEDULED'
+        ? new Date(updatedAuction.startDate)
+        : new Date(updatedAuction.expiryDate);
     const lastBid = updatedAuction.bids[updatedAuction.bids.length - 1];
     const CurrentBidAmount = lastBid ? lastBid.amount : 0;
     const subjectLine = updatedAuction.bids.length
-  ? 'This Auction Is Heating Up – Don’t Miss Out!'
-  : updatedAuction.type === 'SCHEDULED'
-    ? 'A New Auction Has Just Listed'
-    : 'A New Auction Just Went Live!';
+      ? 'This Auction Is Heating Up – Don’t Miss Out!'
+      : updatedAuction.type === 'SCHEDULED'
+      ? 'A New Auction Has Just Listed'
+      : 'A New Auction Just Went Live!';
 
     const formattedDate = date.toLocaleString('en-US', {
       weekday: 'short',
@@ -171,9 +178,11 @@ export class EmailBatchService {
         "
       >
         <p>
-          ${updatedAuction.bids.length > 0 
-            ? `🔥 The bidding is getting intense! The auction titled "Test in" has just reached AED ${CurrentBidAmount} and interest is growing fast. If you’ve been thinking about joining in—now’s the time!`
-            :'Exciting news! A brand-new auction has just been listed on <b>Alletre</b>, and we think you’ll love it.'}
+          ${
+            updatedAuction.bids.length > 0
+              ? `🔥 The bidding is getting intense! The auction titled "Test in" has just reached AED ${CurrentBidAmount} and interest is growing fast. If you’ve been thinking about joining in—now’s the time!`
+              : 'Exciting news! A brand-new auction has just been listed on <b>Alletre</b>, and we think you’ll love it.'
+          }
         </p>
       <p>Auction Details:</p>
       <ul style="margin: 0; padding-left: 20px; color:  #333; font-size: min(13px, 3vw);">
@@ -181,20 +190,30 @@ export class EmailBatchService {
         <li>Category: ${updatedAuction.product.category.nameEn}</li>
         <li>
         ${updatedAuction.bids.length > 0 ? 'Current Bid' : 'Starting Bid'}: 
-        ${updatedAuction.bids.length > 0 ? CurrentBidAmount : updatedAuction.startBidAmount}
+        ${
+          updatedAuction.bids.length > 0
+            ? CurrentBidAmount
+            : updatedAuction.startBidAmount
+        }
       </li>
-        <li>${updatedAuction.type === 'SCHEDULED' ? 'Starts On': 'Ends On'}: ${formattedDate}</li>
+        <li>${
+          updatedAuction.type === 'SCHEDULED' ? 'Starts On' : 'Ends On'
+        }: ${formattedDate}</li>
       </ul>
 
        <p>
-          ${updatedAuction.bids.length > 0 
-            ? 'Why wait and miss out? This could be your chance to grab a deal or outbid the competition in the final stretch.'
-            :'This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!'}
+          ${
+            updatedAuction.bids.length > 0
+              ? 'Why wait and miss out? This could be your chance to grab a deal or outbid the competition in the final stretch.'
+              : 'This is your chance to snag an incredible deal or score a rare find. Don’t wait too long—bids are already rolling in!'
+          }
         </p>
 
         <div style="text-align: center;">
           <a
-            href=" https://www.alletre.com/alletre/home/${updatedAuction.id}/details"
+            href=" https://www.alletre.com/alletre/home/${
+              updatedAuction.id
+            }/details"
             style="
               display: inline-block;
               padding: 12px 20px;
@@ -391,43 +410,48 @@ The <b>Alletre</b> Team
     return html;
   }
 
-  async sendListedProdcutBulkEmails(updatedListedProduct: any, currentUserEmail?: string) {
+  async sendListedProdcutBulkEmails(
+    updatedListedProduct: any,
+    currentUserEmail?: string,
+  ) {
     try {
       const emails = await this.getAllRegisteredUsers(
         updatedListedProduct.user.email,
       );
-      console.log('email length:',emails.length)
+      console.log('email length:', emails.length);
       const subject = `🚨 New product Alert: Don't Miss Out!`;
       const text = `A new product has been listed: ${updatedListedProduct.product.title}`;
-      const html = this.generateEmailTemplateForListedProduct(updatedListedProduct);
+      const html =
+        this.generateEmailTemplateForListedProduct(updatedListedProduct);
 
       const childPath = path.join(__dirname, 'email.child.js'); // adjust path if needed
       const child = fork(childPath);
 
       child.send({ users: emails, subject, text, html });
 
-      child.on('message', (message:any) => {
+      child.on('message', (message: any) => {
         if (message?.success) {
           console.log('✅ Email sending succeeded in child process');
         } else {
-          console.error('❌ Email sending failed in child process:', message.error);
+          console.error(
+            '❌ Email sending failed in child process:',
+            message.error,
+          );
         }
       });
 
       child.on('exit', (code) => {
         console.log(`📤 Email child process exited with code ${code}`);
       });
-
-
     } catch (error) {
       console.error('Email batch service error:', error);
       throw error;
     }
   }
-  
-  private generateEmailTemplateForListedProduct(updatedListedProduct: any): string {
 
-
+  private generateEmailTemplateForListedProduct(
+    updatedListedProduct: any,
+  ): string {
     const html = `
   
    <body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
@@ -492,7 +516,9 @@ The <b>Alletre</b> Team
 
         <div style="text-align: center;">
           <a
-            href=" https://www.alletre.com/alletre/home/${updatedListedProduct.id}/details"
+            href=" https://www.alletre.com/alletre/home/${
+              updatedListedProduct.id
+            }/details"
             style="
               display: inline-block;
               padding: 12px 20px;

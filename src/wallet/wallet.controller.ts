@@ -28,24 +28,30 @@ export class WalletController {
   @Post('/admin/add-to-user-wallet')
   @UseGuards(AuthGuard)
   async create(
-    @Account() account: any, 
-    @Body() createWalletDto: CreateWalletDtoFromAdminSide
+    @Account() account: any,
+    @Body() createWalletDto: CreateWalletDtoFromAdminSide,
   ) {
     return await this.walletService.addToUserWalletByAdmin(createWalletDto);
   }
 
   @Post('/admin/add-to-alletre-wallet')
   @UseGuards(AuthGuard)
- async addToAlletreWallet(@Account() account: any, @Body() createWalletDto: CreateWalletDtoFromAdminSide) {
-    return await this.walletService.addToAlletreWalletByAdmin(account.id, createWalletDto);
+  async addToAlletreWallet(
+    @Account() account: any,
+    @Body() createWalletDto: CreateWalletDtoFromAdminSide,
+  ) {
+    return await this.walletService.addToAlletreWalletByAdmin(
+      account.id,
+      createWalletDto,
+    );
   }
-  
+
   @Get('/admin/get-admin-profit')
   @UseGuards(AuthGuard)
   async getAdminProfit() {
     const response = await this.walletService.findAdminProfitData();
 
-    return {adminProfit : response?.totalAmount}
+    return { adminProfit: response?.totalAmount };
   }
 
   @Get('/admin/get-admin-all-profit-data')
@@ -53,10 +59,8 @@ export class WalletController {
   async getAdminAllProfitData() {
     const response = await this.walletService.findAdminProfitData();
 
-    return {profitData : response?.profitData}
-
+    return { profitData: response?.profitData };
   }
-
 
   @Get('get_from_wallet')
   @UseGuards(AuthGuard)
@@ -95,7 +99,10 @@ export class WalletController {
   }
 
   @Patch(':id')
- async update(@Param('id') id: string, @Body() updateWalletDto: UpdateWalletDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateWalletDto: UpdateWalletDto,
+  ) {
     return await this.walletService.update(+id, updateWalletDto);
   }
 

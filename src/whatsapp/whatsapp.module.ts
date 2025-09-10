@@ -13,7 +13,15 @@ import { EmailBatchService } from 'src/emails/email-batch.service';
 @Module({
   imports: [PrismaModule],
   controllers: [WhatsAppController],
-  providers: [WhatsAppService,UserService,FirebaseService,WalletService,PaginationService,EmailSerivce,EmailBatchService],
+  providers: [
+    WhatsAppService,
+    UserService,
+    FirebaseService,
+    WalletService,
+    PaginationService,
+    EmailSerivce,
+    EmailBatchService,
+  ],
   exports: [WhatsAppService],
 })
 export class WhatsAppModule {}

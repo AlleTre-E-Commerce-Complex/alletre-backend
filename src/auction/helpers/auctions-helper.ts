@@ -21,7 +21,7 @@ export class AuctionsHelper {
         ar: 'اكمل بياناتك',
         en: 'Complete your profile',
       });
-      return user
+    return user;
   }
 
   _productFilterApplied({

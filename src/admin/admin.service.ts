@@ -7,7 +7,7 @@ export class AdminService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getAdminByEmailOr404(email: string) {
-    console.log('ethi')
+    console.log('ethi');
     const admin = await this.prismaService.admin.findFirst({
       where: { email },
     });

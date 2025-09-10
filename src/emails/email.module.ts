@@ -6,8 +6,13 @@ import { EmailBatchService } from './email-batch.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
-  providers: [EmailSerivce, SendGridEmailService,EmailBatchService,PrismaService],
-  exports: [EmailSerivce, SendGridEmailService,EmailBatchService],
+  providers: [
+    EmailSerivce,
+    SendGridEmailService,
+    EmailBatchService,
+    PrismaService,
+  ],
+  exports: [EmailSerivce, SendGridEmailService, EmailBatchService],
   controllers: [EmailController],
 })
 export class EmailModule {}
