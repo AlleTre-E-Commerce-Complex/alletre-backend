@@ -78,8 +78,8 @@ export class GetListedProductDTO {
   @IsIn(Object.keys(ListedProductsStatus))
   status: ListedProductsStatus;
 
-    @IsOptional()
-    @Transform(({ value }) => value === 'true')
-    @IsBoolean()
-    isHome: boolean;
+  @IsOptional()
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  isHome: boolean;
 }

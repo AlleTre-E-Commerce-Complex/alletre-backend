@@ -97,7 +97,12 @@ process.on('uncaughtException', async (err) => {
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
-  console.error('Unhandled Rejection in Child Process:', promise, 'reason:', reason);
+  console.error(
+    'Unhandled Rejection in Child Process:',
+    promise,
+    'reason:',
+    reason,
+  );
   await cleanup();
   process.exit(1);
 });
@@ -121,15 +126,13 @@ async function sendBatchEmails(
   subject: string,
   text: string,
   html: string,
-  batchSize: number = 100,
-  delayMs: number = 1000 // delay between batches
+  batchSize = 100,
+  delayMs = 1000, // delay between batches
 ) {
   console.log('Memory Usage Before Sending Emails:', process.memoryUsage());
 
   let successCount = 0;
   let failureCount = 0;
-
-  
 
   for (let i = 0; i < users.length; i += batchSize) {
     const batch = users.slice(i, i + batchSize);
@@ -145,7 +148,6 @@ async function sendBatchEmails(
         groupId: 173176,
         groupsToDisplay: [173176],
       },
-      
     };
 
     console.log(`Sending batch ${batchNumber} (${batch.length} users)`);

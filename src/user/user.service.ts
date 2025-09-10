@@ -5,7 +5,12 @@ import { NotFoundResponse, MethodNotAllowedResponse } from '../common/errors';
 import { ChangePasswordDTO, LocationDTO, UpdatePersonalInfoDTO } from './dtos';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import * as bcrypt from 'bcrypt';
-import { OAuthType, ProblemStatus, WalletStatus, WalletTransactionType } from '@prisma/client';
+import {
+  OAuthType,
+  ProblemStatus,
+  WalletStatus,
+  WalletTransactionType,
+} from '@prisma/client';
 import { PaginationDTO } from 'src/auction/dtos';
 import { PaginationService } from 'src/common/services/pagination.service';
 import { WalletService } from 'src/wallet/wallet.service';
@@ -638,18 +643,30 @@ export class UserService {
       });
   }
 
-  async getAllUsersComplaints(){
+  async getAllUsersComplaints() {
     try {
-      const allUsersComplaints = await this.prismaService.auctionComplaints.findMany({
-        include :{
-          images: true,
-          user: {include: {locations: {include: {city : true, country : true}}}},
-          auction: {
-            include: {product: {include :{images: true}}, user: {include: {locations: {include: {city : true, country : true}}}}}, 
-          }
-        }
-      })
-      return allUsersComplaints
+      const allUsersComplaints =
+        await this.prismaService.auctionComplaints.findMany({
+          include: {
+            images: true,
+            user: {
+              include: {
+                locations: { include: { city: true, country: true } },
+              },
+            },
+            auction: {
+              include: {
+                product: { include: { images: true } },
+                user: {
+                  include: {
+                    locations: { include: { city: true, country: true } },
+                  },
+                },
+              },
+            },
+          },
+        });
+      return allUsersComplaints;
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: '',
@@ -658,14 +675,14 @@ export class UserService {
     }
   }
 
-  async updateUserComplaitStatus(complaintId: number, status: ProblemStatus){
+  async updateUserComplaitStatus(complaintId: number, status: ProblemStatus) {
     try {
       return await this.prismaService.auctionComplaints.update({
-        where:{
-          id:complaintId,
+        where: {
+          id: complaintId,
         },
-        data:{
-          problemStatus: status
+        data: {
+          problemStatus: status,
         },
         include: {
           user: true,
@@ -682,7 +699,7 @@ export class UserService {
             },
           },
         },
-      })
+      });
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: '',

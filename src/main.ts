@@ -7,6 +7,8 @@ import { UnauthorizedExceptionFilter } from './common/filters/unauthorizedExcept
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { BadRequestExceptionFilter } from './common/filters/badrequestException.filter';
 import { PrismaService } from './prisma/prisma.service';
+import * as cookieParser from 'cookie-parser';
+import { Express } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -28,6 +30,14 @@ async function bootstrap() {
   //   },
   // });
 
+  // parse cookies so req.cookies is available
+  // If behind a reverse proxy (nginx), enable trust proxy
+  // get underlying Express instance
+  const expressApp = app.getHttpAdapter().getInstance() as Express;
+
+  // If your app is behind a reverse proxy (nginx), enable trust proxy
+  expressApp.set('trust proxy', 1);
+  app.use(cookieParser());
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
       ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
