@@ -346,7 +346,7 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
     }
-    console.log(payload)
+    console.log(payload);
 
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
@@ -459,7 +459,7 @@ export class AuthService {
       />
             <div class="modal-body">
               <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
-              <a href=${process.env.FRONT_URL}>Login </a>
+              <a href=${process.env.FRONT_URL}/alletre/home?page=1&perPage=24&productPage=1&auctionPage=1&isLoginModal=true>Login </a>
             </div>
           </div>
         </body>
