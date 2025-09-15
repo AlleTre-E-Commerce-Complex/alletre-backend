@@ -2941,7 +2941,7 @@ export class UserAuctionsService {
       };
     }
   }
-  async payToPublish(
+  async   payToPublish(
     userId: number,
     auctionId: number,
     amount?: number,

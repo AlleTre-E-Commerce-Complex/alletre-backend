@@ -254,7 +254,6 @@ export class AuthService {
     });
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
-
     return {
       ...userWithoutPassword,
       imageLink: undefined,
