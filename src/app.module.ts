@@ -19,6 +19,7 @@ import { DeliveryRequestModule } from './admin-deliverRequests/deliveryRequests.
 import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { AppVersionModule } from './version/version.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     DeliveryRequestModule,
     WhatsAppModule,
     DashboardModule,
+    AppVersionModule,
   ],
 })
 export class AppModule {
