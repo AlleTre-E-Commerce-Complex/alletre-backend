@@ -116,6 +116,7 @@ export class AuthService {
         isAddedBonus: addedBonus ? true : false,
       };
     } catch (error) {
+      console.log('111',error);
       if (error instanceof UnauthorizedException) throw error;
       throw new HttpException(error.response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
