@@ -132,7 +132,7 @@ export class AppVersionService {
     });
   }
 
-  async getLatest(platform: 'ios' | 'android') {
+  async getLatest(platform: 'ios' | 'android', _AndroidAppUpdateURL, _IOSAppUpdateURL) {
     try {
       const latestIos = await this.prisma.appVersion.findFirst({
         where: { platform: 'ios'},
@@ -143,10 +143,10 @@ export class AppVersionService {
         orderBy: { createdAt: 'desc' },
       });
       return {
-        LatestAndroidVersion : latestAndroid.version,
+        LatestAndroidVersion :  latestAndroid.version,
         LatestIOSVersion : latestIos.version,
-        IOSAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=android',
-        AndroidAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=ios',
+        IOSAppUpdateURL : _AndroidAppUpdateURL? _AndroidAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=android',
+        AndroidAppUpdateURL : _IOSAppUpdateURL? _IOSAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=ios',
       };
     } catch (error) {
       throw new NotFoundException('No version info found')
