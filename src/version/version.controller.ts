@@ -37,8 +37,23 @@ export class AppVersionController {
   async getLatest(@Query() q: GetVersionQuery) {
     const platform =
       q.platform?.toLowerCase() === 'android' ? '"android"' : '"ios"';
-    const info = await this.svc.getLatest(platform as 'ios' | 'android');
-    return info;
+    const IOSAppUpdateURL = q.IOSAppUpdateURL;
+    const AndroidAppUpdateURL = q.AndroidAppUpdateURL;
+    const LatestAndroidVersion = q.LatestAndroidVersion;
+    const LatestIOSVersion = q.LatestIOSVersion;
+    // const info = await this.svc.getLatest(
+    //   platform as 'ios' | 'android',
+    //   IOSAppUpdateURL,
+    //   AndroidAppUpdateURL,
+    // );
+    // return info;
+
+    return {
+      LatestAndroidVersion,
+      LatestIOSVersion,
+      AndroidAppUpdateURL,
+      IOSAppUpdateURL,
+    }
   }
 
   @Post()
