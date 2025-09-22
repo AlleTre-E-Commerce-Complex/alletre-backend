@@ -12,7 +12,13 @@ import { EmailBatchService } from 'src/emails/email-batch.service';
 
 @Module({
   imports: [PrismaModule, FirebaseModule, WhatsAppModule],
-  providers: [UserService, PaginationService, WalletService, EmailSerivce,EmailBatchService],
+  providers: [
+    UserService,
+    PaginationService,
+    WalletService,
+    EmailSerivce,
+    EmailBatchService,
+  ],
   exports: [UserService],
   controllers: [UserController],
 })

@@ -491,6 +491,22 @@ model Notification {
   @@index([userId])
 }
 
+model AppVersion {
+  id                 Int      @id @default(autoincrement())
+  platform           String   // 'ios' or 'android'
+  version            String   // semver string, e.g. "2.1.0"
+  isLatest           Boolean  @default(false)
+  isMinSupported     Boolean  @default(false)
+  releaseNotes       String?
+  downloadUrl        String?
+  createdAt          DateTime @default(now())
+  
+  @@index([platform, isLatest])
+  @@index([platform, isMinSupported])
+}
+
+
+
 enum DeliveryRequestsStatus {
   DELIVERY_PENDING
   DELIVERY_SUCCESS

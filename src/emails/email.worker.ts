@@ -37,9 +37,8 @@ async function sendBatchEmails(
   try {
     console.log('test worker');
 
-      await sgMail.sendMultiple(msg);
-      parentPort?.postMessage({ success: true });
-    
+    await sgMail.sendMultiple(msg);
+    parentPort?.postMessage({ success: true });
   } catch (error) {
     console.error('❌ Worker Error:', error);
     parentPort?.postMessage({ success: false, error });

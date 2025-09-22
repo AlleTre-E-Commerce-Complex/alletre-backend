@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import * as qs from 'qs';
@@ -75,7 +75,7 @@ export class NotificationsService {
         formData['notification_image'] = notificationData.notification_image;
       }
 
-      console.log('applix form data : ',formData)
+      console.log('applix form data : ', formData);
       const response = await lastValueFrom(
         this.httpService.post(
           'https://appilix.com/api/push-notification',
@@ -91,7 +91,10 @@ export class NotificationsService {
       console.log('Push notification response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error sending push notification:', error?.response?.data || error.message);
+      console.error(
+        'Error sending push notification:',
+        error?.response?.data || error.message,
+      );
       throw error;
     }
   }
@@ -174,61 +177,61 @@ export class NotificationsService {
             });
 
           // 2. Get FCM tokens for these users
-          // const userTokens = await this.prismaService.pushSubscription.findMany({
-          //   where: {
-          //     userId: {
-          //       in: batch.map(Number),
-          //     },
-          //     fcmToken: {
-          //       not: null,
-          //     },
-          //   },
-          //   select: {
-          //     userId: true,
-          //     fcmToken: true,
-          //   },
-          // });
+          const userTokens = await this.prismaService.pushSubscription.findMany({
+            where: {
+              userId: {
+                in: batch.map(Number),
+              },
+              fcmToken: {
+                not: null,
+              },
+            },
+            select: {
+              userId: true,
+              fcmToken: true,
+            },
+          });
 
           // 3. Send Firebase push notifications in batches
-          // const fcmResults = [];
-          // if (userTokens.length > 0) {
-          //   const fcmMessages = userTokens.map((userToken) => ({
-          //     token: userToken.fcmToken,
-          //     notification: {
-          //       title: 'New Notification',
-          //       body: message,
-          //     },
-          //     data: {
-          //       auctionId: auctionId.toString(),
-          //       url: `/alletre/home/${auctionId}/details`,
-          //       imageLink,
-          //       productTitle,
-          //     },
-          //     android: {
-          //       priority: 'high',
-          //     },
-          //     apns: {
-          //       payload: {
-          //         aps: {
-          //           contentAvailable: true,
-          //         },
-          //       },
-          //     },
-          //   }));
-
-          //   // Send in batches of 500 (Firebase limit)
-          //   const fcmBatchSize = 500;
-          //   for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
-          //     const fcmBatch = fcmMessages.slice(i, i + fcmBatchSize);
-          //     try {
-          //       const result = await admin.messaging().sendEach(fcmBatch);
-          //       fcmResults.push(result);
-          //     } catch (error) {
-          //       console.error('FCM batch send error:', error);
-          //       // Continue with other batches even if one fails
-          //     }
-          //   }
-          // }
+          const fcmResults = [];
+          if (userTokens.length > 0) {
+            const fcmMessages = userTokens.map((userToken) => ({
+              token: userToken.fcmToken,
+              notification: {
+                title: 'New Notification',
+                body: message,
+              },
+              data: {
+                auctionId: auctionId.toString(),
+                url: `/alletre/home/${auctionId}/details`,
+                imageLink,
+                productTitle,
+              },
+              android: {
+                priority: 'high',
+              },
+              apns: {
+                payload: {
+                  aps: {
+                    contentAvailable: true,
+                  },
+                },
+              },
+            }));
+            console.log('fcmResult:', fcmResults);
+            // Send in batches of 500 (Firebase limit)
+            const fcmBatchSize = 500;
+            for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
+              const fcmBatch: any = fcmMessages.slice(i, i + fcmBatchSize);
+              try {
+                const result = await admin.messaging().sendAll(fcmBatch);
+                fcmResults.push(result);
+              } catch (error) {
+                console.error('FCM batch send error:', error);
+                // Continue with other batches even if one fails
+              }
+            }
+          }
 
           totalNotificationsSent += notifications.count;
           results.push({
@@ -344,4 +347,101 @@ export class NotificationsService {
       throw error; // Optionally rethrow the error
     }
   }
+
+async sendPushNotification(
+  userId: number | string,
+  payload: {
+    title: string;
+    body: string;
+    url?: string;
+    image?: string;
+    data?: Record<string, string | number | boolean>;
+  },
+): Promise<{ success: boolean; message?: string; messageId?: string; error?: any }> {
+  try {
+    const uid = Number(userId);
+    if (!uid) return { success: false, message: 'Invalid userId' };
+
+    // 1) Find stored FCM token for the user
+    const pushSub = await this.prismaService.pushSubscription.findFirst({
+      where: { userId: uid },
+      select: { fcmToken: true },
+    });
+
+    if (!pushSub || !pushSub.fcmToken) {
+      return { success: false, message: 'No FCM token for user' };
+    }
+
+    const token = pushSub.fcmToken;
+
+    // 2) Normalize data values to strings (FCM requires strings in `data`)
+    const normalizedData: Record<string, string> = {};
+    if (payload.data) {
+      for (const [k, v] of Object.entries(payload.data)) {
+        normalizedData[k] = v === undefined || v === null ? '' : String(v);
+      }
+    }
+
+    // attach url/image into data so client can handle clicks
+    if (payload.url) normalizedData.url = payload.url;
+    if (payload.image) normalizedData.image = payload.image;
+
+    // 3) Build message
+    const message: admin.messaging.Message = {
+      token,
+      notification: {
+        title: payload.title,
+        body: payload.body,
+      },
+      data: normalizedData,
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        payload: {
+          aps: {
+            contentAvailable: true,
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
+          },
+        },
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+      },
+    };
+
+    // 4) Send
+    const messageId = await admin.messaging().send(message);
+
+    return { success: true, message: 'Sent', messageId };
+  } catch (err) {
+    console.error('sendPushNotification error:', err);
+
+    // detect common "invalid token" errors and prune the token
+    const errCode = err?.code || err?.errorInfo?.code || err?.message;
+    if (
+      errCode === 'messaging/registration-token-not-registered' ||
+      errCode === 'messaging/invalid-registration-token' ||
+      (typeof errCode === 'string' && errCode.includes('not registered'))
+    ) {
+      try {
+        // best-effort prune this token from DB
+        await this.prismaService.pushSubscription.deleteMany({
+          where: { fcmToken: String(err?.token || err?.fcmToken) || undefined },
+        });
+      } catch (pruneErr) {
+        console.warn('Failed to prune invalid token:', pruneErr);
+      }
+      return { success: false, message: 'Invalid or unregistered FCM token - pruned', error: errCode };
+    }
+
+    return { success: false, message: 'Failed to send push', error: err };
+  }
+}
+
 }

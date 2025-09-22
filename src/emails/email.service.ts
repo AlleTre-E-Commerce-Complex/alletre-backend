@@ -9,7 +9,7 @@ import { EmailBatchService } from './email-batch.service';
 export class EmailSerivce extends EmailBody {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly emailBatchService: EmailBatchService
+    private readonly emailBatchService: EmailBatchService,
   ) {
     super();
     /* TODO document why this constructor is empty */
@@ -502,68 +502,67 @@ The <b>Alletre</b> Team
       userName,
     );
     try {
-        const sendEmailresult = await this.transporter.sendMail(mailOptions);
+      const sendEmailresult = await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.log(error);
     }
   }
 
-
-  async sendAuctionBulkEmail(auctionId: string){
+  async sendAuctionBulkEmail(auctionId: string) {
     try {
       const auction = await this.prismaService.auction.findUnique({
-        where:{
-          id:Number(auctionId)
+        where: {
+          id: Number(auctionId),
         },
         include: {
           bids: true,
           user: true,
           product: { include: { images: true, category: true } },
         },
-      })
-      if(auction){
-        await this.emailBatchService.sendBulkEmails(auction)
+      });
+      if (auction) {
+        await this.emailBatchService.sendBulkEmails(auction);
       }
     } catch (error) {
-      console.log('sendbulkEamil error :',error)
+      console.log('sendbulkEamil error :', error);
     }
   }
 
-  async sendListedProductBulkEmail(listedId: string){
+  async sendListedProductBulkEmail(listedId: string) {
     try {
       const listedProduct = await this.prismaService.listedProducts.findUnique({
-        where:{
-          id:Number(listedId)
+        where: {
+          id: Number(listedId),
         },
         include: {
           user: true,
           product: { include: { images: true, category: true } },
         },
-      })
-      if(listedProduct){
-        await this.emailBatchService.sendListedProdcutBulkEmails(listedProduct)
+      });
+      if (listedProduct) {
+        await this.emailBatchService.sendListedProdcutBulkEmails(listedProduct);
       }
     } catch (error) {
-      console.log('sendbulkEamil error :',error)
+      console.log('sendbulkEamil error :', error);
     }
   }
 
-  async unsubscribeEmais(email:string){
+  async unsubscribeEmais(email: string) {
     try {
-      const isAlreadyUnsubscribed = await this.isUnsubscribed(email)
-      if(isAlreadyUnsubscribed){
-        return
+      const isAlreadyUnsubscribed = await this.isUnsubscribed(email);
+      if (isAlreadyUnsubscribed) {
+        return;
       }
       const unsubscribed = await this.prismaService.unsubscribedUser.create({
-        data:{
+        data: {
           email,
           phone: null,
-          reason:'user unsubscribed by email'
-        }
-      })
-      return unsubscribed
+          reason: 'user unsubscribed by email',
+        },
+      });
+      return unsubscribed;
     } catch (error) {
-      console.log('unsubscribe email error:',error)
+      console.log('unsubscribe email error:', error);
     }
   }
 

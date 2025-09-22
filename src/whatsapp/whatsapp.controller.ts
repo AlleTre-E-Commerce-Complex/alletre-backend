@@ -40,12 +40,13 @@ export class WhatsAppController {
     );
   }
   @Post('Send-Inspection-Details')
-    @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   async SendInspectionDetails(
     @Account() account: any,
-    @Query('auctionId') auctionId:string) {
-      console.log('Account--',account)
-      console.log('auctionId',auctionId)
+    @Query('auctionId') auctionId: string,
+  ) {
+    console.log('Account--', account);
+    console.log('auctionId', auctionId);
     return this.whatsappService.SendInspectionDetails(
       account.id,
       auctionId,

@@ -81,5 +81,4 @@ export class GetAuctionsDTO {
   @Transform(({ value }) => value === 'true')
   @IsBoolean()
   isHome: boolean;
-
 }

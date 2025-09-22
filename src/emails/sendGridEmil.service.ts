@@ -18,9 +18,7 @@ export class SendGridEmailService {
     };
 
     try {
-
-        await sgMail.sendMultiple(msg); // sendMultiple for bulk emails
-      
+      await sgMail.sendMultiple(msg); // sendMultiple for bulk emails
     } catch (error) {
       console.error('Error sending email:', error);
     }

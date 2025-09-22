@@ -1,4 +1,4 @@
 export class LockAuctionDto {
-    auctionId: string;
-    bidAmount: number;
-  }
+  auctionId: string;
+  bidAmount: number;
+}

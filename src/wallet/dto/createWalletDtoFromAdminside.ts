@@ -43,5 +43,4 @@ export class CreateWalletDtoFromAdminSide {
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   userId?: number;
-
 }

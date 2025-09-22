@@ -56,36 +56,33 @@ export class DeliveryRequestService {
   ) {
     try {
       console.log('request Id ', requestId, status);
-      
-      
 
       if (status === 'DELIVERY_SUCCESS') {
-
         const paymentData = await this.prismaService.payment.findUnique({
           where: {
             id: Number(requestId),
           },
         });
-  
-        return  await this.userAuctionService.confirmDelivery(
+
+        return await this.userAuctionService.confirmDelivery(
           paymentData.userId,
           paymentData.auctionId,
         );
       }
 
       const updatedDeliveryRequestData =
-      await this.prismaService.payment.update({
-        where: {
-          id: Number(requestId),
-        },
-        data: {
-          auction: {
-            update: {
-              deliveryRequestsStatus: status,
+        await this.prismaService.payment.update({
+          where: {
+            id: Number(requestId),
+          },
+          data: {
+            auction: {
+              update: {
+                deliveryRequestsStatus: status,
+              },
             },
           },
-        },
-      });
+        });
 
       return updatedDeliveryRequestData;
     } catch (error) {
