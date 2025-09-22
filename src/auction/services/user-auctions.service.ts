@@ -328,7 +328,7 @@ export class UserAuctionsService {
       //   // so in this situation the security deposite will be zero of the seller, so when we give the compensation to the winner, it will be deducted from the alletre account
       //   isSellerPaymentCaptured = true ;
       // }
-      let isSellerPaymentCaptured = true;
+      const isSellerPaymentCaptured = true;
       const auctionEndDate = new Date(auction.expiryDate);
       const formattedEndDate = auctionEndDate.toISOString().split('T')[0]; // Extract YYYY-MM-DD
       const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
@@ -2941,7 +2941,7 @@ export class UserAuctionsService {
       };
     }
   }
-  async payToPublish(
+  async   payToPublish(
     userId: number,
     auctionId: number,
     amount?: number,

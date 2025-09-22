@@ -116,6 +116,7 @@ export class AuthService {
         isAddedBonus: addedBonus ? true : false,
       };
     } catch (error) {
+      console.log('111',error);
       if (error instanceof UnauthorizedException) throw error;
       throw new HttpException(error.response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -254,7 +255,6 @@ export class AuthService {
     });
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
-
     return {
       ...userWithoutPassword,
       imageLink: undefined,
@@ -346,7 +346,8 @@ export class AuthService {
         ar: 'غير مصرح لك ',
       });
     }
-    
+    console.log(payload);
+
     const verificationResult = await this.userService.verifyUserEmail(
       payload.email,
     );
@@ -458,7 +459,7 @@ export class AuthService {
       />
             <div class="modal-body">
               <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
-              <a href=${process.env.FRONT_URL}>Login </a>
+              <a href=${process.env.FRONT_URL}/alletre/home?page=1&perPage=24&productPage=1&auctionPage=1&isLoginModal=true>Login </a>
             </div>
           </div>
         </body>
@@ -535,23 +536,120 @@ export class AuthService {
     }
   }
 
+  // async logout(refreshToken: string) {
+  //   if (!refreshToken) {
+  //     throw new NotFoundResponse({
+  //       ar: 'رمز التحديث غير موجود',
+  //       en: 'Refresh token not found',
+  //     });
+  //   }
+
+  //   try {
+  //     const payload = this.decodeRefreshToken(refreshToken);
+  //     this.clearUserSessions(payload.id);
+  //     return { message: 'Logged out successfully' };
+  //   } catch (error) {
+  //     // If token is invalid, still consider it a successful logout
+  //     return { message: 'Logged out successfully' };
+  //   }
+  // }
+
   async logout(refreshToken: string) {
+    // If there's no cookie/token, treat as success (idempotent)
     if (!refreshToken) {
-      throw new NotFoundResponse({
-        ar: 'رمز التحديث غير موجود',
-        en: 'Refresh token not found',
-      });
+      // still clear any server-side sessions? nothing to do
+      return { message: 'Logged out successfully' };
     }
 
     try {
       const payload = this.decodeRefreshToken(refreshToken);
-      this.clearUserSessions(payload.id);
+
+      // Remove the token from active sessions and mark it used
+      try {
+        // mark as used (prevent replay)
+        this.usedRefreshTokens.add(refreshToken);
+
+        // remove from the user's active session set
+        const userTokens = this.userSessions.get(payload.id);
+        if (userTokens && userTokens.has(refreshToken)) {
+          userTokens.delete(refreshToken);
+        }
+
+        // Optionally clear all sessions for the user for a strict logout:
+        // this.clearUserSessions(payload.id);
+      } catch (err) {
+        console.error('Error clearing session for logout', err);
+      }
+
       return { message: 'Logged out successfully' };
     } catch (error) {
-      // If token is invalid, still consider it a successful logout
+      // If token is invalid or already expired, still respond success (idempotent)
       return { message: 'Logged out successfully' };
     }
   }
+
+  // async refreshToken(oldRefreshToken: string) {
+  //   console.log('refreshToken', oldRefreshToken);
+  //   if (!oldRefreshToken)
+  //     throw new NotFoundResponse({
+  //       ar: 'لا يوجد',
+  //       en: 'not found',
+  //     });
+
+  //   try {
+  //     // decode refreshToken first to validate it
+  //     const payload = this.decodeRefreshToken(oldRefreshToken);
+
+  //     // Check if token has been used or invalidated
+  //     if (this.usedRefreshTokens.has(oldRefreshToken)) {
+  //       // Clear all sessions for this user for security
+  //       this.clearUserSessions(payload.id);
+  //       throw new ForbiddenResponse({
+  //         en: 'Token has been invalidated',
+  //         ar: 'تم إبطال رمز التحديث',
+  //       });
+  //     }
+
+  //     // Check user existence
+  //     const user = await this.getUserByRole(payload.id, payload.roles[0]);
+
+  //     if (!user) {
+  //       throw new ForbiddenResponse({
+  //         en: 'User not found',
+  //         ar: 'المستخدم غير موجود',
+  //       });
+  //     }
+
+  //     // Add old token to used tokens
+  //     this.usedRefreshTokens.add(oldRefreshToken);
+
+  //     // Generate new tokens
+  //     const userWithPhone = user as { phone: string | null };
+  //     const { accessToken, refreshToken } = this.generateTokens({
+  //       id: user.id,
+  //       email: user.email,
+  //       roles: payload.roles,
+  //       phone: userWithPhone.phone,
+  //     });
+
+  //     // Update session with new refresh token
+  //     this.manageUserSession(user.id, refreshToken);
+
+  //     return {
+  //       accessToken,
+  //       refreshToken,
+  //     };
+  //   } catch (error) {
+  //     console.error('Refresh token error:', error);
+  //     if (error instanceof ForbiddenResponse) {
+  //       throw error;
+  //     }
+  //     throw new ForbiddenResponse({
+  //       en: 'Invalid session',
+  //       ar: 'جلسة غير صالحة',
+  //     });
+  //   }
+  // }
 
   async refreshToken(oldRefreshToken: string) {
     console.log('refreshToken', oldRefreshToken);
@@ -585,8 +683,18 @@ export class AuthService {
         });
       }
 
-      // Add old token to used tokens
+      // Mark old token as used (prevent replay)
       this.usedRefreshTokens.add(oldRefreshToken);
+
+      // Remove old token from active session set for this user (important)
+      try {
+        const userTokens = this.userSessions.get(payload.id);
+        if (userTokens && userTokens.has(oldRefreshToken)) {
+          userTokens.delete(oldRefreshToken);
+        }
+      } catch (err) {
+        console.error('Error removing old refresh token from session set', err);
+      }
 
       // Generate new tokens
       const userWithPhone = user as { phone: string | null };
@@ -599,6 +707,9 @@ export class AuthService {
 
       // Update session with new refresh token
       this.manageUserSession(user.id, refreshToken);
+
+      // IMPORTANT: Do not persist the raw refreshToken in DB without hashing.
+      // If you persist, store only a hash.
 
       return {
         accessToken,

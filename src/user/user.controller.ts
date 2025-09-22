@@ -92,34 +92,32 @@ export class UserController {
   @Get('admin/get-user-complaints')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  async getAllUsersComplaints(
-    // @Query() paginationDTO: PaginationDTO,
-    // @Query('name') name: string,
-  ) {
+  async getAllUsersComplaints() {
+    // @Query('name') name: string, // @Query() paginationDTO: PaginationDTO,
     return {
       success: true,
       data: await this.userService.getAllUsersComplaints(),
     };
   }
 
-    @Patch('/admin/update-complait-status')
-    @UseGuards(AuthGuard, RolesGuard)
-    @Roles(Role.Admin)
-    async updateBankTransferRequestsByAdmin(
-      @Query('complaintId') complaintId: string,
-      @Body('status') status: ProblemStatus,
-    ) {
-      const bankTransferRequestData =
-        await this.userService.updateUserComplaitStatus(
-          Number(complaintId),
-          status,
-        );
-  
-      return {
-        success: true,
-        data: bankTransferRequestData,
-      };
-    }
+  @Patch('/admin/update-complait-status')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async updateBankTransferRequestsByAdmin(
+    @Query('complaintId') complaintId: string,
+    @Body('status') status: ProblemStatus,
+  ) {
+    const bankTransferRequestData =
+      await this.userService.updateUserComplaitStatus(
+        Number(complaintId),
+        status,
+      );
+
+    return {
+      success: true,
+      data: bankTransferRequestData,
+    };
+  }
 
   @Get('/non-registered-users/get')
   @UseGuards(AuthGuard, RolesGuard)
