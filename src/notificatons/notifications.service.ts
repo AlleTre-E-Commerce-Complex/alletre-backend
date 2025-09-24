@@ -119,7 +119,86 @@ export class NotificationsService {
   }
 
   async sendNotificationToSpecificUsers(notification: any) {
-    this.notificationGateway.sendNotificationToAll(notification);
+    try {
+      console.log('112233 :', notification);
+      this.notificationGateway.sendNotificationToSpecificUser(notification);
+      // let totalNotificationsSent = 0;
+      const results = [];
+      try {
+        // 2. Get FCM tokens for these users
+        const userTokens = await this.prismaService.pushSubscription.findMany({
+          where: { userId: notification.usersId, fcmToken: { not: null } },
+          select: { id: true, fcmToken: true },
+        });
+
+        // 3. Send Firebase push notifications in batches
+        const fcmResults = [];
+        console.log('users tokens :', userTokens);
+        if (userTokens.length > 0) {
+          const fcmMessages = userTokens.map((userToken) => ({
+            token: userToken.fcmToken,
+            notification: {
+              title: 'New Notification',
+              body: notification.message,
+            },
+            data: {
+              auctionId: notification.auctionId.toString(),
+              url: `/alletre/home/${notification.auctionId}/details`,
+              imageLink: notification.imageLink,
+              productTitle: notification.productTitle,
+            },
+            android: {
+              priority: 'high',
+            },
+            apns: {
+              payload: {
+                aps: {
+                  contentAvailable: true,
+                },
+              },
+            },
+          }));
+          console.log('fcmResult:', fcmResults);
+          const fcmBatchSize = 500;
+          for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
+            const fcmBatch: any = fcmMessages.slice(i, i + fcmBatchSize);
+            try {
+              console.log('fcmBacth:', fcmBatch);
+              const result = await admin.messaging().sendEach(fcmBatch);
+              console.log('result :', result);
+              fcmResults.push(result);
+            } catch (error) {
+              console.error('FCM batch send error:', error);
+              // Continue with other batches even if one fails
+            }
+          }
+        }
+
+        // totalNotificationsSent += notification.count;
+        // results.push({
+        //   success: true,
+        //   notifications: {
+        //     count: notification.count,
+        //     // fcmSent: userTokens.length,
+        //     fcmSent: 0,
+        //     fcmResults: [],
+        //   },
+        // });
+
+        console.log(
+          `Batch sent successfully: ${notification.count} notifications`,
+        );
+      } catch (error) {
+        console.error('Batch failed:', error);
+        results.push({ success: false, error: error.message });
+      }
+
+      // console.log(`Total notifications sent: ${totalNotificationsSent}`);
+      return results;
+    } catch (error) {
+      console.error('sendNotifications error:', error);
+      throw new InternalServerErrorException('Failed to send notifications');
+    }
   }
 
   async sendNotifications(
@@ -177,23 +256,26 @@ export class NotificationsService {
             });
 
           // 2. Get FCM tokens for these users
-          const userTokens = await this.prismaService.pushSubscription.findMany({
-            where: {
-              userId: {
-                in: batch.map(Number),
+          const userTokens = await this.prismaService.pushSubscription.findMany(
+            {
+              where: {
+                userId: {
+                  in: batch.map(Number),
+                },
+                fcmToken: {
+                  not: null,
+                },
               },
-              fcmToken: {
-                not: null,
+              select: {
+                userId: true,
+                fcmToken: true,
               },
             },
-            select: {
-              userId: true,
-              fcmToken: true,
-            },
-          });
+          );
 
           // 3. Send Firebase push notifications in batches
           const fcmResults = [];
+          console.log('users tokens :', userTokens);
           if (userTokens.length > 0) {
             const fcmMessages = userTokens.map((userToken) => ({
               token: userToken.fcmToken,
@@ -224,7 +306,9 @@ export class NotificationsService {
             for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
               const fcmBatch: any = fcmMessages.slice(i, i + fcmBatchSize);
               try {
-                const result = await admin.messaging().sendAll(fcmBatch);
+                console.log('fcmBacth:', fcmBatch);
+                const result = await admin.messaging().sendEach(fcmBatch);
+                console.log('result :', result);
                 fcmResults.push(result);
               } catch (error) {
                 console.error('FCM batch send error:', error);
@@ -348,100 +432,110 @@ export class NotificationsService {
     }
   }
 
-async sendPushNotification(
-  userId: number | string,
-  payload: {
-    title: string;
-    body: string;
-    url?: string;
-    image?: string;
-    data?: Record<string, string | number | boolean>;
-  },
-): Promise<{ success: boolean; message?: string; messageId?: string; error?: any }> {
-  try {
-    const uid = Number(userId);
-    if (!uid) return { success: false, message: 'Invalid userId' };
+  async sendPushNotification(
+    userId: number | string,
+    payload: {
+      title: string;
+      body: string;
+      url?: string;
+      image?: string;
+      data?: Record<string, string | number | boolean>;
+    },
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    messageId?: string;
+    error?: any;
+  }> {
+    try {
+      const uid = Number(userId);
+      if (!uid) return { success: false, message: 'Invalid userId' };
 
-    // 1) Find stored FCM token for the user
-    const pushSub = await this.prismaService.pushSubscription.findFirst({
-      where: { userId: uid },
-      select: { fcmToken: true },
-    });
+      // 1) Find stored FCM token for the user
+      const pushSub = await this.prismaService.pushSubscription.findFirst({
+        where: { userId: uid },
+        select: { fcmToken: true },
+      });
 
-    if (!pushSub || !pushSub.fcmToken) {
-      return { success: false, message: 'No FCM token for user' };
-    }
-
-    const token = pushSub.fcmToken;
-
-    // 2) Normalize data values to strings (FCM requires strings in `data`)
-    const normalizedData: Record<string, string> = {};
-    if (payload.data) {
-      for (const [k, v] of Object.entries(payload.data)) {
-        normalizedData[k] = v === undefined || v === null ? '' : String(v);
+      if (!pushSub || !pushSub.fcmToken) {
+        return { success: false, message: 'No FCM token for user' };
       }
-    }
 
-    // attach url/image into data so client can handle clicks
-    if (payload.url) normalizedData.url = payload.url;
-    if (payload.image) normalizedData.image = payload.image;
+      const token = pushSub.fcmToken;
 
-    // 3) Build message
-    const message: admin.messaging.Message = {
-      token,
-      notification: {
-        title: payload.title,
-        body: payload.body,
-      },
-      data: normalizedData,
-      android: {
-        priority: 'high',
-      },
-      apns: {
-        payload: {
-          aps: {
-            contentAvailable: true,
-            alert: {
-              title: payload.title,
-              body: payload.body,
+      // 2) Normalize data values to strings (FCM requires strings in `data`)
+      const normalizedData: Record<string, string> = {};
+      if (payload.data) {
+        for (const [k, v] of Object.entries(payload.data)) {
+          normalizedData[k] = v === undefined || v === null ? '' : String(v);
+        }
+      }
+
+      // attach url/image into data so client can handle clicks
+      if (payload.url) normalizedData.url = payload.url;
+      if (payload.image) normalizedData.image = payload.image;
+
+      // 3) Build message
+      const message: admin.messaging.Message = {
+        token,
+        notification: {
+          title: payload.title,
+          body: payload.body,
+        },
+        data: normalizedData,
+        android: {
+          priority: 'high',
+        },
+        apns: {
+          payload: {
+            aps: {
+              contentAvailable: true,
+              alert: {
+                title: payload.title,
+                body: payload.body,
+              },
             },
           },
         },
-      },
-      webpush: {
-        headers: {
-          Urgency: 'high',
+        webpush: {
+          headers: {
+            Urgency: 'high',
+          },
         },
-      },
-    };
+      };
 
-    // 4) Send
-    const messageId = await admin.messaging().send(message);
+      // 4) Send
+      const messageId = await admin.messaging().send(message);
 
-    return { success: true, message: 'Sent', messageId };
-  } catch (err) {
-    console.error('sendPushNotification error:', err);
+      return { success: true, message: 'Sent', messageId };
+    } catch (err) {
+      console.error('sendPushNotification error:', err);
 
-    // detect common "invalid token" errors and prune the token
-    const errCode = err?.code || err?.errorInfo?.code || err?.message;
-    if (
-      errCode === 'messaging/registration-token-not-registered' ||
-      errCode === 'messaging/invalid-registration-token' ||
-      (typeof errCode === 'string' && errCode.includes('not registered'))
-    ) {
-      try {
-        // best-effort prune this token from DB
-        await this.prismaService.pushSubscription.deleteMany({
-          where: { fcmToken: String(err?.token || err?.fcmToken) || undefined },
-        });
-      } catch (pruneErr) {
-        console.warn('Failed to prune invalid token:', pruneErr);
+      // detect common "invalid token" errors and prune the token
+      const errCode = err?.code || err?.errorInfo?.code || err?.message;
+      if (
+        errCode === 'messaging/registration-token-not-registered' ||
+        errCode === 'messaging/invalid-registration-token' ||
+        (typeof errCode === 'string' && errCode.includes('not registered'))
+      ) {
+        try {
+          // best-effort prune this token from DB
+          await this.prismaService.pushSubscription.deleteMany({
+            where: {
+              fcmToken: String(err?.token || err?.fcmToken) || undefined,
+            },
+          });
+        } catch (pruneErr) {
+          console.warn('Failed to prune invalid token:', pruneErr);
+        }
+        return {
+          success: false,
+          message: 'Invalid or unregistered FCM token - pruned',
+          error: errCode,
+        };
       }
-      return { success: false, message: 'Invalid or unregistered FCM token - pruned', error: errCode };
+
+      return { success: false, message: 'Failed to send push', error: err };
     }
-
-    return { success: false, message: 'Failed to send push', error: err };
   }
-}
-
 }
