@@ -12,21 +12,51 @@ export class NotificationGateway
 {
   @WebSocketServer()
   server: Server;
-
-  private clients = new Map(); // Track clients by userId
-  private auctionRooms = new Map(); // Track which users are listening to each auction
-  private registeredUsers = new Set(); // Set of all registered userIds
-
   handleConnection(client: Socket) {
+    if (!client.handshake.headers['authorization']) client.disconnect(true);
     const userId = client.handshake.query.userId;
+    client.join(`user:${userId}`);
     console.log(`Client connected: ${client.id} with userId: ${userId}`);
   }
-
-  handleDisconnect(client: any) {
+  handleDisconnect(client: Socket) {
     // console.log(`Client disconnected: ${client.id}`);
   }
 
   sendNotificationToAll(notification: any) {
-    this.server.emit('notification', notification); // This sends to all connected clients
+    if (notification.status === 'ON_SELLING') {
+      this.server.emit('notification', notification);
+    } else if (
+      notification.status === 'ON_BIDDING' &&
+      notification.userType === 'OTHER_BIDDERS'
+    ) {
+      for (const userID of notification.usersId) {
+        this.server
+          .to(`user:${userID ?? null}`)
+          .emit('notification', notification);
+      }
+    } else {
+      this.server
+        .to(`user:${notification.usersId ?? null}`)
+        .emit('notification', notification);
+    }
+  }
+  sendNotificationToSpecificUser(notification: any) {
+    if (notification.status === 'ON_SELLING') {
+      this.server.emit('notification', notification);
+    } else if (
+      notification.status === 'ON_BIDDING' &&
+      notification.userType === 'OTHER_BIDDERS'
+    ) {
+      console.log('111');
+      for (const userID of notification.usersId) {
+        this.server
+          .to(`user:${userID ?? null}`)
+          .emit('notification', notification);
+      }
+    } else {
+      this.server
+        .to(`user:${notification.usersId ?? null}`)
+        .emit('notification', notification);
+    }
   }
 }

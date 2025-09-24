@@ -3780,6 +3780,7 @@ export class UserAuctionsService {
     }
   }
 
+  // locking auction to prevent multiple bid at same time
   async lockAuction(auctionId: number, userId: string, bidAmount: number) {
     console.log('lock auction');
     const auction = await this.prismaService.auction.findUnique({

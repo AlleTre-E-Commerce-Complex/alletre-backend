@@ -2377,7 +2377,7 @@ export class PaymentsService {
 
             if (isCreateNotificationToCurrentBidder) {
               try {
-                // Send notification to seller
+                // Send notification to bidder
                 const currentBidderId = auctionHoldPaymentTransaction.userId;
 
                 const notification = {
