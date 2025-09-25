@@ -105,6 +105,13 @@ export class NotificationsService {
         where: {
           userId,
         },
+        include: {
+          auction: {
+            select: {
+              status: true,
+            },
+          },
+        },
         orderBy: {
           createdAt: 'asc',
         },
