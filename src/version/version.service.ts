@@ -145,8 +145,8 @@ export class AppVersionService {
       return {
         LatestAndroidVersion :  latestAndroid.version,
         LatestIOSVersion : latestIos.version,
-        IOSAppUpdateURL : _AndroidAppUpdateURL? _AndroidAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=android',
-        AndroidAppUpdateURL : _IOSAppUpdateURL? _IOSAppUpdateURL : 'https://www.alletre.com/api/appVersion/?platform=ios',
+        IOSAppUpdateURL : _AndroidAppUpdateURL? _AndroidAppUpdateURL : latestIos.downloadUrl,
+        AndroidAppUpdateURL : _IOSAppUpdateURL? _IOSAppUpdateURL : latestAndroid.downloadUrl,
       };
     } catch (error) {
       throw new NotFoundException('No version info found')

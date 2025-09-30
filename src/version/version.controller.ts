@@ -41,19 +41,19 @@ export class AppVersionController {
     const AndroidAppUpdateURL = q.AndroidAppUpdateURL;
     const LatestAndroidVersion = q.LatestAndroidVersion;
     const LatestIOSVersion = q.LatestIOSVersion;
-    // const info = await this.svc.getLatest(
-    //   platform as 'ios' | 'android',
-    //   IOSAppUpdateURL,
-    //   AndroidAppUpdateURL,
-    // );
-    // return info;
-
-    return {
-      LatestAndroidVersion,
-      LatestIOSVersion,
-      AndroidAppUpdateURL,
+    const info = await this.svc.getLatest(
+      platform as 'ios' | 'android',
       IOSAppUpdateURL,
-    }
+      AndroidAppUpdateURL,
+    );
+    return info;
+
+    // return {
+    //   LatestAndroidVersion,
+    //   LatestIOSVersion,
+    //   AndroidAppUpdateURL,
+    //   IOSAppUpdateURL,
+    // }
   }
 
   @Post()
