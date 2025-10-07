@@ -261,7 +261,7 @@ export class UserController {
 
   @Patch('/updateUserBlockStatus')
   @UseGuards(AuthGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.User)
   async blockOrDeleteUserAccount(
     @Account() account: any,
     @Query('currentStatus') currentStatus: boolean,
