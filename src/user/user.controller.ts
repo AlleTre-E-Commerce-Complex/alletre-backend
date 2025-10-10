@@ -259,6 +259,7 @@ export class UserController {
     };
   }
 
+  @Get('/updateUserBlockStatus')
   @Patch('/updateUserBlockStatus')
   @UseGuards(AuthGuard)
   @Roles(Role.Admin)
