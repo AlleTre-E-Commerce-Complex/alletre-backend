@@ -12,10 +12,19 @@ export class CategoryService {
   ) {}
 
   async getAllCategories() {
-    return await this.prismaService.category.findMany({});
+    return await this.prismaService.category.findMany({
+      where: { status: true },
+    });
   }
 
   async getAllCategoriesIncludeSub() {
+    return await this.prismaService.category.findMany({
+      where: { status: true },
+      include: { subCategories: true },
+    });
+  }
+
+  async getAllCategoriesForAdmin() {
     return await this.prismaService.category.findMany({
       include: { subCategories: true },
     });
@@ -101,6 +110,19 @@ export class CategoryService {
     } catch (error) {
       console.error('Error while updating category:', error);
       throw new Error('Error while updating category');
+    }
+  }
+
+  async updateCategoryStatus(categoryId: number, status: boolean) {
+    try {
+      const updatedCategory = await this.prismaService.category.update({
+        where: { id: categoryId },
+        data: { status },
+      });
+      return updatedCategory;
+    } catch (error) {
+      console.error('Error while updating category status:', error);
+      throw new Error('Error while updating category status');
     }
   }
 

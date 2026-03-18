@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -35,6 +36,29 @@ export class CategoryController {
     return {
       success: true,
       data: await this.categoryService.getAllCategories(),
+    };
+  }
+
+  @Get('/admin/all')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async findAllCategoriesForAdmin() {
+    return {
+      success: true,
+      data: await this.categoryService.getAllCategoriesForAdmin(),
+    };
+  }
+
+  @Patch('/admin/editCategoryStatus/:categoryId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async updateCategoryStatus(
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+    @Body('status') status: boolean,
+  ) {
+    return {
+      success: true,
+      data: await this.categoryService.updateCategoryStatus(categoryId, status),
     };
   }
 
