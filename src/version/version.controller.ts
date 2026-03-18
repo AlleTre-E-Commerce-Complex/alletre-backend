@@ -1,5 +1,15 @@
 // src/app-version/app-version.controller.ts
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AppVersionService } from './version.service';
 import { GetVersionQuery } from './dto/app-version.dto';
 import { CreateAppVersionDto } from './dto/create-version.dto';
@@ -66,7 +76,10 @@ export class AppVersionController {
   @Patch(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAppVersionDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAppVersionDto,
+  ) {
     return this.svc.update(id, dto);
   }
 
@@ -76,5 +89,4 @@ export class AppVersionController {
   list(@Query('platform') platform?: string) {
     return this.svc.list(platform);
   }
-
 }
