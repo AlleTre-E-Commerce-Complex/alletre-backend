@@ -215,7 +215,7 @@ model Product {
   title               String
   model               String?
   usageStatus         UsageStatus?
-  description         String
+  description         String?
   color               String?
   screenSize          Float?
   processor           String?
@@ -238,6 +238,24 @@ model Product {
   cityId              Int?
   carType             String?
   brand               String?
+  trim                String?
+  regionalSpecs       String?
+  kilometers          String?
+  interiorColor       String?
+  insuredInUae        String?
+  warranty            String?
+  fuelType            String?
+  doors               String?
+  transmissionType    String?
+  seatingCapacity     String?
+  horsepower          String?
+  steeringSide        String?
+  engineCapacity      String?
+  numberOfCylinders   String?
+  driverAssistance    String?
+  entertainment       String?
+  comfort             String?
+  exteriorFeatures    String?
   auction             Auction?
   images              Image[]
   listedProducts      ListedProducts?
