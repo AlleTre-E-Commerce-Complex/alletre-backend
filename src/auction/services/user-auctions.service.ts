@@ -2941,7 +2941,7 @@ export class UserAuctionsService {
       };
     }
   }
-  async   payToPublish(
+  async payToPublish(
     userId: number,
     auctionId: number,
     amount?: number,
@@ -5767,6 +5767,37 @@ export class UserAuctionsService {
     if (productData?.cameraType)
       updateData.cameraType = productData?.cameraType;
     if (productData?.carType) updateData.carType = productData?.carType;
+    if (productData?.trim) updateData.trim = productData?.trim;
+    if (productData?.regionalSpecs)
+      updateData.regionalSpecs = productData?.regionalSpecs;
+    if (productData?.kilometers)
+      updateData.kilometers = productData?.kilometers;
+    if (productData?.interiorColor)
+      updateData.interiorColor = productData?.interiorColor;
+    if (productData?.insuredInUae)
+      updateData.insuredInUae = productData?.insuredInUae;
+    if (productData?.warranty) updateData.warranty = productData?.warranty;
+    if (productData?.fuelType) updateData.fuelType = productData?.fuelType;
+    if (productData?.doors) updateData.doors = productData?.doors;
+    if (productData?.transmissionType)
+      updateData.transmissionType = productData?.transmissionType;
+    if (productData?.seatingCapacity)
+      updateData.seatingCapacity = productData?.seatingCapacity;
+    if (productData?.horsepower)
+      updateData.horsepower = productData?.horsepower;
+    if (productData?.steeringSide)
+      updateData.steeringSide = productData?.steeringSide;
+    if (productData?.engineCapacity)
+      updateData.engineCapacity = productData?.engineCapacity;
+    if (productData?.numberOfCylinders)
+      updateData.numberOfCylinders = productData?.numberOfCylinders;
+    if (productData?.driverAssistance)
+      updateData.driverAssistance = productData?.driverAssistance;
+    if (productData?.entertainment)
+      updateData.entertainment = productData?.entertainment;
+    if (productData?.comfort) updateData.comfort = productData?.comfort;
+    if (productData?.exteriorFeatures)
+      updateData.exteriorFeatures = productData?.exteriorFeatures;
     if (productData?.material) updateData.material = productData?.material;
     if (productData?.memory) updateData.memory = productData?.memory;
     if (productData?.model) updateData.model = productData?.model;
@@ -6458,6 +6489,24 @@ export class UserAuctionsService {
       brand,
       ProductListingPrice,
       carType,
+      trim,
+      regionalSpecs,
+      kilometers,
+      interiorColor,
+      insuredInUae,
+      warranty,
+      fuelType,
+      doors,
+      transmissionType,
+      seatingCapacity,
+      horsepower,
+      steeringSide,
+      engineCapacity,
+      numberOfCylinders,
+      driverAssistance,
+      entertainment,
+      comfort,
+      exteriorFeatures,
     } = productBody;
 
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
@@ -6477,6 +6526,24 @@ export class UserAuctionsService {
       brand,
       isAuctionProduct,
       carType,
+      trim,
+      regionalSpecs,
+      kilometers,
+      interiorColor,
+      insuredInUae,
+      warranty,
+      fuelType,
+      doors,
+      transmissionType,
+      seatingCapacity,
+      horsepower,
+      steeringSide,
+      engineCapacity,
+      numberOfCylinders,
+      driverAssistance,
+      entertainment,
+      comfort,
+      exteriorFeatures,
     };
     let createdProduct: Product;
     try {
