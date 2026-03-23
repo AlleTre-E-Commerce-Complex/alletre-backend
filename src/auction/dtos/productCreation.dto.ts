@@ -30,9 +30,9 @@ export class ProductDTO {
   @IsString()
   brand: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  description: string;
+  description?: string;
 
   @IsOptional()
   @Transform(({ value }): number => parseInt(value))
@@ -144,4 +144,76 @@ export class ProductDTO {
   @IsOptional()
   @IsString()
   carType: string;
+
+  @IsOptional()
+  @IsString()
+  trim: string;
+
+  @IsOptional()
+  @IsString()
+  regionalSpecs: string;
+
+  @IsOptional()
+  @IsString()
+  kilometers: string;
+
+  @IsOptional()
+  @IsString()
+  interiorColor: string;
+
+  @IsOptional()
+  @IsString()
+  insuredInUae: string;
+
+  @IsOptional()
+  @IsString()
+  warranty: string;
+
+  @IsOptional()
+  @IsString()
+  fuelType: string;
+
+  @IsOptional()
+  @IsString()
+  doors: string;
+
+  @IsOptional()
+  @IsString()
+  transmissionType: string;
+
+  @IsOptional()
+  @IsString()
+  seatingCapacity: string;
+
+  @IsOptional()
+  @IsString()
+  horsepower: string;
+
+  @IsOptional()
+  @IsString()
+  steeringSide: string;
+
+  @IsOptional()
+  @IsString()
+  engineCapacity: string;
+
+  @IsOptional()
+  @IsString()
+  numberOfCylinders: string;
+
+  @IsOptional()
+  @IsString()
+  driverAssistance: string;
+
+  @IsOptional()
+  @IsString()
+  entertainment: string;
+
+  @IsOptional()
+  @IsString()
+  comfort: string;
+
+  @IsOptional()
+  @IsString()
+  exteriorFeatures: string;
 }
