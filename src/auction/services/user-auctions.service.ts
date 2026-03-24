@@ -5806,11 +5806,62 @@ export class UserAuctionsService {
       updateData.operatingSystem = productData?.operatingSystem;
     if (productData?.regionOfManufacture)
       updateData.regionOfManufacture = productData?.regionOfManufacture;
+    if (productData?.numberOfRooms)
+      updateData.numberOfRooms = productData?.numberOfRooms.toString();
+    if (productData?.emirate) updateData.emirate = productData?.emirate;
+    if (productData?.numberOfBathrooms)
+      updateData.numberOfBathrooms = productData?.numberOfBathrooms;
+    if (productData?.developer) updateData.developer = productData?.developer;
+    if (productData?.readyBy) updateData.readyBy = productData?.readyBy;
+    if (productData?.isFurnished)
+      updateData.isFurnished = productData?.isFurnished;
+    if (productData?.propertyReferenceId)
+      updateData.propertyReferenceId = productData?.propertyReferenceId;
+    if (productData?.occupancyStatus)
+      updateData.occupancyStatus = productData?.occupancyStatus;
+    if (productData?.amenities) updateData.amenities = productData?.amenities;
+    if (productData?.zonedFor) updateData.zonedFor = productData?.zonedFor;
+    if (productData?.freehold) updateData.freehold = productData?.freehold;
+    if (productData?.residentialType)
+      updateData.residentialType = productData?.residentialType;
+    if (productData?.commercialType)
+      updateData.commercialType = productData?.commercialType;
 
     // Decimal fields
+
     if (productData?.ProductListingPrice) {
       updateData.ProductListingPrice = new Decimal(
         productData?.ProductListingPrice,
+      ).toNumber();
+    }
+    if (productData?.totalClosingFee) {
+      updateData.totalClosingFee = new Decimal(
+        productData?.totalClosingFee,
+      ).toNumber();
+    }
+    if (productData?.annualCommunityFee) {
+      updateData.annualCommunityFee = new Decimal(
+        productData?.annualCommunityFee,
+      ).toNumber();
+    }
+    if (productData?.buyerTransferFee) {
+      updateData.buyerTransferFee = new Decimal(
+        productData?.buyerTransferFee,
+      ).toNumber();
+    }
+    if (productData?.sellerTransferFee) {
+      updateData.sellerTransferFee = new Decimal(
+        productData?.sellerTransferFee,
+      ).toNumber();
+    }
+    if (productData?.maintenanceFee) {
+      updateData.maintenanceFee = new Decimal(
+        productData?.maintenanceFee,
+      ).toNumber();
+    }
+    if (productData?.approvedBuildUpArea) {
+      updateData.approvedBuildUpArea = new Decimal(
+        productData?.approvedBuildUpArea,
       ).toNumber();
     }
 
@@ -5820,8 +5871,6 @@ export class UserAuctionsService {
       updateData.ramSize = parseInt(productData?.ramSize);
     if (productData?.numberOfFloors)
       updateData.numberOfFloors = parseInt(productData?.numberOfFloors);
-    if (productData?.numberOfRooms)
-      updateData.numberOfRooms = parseInt(productData?.numberOfRooms);
 
     // String fields that look like numbers but should remain strings
     if (productData?.releaseYear)
@@ -6507,6 +6556,24 @@ export class UserAuctionsService {
       entertainment,
       comfort,
       exteriorFeatures,
+      emirate,
+      totalClosingFee,
+      numberOfBathrooms,
+      developer,
+      readyBy,
+      annualCommunityFee,
+      isFurnished,
+      propertyReferenceId,
+      buyerTransferFee,
+      sellerTransferFee,
+      maintenanceFee,
+      occupancyStatus,
+      amenities,
+      zonedFor,
+      approvedBuildUpArea,
+      freehold,
+      residentialType,
+      commercialType,
     } = productBody;
 
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
@@ -6542,8 +6609,20 @@ export class UserAuctionsService {
       numberOfCylinders,
       driverAssistance,
       entertainment,
-      comfort,
       exteriorFeatures,
+      emirate,
+      numberOfBathrooms,
+      developer,
+      readyBy,
+      isFurnished,
+      propertyReferenceId,
+      occupancyStatus,
+      amenities,
+      zonedFor,
+      freehold,
+      residentialType,
+      commercialType,
+      numberOfRooms,
     };
     let createdProduct: Product;
     try {
@@ -6578,6 +6657,22 @@ export class UserAuctionsService {
           ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
           ...(ProductListingPrice
             ? { ProductListingPrice: Number(ProductListingPrice) }
+            : {}),
+          ...(totalClosingFee
+            ? { totalClosingFee: Number(totalClosingFee) }
+            : {}),
+          ...(annualCommunityFee
+            ? { annualCommunityFee: Number(annualCommunityFee) }
+            : {}),
+          ...(buyerTransferFee
+            ? { buyerTransferFee: Number(buyerTransferFee) }
+            : {}),
+          ...(sellerTransferFee
+            ? { sellerTransferFee: Number(sellerTransferFee) }
+            : {}),
+          ...(maintenanceFee ? { maintenanceFee: Number(maintenanceFee) } : {}),
+          ...(approvedBuildUpArea
+            ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
             : {}),
           ...nonNumericOptionalFields,
         },
@@ -6650,6 +6745,43 @@ export class UserAuctionsService {
       landType,
       countryId,
       cityId,
+      carType,
+      trim,
+      regionalSpecs,
+      kilometers,
+      interiorColor,
+      insuredInUae,
+      warranty,
+      fuelType,
+      doors,
+      transmissionType,
+      seatingCapacity,
+      horsepower,
+      steeringSide,
+      engineCapacity,
+      numberOfCylinders,
+      driverAssistance,
+      entertainment,
+      comfort,
+      exteriorFeatures,
+      emirate,
+      totalClosingFee,
+      numberOfBathrooms,
+      developer,
+      readyBy,
+      annualCommunityFee,
+      isFurnished,
+      propertyReferenceId,
+      buyerTransferFee,
+      sellerTransferFee,
+      maintenanceFee,
+      occupancyStatus,
+      amenities,
+      zonedFor,
+      approvedBuildUpArea,
+      freehold,
+      residentialType,
+      commercialType,
     } = productBody;
 
     let updatedProduct: Product;
@@ -6699,6 +6831,76 @@ export class UserAuctionsService {
           ...(material ? { material } : { material: null }),
           ...(memory ? { memory } : { memory: null }),
           ...(landType ? { landType } : { landType: null }),
+          ...(numberOfRooms
+            ? { numberOfRooms: numberOfRooms.toString() }
+            : { numberOfRooms: null }),
+          ...(carType ? { carType } : { carType: null }),
+          ...(trim ? { trim } : { trim: null }),
+          ...(regionalSpecs ? { regionalSpecs } : { regionalSpecs: null }),
+          ...(kilometers ? { kilometers } : { kilometers: null }),
+          ...(interiorColor ? { interiorColor } : { interiorColor: null }),
+          ...(insuredInUae ? { insuredInUae } : { insuredInUae: null }),
+          ...(warranty ? { warranty } : { warranty: null }),
+          ...(fuelType ? { fuelType } : { fuelType: null }),
+          ...(doors ? { doors } : { doors: null }),
+          ...(transmissionType
+            ? { transmissionType }
+            : { transmissionType: null }),
+          ...(seatingCapacity
+            ? { seatingCapacity }
+            : { seatingCapacity: null }),
+          ...(horsepower ? { horsepower } : { horsepower: null }),
+          ...(steeringSide ? { steeringSide } : { steeringSide: null }),
+          ...(engineCapacity ? { engineCapacity } : { engineCapacity: null }),
+          ...(numberOfCylinders
+            ? { numberOfCylinders }
+            : { numberOfCylinders: null }),
+          ...(driverAssistance
+            ? { driverAssistance }
+            : { driverAssistance: null }),
+          ...(entertainment ? { entertainment } : { entertainment: null }),
+          ...(comfort ? { comfort } : { comfort: null }),
+          ...(exteriorFeatures
+            ? { exteriorFeatures }
+            : { exteriorFeatures: null }),
+          ...(emirate ? { emirate } : { emirate: null }),
+          ...(totalClosingFee
+            ? { totalClosingFee: Number(totalClosingFee) }
+            : { totalClosingFee: null }),
+          ...(numberOfBathrooms
+            ? { numberOfBathrooms }
+            : { numberOfBathrooms: null }),
+          ...(developer ? { developer } : { developer: null }),
+          ...(readyBy ? { readyBy } : { readyBy: null }),
+          ...(annualCommunityFee
+            ? { annualCommunityFee: Number(annualCommunityFee) }
+            : { annualCommunityFee: null }),
+          ...(isFurnished ? { isFurnished } : { isFurnished: null }),
+          ...(propertyReferenceId
+            ? { propertyReferenceId }
+            : { propertyReferenceId: null }),
+          ...(buyerTransferFee
+            ? { buyerTransferFee: Number(buyerTransferFee) }
+            : { buyerTransferFee: null }),
+          ...(sellerTransferFee
+            ? { sellerTransferFee: Number(sellerTransferFee) }
+            : { sellerTransferFee: null }),
+          ...(maintenanceFee
+            ? { maintenanceFee: Number(maintenanceFee) }
+            : { maintenanceFee: null }),
+          ...(occupancyStatus
+            ? { occupancyStatus }
+            : { occupancyStatus: null }),
+          ...(amenities ? { amenities } : { amenities: null }),
+          ...(zonedFor ? { zonedFor } : { zonedFor: null }),
+          ...(approvedBuildUpArea
+            ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
+            : { approvedBuildUpArea: null }),
+          ...(freehold ? { freehold } : { freehold: null }),
+          ...(residentialType
+            ? { residentialType }
+            : { residentialType: null }),
+          ...(commercialType ? { commercialType } : { commercialType: null }),
         },
       });
     } catch (error) {

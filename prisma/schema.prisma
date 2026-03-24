@@ -231,7 +231,7 @@ model Product {
   memory              String?
   age                 Int?
   totalArea           Float?
-  numberOfRooms       Int?
+  numberOfRooms       String?
   numberOfFloors      Int?
   landType            String?
   countryId           Int?
@@ -256,6 +256,24 @@ model Product {
   entertainment       String?
   comfort             String?
   exteriorFeatures    String?
+  emirate             String?
+  totalClosingFee     Decimal?
+  numberOfBathrooms   String?
+  developer           String?
+  readyBy             String?
+  annualCommunityFee  Decimal?
+  isFurnished         String?
+  propertyReferenceId String?
+  buyerTransferFee    Decimal?
+  sellerTransferFee   Decimal?
+  maintenanceFee      Decimal?
+  occupancyStatus     String?
+  amenities           String?
+  zonedFor            String?
+  approvedBuildUpArea Decimal?
+  freehold            String?
+  residentialType     String?
+  commercialType      String?
   auction             Auction?
   images              Image[]
   listedProducts      ListedProducts?

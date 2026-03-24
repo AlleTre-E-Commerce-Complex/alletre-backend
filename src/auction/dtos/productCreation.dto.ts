@@ -97,9 +97,8 @@ export class ProductDTO {
   totalArea: number;
 
   @IsOptional()
-  @Transform(({ value }): number => parseInt(value))
-  @IsNumber()
-  numberOfRooms: number;
+  @IsString()
+  numberOfRooms: string;
 
   @IsOptional()
   @Transform(({ value }): number => parseInt(value))
@@ -216,4 +215,82 @@ export class ProductDTO {
   @IsOptional()
   @IsString()
   exteriorFeatures: string;
+
+  @IsOptional()
+  @IsString()
+  emirate: string;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  totalClosingFee: number;
+
+  @IsOptional()
+  @IsString()
+  numberOfBathrooms: string;
+
+  @IsOptional()
+  @IsString()
+  developer: string;
+
+  @IsOptional()
+  @IsString()
+  readyBy: string;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  annualCommunityFee: number;
+
+  @IsOptional()
+  @IsString()
+  isFurnished: string;
+
+  @IsOptional()
+  @IsString()
+  propertyReferenceId: string;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  buyerTransferFee: number;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  sellerTransferFee: number;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  maintenanceFee: number;
+
+  @IsOptional()
+  @IsString()
+  occupancyStatus: string;
+
+  @IsOptional()
+  @IsString()
+  amenities: string;
+
+  @IsOptional()
+  @IsString()
+  zonedFor: string;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  approvedBuildUpArea: number;
+
+  @IsOptional()
+  @IsString()
+  freehold: string;
+
+  @IsOptional()
+  @IsString()
+  residentialType: string;
+
+  @IsOptional()
+  @IsString()
+  commercialType: string;
 }
