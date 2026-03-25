@@ -1780,13 +1780,8 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
-    const productFilter = this.auctionsHelper._productFilterApplied({
-      brands,
-      categories,
-      subCategory,
-      usageStatus,
-      title,
-    });
+    const productFilter =
+      this.auctionsHelper._productFilterApplied(getAuctionsDTO);
 
     const auctionFilter = this.auctionsHelper._auctionFilterApplied({
       priceFrom,
@@ -2439,13 +2434,8 @@ export class UserAuctionsService {
       0,
     );
 
-    const productFilter = this.auctionsHelper._productFilterApplied({
-      brands,
-      categories,
-      subCategory,
-      usageStatus,
-      title,
-    });
+    const productFilter =
+      this.auctionsHelper._productFilterApplied(getAuctionsDTO);
 
     const auctionFilter = this.auctionsHelper._auctionFilterApplied({
       priceFrom,
@@ -5512,13 +5502,8 @@ export class UserAuctionsService {
         Number(perPage),
       );
       console.log('limit and skip', limit, skip);
-      const productFilter = this.auctionsHelper._productFilterApplied({
-        brands,
-        categories,
-        subCategory,
-        usageStatus,
-        title,
-      });
+      const productFilter =
+        this.auctionsHelper._productFilterApplied(getListedProductDTO);
       console.log('productfilteer,', productFilter);
       const queryOptions: any = {
         where: {
