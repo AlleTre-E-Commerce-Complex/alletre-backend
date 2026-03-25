@@ -24,13 +24,37 @@ export class AuctionsHelper {
     return user;
   }
 
-  _productFilterApplied({
-    brands,
-    categories,
-    subCategory,
-    usageStatus,
-    title,
-  }) {
+  _productFilterApplied(filters: any) {
+    const {
+      brands,
+      categories,
+      subCategory,
+      usageStatus,
+      title,
+      regionalSpecs,
+      bodyType,
+      seatingCapacity,
+      transmissionType,
+      fuelType,
+      exteriorColor,
+      interiorColor,
+      horsepower,
+      engineCapacity,
+      doors,
+      warranty,
+      cylinders,
+      propertyType,
+      amenities,
+      bedrooms,
+      bathrooms,
+      furnished,
+      minYear,
+      maxYear,
+      minKilometer,
+      maxKilometer,
+      minSqft,
+      maxSqft,
+    } = filters;
     let productFilterOrSearch = {};
 
     if (title && title.length) {
@@ -68,6 +92,129 @@ export class AuctionsHelper {
       productFilterOrSearch = {
         ...productFilterOrSearch,
         ...{ usageStatus: { in: usageStatus } },
+      };
+    }
+
+    if (regionalSpecs?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        regionalSpecs: { in: regionalSpecs },
+      };
+    if (bodyType?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        carType: { in: bodyType },
+      };
+    if (seatingCapacity?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        seatingCapacity: { in: seatingCapacity },
+      };
+    if (transmissionType?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        transmissionType: { in: transmissionType },
+      };
+    if (fuelType?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        fuelType: { in: fuelType },
+      };
+    if (exteriorColor?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        exteriorColor: { in: exteriorColor },
+      };
+    if (interiorColor?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        interiorColor: { in: interiorColor },
+      };
+    if (horsepower?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        horsepower: { in: horsepower },
+      };
+    if (engineCapacity?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        engineCapacity: { in: engineCapacity },
+      };
+    if (doors?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        doors: { in: doors },
+      };
+    if (warranty?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        warranty: { in: warranty },
+      };
+    if (cylinders?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        numberOfCylinders: { in: cylinders },
+      };
+
+    if (propertyType && propertyType.length) {
+      const cleanPropertyType = propertyType.map((pt) =>
+        typeof pt === 'string' ? pt.split(':')[0] : pt,
+      );
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        OR: [
+          { residentialType: { in: cleanPropertyType } },
+          { commercialType: { in: cleanPropertyType } },
+          { landType: { in: cleanPropertyType } },
+        ],
+      };
+    }
+    if (amenities?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        amenities: { in: amenities },
+      };
+    if (bedrooms?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        numberOfRooms: { in: bedrooms },
+      };
+    if (bathrooms?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        numberOfBathrooms: { in: bathrooms },
+      };
+    if (furnished?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        isFurnished: { in: furnished },
+      };
+
+    if (minYear || maxYear) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        releaseYear: {
+          ...(minYear ? { gte: String(minYear) } : {}),
+          ...(maxYear ? { lte: String(maxYear) } : {}),
+        },
+      };
+    }
+    if (minKilometer || maxKilometer) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        kilometers: {
+          ...(minKilometer ? { gte: String(minKilometer) } : {}),
+          ...(maxKilometer ? { lte: String(maxKilometer) } : {}),
+        },
+      };
+    }
+    if (minSqft || maxSqft) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        totalArea: {
+          ...(minSqft ? { gte: Number(minSqft) } : {}),
+          ...(maxSqft ? { lte: Number(maxSqft) } : {}),
+        },
       };
     }
 
