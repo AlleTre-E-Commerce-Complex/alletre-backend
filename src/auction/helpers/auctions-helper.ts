@@ -54,6 +54,7 @@ export class AuctionsHelper {
       maxKilometer,
       minSqft,
       maxSqft,
+      emirate,
     } = filters;
     let productFilterOrSearch = {};
 
@@ -199,6 +200,11 @@ export class AuctionsHelper {
         },
       };
     }
+    if (emirate?.length)
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        emirate: { in: emirate },
+      };
     if (minKilometer || maxKilometer) {
       productFilterOrSearch = {
         ...productFilterOrSearch,
