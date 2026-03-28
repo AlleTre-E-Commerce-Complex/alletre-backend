@@ -26,7 +26,9 @@ export class AuctionsHelper {
 
   _productFilterApplied(filters: any) {
     const {
+      brand,
       brands,
+      model,
       categories,
       subCategory,
       usageStatus,
@@ -83,10 +85,16 @@ export class AuctionsHelper {
         ...{ subCategoryId: { in: subCategory } },
       };
     }
-    if (brands?.length) {
+    if (brands?.length || brand?.length) {
       productFilterOrSearch = {
         ...productFilterOrSearch,
-        ...{ brand: { in: brands } },
+        ...{ brand: { in: [...(brands || []), ...(brand || [])] } },
+      };
+    }
+    if (model?.length) {
+      productFilterOrSearch = {
+        ...productFilterOrSearch,
+        ...{ model: { in: model } },
       };
     }
     if (usageStatus?.length) {

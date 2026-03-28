@@ -44,6 +44,14 @@ export class GetAuctionsDTO {
   @IsArray()
   // @IsNumber({}, { each: true })
   brands: string[];
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  brand?: string[];
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  model?: string[];
 
   @IsOptional()
   @Transform(({ value }) => parseNumbers(value))
