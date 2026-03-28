@@ -28,6 +28,18 @@ export class GetListedProductDTO {
   perPage: number;
 
   @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsString({ each: true })
+  brand?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsString({ each: true })
+  model?: string[];
+
+  @IsOptional()
   @Transform(({ value }) => parseNumbers(value))
   @IsArray()
   @IsNumber({}, { each: true })
