@@ -274,6 +274,7 @@ model Product {
   freehold            String?
   residentialType     String?
   commercialType      String?
+  watchLists          WatchList[]
   auction             Auction?
   images              Image[]
   listedProducts      ListedProducts?
@@ -379,9 +380,11 @@ model Purchase {
 model WatchList {
   id        Int      @id @default(autoincrement())
   userId    Int
-  auctionId Int
+  auctionId Int?
+  productId Int?
   createdAt DateTime @default(now())
-  auction   Auction  @relation(fields: [auctionId], references: [id])
+  auction   Auction?  @relation(fields: [auctionId], references: [id])
+  product   Product?  @relation(fields: [productId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 }
 

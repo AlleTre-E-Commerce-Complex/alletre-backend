@@ -1753,9 +1753,6 @@ export class UserAuctionsService {
     getAuctionsDTO: GetAuctionsDTO,
     userId?: number,
   ) {
-    // console.log('===>3',roles);
-    // console.log('===>4',getAuctionsDTO);
-    // console.log('===>5',userId);
     console.log('qqqq', getAuctionsDTO);
     const {
       page = 1,
@@ -1771,6 +1768,8 @@ export class UserAuctionsService {
       title,
       auctionStatus,
       isHome,
+      sortBy,
+      sortOrder = 'desc',
     } = getAuctionsDTO;
     // here all data of the getAuctionDTO will come when we do a search and filter in home screen
     // console.log( '===>', page ,perPage ,brands,categories,countries,priceFrom,priceTo,sellingType,usageStatus,title, auctionStatus,);
@@ -1852,9 +1851,18 @@ export class UserAuctionsService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: (() => {
+        if (sortBy === 'price') {
+          return { startBidAmount: sortOrder };
+        }
+        if (sortBy === 'kilometers') {
+          return { product: { kilometers: sortOrder } };
+        }
+        if (sortBy === 'year') {
+          return { product: { releaseYear: sortOrder } };
+        }
+        return { [sortBy || 'createdAt']: sortOrder };
+      })(),
     };
 
     // Conditionally add pagination
@@ -5477,25 +5485,21 @@ export class UserAuctionsService {
   async fetchAllListedOnlyProduct(
     roles: Role[],
     getListedProductDTO: GetListedProductDTO,
-    userId?: number,
+    userId?: number, // This is the filter user ID (owner)
+    viewerUserId?: number, // This is the viewer user ID (for isSaved injection)
   ) {
     try {
+      console.log('fetchAllListedOnlyProduct', getListedProductDTO);
       const {
         page = 1,
         perPage = 10,
-        status = 'IN_PROGRESS',
-        brands,
-        categories,
-        subCategory,
-        countries,
         priceFrom,
         priceTo,
-        sellingType,
-        usageStatus,
-        title,
+        status = 'IN_PROGRESS',
         isHome,
+        sortBy,
+        sortOrder = 'desc',
       } = getListedProductDTO;
-      console.log('fetchAllListedOnlyProduct', getListedProductDTO);
       // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
@@ -5535,7 +5539,24 @@ export class UserAuctionsService {
           },
           location: { include: { city: true, country: true } },
         },
-        orderBy: { id: 'desc' },
+        orderBy: (() => {
+          if (sortBy === 'price') {
+            return { ProductListingPrice: sortOrder };
+          }
+          if (sortBy === 'kilometer') {
+            return { product: { kilometers: sortOrder } };
+          }
+          if (sortBy === 'year') {
+            return { product: { releaseYear: sortOrder } };
+          }
+          if (sortBy === 'area') {
+            return { product: { totalArea: sortOrder } };
+          }
+          if (sortBy === 'rooms') {
+            return { product: { numberOfRooms: sortOrder } };
+          }
+          return { [sortBy || 'createdAt']: sortOrder };
+        })(),
       };
       // Conditionally add pagination
       if (!isHome) {
@@ -5547,25 +5568,27 @@ export class UserAuctionsService {
         await this.prismaService.listedProducts.findMany(queryOptions);
 
       const productsCount = await this.prismaService.listedProducts.count({
-        where: {
-          status,
-          ...(roles.includes(Role.Admin) ? {} : { userId }),
-          product: {
-            is: {
-              ...productFilter,
-              isAuctionProduct: false,
-            },
-          },
-        },
+        where: queryOptions.where,
       });
+
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
         perPage,
       );
 
-      console.log('pagination:', pagination);
-      console.log('allListedProducts.length:', allListedProducts.length);
+      if (viewerUserId) {
+        const savedProducts =
+          await this.auctionsHelper._injectIsSavedKeyToListedProductsList(
+            viewerUserId,
+            allListedProducts,
+          );
+
+        return {
+          products: savedProducts,
+          pagination,
+        };
+      }
 
       return {
         products: allListedProducts,
@@ -5582,7 +5605,8 @@ export class UserAuctionsService {
   async fetchListedProductByOthers(
     roles: Role[],
     getListedProductByOtherDTO: GetListedProductByOhterUserDTO,
-    userId?: number,
+    userId?: number, // This is the filter user ID (owner)
+    viewerUserId?: number, // This is the viewer user ID (for isSaved injection)
   ) {
     try {
       const {
@@ -5617,12 +5641,30 @@ export class UserAuctionsService {
           take: limit,
           orderBy: { id: 'desc' },
         });
-      const productsCount = await this.prismaService.listedProducts.count({});
+      const productsCount = await this.prismaService.listedProducts.count({
+        where: {
+          status,
+          userId,
+        },
+      });
       const pagination = this.paginationService.getPagination(
         productsCount,
         page,
         perPage,
       );
+
+      if (viewerUserId) {
+        const savedProducts =
+          await this.auctionsHelper._injectIsSavedKeyToListedProductsList(
+            viewerUserId,
+            allListedProducts,
+          );
+        return {
+          products: savedProducts,
+          pagination,
+        };
+      }
+
       return {
         products: allListedProducts,
         pagination,
@@ -5672,8 +5714,16 @@ export class UserAuctionsService {
       }
       const userLang = 'en';
 
-      const formatedProduct = this.filtertProduct(product, userLang);
-      console.log('product** :', formatedProduct);
+      let formatedProduct = await this.filtertProduct(product, userLang);
+
+      if (userId) {
+        formatedProduct =
+          await this.auctionsHelper._injectIsSavedKeyToListedProduct(
+            userId,
+            formatedProduct,
+          );
+      }
+
       return formatedProduct;
     } catch (error) {
       console.log('find product error : ', error);

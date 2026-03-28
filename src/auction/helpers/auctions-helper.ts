@@ -235,16 +235,15 @@ export class AuctionsHelper {
     return productFilterOrSearch;
   }
 
-  async _injectIsSavedKeyToAuctionsList(userId: number, auctions: Auction[]) {
-    // Get saved auctions
-    const savedAuctions = await this.prismaService.watchList.findMany({
+  async _injectIsSavedKeyToAuctionsList(userId: number, auctions: any[]) {
+    // Get saved items for this user
+    const watchList = await this.prismaService.watchList.findMany({
       where: { userId: Number(userId) },
     });
 
-    // Get saved auctionsIs
-    const savedAuctionsIds = savedAuctions.map((savedAuction) => {
-      return savedAuction.auctionId;
-    });
+    const savedAuctionsIds = watchList
+      .filter((item) => item.auctionId)
+      .map((item) => item.auctionId);
 
     // Inject key
     return auctions.map((auction) => {
@@ -252,20 +251,41 @@ export class AuctionsHelper {
       return auction;
     });
   }
-  async _injectIsSavedKeyToAuction(userId: number, auction: Auction) {
-    // Get saved auctions
-    const savedAuctions = await this.prismaService.watchList.findMany({
+
+  async _injectIsSavedKeyToListedProductsList(
+    userId: number,
+    listedProducts: any[],
+  ) {
+    // Get saved items for this user
+    const watchList = await this.prismaService.watchList.findMany({
       where: { userId: Number(userId) },
     });
 
-    // Get saved auctionsIs
-    const savedAuctionsIds = savedAuctions.map((savedAuction) => {
-      return savedAuction.auctionId;
-    });
+    const savedProductsIds = watchList
+      .filter((item) => item.productId)
+      .map((item) => item.productId);
 
     // Inject key
-    auction['isSaved'] = savedAuctionsIds.includes(auction.id);
+    return listedProducts.map((lp) => {
+      lp['isSaved'] = savedProductsIds.includes(lp.productId);
+      return lp;
+    });
+  }
+
+  async _injectIsSavedKeyToAuction(userId: number, auction: any) {
+    const watchList = await this.prismaService.watchList.findFirst({
+      where: { userId: Number(userId), auctionId: auction.id },
+    });
+    auction['isSaved'] = !!watchList;
     return auction;
+  }
+
+  async _injectIsSavedKeyToListedProduct(userId: number, listedProduct: any) {
+    const watchList = await this.prismaService.watchList.findFirst({
+      where: { userId: Number(userId), productId: listedProduct.productId },
+    });
+    listedProduct['isSaved'] = !!watchList;
+    return listedProduct;
   }
   _injectIsMyAuctionKeyToAuctionsList(userId: number, auctions: Auction[]) {
     const formatedAuction = auctions.map((auction) => {

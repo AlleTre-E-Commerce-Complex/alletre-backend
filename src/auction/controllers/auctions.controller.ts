@@ -1161,7 +1161,8 @@ export class AuctionsController {
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
         getListedProductDTO,
-        account.id ? Number(account.id) : undefined,
+        undefined, // filterUserId (null because it's global)
+        account.id ? Number(account.id) : undefined, // viewerUserId
       );
     return {
       success: true,
@@ -1179,7 +1180,8 @@ export class AuctionsController {
       await this.userAuctionsService.fetchListedProductByOthers(
         account.roles,
         getListedProductByOhterUserDTO,
-        getListedProductByOhterUserDTO.userId,
+        getListedProductByOhterUserDTO.userId, // filterUserId (owner)
+        account.id ? Number(account.id) : undefined, // viewerUserId
       );
     return {
       success: true,

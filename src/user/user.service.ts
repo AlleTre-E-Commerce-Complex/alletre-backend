@@ -8,6 +8,8 @@ import * as bcrypt from 'bcrypt';
 import {
   OAuthType,
   ProblemStatus,
+  // AuctionStatus,
+  ListedProductsStatus,
   // WalletStatus,
   // WalletTransactionType,
 } from '@prisma/client';
@@ -320,7 +322,32 @@ export class UserService {
         en: 'User not found',
       });
 
-    return this.exclude(user, ['password']);
+    const totalBids = await this.prismaService.bids.count({
+      where: { userId: id },
+    });
+
+    const activeProducts = await this.prismaService.listedProducts.count({
+      where: {
+        userId: id,
+        status: ListedProductsStatus.IN_PROGRESS,
+      },
+    });
+
+    const soldProducts = await this.prismaService.listedProducts.count({
+      where: {
+        userId: id,
+        status: ListedProductsStatus.SOLD_OUT,
+      },
+    });
+
+    const userProfile = this.exclude(user, ['password']);
+
+    return {
+      ...userProfile,
+      totalBids,
+      activeListings: activeProducts,
+      itemsSold: soldProducts,
+    };
   }
 
   async findUserByIdOr404(id: number) {

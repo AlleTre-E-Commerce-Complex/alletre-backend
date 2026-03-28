@@ -21,9 +21,14 @@ export class WatchListController {
   @UseGuards(AuthGuard)
   async addToWatchList(
     @Account() account: any,
-    @Body('auctionId', ParseIntPipe) auctionId: number,
+    @Body('auctionId') auctionId?: number,
+    @Body('productId') productId?: number,
   ) {
-    await this.watchListService.addToWatchList(Number(account.id), auctionId);
+    await this.watchListService.addToWatchList(
+      Number(account.id),
+      auctionId ? Number(auctionId) : undefined,
+      productId ? Number(productId) : undefined,
+    );
     return {
       success: true,
       message: 'Saved To WatchList Successfully',
@@ -34,11 +39,13 @@ export class WatchListController {
   @UseGuards(AuthGuard)
   async deleteFromWatchList(
     @Account() account: any,
-    @Query('auctionId', ParseIntPipe) auctionId: number,
+    @Query('auctionId') auctionId?: number,
+    @Query('productId') productId?: number,
   ) {
     await this.watchListService.removeFromWatchList(
       Number(account.id),
-      auctionId,
+      auctionId ? Number(auctionId) : undefined,
+      productId ? Number(productId) : undefined,
     );
     return {
       success: true,

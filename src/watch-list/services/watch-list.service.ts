@@ -6,13 +6,17 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class WatchListService {
   constructor(private prismaService: PrismaService) {}
 
-  async addToWatchList(userId: number, auctionId: number) {
+  async addToWatchList(userId: number, auctionId?: number, productId?: number) {
     // Check if already added
-    const isAlreadySaved = await this._isAlreadySavedOrNull(userId, auctionId);
+    const isAlreadySaved = await this._isAlreadySavedOrNull(
+      userId,
+      auctionId,
+      productId,
+    );
     if (isAlreadySaved)
       throw new MethodNotAllowedResponse({
         ar: 'تم حفظة من قبل',
-        en: 'Auction Is Already Saved',
+        en: 'Item Is Already Saved',
       });
 
     try {
@@ -21,29 +25,38 @@ export class WatchListService {
         data: {
           userId,
           auctionId,
+          productId,
         },
       });
     } catch (error) {
       console.log(error);
       throw new MethodNotAllowedResponse({
         ar: 'هناك خطأ في حفظ الاعلان تأكد من صحة وجود الاعلان',
-        en: 'Something Went Wrong While Saved Auction, It Maybe NotFound',
+        en: 'Something Went Wrong While Saving Item',
       });
     }
   }
 
-  async removeFromWatchList(userId: number, auctionId: number) {
+  async removeFromWatchList(
+    userId: number,
+    auctionId?: number,
+    productId?: number,
+  ) {
     // Check if already added
-    const isAlreadySaved = await this._isAlreadySavedOrNull(userId, auctionId);
+    const isAlreadySaved = await this._isAlreadySavedOrNull(
+      userId,
+      auctionId,
+      productId,
+    );
     if (!isAlreadySaved)
       throw new MethodNotAllowedResponse({
         ar: 'هذا الاعلان ليس في محفوظاتك',
-        en: 'Auction Is Not In Your WatchList',
+        en: 'Item Is Not In Your WatchList',
       });
 
     // Remove from watchList
     await this.prismaService.watchList.deleteMany({
-      where: { userId, auctionId },
+      where: { userId, auctionId, productId },
     });
   }
 
@@ -86,15 +99,38 @@ export class WatchListService {
             _count: { select: { bids: true } },
           },
         },
+        product: {
+          select: {
+            id: true,
+            title: true,
+            categoryId: true,
+            subCategoryId: true,
+            brandId: true,
+            images: true,
+            ProductListingPrice: true,
+            usageStatus: true,
+            listedProducts: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+          },
+        },
       },
     });
   }
 
-  private async _isAlreadySavedOrNull(userId: number, auctionId: number) {
+  private async _isAlreadySavedOrNull(
+    userId: number,
+    auctionId?: number,
+    productId?: number,
+  ) {
     return await this.prismaService.watchList.findFirst({
       where: {
         userId,
         auctionId,
+        productId,
       },
     });
   }

@@ -1,10 +1,9 @@
-import { AuctionStatus, AuctionType, UsageStatus } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import { AuctionStatus, UsageStatus } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsIn,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -185,4 +184,12 @@ export class GetAuctionsDTO {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   maxSqft?: number;
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
 }
