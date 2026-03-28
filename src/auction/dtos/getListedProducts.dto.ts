@@ -190,4 +190,18 @@ export class GetListedProductDTO {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   maxSqft?: number;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isMyListing?: boolean;
 }
