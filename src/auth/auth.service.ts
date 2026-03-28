@@ -17,7 +17,7 @@ import { EmailsType } from './enums/emails-type.enum';
 import { Socket } from 'socket.io';
 import { AdminService } from 'src/admin/admin.service';
 import axios from 'axios';
-import { WalletStatus, WalletTransactionType } from '@prisma/client';
+// import { WalletStatus, WalletTransactionType } from '@prisma/client';
 import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
@@ -65,21 +65,21 @@ export class AuthService {
       });
     }
 
-    if (user && user.id <= 100 && !user.wallet.length) {
-      const newUserWalletData = {
-        status: WalletStatus.DEPOSIT,
-        transactionType: WalletTransactionType.By_AUCTION,
-        description: 'Welcome Bonus',
-        amount: 100,
-        auctionId: null,
-        balance: 100,
-      };
-      const addedBonus = await this.walletService.create(
-        user.id,
-        newUserWalletData,
-      );
-      return { user, addedBonus };
-    }
+    // if (user && user.id <= 100 && !user.wallet.length) {
+    //   const newUserWalletData = {
+    //     status: WalletStatus.DEPOSIT,
+    //     transactionType: WalletTransactionType.By_AUCTION,
+    //     description: 'Welcome Bonus',
+    //     amount: 100,
+    //     auctionId: null,
+    //     balance: 100,
+    //   };
+    //   const addedBonus = await this.walletService.create(
+    //     user.id,
+    //     newUserWalletData,
+    //   );
+    //   return { user, addedBonus };
+    // }
 
     return { user, addedBonus: null };
   }

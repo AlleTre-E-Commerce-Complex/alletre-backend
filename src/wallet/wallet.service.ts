@@ -324,35 +324,87 @@ export class WalletService {
       },
       0,
     );
-    let NumberOfWelcomeBonusUser = 0;
-    if (allUser.length < 100) {
-      NumberOfWelcomeBonusUser = allUser.length;
-    } else {
-      NumberOfWelcomeBonusUser = 100;
-    }
-    console.log(
-      'all users wallet balance :',
-      allUsersWalletBalance,
-      alletreWalletBalance,
-    );
-    // Return the total balance (Alletre wallet + all user wallets)
+    // let NumberOfWelcomeBonusUser = 0;
+    // if (allUser.length < 100) {
+    //   NumberOfWelcomeBonusUser = allUser.length;
+    // } else {
+    //   NumberOfWelcomeBonusUser = 100;
+    // }
+    // console.log(
+    //   'all users wallet balance :',
+    //   allUsersWalletBalance,
+    //   alletreWalletBalance,
+    // );
+    // // Return the total balance (Alletre wallet + all user wallets)
+    // const accountBalanceWithWelcomeBonus = alletreWalletBalance
+    //   ? Number(alletreWalletBalance) + allUsersWalletBalance
+    //   : allUsersWalletBalance;
+
+    // console.log(
+    //   'accountBalanceWithWelcomeBonus:',
+    //   accountBalanceWithWelcomeBonus,
+    // );
+
+    // const accountBalanceWithOutWelcomeBonus =
+    //   accountBalanceWithWelcomeBonus - NumberOfWelcomeBonusUser * 100;
+
     const accountBalanceWithWelcomeBonus = alletreWalletBalance
       ? Number(alletreWalletBalance) + allUsersWalletBalance
       : allUsersWalletBalance;
-
-    console.log(
-      'accountBalanceWithWelcomeBonus:',
-      accountBalanceWithWelcomeBonus,
-    );
-
-    const accountBalanceWithOutWelcomeBonus =
-      accountBalanceWithWelcomeBonus - NumberOfWelcomeBonusUser * 100;
+    const accountBalanceWithOutWelcomeBonus = accountBalanceWithWelcomeBonus;
 
     return {
       accountBalanceWithOutWelcomeBonus,
       accountBalanceWithWelcomeBonus,
     };
   }
+
+  /*
+  async applyWelcomeReward(userId: number) {
+    try {
+      return await this.prismaSevice.$transaction(async (prisma) => {
+        // Double check within transaction to prevent race conditions
+        const existingReward = await prisma.wallet.findFirst({
+          where: {
+            userId,
+            transactionType: 'WELCOME_REWARD',
+          },
+        });
+
+        if (existingReward) {
+          return null;
+        }
+
+        const totalRewardsCount = await prisma.wallet.count({
+          where: {
+            transactionType: 'WELCOME_REWARD',
+          },
+        });
+
+        if (totalRewardsCount >= 100) {
+          return null;
+        }
+
+        const lastBalance = await this.findLastTransaction(userId, prisma);
+        const newBalance = Number(lastBalance) + 100;
+
+        return await prisma.wallet.create({
+          data: {
+            userId,
+            description: 'Welcome Reward',
+            amount: 100,
+            status: 'DEPOSIT',
+            transactionType: 'WELCOME_REWARD',
+            balance: newBalance,
+          },
+        });
+      });
+    } catch (error) {
+      console.error('Error applying welcome reward:', error);
+      return null;
+    }
+  }
+  */
 
   update(id: number, updateWalletDto: UpdateWalletDto) {
     return `This action updates a #${id} wallet`;
