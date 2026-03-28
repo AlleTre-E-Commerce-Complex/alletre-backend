@@ -8,8 +8,8 @@ import * as bcrypt from 'bcrypt';
 import {
   OAuthType,
   ProblemStatus,
-  WalletStatus,
-  WalletTransactionType,
+  // WalletStatus,
+  // WalletTransactionType,
 } from '@prisma/client';
 import { PaginationDTO } from 'src/auction/dtos';
 import { PaginationService } from 'src/common/services/pagination.service';
@@ -248,21 +248,21 @@ export class UserService {
         );
       }
     }
-    if (user && user.id <= 100) {
-      const newUserWalletData = {
-        status: WalletStatus.DEPOSIT,
-        transactionType: WalletTransactionType.By_AUCTION,
-        description: 'Welcome Bonus',
-        amount: 100,
-        auctionId: null,
-        balance: 100,
-      };
-      const addedBonus = await this.walletService.create(
-        user.id,
-        newUserWalletData,
-      );
-      return { user, addedBonus };
-    }
+    // if (user && user.id <= 100) {
+    //   const newUserWalletData = {
+    //     status: WalletStatus.DEPOSIT,
+    //     transactionType: WalletTransactionType.By_AUCTION,
+    //     description: 'Welcome Bonus',
+    //     amount: 100,
+    //     auctionId: null,
+    //     balance: 100,
+    //   };
+    //   const addedBonus = await this.walletService.create(
+    //     user.id,
+    //     newUserWalletData,
+    //   );
+    //   return { user, addedBonus };
+    // }
     return { user, addedBonus: null };
   }
 
