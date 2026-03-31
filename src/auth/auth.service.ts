@@ -232,7 +232,9 @@ export class AuthService {
       if (user) await this.userService.verifyUserEmail(email);
     } else if (phone) user = await this.userService.findUserByPhone(phone);
 
+    let isNewUser = false;
     if (!user) {
+      isNewUser = true;
       const oAuthData = await this.userService.oAuth(
         email,
         phone,
@@ -261,7 +263,7 @@ export class AuthService {
       imagePath: undefined,
       accessToken,
       refreshToken,
-      isAddedBonus: addedBonus ? true : false,
+      isAddedBonus: isNewUser || (addedBonus ? true : false),
     };
   }
 
