@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsArray, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  IsNumber,
+  ValidateIf,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class ProductUpdateDTO {
@@ -7,6 +13,12 @@ export class ProductUpdateDTO {
   name?: string;
 
   @IsOptional()
+  @ValidateIf(
+    (o) =>
+      o.description !== '' &&
+      o.description !== null &&
+      o.description !== undefined,
+  )
   @IsString()
   description?: string;
 
@@ -113,12 +125,14 @@ export class ProductUpdateDTO {
   totalClosingFee?: number;
 
   @IsOptional()
-  @IsString()
-  numberOfBathrooms?: string;
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  numberOfBathrooms?: number;
 
   @IsOptional()
-  @IsString()
-  numberOfRooms?: string;
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  numberOfRooms?: number;
 
   @IsOptional()
   @IsString()

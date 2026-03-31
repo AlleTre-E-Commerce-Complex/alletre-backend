@@ -231,7 +231,7 @@ model Product {
   memory              String?
   age                 Int?
   totalArea           Float?
-  numberOfRooms       String?
+  numberOfRooms       Int?
   numberOfFloors      Int?
   landType            String?
   countryId           Int?
@@ -258,7 +258,7 @@ model Product {
   exteriorFeatures    String?
   emirate             String?
   totalClosingFee     Decimal?
-  numberOfBathrooms   String?
+  numberOfBathrooms   Int?
   developer           String?
   readyBy             String?
   annualCommunityFee  Decimal?

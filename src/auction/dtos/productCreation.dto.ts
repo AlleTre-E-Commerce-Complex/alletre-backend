@@ -31,6 +31,12 @@ export class ProductDTO {
   brand: string;
 
   @IsOptional()
+  @ValidateIf(
+    (o) =>
+      o.description !== '' &&
+      o.description !== null &&
+      o.description !== undefined,
+  )
   @IsString()
   description?: string;
 
@@ -97,8 +103,9 @@ export class ProductDTO {
   totalArea: number;
 
   @IsOptional()
-  @IsString()
-  numberOfRooms: string;
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  numberOfRooms: number;
 
   @IsOptional()
   @Transform(({ value }): number => parseInt(value))
@@ -226,8 +233,9 @@ export class ProductDTO {
   totalClosingFee: number;
 
   @IsOptional()
-  @IsString()
-  numberOfBathrooms: string;
+  @Transform(({ value }): number => parseInt(value))
+  @IsNumber()
+  numberOfBathrooms: number;
 
   @IsOptional()
   @IsString()
