@@ -494,6 +494,9 @@ The <b>Alletre</b> Team
     body?: any,
     userName?: string,
   ) {
+    if (process.env.ENABLE_EMAILS === 'false') {
+      return;
+    }
     const mailOptions = this.mailOptionsGenerator(
       email,
       token,
@@ -509,6 +512,12 @@ The <b>Alletre</b> Team
   }
 
   async sendAuctionBulkEmail(auctionId: string) {
+    if (process.env.ENABLE_EMAILS === 'false') {
+      console.log(
+        'Bulk auction email sending is disabled via ENABLE_EMAILS flag.',
+      );
+      return;
+    }
     try {
       const auction = await this.prismaService.auction.findUnique({
         where: {
@@ -529,6 +538,12 @@ The <b>Alletre</b> Team
   }
 
   async sendListedProductBulkEmail(listedId: string) {
+    if (process.env.ENABLE_EMAILS === 'false') {
+      console.log(
+        'Listed product bulk email sending is disabled via ENABLE_EMAILS flag.',
+      );
+      return;
+    }
     try {
       const listedProduct = await this.prismaService.listedProducts.findUnique({
         where: {

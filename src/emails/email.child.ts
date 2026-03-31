@@ -129,6 +129,13 @@ async function sendBatchEmails(
   batchSize = 100,
   delayMs = 1000, // delay between batches
 ) {
+  if (process.env.ENABLE_EMAILS === 'false') {
+    process.send?.({ success: true, sent: 0, failed: 0 }); // Report success with 0 sent
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
+    return;
+  }
   console.log('Memory Usage Before Sending Emails:', process.memoryUsage());
 
   let successCount = 0;
