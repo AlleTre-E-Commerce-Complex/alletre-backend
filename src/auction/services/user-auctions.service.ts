@@ -6657,7 +6657,6 @@ export class UserAuctionsService {
       freehold,
       residentialType,
       commercialType,
-      numberOfRooms,
     };
     let createdProduct: Product;
     try {
@@ -6867,7 +6866,7 @@ export class UserAuctionsService {
           ...(memory ? { memory } : { memory: null }),
           ...(landType ? { landType } : { landType: null }),
           ...(numberOfRooms
-            ? { numberOfRooms: numberOfRooms.toString() }
+            ? { numberOfRooms: Number(numberOfRooms) }
             : { numberOfRooms: null }),
           ...(carType ? { carType } : { carType: null }),
           ...(trim ? { trim } : { trim: null }),
@@ -6903,7 +6902,7 @@ export class UserAuctionsService {
             ? { totalClosingFee: Number(totalClosingFee) }
             : { totalClosingFee: null }),
           ...(numberOfBathrooms
-            ? { numberOfBathrooms }
+            ? { numberOfBathrooms: Number(numberOfBathrooms) }
             : { numberOfBathrooms: null }),
           ...(developer ? { developer } : { developer: null }),
           ...(readyBy ? { readyBy } : { readyBy: null }),
