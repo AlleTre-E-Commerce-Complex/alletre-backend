@@ -168,6 +168,9 @@ export class AuthService {
       hashedPassword,
     );
 
+    // Clear any lingering sessions for this ID (in case of ID reuse after DB reset)
+    this.clearUserSessions(user.id);
+
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
       id: user.id,
@@ -685,6 +688,16 @@ export class AuthService {
         });
       }
 
+      // Check for stale token (issued before user was created)
+      const tokenIssuedAt = payload.iat * 1000;
+      const userCreatedAt = new Date(user.createdAt).getTime();
+      if (tokenIssuedAt < userCreatedAt - 1000) {
+        throw new ForbiddenResponse({
+          en: 'Stale session - please log in again',
+          ar: 'جلسة قديمة - يرجى تسجيل الدخول مرة أخرى',
+        });
+      }
+
       // Mark old token as used (prevent replay)
       this.usedRefreshTokens.add(oldRefreshToken);
 
@@ -848,6 +861,16 @@ export class AuthService {
 
       // Check Admin Existence
       const admin = await this.adminService.getAdminByIdOr404(payload.id);
+
+      // Check for stale token (issued before admin was created)
+      const tokenIssuedAt = payload.iat * 1000;
+      const adminCreatedAt = new Date(admin.createdAt).getTime();
+      if (tokenIssuedAt < adminCreatedAt - 1000) {
+        throw new ForbiddenResponse({
+          en: 'Stale session - please log in again',
+          ar: 'جلسة قديمة - يرجى تسجيل الدخول مرة أخرى',
+        });
+      }
 
       // Invalidate old refresh token
       adminTokens.delete(oldRefreshToken);
