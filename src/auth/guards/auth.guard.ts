@@ -42,6 +42,20 @@ export class AuthGuard implements CanActivate {
           throw new UnauthorizedException('User not found');
         }
 
+        // --- STALE TOKEN PROTECTION ---
+        // If the token was issued BEFORE the user record was created,
+        // it belongs to a past user who had the same ID.
+        const tokenIssuedAt = decoded.iat * 1000;
+        const userCreatedAt = new Date(user.createdAt).getTime();
+
+        if (tokenIssuedAt < userCreatedAt - 1000) {
+          // 1s buffer for safety
+          throw new UnauthorizedException(
+            'Stale session - please log in again',
+          );
+        }
+        // ------------------------------
+
         if (user.isBlocked) {
           console.log('user is bloced', user.isBlocked);
           throw new UnauthorizedException('User is blocked');
