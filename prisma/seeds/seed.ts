@@ -505,13 +505,6 @@ async function main() {
             customFields: {
               create: [
                 {
-                  key: 'emirate',
-                  resKey: 'emirate',
-                  type: 'array',
-                  labelAr: 'الإمارة',
-                  labelEn: 'EMIRATE',
-                },
-                {
                   key: 'residentialType',
                   resKey: 'residentialType',
                   type: 'array',
@@ -639,13 +632,6 @@ async function main() {
             customFields: {
               create: [
                 {
-                  key: 'emirate',
-                  resKey: 'emirate',
-                  type: 'array',
-                  labelAr: 'الإمارة',
-                  labelEn: 'EMIRATE',
-                },
-                {
                   key: 'commercialType',
                   resKey: 'commercialType',
                   type: 'array',
@@ -766,13 +752,6 @@ async function main() {
             customFields: {
               create: [
                 {
-                  key: 'emirate',
-                  resKey: 'emirate',
-                  type: 'array',
-                  labelAr: 'الإمارة',
-                  labelEn: 'EMIRATE',
-                },
-                {
                   key: 'totalArea',
                   resKey: 'totalArea',
                   type: 'number',
@@ -836,13 +815,6 @@ async function main() {
             nameEn: 'Multiple Units',
             customFields: {
               create: [
-                {
-                  key: 'emirate',
-                  resKey: 'emirate',
-                  type: 'array',
-                  labelAr: 'الإمارة',
-                  labelEn: 'EMIRATE',
-                },
                 {
                   key: 'totalArea',
                   resKey: 'totalArea',
@@ -1073,6 +1045,126 @@ async function main() {
           { nameAr: 'رأس الخيمة', nameEn: 'Ras Al Khaimah' },
           { nameAr: 'الفجيرة', nameEn: 'Fujairah' },
           { nameAr: ' أم القيوين', nameEn: 'Umm Al-Quwain' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'المملكة العربية السعودية',
+      nameEn: 'Saudi Arabia',
+      cities: {
+        create: [
+          { nameAr: 'الرياض', nameEn: 'Riyadh' },
+          { nameAr: 'جدة', nameEn: 'Jeddah' },
+          { nameAr: 'مكة المكرمة', nameEn: 'Mecca' },
+          { nameAr: 'المدينة المنورة', nameEn: 'Medina' },
+          { nameAr: 'الدمام', nameEn: 'Dammam' },
+          { nameAr: 'الخبر', nameEn: 'Khobar' },
+          { nameAr: 'الظهران', nameEn: 'Dhahran' },
+          { nameAr: 'الجبيل', nameEn: 'Jubail' },
+          { nameAr: 'بريدة', nameEn: 'Buraydah' },
+          { nameAr: 'تبوك', nameEn: 'Tabuk' },
+          { nameAr: 'أبها', nameEn: 'Abha' },
+          { nameAr: 'خميس مشيط', nameEn: 'Khamis Mushait' },
+          { nameAr: 'حائل', nameEn: 'Hail' },
+          { nameAr: 'الأحساء', nameEn: 'Al-Ahsa' },
+          { nameAr: 'جازان', nameEn: 'Jazan' },
+          { nameAr: 'نجران', nameEn: 'Najran' },
+          { nameAr: 'ينبع', nameEn: 'Yanbu' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'قطر',
+      nameEn: 'Qatar',
+      cities: {
+        create: [
+          { nameAr: 'الدوحة', nameEn: 'Doha' },
+          { nameAr: 'لوسيل', nameEn: 'Lusail' },
+          { nameAr: 'الريان', nameEn: 'Al Rayyan' },
+          { nameAr: 'الوكرة', nameEn: 'Al Wakrah' },
+          { nameAr: 'الخور', nameEn: 'Al Khor' },
+          { nameAr: 'مسيعيد', nameEn: 'Mesaieed' },
+          { nameAr: 'مدينة الشمال', nameEn: 'Madinat ash Shamal' },
+          { nameAr: 'الرويس', nameEn: 'Ar Ruwais' },
+          { nameAr: 'أم صلال', nameEn: 'Umm Salal' },
+          { nameAr: 'دخان', nameEn: 'Dukhan' },
+          { nameAr: 'الشيحانية', nameEn: 'Al Shahaniya' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'الكويت',
+      nameEn: 'Kuwait',
+      cities: {
+        create: [
+          { nameAr: 'مدينة الكويت', nameEn: 'Kuwait City' },
+          { nameAr: 'السالمية', nameEn: 'Salmiya' },
+          { nameAr: 'حوالي', nameEn: 'Hawalli' },
+          { nameAr: 'الفروانية', nameEn: 'Farwaniya' },
+          { nameAr: 'الأحمدي', nameEn: 'Al Ahmadi' },
+          { nameAr: 'الفحيحيل', nameEn: 'Fahaheel' },
+          { nameAr: 'الجهراء', nameEn: 'Jahra' },
+          { nameAr: 'المنقف', nameEn: 'Mangaf' },
+          { nameAr: 'المهبولة', nameEn: 'Mahboula' },
+          { nameAr: 'صباح السالم', nameEn: 'Sabah Al-Salem' },
+          { nameAr: 'خيطان', nameEn: 'Khaitan' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'عمان',
+      nameEn: 'Oman',
+      cities: {
+        create: [
+          { nameAr: 'مسقط', nameEn: 'Muscat' },
+          { nameAr: 'السيب', nameEn: 'Seeb' },
+          { nameAr: 'صلالة', nameEn: 'Salalah' },
+          { nameAr: 'صحار', nameEn: 'Sohar' },
+          { nameAr: 'صور', nameEn: 'Sur' },
+          { nameAr: 'بركاء', nameEn: 'Barka' },
+          { nameAr: 'نزوى', nameEn: 'Nizwa' },
+          { nameAr: 'عبري', nameEn: 'Ibri' },
+          { nameAr: 'إبراء', nameEn: 'Ibra' },
+          { nameAr: 'الرستاق', nameEn: 'Rustaq' },
+          { nameAr: 'بهلا', nameEn: 'Bahla' },
+          { nameAr: 'صحم', nameEn: 'Saham' },
+          { nameAr: 'خصب', nameEn: 'Khasab' },
+          { nameAr: 'البريمي', nameEn: 'Al Buraymi' },
+          { nameAr: 'الدقم', nameEn: 'Duqm' },
+        ],
+      },
+    },
+  });
+
+  await prisma.country.create({
+    data: {
+      nameAr: 'البحرين',
+      nameEn: 'Bahrain',
+      cities: {
+        create: [
+          { nameAr: 'المنامة', nameEn: 'Manama' },
+          { nameAr: 'الرفاع', nameEn: 'Riffa' },
+          { nameAr: 'المحرق', nameEn: 'Muharraq' },
+          { nameAr: 'مدينة حمد', nameEn: 'Hamad Town' },
+          { nameAr: 'مدينة عيسى', nameEn: 'Isa Town' },
+          { nameAr: 'سترة', nameEn: 'Sitra' },
+          { nameAr: 'البديع', nameEn: 'Budaiya' },
+          { nameAr: 'الحد', nameEn: 'Al Hidd' },
+          { nameAr: 'جد حفص', nameEn: 'Jidhafs' },
+          { nameAr: 'سار', nameEn: 'Saar' },
+          { nameAr: 'الزلاق', nameEn: 'Zallaq' },
         ],
       },
     },
