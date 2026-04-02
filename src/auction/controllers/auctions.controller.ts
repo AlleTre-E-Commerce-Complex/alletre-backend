@@ -1206,6 +1206,21 @@ export class AuctionsController {
     };
   }
 
+  @Delete('/listedProducts/:productId')
+  @UseGuards(AuthGuard)
+  async deleteListedProductController(
+    @Account() account: any,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.userAuctionsService.deleteListedProduct(
+        Number(account.id),
+        productId,
+      ),
+    };
+  }
+
   @Get('/user/product/analytics')
   @UseGuards(AuthGuard)
   async getListedProductAnalytics(@Account() account: any) {

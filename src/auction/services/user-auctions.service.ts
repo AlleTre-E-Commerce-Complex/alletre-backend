@@ -1575,6 +1575,54 @@ export class UserAuctionsService {
     ]);
   }
 
+  async deleteListedProduct(userId: number, productId: number) {
+    const listedProduct = await this.prismaService.listedProducts.findUnique({
+      where: { productId: productId },
+    });
+
+    if (!listedProduct) {
+      throw new NotFoundException({
+        ar: 'المنتج غير موجود',
+        en: 'Product not found',
+      });
+    }
+
+    if (listedProduct.userId !== userId) {
+      throw new ConflictException({
+        ar: 'ليس لديك صلاحيات لهذا المنتج',
+        en: 'You do not have permission to delete this product',
+      });
+    }
+
+    const deletedImages = this.prismaService.image.deleteMany({
+      where: { productId: productId },
+    });
+
+    const deletedWatchLists = this.prismaService.watchList.deleteMany({
+      where: { productId: productId },
+    });
+
+    const deletedListedProducts = this.prismaService.listedProducts.delete({
+      where: { productId: productId },
+    });
+
+    const deletedProduct = this.prismaService.product.delete({
+      where: { id: productId },
+    });
+
+    await this.prismaService.$transaction([
+      deletedImages,
+      deletedWatchLists,
+      deletedListedProducts,
+      deletedProduct,
+    ]);
+
+    return {
+      success: true,
+      message: 'Product deleted successfully',
+    };
+  }
+
   // TODO: Add status as a filter for ownes auctions
   async findUserOwnesAuctions(
     userId: number,
