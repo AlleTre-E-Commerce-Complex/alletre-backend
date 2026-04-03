@@ -5504,15 +5504,75 @@ export class UserAuctionsService {
     productData: ProductDTO,
     images: Express.Multer.File[],
     userId: number,
+    auctionId?: number,
   ) {
     try {
-      const createProductStatus = 'LISTING';
-      const productId = await this._createProduct(
-        productData,
-        images,
-        createProductStatus,
-        userId,
-      );
+      let productId: number;
+      if (auctionId) {
+        // Find the existing draft auction and its product ID
+        const auctionDraft = await this.prismaService.auction.findUnique({
+          where: { id: auctionId },
+        });
+
+        if (!auctionDraft) {
+          throw new MethodNotAllowedResponse({
+            ar: 'المسودة غير موجودة',
+            en: 'Draft not found',
+          });
+        }
+
+        productId = auctionDraft.productId;
+        // Update the existing product with the new data and set isAuctionProduct to false
+        await this._updateProduct(productId, productData, false);
+
+        // Upload and link new images if provided
+        if (images?.length) {
+          for (const image of images) {
+            const uploadedImage = await this.firebaseService.uploadImage(image);
+            await this.prismaService.image.create({
+              data: {
+                productId: productId,
+                imageLink: uploadedImage.fileLink,
+                imagePath: uploadedImage.filePath,
+              },
+            });
+          }
+        }
+
+        // Delete the draft container (the record in the Auction table)
+        await this.prismaService.auction.delete({
+          where: { id: auctionId },
+        });
+      } else {
+        // Create a new product if no draft exists
+        const createProductStatus = 'LISTING';
+        productId = await this._createProduct(
+          productData,
+          images,
+          createProductStatus,
+          userId,
+        );
+      }
+
+      // Check if this product already has a ListedProducts entry (shouldn't normally happen, but good to be safe)
+      const existingListedProduct =
+        await this.prismaService.listedProducts.findUnique({
+          where: { productId },
+        });
+
+      if (existingListedProduct) {
+        return await this.prismaService.listedProducts.update({
+          where: { productId },
+          data: {
+            userId,
+            ProductListingPrice: productData.ProductListingPrice,
+            locationId: productData.locationId,
+            status: 'IN_PROGRESS',
+          },
+        });
+      }
+
+      // Create the ListedProducts entry which makes it a live listing
       const newListedProduct = await this.prismaService.listedProducts.create({
         data: {
           productId,
@@ -5524,12 +5584,14 @@ export class UserAuctionsService {
       return newListedProduct;
     } catch (error) {
       console.error('list new procuct error :', error);
+      if (error instanceof MethodNotAllowedResponse) throw error;
       throw new MethodNotAllowedResponse({
         ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
         en: 'Something Went Wrong While Adding Your Product',
       });
     }
   }
+
   async fetchAllListedOnlyProduct(
     roles: Role[],
     getListedProductDTO: GetListedProductDTO,
@@ -6801,7 +6863,11 @@ export class UserAuctionsService {
     return createdProduct.id;
   }
 
-  private async _updateProduct(productId: number, productBody: ProductDTO) {
+  private async _updateProduct(
+    productId: number,
+    productBody: ProductDTO,
+    isAuctionProduct?: boolean,
+  ) {
     const {
       title,
       model,
@@ -6872,6 +6938,10 @@ export class UserAuctionsService {
         where: { id: productId },
         data: {
           title,
+          isAuctionProduct,
+          ProductListingPrice: productBody.ProductListingPrice
+            ? Number(productBody.ProductListingPrice)
+            : undefined,
           categoryId: Number(categoryId),
           description,
           ...(age ? { age: Number(age) } : { age: null }),

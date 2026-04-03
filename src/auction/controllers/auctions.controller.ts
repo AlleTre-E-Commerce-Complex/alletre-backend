@@ -1139,6 +1139,7 @@ export class AuctionsController {
   async listOnlyProduct(
     @UploadedFiles() images: Array<Express.Multer.File>,
     @Body('product') productDTO: ProductDTO,
+    @Body('auctionId') auctionId: string,
     @Account() account: any,
   ) {
     console.log('product DAta :', productDTO);
@@ -1148,9 +1149,11 @@ export class AuctionsController {
         productDTO,
         images,
         account.id,
+        auctionId ? Number(auctionId) : undefined,
       ),
     };
   }
+
   @Get('/listedProducts/getAllListed-products')
   @UseGuards(AuthOrGuestGuard)
   async fetchAllListedProducts(
