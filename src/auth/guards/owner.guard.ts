@@ -11,17 +11,36 @@ export class OwnerGuard implements CanActivate {
 
     const userId = request.account?.id;
     const auctionId = request.params?.auctionId;
+    const isListing = request.query?.isListing === 'true';
     console.log('auctionId from OwnerGuard = :', auctionId);
-    // Check user with auctions authorization
-    const auction = await this.findAuctionByIdOr404(Number(auctionId));
+    console.log('isListing from OwnerGuard = :', isListing);
 
-    if (auction.userId !== Number(userId))
+    let item: any;
+    if (isListing) {
+      item = await this.findProductByIdOr404(Number(auctionId));
+    } else {
+      item = await this.findAuctionByIdOr404(Number(auctionId));
+    }
+
+    if (item.userId !== Number(userId))
       throw new ForbiddenResponse({
         ar: 'ليس لديك صلاحيات لهذا الاعلان',
         en: 'You have no authorization for accessing this resource',
       });
 
     return true;
+  }
+
+  private async findProductByIdOr404(productId: number) {
+    const product = await this.prismaService.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product)
+      throw new NotFoundResponse({
+        ar: 'هذا المنتج غير موجود',
+        en: 'Product Not Found',
+      });
+    return product;
   }
 
   private async findAuctionByIdOr404(auctionId: number) {
