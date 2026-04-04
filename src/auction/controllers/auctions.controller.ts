@@ -13,8 +13,6 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/guards/auth.guard';
 import { OwnerGuard } from '../../auth/guards/owner.guard';
