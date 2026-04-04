@@ -3,12 +3,10 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
-  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  Min,
   ValidateIf,
 } from 'class-validator';
 
@@ -21,9 +19,8 @@ export class ProductDTO {
   @IsString()
   model: string;
 
-  @IsNotEmpty()
   @Transform(({ value }): number => parseInt(value))
-  @IsNumber()
+  @IsNumber({}, { message: 'Please select a valid category' })
   categoryId: number;
 
   @IsOptional()
@@ -301,4 +298,13 @@ export class ProductDTO {
   @IsOptional()
   @IsString()
   commercialType: string;
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isListedProduct?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isAuction?: boolean;
 }

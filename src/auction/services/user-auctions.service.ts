@@ -51,7 +51,7 @@ import { AuctionComplaintsDTO } from '../dtos/auctionComplaints.dto';
 import { EmailSerivce } from 'src/emails/email.service';
 import { EmailsType } from 'src/auth/enums/emails-type.enum';
 import { addNewBankAccountDto } from '../dtos/addNewBankAccount.dto';
-import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
+// import { auctionCreationMessage } from 'src/notificatons/NotificationsContents/auctionCreationMessage';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { AuctionWebSocketGateway } from '../gateway/auction.gateway';
 import { generateInvoicePDF } from 'src/emails/invoice';
@@ -85,98 +85,101 @@ export class UserAuctionsService {
     isConvertProductToAuction?: boolean,
     product_Id?: number,
   ) {
-    const { type, durationUnit, startDate, product } = auctionCreationBody;
-    // Separate images and PDFs based on file extension
+    const { type, durationUnit, product } = auctionCreationBody;
     const images = files.filter((file) => file.mimetype.startsWith('image/'));
     const video = files.filter((file) => file.mimetype.startsWith('video/'));
-    const relatedDocuments = files.filter(
-      (file) => file.mimetype === 'application/pdf',
-    );
+
+    // Determine if this is a LISTED_PRODUCT or a regular AUCTION
+    const isListedProductSignal =
+      (type as any) === 'LISTED_PRODUCT' ||
+      product?.isListedProduct === true ||
+      (product?.ProductListingPrice && Number(product.ProductListingPrice) > 0);
 
     let productId: number;
     const user = await this.auctionsHelper._userHasCompleteProfile(userId);
     if (!isConvertProductToAuction) {
       const combinedfile = [...images, ...video];
-      console.log('AAAA', combinedfile.length);
       if (combinedfile.length < 3)
         throw new MethodNotAllowedResponse({
           ar: 'من فضلك قم برفع من ثلاث الي خمس صور',
           en: 'Please Upload From 3 To 5 Photos',
         });
 
-      // Check user can create auction (hasCompleteProfile)
+      const createProductStatus = isListedProductSignal ? 'LISTING' : 'AUCTION';
 
-      // Create Product
-      const createProductStatus = 'AUCTION';
       productId = await this._createProduct(
         product,
         files,
         createProductStatus,
+        userId,
       );
+
+      if (isListedProductSignal) {
+        // Additional logic for listed products if needed
+      }
     } else {
       productId = product_Id;
-      //update product status isAuctionProduct to true while converting the product to auction
       await this.prismaService.product.update({
-        where: {
-          id: productId,
-        },
-        data: {
-          isAuctionProduct: true,
-        },
+        where: { id: productId },
+        data: { isAuctionProduct: true },
       });
     }
-    // Create Auction
-    let auction: any;
-    switch (durationUnit) {
-      case DurationUnits.DAYS:
-        if (type === AuctionType.ON_TIME) {
-          // Create ON_TIME Daily auction
-          auction = await this._createOnTimeDailyAuction(
-            userId,
-            productId,
-            auctionCreationBody,
-          );
-        } else if (type === AuctionType.SCHEDULED) {
-          // Create Schedule Daily auction
-          auction = await this._createScheduleDailyAuction(
-            userId,
-            productId,
-            auctionCreationBody,
-          );
-        }
-        break;
 
-      case DurationUnits.HOURS:
-        if (type === AuctionType.ON_TIME) {
-          // Create ON_TIME hours auction
-          auction = await this._createOnTimeHoursAuction(
+    let auction: any;
+    if (isListedProductSignal) {
+      try {
+        auction = await this.prismaService.auction.create({
+          data: {
             userId,
             productId,
-            auctionCreationBody,
-          );
-        } else if (type === AuctionType.SCHEDULED) {
-          // Create Schedule hours auction
-          auction = await this._createScheduleHoursAuction(
-            userId,
-            productId,
-            auctionCreationBody,
-          );
-        }
-        break;
+            status: AuctionStatus.DRAFTED,
+            locationId: auctionCreationBody.locationId,
+          },
+          include: {
+            product: { include: { category: true } },
+          },
+        });
+      } catch (error) {
+        console.log('Error creating listing draft container:', error);
+        throw new MethodNotAllowedResponse({
+          ar: 'خطأ في حفظ المسودة',
+          en: 'Something went wrong while saving your draft',
+        });
+      }
+    } else {
+      switch (durationUnit) {
+        case DurationUnits.DAYS:
+          if (type === AuctionType.ON_TIME) {
+            auction = await this._createOnTimeDailyAuction(
+              userId,
+              productId,
+              auctionCreationBody,
+            );
+          } else if (type === AuctionType.SCHEDULED) {
+            auction = await this._createScheduleDailyAuction(
+              userId,
+              productId,
+              auctionCreationBody,
+            );
+          }
+          break;
+        case DurationUnits.HOURS:
+          if (type === AuctionType.ON_TIME) {
+            auction = await this._createOnTimeHoursAuction(
+              userId,
+              productId,
+              auctionCreationBody,
+            );
+          } else if (type === AuctionType.SCHEDULED) {
+            auction = await this._createScheduleHoursAuction(
+              userId,
+              productId,
+              auctionCreationBody,
+            );
+          }
+          break;
+      }
     }
-    // if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
-    //   if (auction.product.categoryId === 4 && auction.startBidAmount < 5000) {
-    //     await this.paymentService.publishAuction(auction.id, user.email);
-    //   } else {
-    //     this.logger.error(
-    //       `Payment creation failed for auction ID: ${auction.id}`,
-    //     );
-    //     throw new MethodNotAllowedResponse({
-    //       ar: 'حدث خطأ أثناء معالجة الدفع الخاص بالمزاد. يرجى المحاولة مرة أخرى أو التواصل مع فريق الدعم.',
-    //       en: 'An error occurred while processing the auction payment. Please try again or contact support.',
-    //     });
-    //   }
-    // }
 
     const specialCategories = [
       { categoryId: 4, maxPrice: 5000 },
@@ -185,10 +188,11 @@ export class UserAuctionsService {
 
     const matchedCategory = specialCategories.find(
       (rule) =>
+        auction &&
+        auction.product &&
         auction.product.categoryId === rule.categoryId &&
         auction.startBidAmount < rule.maxPrice,
     );
-    console.log('matchedCategory', matchedCategory);
     if (matchedCategory) {
       await this.paymentService.publishAuction(auction.id, user.email);
     }
@@ -201,63 +205,64 @@ export class UserAuctionsService {
     auctionUpdateBody: AuctionUpdateDTO,
     files?: Express.Multer.File[],
   ) {
-    // Separate images, video, pdfs as needed
-    const images =
-      files?.filter((file) => file.mimetype.startsWith('image/')) || [];
-    const video =
-      files?.filter((file) => file.mimetype.startsWith('video/')) || [];
-    const relatedDocuments =
-      files?.filter((file) => file.mimetype === 'application/pdf') || [];
+    const { startDate, durationUnit, product } = auctionUpdateBody;
 
-    // Optionally, validate permissions, check auction exists, etc.
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
-    });
-    if (!auction)
-      throw new MethodNotAllowedResponse({
-        ar: 'Auction not found',
-        en: 'Auction not found',
-      });
-
-    // Update product details as needed (if product is nested)
-    // Example: update product, then auction
-    await this._updateProduct(auction.productId, auctionUpdateBody.product);
-
-    // Update auction fields (adjust as needed)
-    const updatedAuction = await this.prismaService.auction.update({
-      where: { id: auctionId },
-      data: {
-        // ...map auctionUpdateBody fields here
-        // e.g., startDate: auctionUpdateBody.startDate,
-        // durationUnit: auctionUpdateBody.durationUnit,
-        // etc.
-      },
       include: { product: true },
     });
 
-    return updatedAuction;
+    if (!auction || auction.userId !== userId) {
+      throw new MethodNotAllowedResponse({
+        ar: 'المزاد غير موجود أو غير مصرح لك بتحديثه',
+        en: 'Auction not found or unauthorized',
+      });
+    }
+
+    if (product) {
+      await this._updateProduct(auction.productId, product);
+    }
+
+    return await this.prismaService.auction.update({
+      where: { id: auctionId },
+      data: {
+        ...(startDate ? { startDate: new Date(startDate) } : {}),
+        ...(durationUnit ? { durationUnit: durationUnit as any } : {}),
+      },
+      include: { product: { include: { images: true } } },
+    });
   }
+
   async createDraftAuction(
     userId: number,
     productDTO: ProductDTO,
     images: Express.Multer.File[],
-    // relatedDocuments : Express.Multer.File[],
   ) {
-    // Check user can create auction (hasCompleteProfile)
     await this.auctionsHelper._userHasCompleteProfile(userId);
+    const isListedProductSignal =
+      productDTO.isListedProduct === true ||
+      (productDTO.ProductListingPrice &&
+        Number(productDTO.ProductListingPrice) > 0) ||
+      productDTO.isAuction === false;
 
-    // Create Product
-    const productId = await this._createProduct(productDTO, images);
+    const createProductStatus = isListedProductSignal ? 'LISTING' : 'AUCTION';
+    const productId = await this._createProduct(
+      productDTO,
+      images,
+      createProductStatus,
+      userId,
+    );
 
-    // Create Auction
     return await this.prismaService.auction.create({
       data: {
         userId,
         productId,
         status: AuctionStatus.DRAFTED,
       },
+      include: { product: true },
     });
   }
+
   async updateAuctionForCancellationByAdmin(
     auctionId: number,
     adminMessage: string,
@@ -1635,14 +1640,24 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
+    const whereClauseForList: any = {
+      userId: userId,
+      ...(status ? { status: status } : {}),
+      product: { isAuctionProduct: true }, // Default to only auctions
+    };
+
+    if (type) {
+      if (type === 'LISTED_PRODUCT') {
+        whereClauseForList.product = { isAuctionProduct: false };
+      } else {
+        whereClauseForList.type = type as any;
+      }
+    }
+
     const userAuctions = await this.prismaService.auction.findMany({
       skip: skip,
       take: limit,
-      where: {
-        userId: userId,
-        ...(status ? { status: status } : {}),
-        ...(type ? { type } : {}),
-      },
+      where: whereClauseForList,
       include: {
         product: {
           include: {
@@ -1659,12 +1674,22 @@ export class UserAuctionsService {
       },
     });
 
+    const whereClause: any = {
+      userId: userId,
+      ...(status ? { status: status } : {}),
+      product: { isAuctionProduct: true }, // Default to only auctions
+    };
+
+    if (type) {
+      if (type === 'LISTED_PRODUCT') {
+        whereClause.product = { isAuctionProduct: false };
+      } else {
+        whereClause.type = type as any;
+      }
+    }
+
     const userOwensAuctionsCount = await this.prismaService.auction.count({
-      where: {
-        userId: userId,
-        ...(status ? { status: status } : {}),
-        ...(type ? { type } : {}),
-      },
+      where: whereClause,
     });
 
     const pagination = this.paginationService.getPagination(
@@ -1687,14 +1712,24 @@ export class UserAuctionsService {
       Number(perPage),
     );
 
+    const whereClause: any = {
+      userId: userId,
+      status: status ? status : { in: ['ACTIVE', 'IN_SCHEDULED'] },
+      product: { isAuctionProduct: true }, // Default to only auctions
+    };
+
+    if (type) {
+      if (type === 'LISTED_PRODUCT') {
+        whereClause.product = { isAuctionProduct: false };
+      } else {
+        whereClause.type = type as any;
+      }
+    }
+
     const userAuctions = await this.prismaService.auction.findMany({
       skip: skip,
       take: limit,
-      where: {
-        userId: userId,
-        status: { in: ['ACTIVE', 'IN_SCHEDULED'] },
-        ...(type ? { type } : {}),
-      },
+      where: whereClause,
       include: {
         product: {
           select: {
@@ -1714,11 +1749,7 @@ export class UserAuctionsService {
     });
 
     const userOwensAuctionsCount = await this.prismaService.auction.count({
-      where: {
-        userId: userId,
-        ...(status ? { status: status } : {}),
-        ...(type ? { type } : {}),
-      },
+      where: whereClause,
     });
 
     const pagination = this.paginationService.getPagination(
@@ -1731,10 +1762,12 @@ export class UserAuctionsService {
   }
 
   async findAuctionsAnalyticsForOwner(userId: number) {
-    const count = await this.prismaService.auction.count({ where: { userId } });
+    const count = await this.prismaService.auction.count({
+      where: { userId, product: { isAuctionProduct: true } },
+    });
     const auctionsGrouping = await this.prismaService.auction.groupBy({
       by: ['status'],
-      where: { userId },
+      where: { userId, product: { isAuctionProduct: true } },
       _count: { status: true },
     });
 
@@ -5522,7 +5555,7 @@ export class UserAuctionsService {
         }
 
         productId = auctionDraft.productId;
-        // Update the existing product with the new data and set isAuctionProduct to false
+        // Update the existing product with the new data and set isAuctionProduct to false for listings
         await this._updateProduct(productId, productData, false);
 
         // Upload and link new images if provided
@@ -6754,6 +6787,7 @@ export class UserAuctionsService {
       numberOfCylinders,
       driverAssistance,
       entertainment,
+      comfort,
       exteriorFeatures,
       emirate,
       numberOfBathrooms,

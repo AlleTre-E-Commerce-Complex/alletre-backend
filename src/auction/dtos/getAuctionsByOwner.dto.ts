@@ -25,6 +25,6 @@ export class GetAuctionsByOwnerDTO {
   status: AuctionStatus;
 
   @IsOptional()
-  @IsIn(Object.keys(AuctionType))
-  type: AuctionType;
+  @IsIn([...Object.keys(AuctionType), 'LISTED_PRODUCT'])
+  type: string;
 }
