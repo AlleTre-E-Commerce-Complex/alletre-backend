@@ -494,7 +494,11 @@ The <b>Alletre</b> Team
     body?: any,
     userName?: string,
   ) {
-    if (process.env.ENABLE_EMAILS === 'false') {
+    const isBypassed =
+      emailType === EmailsType.VERIFICATION ||
+      emailType === EmailsType.RESET_PASSWORD;
+
+    if (process.env.ENABLE_EMAILS === 'false' && !isBypassed) {
       return;
     }
     const mailOptions = this.mailOptionsGenerator(

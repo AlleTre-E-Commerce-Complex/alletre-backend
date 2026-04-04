@@ -150,7 +150,7 @@ export class NotificationsService {
             },
             data: {
               auctionId: notification.auctionId.toString(),
-              url: `/alletre/home/${notification.auctionId}/details`,
+              url: `/3arbon/home/${notification.auctionId}/details`,
               imageLink: notification.imageLink,
               productTitle: notification.productTitle,
             },
@@ -292,7 +292,7 @@ export class NotificationsService {
               },
               data: {
                 auctionId: auctionId.toString(),
-                url: `/alletre/home/${auctionId}/details`,
+                url: `/3arbon/home/${auctionId}/details`,
                 imageLink,
                 productTitle,
               },
