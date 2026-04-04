@@ -878,10 +878,12 @@ export class AuctionsController {
   async deleteAuctionPhoto(
     @Param('auctionId', ParseIntPipe) auctionId: number,
     @Query('imageId', ParseIntPipe) imageId: number,
+    @Query('isListing') isListing: boolean,
   ) {
     const deletedImage = await this.userAuctionsService.deleteAuctionImage(
       auctionId,
       imageId,
+      isListing,
     );
     return {
       success: true,
@@ -902,13 +904,13 @@ export class AuctionsController {
     @Query('isListing') isListing: boolean,
   ) {
     console.log('[IMPORTANT] images===>', image);
-    await this.userAuctionsService.uploadImageForAuction(
-      auctionId,
-      image,
-      isListing,
-    );
     return {
       success: true,
+      data: await this.userAuctionsService.uploadImageForAuction(
+        auctionId,
+        image,
+        isListing,
+      ),
     };
   }
 

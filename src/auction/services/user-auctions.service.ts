@@ -6335,10 +6335,28 @@ export class UserAuctionsService {
     return auction;
   }
 
-  async deleteAuctionImage(auctionId: number, imageId: number) {
-    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+  async deleteAuctionImage(
+    auctionId: number,
+    imageId: number,
+    isListing: boolean | string,
+  ) {
+    const isListingBool = isListing === true || isListing === 'true';
 
-    await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
+    if (isListingBool) {
+      // For listed products, auctionId is actually the productId
+      const image = await this.prismaService.image.findUnique({
+        where: { id: imageId },
+      });
+      if (!image || image.productId !== auctionId) {
+        throw new NotFoundException({
+          ar: 'الصورة غير موجودة أو غير مرتبطة بهذا المنتج',
+          en: 'Image not found or not related to this product',
+        });
+      }
+    } else {
+      await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+      await this.auctionsHelper._isImageRelatedToAuction(auctionId, imageId);
+    }
     try {
       return await this.prismaService.image.delete({ where: { id: imageId } });
     } catch (error) {
@@ -6352,21 +6370,53 @@ export class UserAuctionsService {
   async uploadImageForAuction(
     auctionId: number,
     image: Express.Multer.File,
-    isListing: boolean,
+    isListing: boolean | string,
   ) {
-    // Check auction validation for update
-    await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
-    const auction = await this.prismaService.auction.findUnique({
-      where: { id: auctionId },
-      include: { product: { include: { images: true } } },
-    });
+    let productId: number;
+    const isListingBool = isListing === true || isListing === 'true';
 
-    // Check auction images validation
-    if (auction.product.images.length >= 50)
-      throw new MethodNotAllowedResponse({
-        ar: 'لا يمكنك إضافة الصورة',
-        en: 'You Can Not Upload Image, You have been uploaded 50 images',
+    if (isListingBool) {
+      // For listed products, auctionId is actually the productId
+      const product = await this.prismaService.product.findUnique({
+        where: { id: auctionId },
+        include: { images: true },
       });
+      if (!product) {
+        throw new NotFoundException({
+          ar: 'المنتج غير موجود',
+          en: 'Product not found',
+        });
+      }
+      if (product.images.length >= 50) {
+        throw new MethodNotAllowedResponse({
+          ar: 'لا يمكنك إضافة الصورة',
+          en: 'You cannot upload more than 50 images',
+        });
+      }
+      productId = product.id;
+    } else {
+      // Check auction validation for update
+      await this.auctionsHelper._isAuctionValidForUpdate(auctionId);
+      const auction = await this.prismaService.auction.findUnique({
+        where: { id: auctionId },
+        include: { product: { include: { images: true } } },
+      });
+
+      if (!auction) {
+        throw new NotFoundException({
+          ar: 'المزاد غير موجود',
+          en: 'Auction not found',
+        });
+      }
+
+      // Check auction images validation
+      if (auction.product.images.length >= 50)
+        throw new MethodNotAllowedResponse({
+          ar: 'لا يمكنك إضافة الصورة',
+          en: 'You Can Not Upload Image, You have been uploaded 50 images',
+        });
+      productId = auction.productId;
+    }
 
     try {
       // Upload Image to firebase
@@ -6374,13 +6424,14 @@ export class UserAuctionsService {
         image,
       );
       // Upload new image
-      await this.prismaService.image.create({
+      const newImage = await this.prismaService.image.create({
         data: {
           imageLink: fileLink,
           imagePath: filePath,
-          productId: isListing ? auction.id : auction.productId,
+          productId: productId,
         },
       });
+      return newImage;
     } catch (error) {
       throw new MethodNotAllowedResponse({
         ar: 'خطأ في عملية رفع الصورة',
