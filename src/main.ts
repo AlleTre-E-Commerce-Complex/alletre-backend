@@ -81,7 +81,12 @@ async function bootstrap() {
   app.useGlobalFilters(new ForbiddenExceptionFilter());
   app.useGlobalFilters(new UnauthorizedExceptionFilter());
   app.useGlobalFilters(new BadRequestExceptionFilter());
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      stopAtFirstError: true,
+    }),
+  );
 
   app.setGlobalPrefix('api/');
   app.useLogger(app.get(Logger));
