@@ -260,15 +260,24 @@ export class UserController {
   }
 
   @Get('/updateUserBlockStatus')
-  @Patch('/updateUserBlockStatus')
   @UseGuards(AuthGuard)
+  async getBlockStatus(@Account() account: any) {
+    const user = await this.userService.findUserByIdOr404(Number(account.id));
+    return {
+      success: true,
+      data: { isBlocked: user.isBlocked },
+    };
+  }
+
+  @Patch('/updateUserBlockStatus')
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.User)
   async blockOrDeleteUserAccount(
     @Account() account: any,
     @Query('currentStatus') currentStatus: boolean,
   ) {
     const data = await this.userService.updateBlockStatus(
-      account.id,
+      Number(account.id),
       currentStatus,
     );
 
