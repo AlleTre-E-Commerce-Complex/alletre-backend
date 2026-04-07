@@ -12,6 +12,11 @@ export class UpdatePersonalInfoDTO {
   userName: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber(undefined, {
+    message: JSON.stringify({
+      en: 'Invalid phone number',
+      ar: 'رقم الجوال غير صحيح',
+    }),
+  })
   phone: string;
 }
