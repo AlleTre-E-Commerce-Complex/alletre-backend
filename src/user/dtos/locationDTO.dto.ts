@@ -31,7 +31,12 @@ export class LocationDTO {
   zipCode: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber(undefined, {
+    message: JSON.stringify({
+      en: 'Invalid phone number',
+      ar: 'رقم الجوال غير صحيح',
+    }),
+  })
   phone: string;
 
   @IsOptional()
