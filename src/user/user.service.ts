@@ -38,7 +38,7 @@ export class UserService {
     const isEmailExist = await this.findUserByEmail(email);
     if (isEmailExist)
       throw new BadRequestException({
-        message: 'Email is already exist',
+        message: 'Email is already registered',
         ar: 'البريد الالكتروني مسجل من قبل',
       });
 
@@ -46,8 +46,8 @@ export class UserService {
     const isPhoneExist = await this.findUserByPhone(phone);
     if (isPhoneExist)
       throw new BadRequestException({
-        message: 'Phone is already exist',
-        ar: 'الهاتف مسجل من قبل',
+        message: 'Phone number is already registered',
+        ar: 'رقم الهاتف مسجل من قبل',
       });
 
     // Create User
@@ -825,8 +825,8 @@ export class UserService {
       if (isEmailExist) {
         if (isEmailExist.isActive) {
           throw new MethodNotAllowedResponse({
-            ar: 'البريد الالكتروني مسجل من قبل',
-            en: 'Email is already exist',
+            ar: 'البريد الإلكتروني مسجل بالفعل',
+            en: 'Email is already registered',
           });
         } else {
           return await this.prismaService.subscribedUser.update({

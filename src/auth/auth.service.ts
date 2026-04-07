@@ -117,8 +117,8 @@ export class AuthService {
       };
     } catch (error) {
       console.log('111', error);
-      if (error instanceof UnauthorizedException) throw error;
-      throw new HttpException(error.response, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -320,8 +320,8 @@ export class AuthService {
       });
     } catch (error) {
       throw new ForbiddenResponse({
-        en: 'Your session for update your credentials has expired,Please try again',
-        ar: 'انتهي الوقت المسموح لتعديل بيانات السرية ',
+        en: 'Your password reset link has expired. Please request a new one.',
+        ar: 'انتهت صلاحية رابط إعادة تعيين كلمة المرور. يرجى طلب رابط جديد.',
       });
     }
 
@@ -464,7 +464,7 @@ export class AuthService {
       />
             <div class="modal-body">
               <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
-              <a href=${process.env.FRONT_URL}/alletre/home?page=1&perPage=24&productPage=1&auctionPage=1&isLoginModal=true>Login </a>
+              <a href="${process.env.FRONT_URL}/home?isLoginModal=true">Login </a>
             </div>
           </div>
         </body>
@@ -528,7 +528,7 @@ export class AuthService {
       />
             <div class="modal-body">
               <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verification Failed</h1>
-              <a href=${process.env.FRONT_URL}>Try Again</a>
+              <a href="${process.env.FRONT_URL}">Try Again</a>
             </div>
           </div>
         </body>
