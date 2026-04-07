@@ -1,7 +1,6 @@
 // src/notifications.child.ts
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as admin from 'firebase-admin';
-import { Message } from 'firebase-admin/messaging';
 
 let prismaService: PrismaService;
 
@@ -88,7 +87,7 @@ async function sendNotifications(
           },
           data: {
             auctionId: auctionId.toString(),
-            url: `/alletre/home/${auctionId}/details`,
+            url: `/home/${auctionId}/details`,
             imageLink,
             productTitle,
           },

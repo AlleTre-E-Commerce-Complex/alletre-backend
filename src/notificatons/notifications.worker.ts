@@ -57,7 +57,7 @@ async function sendNotifications(
     //     },
     //     data: {
     //       auctionId: auctionId.toString(),
-    //       url: `/alletre/home/${auctionId}/details`,
+    //       url: `/home/${auctionId}/details`,
     //       imageLink,
     //       productTitle,
     //     },

@@ -214,9 +214,7 @@ export class EmailBatchService {
 
         <div style="text-align: center;">
           <a
-            href=" https://www.alletre.com/alletre/home/${
-              updatedAuction.id
-            }/details"
+            href=" ${process.env.FRONT_URL}/home/${updatedAuction.id}/details"
             style="
               display: inline-block;
               padding: 12px 20px;
@@ -525,9 +523,9 @@ The <b>Alletre</b> Team
 
         <div style="text-align: center;">
           <a
-            href=" https://www.alletre.com/alletre/home/${
-              updatedListedProduct.id
-            }/details"
+            href=" ${process.env.FRONT_URL}/home/${
+      updatedListedProduct.id
+    }/details"
             style="
               display: inline-block;
               padding: 12px 20px;
