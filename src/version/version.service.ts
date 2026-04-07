@@ -15,11 +15,11 @@ export class AppVersionService {
     const [latest, minSupported] = await Promise.all([
       this.prisma.appVersion.findFirst({
         where: { platform, isLatest: true },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.appVersion.findFirst({
         where: { platform, isMinSupported: true },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
     ]);
 
@@ -36,7 +36,7 @@ export class AppVersionService {
       latestVersion,
       minSupportedVersion: minVersion,
       releaseNotes: latest?.releaseNotes ?? '',
-      downloadUrl: latest?.downloadUrl ?? ''
+      downloadUrl: latest?.downloadUrl ?? '',
     };
   }
 
@@ -132,10 +132,14 @@ export class AppVersionService {
     });
   }
 
-  async getLatest(platform: 'ios' | 'android', _AndroidAppUpdateURL, _IOSAppUpdateURL) {
+  async getLatest(
+    platform: 'ios' | 'android',
+    androidAppUpdateURL?: string,
+    iosAppUpdateURL?: string,
+  ) {
     try {
       const latestIos = await this.prisma.appVersion.findFirst({
-        where: { platform: 'ios'},
+        where: { platform: 'ios' },
         orderBy: { createdAt: 'desc' },
       });
       const latestAndroid = await this.prisma.appVersion.findFirst({
@@ -143,13 +147,13 @@ export class AppVersionService {
         orderBy: { createdAt: 'desc' },
       });
       return {
-        LatestAndroidVersion :  latestAndroid.version,
-        LatestIOSVersion : latestIos.version,
-        IOSAppUpdateURL : _AndroidAppUpdateURL? _AndroidAppUpdateURL : latestIos.downloadUrl,
-        AndroidAppUpdateURL : _IOSAppUpdateURL? _IOSAppUpdateURL : latestAndroid.downloadUrl,
+        LatestAndroidVersion: latestAndroid.version,
+        LatestIOSVersion: latestIos.version,
+        IOSAppUpdateURL: iosAppUpdateURL ?? latestIos.downloadUrl,
+        AndroidAppUpdateURL: androidAppUpdateURL ?? latestAndroid.downloadUrl,
       };
     } catch (error) {
-      throw new NotFoundException('No version info found')
+      throw new NotFoundException('No version info found');
     }
   }
 }
