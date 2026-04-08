@@ -81,6 +81,12 @@ export class WatchListService {
             startBidAmount: true,
             startDate: true,
             locationId: true,
+            location: {
+              select: {
+                city: { select: { nameEn: true, nameAr: true } },
+                country: { select: { nameEn: true, nameAr: true } },
+              },
+            },
             product: {
               select: {
                 id: true,
@@ -109,6 +115,8 @@ export class WatchListService {
             images: true,
             ProductListingPrice: true,
             usageStatus: true,
+            city: { select: { nameEn: true, nameAr: true } },
+            country: { select: { nameEn: true, nameAr: true } },
             listedProducts: {
               select: {
                 id: true,
