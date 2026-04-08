@@ -136,9 +136,37 @@ export class UserAuctionsService {
             locationId: auctionCreationBody.locationId,
           },
           include: {
-            product: { include: { category: true } },
+            product: { include: { category: true, images: true } },
           },
         });
+
+        // Send notification for draft
+        try {
+          const notificationMessage = `Your product "${auction.product.title}" has been saved as a draft.`;
+          const notificationData = {
+            usersId: userId,
+            message: notificationMessage,
+            imageLink: auction.product.images[0]?.imageLink,
+            productTitle: auction.product.title,
+            productId: auction.productId,
+          };
+
+          await this.prismaService.notification.create({
+            data: {
+              userId: notificationData.usersId,
+              message: notificationData.message,
+              imageLink: notificationData.imageLink,
+              productTitle: notificationData.productTitle,
+              productId: notificationData.productId,
+            },
+          });
+
+          this.notificationService.sendNotificationToSpecificUsers(
+            notificationData,
+          );
+        } catch (error) {
+          console.error('Error sending listing draft notification:', error);
+        }
       } catch (error) {
         console.log('Error creating listing draft container:', error);
         throw new MethodNotAllowedResponse({
@@ -253,14 +281,50 @@ export class UserAuctionsService {
       userId,
     );
 
-    return await this.prismaService.auction.create({
+    const draftAuction = await this.prismaService.auction.create({
       data: {
         userId,
         productId,
         status: AuctionStatus.DRAFTED,
       },
-      include: { product: true },
+      include: {
+        product: {
+          include: {
+            images: true,
+          },
+        },
+      },
     });
+
+    // Send notification
+    try {
+      const notificationMessage = `Your product "${draftAuction.product.title}" has been saved as a draft.`;
+      const notificationData = {
+        usersId: userId,
+        message: notificationMessage,
+        imageLink: draftAuction.product.images[0]?.imageLink,
+        productTitle: draftAuction.product.title,
+        productId: draftAuction.productId,
+      };
+
+      await this.prismaService.notification.create({
+        data: {
+          userId: notificationData.usersId,
+          message: notificationData.message,
+          imageLink: notificationData.imageLink,
+          productTitle: notificationData.productTitle,
+          productId: notificationData.productId,
+        },
+      });
+
+      this.notificationService.sendNotificationToSpecificUsers(
+        notificationData,
+      );
+    } catch (error) {
+      console.error('Error sending draft creation notification:', error);
+    }
+
+    return draftAuction;
   }
 
   async updateAuctionForCancellationByAdmin(
@@ -5613,7 +5677,43 @@ export class UserAuctionsService {
           ProductListingPrice: productData.ProductListingPrice,
           locationId: productData.locationId,
         },
+        include: {
+          product: {
+            include: {
+              images: true,
+            },
+          },
+        },
       });
+
+      // Send notification
+      try {
+        const notificationMessage = `Your product "${newListedProduct.product.title}" has been successfully listed.`;
+        const notificationData = {
+          usersId: userId,
+          message: notificationMessage,
+          imageLink: newListedProduct.product.images[0]?.imageLink,
+          productTitle: newListedProduct.product.title,
+          productId: newListedProduct.product.id,
+        };
+
+        await this.prismaService.notification.create({
+          data: {
+            userId: notificationData.usersId,
+            message: notificationData.message,
+            imageLink: notificationData.imageLink,
+            productTitle: notificationData.productTitle,
+            productId: notificationData.productId,
+          },
+        });
+
+        this.notificationService.sendNotificationToSpecificUsers(
+          notificationData,
+        );
+      } catch (error) {
+        console.error('Error sending product creation notification:', error);
+      }
+
       return newListedProduct;
     } catch (error) {
       console.error('list new procuct error :', error);
@@ -6173,6 +6273,34 @@ export class UserAuctionsService {
         },
       );
 
+      // Send notification
+      try {
+        const notificationMessage = `Your product "${updatedProduct.title}" has been successfully updated.`;
+        const notificationData = {
+          usersId: userId,
+          message: notificationMessage,
+          imageLink: updatedProduct.images[0]?.imageLink,
+          productTitle: updatedProduct.title,
+          productId: updatedProduct.id,
+        };
+
+        await this.prismaService.notification.create({
+          data: {
+            userId: notificationData.usersId,
+            message: notificationData.message,
+            imageLink: notificationData.imageLink,
+            productTitle: notificationData.productTitle,
+            productId: notificationData.productId,
+          },
+        });
+
+        this.notificationService.sendNotificationToSpecificUsers(
+          notificationData,
+        );
+      } catch (error) {
+        console.error('Error sending product update notification:', error);
+      }
+
       return updatedProduct;
     } catch (error) {
       console.error('Update listed product error:', error);
@@ -6197,6 +6325,53 @@ export class UserAuctionsService {
           ar: 'لقد حدث خطأ ما أثناء إضافة منتجك',
           en: 'Something Went Wrong While Fetching a Products',
         });
+      }
+
+      // Send notification
+      try {
+        const productWithDetails =
+          await this.prismaService.listedProducts.findUnique({
+            where: { id: id },
+            include: {
+              product: {
+                include: {
+                  images: true,
+                },
+              },
+            },
+          });
+
+        if (productWithDetails) {
+          const notificationMessage = `The status of your product "${
+            productWithDetails.product.title
+          }" has been changed to ${status.replace('_', ' ')}.`;
+          const notificationData = {
+            usersId: productWithDetails.userId,
+            message: notificationMessage,
+            imageLink: productWithDetails.product.images[0]?.imageLink,
+            productTitle: productWithDetails.product.title,
+            productId: productWithDetails.productId,
+          };
+
+          await this.prismaService.notification.create({
+            data: {
+              userId: notificationData.usersId,
+              message: notificationData.message,
+              imageLink: notificationData.imageLink,
+              productTitle: notificationData.productTitle,
+              productId: notificationData.productId,
+            },
+          });
+
+          this.notificationService.sendNotificationToSpecificUsers(
+            notificationData,
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Error sending product status change notification:',
+          error,
+        );
       }
 
       return updatedProduct;
