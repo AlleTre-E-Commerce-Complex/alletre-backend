@@ -111,6 +111,11 @@ export class NotificationsService {
               status: true,
             },
           },
+          product: {
+            select: {
+              title: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'asc',
@@ -149,8 +154,15 @@ export class NotificationsService {
               body: notification.message,
             },
             data: {
-              auctionId: notification.auctionId.toString(),
-              url: `/3arbon/home/${notification.auctionId}/details`,
+              ...(notification.auctionId
+                ? { auctionId: notification.auctionId.toString() }
+                : {}),
+              ...(notification.productId
+                ? { productId: notification.productId.toString() }
+                : {}),
+              url: notification.productId
+                ? `/listedProducts/${notification.productId}/details`
+                : `/3arbon/home/${notification.auctionId}/details`,
               imageLink: notification.imageLink,
               productTitle: notification.productTitle,
             },
@@ -213,8 +225,9 @@ export class NotificationsService {
     message: string,
     imageLink: string,
     productTitle: string,
-    auctionId: number,
+    auctionId?: number,
     isBidders?: boolean,
+    productId?: number,
   ) {
     try {
       const batchSize = 100;
@@ -230,6 +243,7 @@ export class NotificationsService {
           imageLink,
           productTitle,
           auctionId,
+          productId,
         };
         this.notificationGateway.sendNotificationToAll(notification);
       } else {
@@ -241,6 +255,7 @@ export class NotificationsService {
           imageLink,
           productTitle,
           auctionId,
+          productId,
         };
         this.notificationGateway.sendNotificationToAll(notification);
       }
@@ -259,6 +274,7 @@ export class NotificationsService {
                 imageLink,
                 productTitle,
                 auctionId,
+                productId,
               })),
             });
 
@@ -291,8 +307,11 @@ export class NotificationsService {
                 body: message,
               },
               data: {
-                auctionId: auctionId.toString(),
-                url: `/3arbon/home/${auctionId}/details`,
+                ...(auctionId ? { auctionId: auctionId.toString() } : {}),
+                ...(productId ? { productId: productId.toString() } : {}),
+                url: productId
+                  ? `/listedProducts/${productId}/details`
+                  : `/3arbon/home/${auctionId}/details`,
                 imageLink,
                 productTitle,
               },

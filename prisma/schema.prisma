@@ -283,6 +283,7 @@ model Product {
   country             Country?        @relation(fields: [countryId], references: [id])
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
+  notifications       Notification[]
 }
 
 model Image {
@@ -522,11 +523,13 @@ model Notification {
   productTitle String?
   imageLink    String?
   auctionId    Int?
+  productId    Int?
   isRead       Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
   user         User     @relation(fields: [userId], references: [id])
   auction      Auction? @relation(fields: [auctionId], references: [id])
+  product      Product? @relation(fields: [productId], references: [id])
 
   @@index([userId])
 }
