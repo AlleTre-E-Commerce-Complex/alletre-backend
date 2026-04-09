@@ -66,7 +66,12 @@ export class AuctionsController {
   //     dest: 'uploads/',
   //   }),
   // )
-  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   async publishAuctionController(
     @Account() account: any,
     @Body() auctionCreationDTO: AuctionCreationDTO,
@@ -235,7 +240,12 @@ export class AuctionsController {
 
   @Put('user/:auctionId/update')
   @UseGuards(AuthGuard)
-  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   async updateAuctionController(
     @Account() account: any,
     @Param('auctionId', ParseIntPipe) auctionId: number,
@@ -255,7 +265,12 @@ export class AuctionsController {
 
   @Put('listedProducts/:productId/update')
   @UseGuards(AuthGuard)
-  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   async updateListedProductController(
     @Account() account: any,
     @Param('productId', ParseIntPipe) productId: number,
@@ -278,6 +293,7 @@ export class AuctionsController {
   @UseInterceptors(
     FilesInterceptor('images', 5, {
       dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
     }),
   )
   async convertListToAuction(
@@ -307,7 +323,12 @@ export class AuctionsController {
   //     dest: 'uploads/',
   //   }),
   // )
-  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   async saveAuctionAsDraftController(
     @Account() account: any,
     @Body() productDTO: ProductDTO,
@@ -610,7 +631,12 @@ export class AuctionsController {
   }
 
   @Post('/user/pay-by-banck/upload-bank-statement')
-  @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   // @UseInterceptors(FileInterceptor('image', { dest: 'uploads/' }))
   @UseGuards(AuthGuard)
   async uploadBankStatement(
@@ -895,6 +921,7 @@ export class AuctionsController {
   @UseInterceptors(
     FileInterceptor('image', {
       dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
     }),
   )
   @UseGuards(AuthGuard, OwnerGuard)

@@ -8,13 +8,17 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { BadRequestExceptionFilter } from './common/filters/badrequestException.filter';
 import { PrismaService } from './prisma/prisma.service';
 import * as cookieParser from 'cookie-parser';
-import { Express } from 'express';
+import { json, urlencoded, Express } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
     rawBody: true,
   });
+
+  // Increase payload limits
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
   // const allowedOrigins =
   //   process.env.NODE_ENV === 'production'
   //     ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
