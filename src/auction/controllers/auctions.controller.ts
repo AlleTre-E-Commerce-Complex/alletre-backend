@@ -238,7 +238,7 @@ export class AuctionsController {
   @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async updateAuctionController(
     @Account() account: any,
-    @Param('auctionId') auctionId: number,
+    @Param('auctionId', ParseIntPipe) auctionId: number,
     @Body() auctionUpdateDTO: AuctionUpdateDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
@@ -258,7 +258,7 @@ export class AuctionsController {
   @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async updateListedProductController(
     @Account() account: any,
-    @Param('productId') productId: number,
+    @Param('productId', ParseIntPipe) productId: number,
     @Body() productUpdateDTO: ProductUpdateDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {

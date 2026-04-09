@@ -1174,6 +1174,29 @@ async function main() {
       },
     },
   });
+
+  // Seed App Version Information
+  await prisma.appVersion.createMany({
+    data: [
+      {
+        platform: 'ios',
+        version: '2.0.1',
+        isLatest: true,
+        isMinSupported: true,
+        releaseNotes: 'Initial Release',
+        downloadUrl: 'https://apps.apple.com/in/app/3arbon/id6745817658',
+      },
+      {
+        platform: 'android',
+        version: '2.0.0',
+        isLatest: true,
+        isMinSupported: true,
+        releaseNotes: 'Initial Release',
+        downloadUrl:
+          'https://play.google.com/store/apps/details?id=com.alletre.app',
+      },
+    ],
+  });
 }
 
 main()
