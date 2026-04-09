@@ -6214,18 +6214,19 @@ export class UserAuctionsService {
       });
 
       if (!existingProduct) {
+        console.log(
+          '[updateListedProductDetails] Product not found or unauthorized. userId:',
+          userId,
+          'productId:',
+          productId,
+        );
         throw new MethodNotAllowedResponse({
           ar: 'المنتج غير موجود أو غير مصرح لك بتحديثه',
           en: 'Product not found or you are not authorized to update it',
         });
       }
 
-      if (!existingProduct.listedProducts) {
-        throw new MethodNotAllowedResponse({
-          ar: 'هذا المنتج غير مدرج للبيع',
-          en: 'This product is not listed for sale',
-        });
-      }
+      // Removed strict check for existingProduct.listedProducts to allow editing/uploading drafts
 
       // Process images if provided
       const images =
@@ -6250,6 +6251,41 @@ export class UserAuctionsService {
             productUpdateDTO,
           );
 
+          // Ensure ListedProducts record exists (Publish draft if needed)
+          const listedProduct = await prisma.listedProducts.findUnique({
+            where: { productId: productId },
+          });
+
+          if (!listedProduct) {
+            console.log(
+              '[updateListedProductDetails] Creating missing ListedProducts record for draft. productId:',
+              productId,
+            );
+            await prisma.listedProducts.create({
+              data: {
+                productId: productId,
+                userId: userId,
+                ProductListingPrice:
+                  productUpdateDTO.ProductListingPrice ||
+                  updated.ProductListingPrice ||
+                  0,
+                locationId: productUpdateDTO.locationId || null,
+              },
+            });
+          } else {
+            // Update existing listing specific fields if provided
+            await prisma.listedProducts.update({
+              where: { productId: productId },
+              data: {
+                ProductListingPrice:
+                  productUpdateDTO.ProductListingPrice ||
+                  listedProduct.ProductListingPrice,
+                locationId:
+                  productUpdateDTO.locationId || listedProduct.locationId,
+              },
+            });
+          }
+
           // Create new image records if any
           if (imageUrls.length > 0) {
             await Promise.all(
@@ -6265,7 +6301,7 @@ export class UserAuctionsService {
             );
           }
 
-          // Get the updated product directly from the update result
+          // Get the updated product directly from the result
           return updated;
         },
         {

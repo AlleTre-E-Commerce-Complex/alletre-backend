@@ -137,23 +137,26 @@ export class AppVersionService {
     androidAppUpdateURL?: string,
     iosAppUpdateURL?: string,
   ) {
-    try {
-      const latestIos = await this.prisma.appVersion.findFirst({
-        where: { platform: 'ios' },
-        orderBy: { createdAt: 'desc' },
-      });
-      const latestAndroid = await this.prisma.appVersion.findFirst({
-        where: { platform: 'android' },
-        orderBy: { createdAt: 'desc' },
-      });
-      return {
-        LatestAndroidVersion: latestAndroid.version,
-        LatestIOSVersion: latestIos.version,
-        IOSAppUpdateURL: iosAppUpdateURL ?? latestIos.downloadUrl,
-        AndroidAppUpdateURL: androidAppUpdateURL ?? latestAndroid.downloadUrl,
-      };
-    } catch (error) {
-      throw new NotFoundException('No version info found');
-    }
+    const latestIos = await this.prisma.appVersion.findFirst({
+      where: { platform: 'ios' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const latestAndroid = await this.prisma.appVersion.findFirst({
+      where: { platform: 'android' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      LatestAndroidVersion: latestAndroid?.version ?? '2.0.0',
+      LatestIOSVersion: latestIos?.version ?? '2.0.1',
+      IOSAppUpdateURL:
+        iosAppUpdateURL ??
+        latestIos?.downloadUrl ??
+        'https://apps.apple.com/in/app/3arbon/id6745817658',
+      AndroidAppUpdateURL:
+        androidAppUpdateURL ??
+        latestAndroid?.downloadUrl ??
+        'https://play.google.com/store/apps/details?id=com.alletre.app',
+    };
   }
 }
