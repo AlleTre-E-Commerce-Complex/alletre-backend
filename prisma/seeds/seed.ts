@@ -1054,6 +1054,7 @@ async function main() {
     data: {
       nameAr: 'المملكة العربية السعودية',
       nameEn: 'Saudi Arabia',
+      currency: 'SAR',
       cities: {
         create: [
           { nameAr: 'الرياض', nameEn: 'Riyadh' },
@@ -1082,6 +1083,7 @@ async function main() {
     data: {
       nameAr: 'قطر',
       nameEn: 'Qatar',
+      currency: 'QAR',
       cities: {
         create: [
           { nameAr: 'الدوحة', nameEn: 'Doha' },
@@ -1104,6 +1106,7 @@ async function main() {
     data: {
       nameAr: 'الكويت',
       nameEn: 'Kuwait',
+      currency: 'KWD',
       cities: {
         create: [
           { nameAr: 'مدينة الكويت', nameEn: 'Kuwait City' },
@@ -1126,6 +1129,7 @@ async function main() {
     data: {
       nameAr: 'عمان',
       nameEn: 'Oman',
+      currency: 'OMR',
       cities: {
         create: [
           { nameAr: 'مسقط', nameEn: 'Muscat' },
@@ -1152,6 +1156,7 @@ async function main() {
     data: {
       nameAr: 'البحرين',
       nameEn: 'Bahrain',
+      currency: 'BHD',
       cities: {
         create: [
           { nameAr: 'المنامة', nameEn: 'Manama' },
