@@ -28,7 +28,7 @@ export class AppVersionService {
     }
 
     // fallback: if one missing, use the other
-    const latestVersion = latest?.version ?? minSupported!.version;
+    const latestVersion = latest?.version ?? minSupported?.version;
     const minVersion = minSupported?.version ?? latestVersion;
 
     return {
