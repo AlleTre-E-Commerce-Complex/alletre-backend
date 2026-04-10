@@ -5738,11 +5738,17 @@ export class UserAuctionsService {
         perPage = 10,
         priceFrom,
         priceTo,
-        status = 'IN_PROGRESS',
+        status,
         isHome,
         sortBy,
         sortOrder = 'desc',
       } = getListedProductDTO;
+
+      const statusFilter = status
+        ? status
+        : {
+            in: ['IN_PROGRESS', 'OUT_OF_STOCK'] as ListedProductsStatus[],
+          };
       // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
@@ -5754,7 +5760,7 @@ export class UserAuctionsService {
       console.log('productfilteer,', productFilter);
       const queryOptions: any = {
         where: {
-          status,
+          status: statusFilter,
           ...(roles.includes(Role.Admin) ? {} : { userId }),
           product: {
             is: {
