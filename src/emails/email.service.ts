@@ -34,439 +34,347 @@ export class EmailSerivce extends EmailBody {
   ) {
     switch (emailType) {
       case EmailsType.VERIFICATION:
+        const verificationLink = `${process.env.CLIENT_URL}/auth/activate?token=${token}`;
         return {
           from: {
-            name: 'Alletre Team',
+            name: '3arbon Team',
             address: process.env.EMAIL_FROM,
           },
           to: email,
           subject: `📨 Please Verify Your Email to Get Started`,
-          html: `
-          <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Email Verification </title>
-  </head>
-<body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
-  <div style="padding: 20px; text-align: center;">
-    <div
-      style="
-        background-color: #F9F9F9;
-        padding: 20px;
-        color: white;
-        margin: 40px auto;
-        text-align: center;
-        position: relative;
-        max-width: 100%;
-        border-radius: 15px;
-      "
-    >
+          html: `<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>3arbon Email Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light dark;
+            supported-color-schemes: light dark;
+        }
 
-      <h3
-        style="
-          margin-top: 30px;
-          font-size: min(22px, 4vw); /* Smaller size for mobile */
-          font-weight: bold;
-          color: #a91d3a;
-        "
-      >
-       Welcome to Alletre – Verify Your Email
-      </h3>
-      <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
-        Hi, ${userName}
-      </h2>
+        @media only screen and (max-width: 480px) {
+            .mobile-h1 { font-size: 24px !important; }
+            .mobile-text { font-size: 14px !important; padding: 10px 30px !important; text-align: left !important; }
+            .mobile-greeting { font-size: 16px !important; }
+            .mobile-button { padding: 14px 30px !important; font-size: 14px !important; }
+        }
 
-      <div
-        style="
-          margin: 20px auto;
-          font-size: min(15px, 3vw); /* Adjust font size for mobile */
-          line-height: 1.2; /* Slightly tighter line height for mobile */
-          max-width: 90%; /* Ensure proper fit on smaller screens */
-          color:  #333;
-          text-align: left;
-        "
-      >
-        <p>
-         Thank you for joining <b>Alletre</b>! To complete your registration and start bidding, we just need you to verify your email address.
-        </p>
-      <p>Please click the button below to verify your email:</p>
+        @media (prefers-color-scheme: dark) {
+            .body-bg { background-color: #111111 !important; }
+            .content-bg { background-color: #111111 !important; }
+            .header-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; }
+            .footer-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; border-radius: 0 0 8px 8px; }
+            .main-text { color: #e9ecef !important; }
+            .sub-text { color: #adb5bd !important; text-align: center !important; }
+            .heading-text { color: #ffffff !important; }
+            .footer-text { color: #ffffff !important; }
+            .box-bg { background-color: #1a222f !important; border: 1px solid #2d3748 !important; }
+            .button-lock { background-color: #1e2633 !important; color: #ffffff !important; }
+            .force-white { color: #ffffff !important; }
+        }
 
+        /* Forced Dark Mode Logic */
+        [data-ogsc] .heading-text { color: #ffffff !important; }
+        [data-ogsc] .footer-text { color: #ffffff !important; }
+        [data-ogsc] .force-white { color: #ffffff !important; }
+        [data-ogsc] .button-lock { background-color: #1e2633 !important; color: #ffffff !important; }
+    </style>
+</head>
+<body class="body-bg" style="margin: 0; padding: 0; background-color: #e9ecef; font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="body-bg" style="background-color: #e9ecef; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="content-bg" style="max-width: 600px; background-color: #f4f5f7; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.06);">
+                    
+                    <tr>
+                        <td align="left" class="header-bg" style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); padding: 25px 40px; border-bottom: 2px solid #d4af37;">
+                            <a href="https://3arbon.com" style="text-decoration: none;">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/g217.png?alt=media&token=fc1c5fac-7f9c-48a1-8cf4-b41819ddeda5" 
+                                     alt="3arbon" 
+                                     style="display: block; border: 0; height: 35px; width: auto;">
+                            </a>
+                        </td>
+                    </tr>
 
-       
+                    <tr>
+                        <td align="center" style="padding: 50px 0 10px 0;">
+                            <div style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); width: 64px; height: 64px; border-radius: 50%; display: table; margin: 0 auto;">
+                               <div style="display: table-cell; vertical-align: middle; text-align: center; padding: 0;">
+                                    <img src="https://img.icons8.com/ios-filled/50/d4af37/ok.png" width="32" height="32" alt="Verify" style="display: block; margin: 0 auto;">
+                                </div>
+                            </div>
+                            <p style="color: #d4af37; text-transform: uppercase; letter-spacing: 3px; font-size: 11px; margin-top: 20px; font-weight: 700;">Email Verification</p>
+                        </td>
+                    </tr>
 
-        <div style="text-align: center;">
-          <a
-            href="${process.env.CLIENT_URL}/auth/activate?token=${token}"
-            style="
-              display: inline-block;
-              padding: 12px 20px;
-              background-color: #a91d3a !important;
-              -webkit-background-color: #a91d3a !important;
-              -moz-background-color: #a91d3a !important;
-              color: #ffffff !important;
-              text-decoration: none;
-              border-radius: 10px;
-              font-weight: bold;
-              margin: 20px 0;
-              font-size: 18px;
-            "
-          >
-            Verify My Email 
-          </a>
-      
-    
-      </div>
-     
-         
-     
+                    <tr>
+                        <td align="center" style="padding: 10px 40px 20px 40px;">
+                            <h1 class="mobile-h1 heading-text" style="color: #1e2633; font-size: 32px; margin: 0; font-weight: 700;">Verify Your Email</h1>
+                            <div style="width: 50px; height: 3px; background-color: #d4af37; margin: 15px auto 0 auto;"></div>
+                        </td>
+                    </tr>
 
-        <h3>Why Verify Your Email?</h3>
-       <p style="color: #707070; font-size: min(13px, 3vw);">
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative; "> 
-  Secure your account and protect your bids<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative; "> 
-  Receive important updates and notifications<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative;"> 
-  Get ready to start bidding and listing items
-</p>
+                    <tr>
+                        <td class="mobile-text main-text" style="padding: 20px 60px; color: #515b6f; font-size: 16px; line-height: 1.8; text-align: left;">
+                            <p class="mobile-greeting heading-text" style="font-weight: 700; color: #1e2633; font-size: 18px; margin-bottom: 10px; margin-top: 0;">Hi, ${userName}</p>
+                            <p style="margin: 0;">Thank you for joining <strong>3arbon</strong>! To complete your registration and start listing, we just need you to verify your email address.</p>
+                        </td>
+                    </tr>
 
+                    <tr>
+                        <td align="center" style="padding: 20px 40px 40px 40px;">
+                            <a href="${verificationLink}" class="mobile-button button-lock force-white" style="background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); color: #ffffff !important; padding: 18px 50px; text-decoration: none; border-radius: 4px; font-weight: 700; font-size: 16px; display: inline-block; border-bottom: 4px solid #d4af37; transition: all 0.3s ease;">
+                                <span class="force-white" style="color: #d4af37 !important; font-weight: 700; text-shadow: 0 0 1px #ffffff, 0 0 1px #ffffff;"><font color="#d4af37">Verify My Email</font></span>
+                            </a>
+                        </td>
+                    </tr>
 
+                    <tr>
+                        <td align="center" style="padding: 0 40px 30px 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 12px 0;">
+                                <tr>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/shield.png" width="22" height="22" alt="Shield" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Secure Account</td></tr>
+                                        </table>
+                                    </td>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/appointment-reminders--v1.png" width="22" height="22" alt="Notification" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Stay Updated</td></tr>
+                                        </table>
+                                    </td>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/add-list.png" width="22" height="22" alt="Listing" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Easy Listing</td></tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        
- <p style="font-size: min(13px, 3vw);  color: #707070;">If you didn’t sign up for an account with us, please ignore this email.</p>
-   
-     
-        <p>Thank you for choosing  <b>Alletre</b> . We’re excited to have you as part of our community!</p>
-       <p>Best regards,<br>
-The <b>Alletre</b> Team
-</p>
-        <p>If you need assistance, feel free to reach out to our support team anytime!</p>
-         </div>
-       <h3
-  style="
-    margin: 30px auto 20px auto; /* Matches auto margins of the p element */
-    font-size: min(16px, 4vw); /* Smaller size for mobile */
-    font-weight: bold;
-    color: #a91d3a;
-    text-align: left; /* Align text to the left */
-    max-width: 90%; /* Ensure proper fit and alignment */
-  "
->
-  Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
-</h3>
-<p
-  style="
-    margin: 20px auto;
-    font-size: min(13px, 3vw); /* Adjust font size for mobile */
-    line-height: 1.4; /* Slightly tighter line height for mobile */
-    max-width: 90%; /* Ensure proper fit on smaller screens */
-    text-align: left;
-    color: #707070;
-  "
->
-  The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
-</p>
-
-
-
-<p style = "font-size: min(16px, 4vw); color:#707070">FOLLOW US!</p>
-      <div style="margin: 20px 0 ;">
-        <!-- Instagram Icon -->
-        <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/instagram%20Icon.png?alt=media&token=4ca91fcd-2e6f-476c-a0e6-fb6c81c0ac47"
-            alt="Instagram"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- Facebook Icon -->
-        <a href="https://www.facebook.com/alletr.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Facebook%20Icon.png?alt=media&token=15e160e4-1bfb-4e81-9a12-1c41f83edabb"
-            alt="Facebook"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- Snapchat Icon -->
-        <a href="https://www.snapchat.com/add/alletre" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Snapchat%20Icon.png?alt=media&token=1a20756e-84f5-4e33-bf1a-f935e626e9b7"
-            alt="Snapchat"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- TikTok Icon -->
-        <a href="https://www.tiktok.com/@alletre.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Tick%20Tok%20Icon.png?alt=media&token=6bb9d534-2031-4bf2-870d-a867be937d83"
-            alt="TikTok"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- YouTube Icon -->
-        <a href="https://www.youtube.com/@Alletre_ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Youtube%20Icon.png?alt=media&token=ccb87278-f063-4838-9b02-7ceffae7c710"
-            alt="YouTube"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-      </div>
-
-      <p
-        style="
-          font-size: 16px;
-          margin-top: -20px;
-          color: #333;
-          letter-spacing: 4px
-        "
-      >
-        www.alletre.com
-      </p>
-
-    </div>
-  </body>
-</html>
-
-      `,
+                    <tr>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <div class="box-bg main-text" style="background-color: #ffffff; border-left: 4px solid #d4af37; padding: 20px; color: #515b6f; font-size: 13px; border-radius: 0 4px 4px 0; line-height: 1.5; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                                <strong>Didn't sign up?</strong> If you didn't create an account on 3arbon.com, you can safely ignore this email.
+                            </div>
+                        </td>
+                    </tr>
+               
+                    <tr>
+                        <td align="center" class="footer-bg" bgcolor="#1a222f" style="padding: 45px 40px; background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); border-radius: 0 0 8px 8px;">
+                            <p class="footer-text force-white" style="font-size: 14px; color: #ffffff !important; margin: 0; line-height: 1.6; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; font-weight: 400;"><font color="#adb5bd">Best regards,</font></span><br>
+                                <strong style="color: #d4af37; font-size: 18px; font-weight: 700;">The 3arbon Team</strong>
+                            </p>
+                            <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
+                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`,
         };
 
       case EmailsType.RESET_PASSWORD:
+        const resetLink = `${process.env.FRONT_URL}/credentials-update/change-password?token=${token}`;
         return {
           from: {
-            name: 'Alletre Team',
+            name: '3arbon Team',
             address: process.env.EMAIL_FROM,
           },
           to: email,
           subject: `🔒 Reset Your Password for Alletre`,
-          html: `
-          <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>🔒 Reset Your Password for Alletre </title>
-  </head>
+          html: `<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>3arbon Password Reset</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light dark;
+            supported-color-schemes: light dark;
+        }
+
+        @media only screen and (max-width: 480px) {
+            .mobile-h1 { font-size: 24px !important; }
+            .mobile-text { font-size: 14px !important; padding: 10px 30px !important; text-align: left !important; }
+            .mobile-greeting { font-size: 16px !important; }
+            .mobile-button { padding: 14px 30px !important; font-size: 14px !important; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .body-bg { background-color: #111111 !important; }
+            .content-bg { background-color: #111111 !important; }
+            .header-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; }
+            .footer-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; border-radius: 0 0 8px 8px; }
+            .main-text { color: #e9ecef !important; }
+            .sub-text { color: #adb5bd !important; text-align: center !important; }
+            .heading-text { color: #ffffff !important; }
+            .footer-text { color: #ffffff !important; }
+            .box-bg { background-color: #1a222f !important; border: 1px solid #2d3748 !important; }
+            .button-lock { background-color: #1e2633 !important; color: #ffffff !important; }
+            .force-white { color: #ffffff !important; }
+        }
+
+        /* Forced Dark Mode Logic */
+        [data-ogsc] .heading-text { color: #ffffff !important; }
+        [data-ogsc] .footer-text { color: #ffffff !important; }
+        [data-ogsc] .force-white { color: #ffffff !important; }
+        [data-ogsc] .button-lock { background-color: #1e2633 !important; color: #ffffff !important; }
+    </style>
+</head>
+<body class="body-bg" style="margin: 0; padding: 0; background-color: #e9ecef; font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="body-bg" style="background-color: #e9ecef; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="content-bg" style="max-width: 600px; background-color: #f4f5f7; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.06);">
+                    
+                    <tr>
+                        <td align="left" class="header-bg" style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); padding: 25px 40px; border-bottom: 2px solid #d4af37;">
+                            <a href="https://3arbon.com" style="text-decoration: none;">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/g217.png?alt=media&token=fc1c5fac-7f9c-48a1-8cf4-b41819ddeda5" 
+                                     alt="3arbon" 
+                                     style="display: block; border: 0; height: 35px; width: auto;">
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 50px 0 10px 0;">
+                            <div style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); width: 64px; height: 64px; border-radius: 50%; display: table; margin: 0 auto;">
+                               <div style="display: table-cell; vertical-align: middle; text-align: center; padding: 0;">
+                                    <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                        <tr><td align="center" style="padding: 0;">
+                                            <div style="width: 12px; height: 9px; border: 2.5px solid #d4af37; border-bottom: none; border-radius: 6px 6px 0 0;"></div>
+                                        </td></tr>
+                                        <tr><td align="center" style="padding: 0;">
+                                            <div style="width: 20px; height: 14px; border: 2.5px solid #d4af37; border-radius: 2px; margin-top: -1px;"></div>
+                                        </td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <p style="color: #d4af37; text-transform: uppercase; letter-spacing: 3px; font-size: 11px; margin-top: 20px; font-weight: 700;">Password Reset</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 10px 40px 20px 40px;">
+                            <h1 class="mobile-h1 heading-text" style="color: #1e2633; font-size: 32px; margin: 0; font-weight: 700;">Reset Your Password</h1>
+                            <div style="width: 50px; height: 3px; background-color: #d4af37; margin: 15px auto 0 auto;"></div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="mobile-text main-text" style="padding: 20px 60px; color: #515b6f; font-size: 16px; line-height: 1.8; text-align: left;">
+                            <p class="mobile-greeting heading-text" style="font-weight: 700; color: #1e2633; font-size: 18px; margin-bottom: 10px; margin-top: 0;">Hi, ${userName}</p>
+                            <p style="margin: 0;">We received a request to reset the password for your <strong>3arbon.com</strong> account. Click the button below to create a new password.</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 20px 40px 40px 40px;">
+                            <a href="${resetLink}" class="mobile-button button-lock force-white" style="background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); color: #ffffff !important; padding: 18px 50px; text-decoration: none; border-radius: 4px; font-weight: 700; font-size: 16px; display: inline-block; border-bottom: 4px solid #d4af37; transition: all 0.3s ease;">
+                                <span class="force-white" style="color: #d4af37 !important; font-weight: 700; text-shadow: 0 0 1px #ffffff, 0 0 1px #ffffff;"><font color="#d4af37">Reset My Password</font></span>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 0 40px 30px 40px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 12px 0;">
+                                <tr>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/shield.png" width="22" height="22" alt="Shield" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Secure Link</td></tr>
+                                        </table>
+                                    </td>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/clock--v1.png" width="22" height="22" alt="Clock" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">15 Minutes</td></tr>
+                                        </table>
+                                    </td>
+                                    <td class="box-bg" bgcolor="#ffffff" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                                            <tr><td align="center" style="padding-bottom: 6px;">
+                                                <img src="https://img.icons8.com/ios-filled/50/d4af37/ok.png" width="22" height="22" alt="Badge" style="display: block; margin: 0 auto;">
+                                            </td></tr>
+                                            <tr><td class="heading-text" style="font-size: 10px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">One-Time Use</td></tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <div class="box-bg main-text" style="background-color: #ffffff; border-left: 4px solid #d4af37; padding: 20px; color: #515b6f; font-size: 13px; border-radius: 0 4px 4px 0; line-height: 1.5; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                                <strong>Didn't request this?</strong> If you didn't ask to reset your password, you can safely ignore this email. Your account remains secure.
+                            </div>
+                        </td>
+               
+                    <tr>
+                        <td align="center" class="sub-text" style="padding: 30px 40px 20px 40px; border-top: 1px solid #e2e8f0;">
+                            <p class="sub-text" style="font-size: 14px; color: #adb5bd !important; margin: 0; text-align: center;">
+                                Never share your password reset link with anyone.
+                            </p>
+                        </td>
+                    </tr>
  
-  <html>
-    <head>
-   
-    </head>
-<body style="margin: auto; padding: 0; background-color: #ffffff; max-width: 600px; font-family: Montserrat; line-height: 1.6; color: #a; ">
-  <div style="padding: 20px; text-align: center;">
-    <div
-      style="
-        background-color: #F9F9F9;
-        padding: 20px;
-        color: white;
-        margin: 40px auto;
-        text-align: center;
-        position: relative;
-        max-width: 100%;
-        border-radius: 15px;
-      "
-    >
-      <img
-        src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/logoForEmail.png?alt=media&token=8e56c373-b4d6-404f-8d2c-a503dfa71052"
-        alt="Alletre Logo"
-        style="
-          max-width: 80px;
-          position: absolute;
-          padding-top: 20px;
-          display: block;
-        "
-      />
-      <h3
-        style="
-          margin-top: 30px;
-          font-size: min(22px, 4vw); /* Smaller size for mobile */
-          font-weight: bold;
-          color: #a91d3a;
-        "
-      >
-      Forgot Your Password? Let’s Get You Back On Track!
-      </h3>
-      <h2 style="margin: 50px 0px 19px;  font-size: min(17px, 3vw);  color: #333; text-align: left; font-weight: 500">
-        Hi, ${userName}
-      </h2>
-
-      <div
-        style="
-          margin: 20px auto;
-          font-size: min(15px, 3vw); /* Adjust font size for mobile */
-          line-height: 1.2; /* Slightly tighter line height for mobile */
-          max-width: 90%; /* Ensure proper fit on smaller screens */
-          color:  #333;
-          text-align: left;
-        "
-      >
-        <p>
-        We received a request to reset the password for your  <b>Alletre</b>  account. If you didn’t request this, please ignore this email. Otherwise, click the button below to securely reset your password.
-        </p>
-        
-        <div style="text-align: center;">
-          <a
-            href="${process.env.FRONT_URL}/credentials-update/change-password?token=${token}"
-            style="
-              display: inline-block;
-              padding: 12px 20px;
-              background-color: #a91d3a !important;
-              -webkit-background-color: #a91d3a !important;
-              -moz-background-color: #a91d3a !important;
-              color: #ffffff !important;
-              text-decoration: none;
-              border-radius: 10px;
-              font-weight: bold;
-              margin: 20px 0;
-              font-size: 18px;
-            "
-          >
-           Reset My Password  
-          </a>
-      
-    
-      </div>
-     
-         
-     
-
-        <h3>Why Reset Your Password?</h3>
-       <p style="color: #707070; font-size: min(13px, 3vw);">
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative; "> 
-  Quickly regain access to your account<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative; "> 
-  Keep your account secure<br>
-  <img src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/tick%20mark%20icon.jpg?alt=media&token=20f3d486-c83e-4cae-9876-f15391cc3682" 
-       alt="tick" 
-       style="width: 16px; position: relative;"> 
-  Start bidding and listing items without delay
-</p>
-
-
-
-        
- <p style="font-size: min(13px, 3vw);  color: #707070;">The link will expire in 7 minutes, so be sure to reset your password as soon as possible.</p>
-   
-     
-      <p>  If you need further assistance, feel free to reach out to our support team. We’re here to help!</p>
-       <p>Thank you for being part of <b>Alletre</b>  </p>
-       <p>Best regards,<br>
-The <b>Alletre</b> Team
-</p>
-        <p>P.S. Stay secure! Make sure your new password is strong and unique.</p>
-         </div>
-       <h3
-  style="
-    margin: 30px auto 20px auto; /* Matches auto margins of the p element */
-    font-size: min(16px, 4vw); /* Smaller size for mobile */
-    font-weight: bold;
-    color: #a91d3a;
-    text-align: left; /* Align text to the left */
-    max-width: 90%; /* Ensure proper fit and alignment */
-  "
->
-  Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
-</h3>
-<p
-  style="
-    margin: 20px auto;
-    font-size: min(13px, 3vw); /* Adjust font size for mobile */
-    line-height: 1.4; /* Slightly tighter line height for mobile */
-    max-width: 90%; /* Ensure proper fit on smaller screens */
-    text-align: left;
-    color: #707070;
-  "
->
-  The world of ecommerce and online auctions has significantly transformed the way people buy and sell goods and services. As technology continues to evolve, both of these models have shaped the digital economy, offering convenience, access, and new opportunities for both consumers and sellers alike. Let's dive deeper into how ecommerce and online auctions work, their benefits, challenges, and how they continue to shape the future of retail.
-</p>
-
-
-
-<p style = "font-size: min(16px, 4vw); color:#707070">FOLLOW US!</p>
-      <div style="margin: 20px 0 ;">
-        <!-- Instagram Icon -->
-        <a href="https://www.instagram.com/alletre.ae/" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/instagram%20Icon.png?alt=media&token=4ca91fcd-2e6f-476c-a0e6-fb6c81c0ac47"
-            alt="Instagram"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- Facebook Icon -->
-        <a href="https://www.facebook.com/alletr.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Facebook%20Icon.png?alt=media&token=15e160e4-1bfb-4e81-9a12-1c41f83edabb"
-            alt="Facebook"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- Snapchat Icon -->
-        <a href="https://www.snapchat.com/add/alletre" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Snapchat%20Icon.png?alt=media&token=1a20756e-84f5-4e33-bf1a-f935e626e9b7"
-            alt="Snapchat"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- TikTok Icon -->
-        <a href="https://www.tiktok.com/@alletre.ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Tick%20Tok%20Icon.png?alt=media&token=6bb9d534-2031-4bf2-870d-a867be937d83"
-            alt="TikTok"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-
-        <!-- YouTube Icon -->
-        <a href="https://www.youtube.com/@Alletre_ae" target="_blank" style="margin: 0 5px; display: inline-block;">
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Youtube%20Icon.png?alt=media&token=ccb87278-f063-4838-9b02-7ceffae7c710"
-            alt="YouTube"
-            style="width: 30px; height: 30px;"
-          />
-        </a>
-      </div>
-
-      <p
-        style="
-          font-size: 16px;
-          margin-top: -20px;
-          color: #333;
-          letter-spacing: 4px
-        "
-      >
-        www.alletre.com
-      </p>
-
-    </div>
-  </body>
-  </html>
-
-</html>
-          `,
+                    <tr>
+                        <td align="center" class="footer-bg" bgcolor="#1a222f" style="padding: 45px 40px; background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); border-radius: 0 0 8px 8px;">
+                            <p class="footer-text force-white" style="font-size: 14px; color: #ffffff !important; margin: 0; line-height: 1.6; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; font-weight: 400;"><font color="#adb5bd">Best regards,</font></span><br>
+                                <strong style="color: #d4af37; font-size: 18px; font-weight: 700;">The 3arbon Team</strong>
+                            </p>
+                            <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
+                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`,
         };
 
       case EmailsType.OTHER:
         return {
           from: {
-            name: 'Alletre Team',
+            name: '3arbon Team',
             address: process.env.EMAIL_FROM,
           },
           to: email,
