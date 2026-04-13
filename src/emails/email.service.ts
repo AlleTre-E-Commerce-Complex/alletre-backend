@@ -371,6 +371,17 @@ export class EmailSerivce extends EmailBody {
 </html>`,
         };
 
+      case EmailsType.WELCOME:
+        return {
+          from: {
+            name: '3arbon Team',
+            address: process.env.EMAIL_FROM,
+          },
+          to: email,
+          subject: body.subject || 'Welcome to 3arbon!',
+          html: this.emailBody(body),
+        };
+
       case EmailsType.OTHER:
         return {
           from: {
@@ -379,7 +390,7 @@ export class EmailSerivce extends EmailBody {
           },
           to: email,
           subject: body.subject,
-          html: this.emailBody(body, token),
+          html: this.emailBody(body),
           attachments: body.attachment
             ? [{ filename: 'invoice.pdf', content: body.attachment }]
             : [],
@@ -395,7 +406,8 @@ export class EmailSerivce extends EmailBody {
   ) {
     const isBypassed =
       emailType === EmailsType.VERIFICATION ||
-      emailType === EmailsType.RESET_PASSWORD;
+      emailType === EmailsType.RESET_PASSWORD ||
+      emailType === EmailsType.WELCOME;
 
     if (process.env.ENABLE_EMAILS === 'false' && !isBypassed) {
       return;

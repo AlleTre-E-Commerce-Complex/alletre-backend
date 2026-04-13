@@ -1,270 +1,229 @@
 export class EmailBody {
   // constructor() {}
 
-  emailBody(body: any, token?: any) {
-    const imgSrc = body.img ? body.img : '';
-    const message = body.message ? body.message : '';
-    const Product_Name = body.Product_Name ? body.Product_Name : '';
-    let data: any;
+  emailBody(body: any) {
+    let data = '';
     for (const [key, value] of Object.entries(body)) {
       if (
         key !== 'img' &&
-        key !== 'message' &&
+        key !== 'attachment' &&
         key !== 'subject' &&
         key !== 'Button_URL' &&
         key !== 'title' &&
-        key !== 'Button_text'
+        key !== 'Button_text' &&
+        key !== 'userName' &&
+        key !== 'message1' &&
+        key !== 'message2' &&
+        key !== 'preHeader' &&
+        key !== 'features'
       ) {
-        data += `<p>${key} : <span>${value}</span></p>`;
+        data += `<p style="margin: 8px 0; font-size: 14px; color: #515b6f;"><strong style="color: #1e2633;">${key}:</strong> ${value}</p>`;
       }
     }
 
-    return `<html>
-   
- <body
-  style="
-    margin: auto;
-    padding: 0;
-    background-color: #ffffff;
-    max-width: 600px;
-    font-family: Montserrat;
-    line-height: 1.6;
-    color: #a;
-  "
->
-  <div style="padding: 20px; text-align: center">
-    <div
-      style="
-        background-color: #f9f9f9;
-        padding: 20px;
-        color: white;
-        margin: 40px auto;
-        text-align: center;
-        position: relative;
-        max-width: 100%;
-        border-radius: 15px;
-      "
-    >
-      <img
-        src=" "
-        alt="Alletre Logo"
-        style="
-          max-width: 80px;
-          position: absolute;
-          padding-top: 20px;
-          display: block;
-        "
-      />
-      <h3
-        style="
-          margin-top: 30px;
-          font-size: min(22px, 4vw); /* Smaller size for mobile */
-          font-weight: bold;
-          color: #a91d3a;
-        "
-      >
-        ${body.title}
-      </h3>
-      <h2
-        style="
-          margin: 50px 0px 19px;
-          font-size: min(17px, 3vw);
-          color: #333;
-          text-align: left;
-          font-weight: 500;
-        "
-      >
-        "Hi,${body.userName}",
-      </h2>
+    // Process features if provided as an array
+    let featuresHtml = '';
+    if (body.features && Array.isArray(body.features)) {
+      featuresHtml = `
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0; border-collapse: separate; border-spacing: 12px 0;">
+            <tr>
+                ${body.features
+                  .map(
+                    (f) => `
+                    <td class="feature-cell" bgcolor="#f8fafc" style="padding: 20px 10px; border-radius: 8px; width: 33%; text-align: center; border: 1px solid #e2e8f0;">
+                        <img src="${
+                          f.icon ||
+                          'https://img.icons8.com/ios-filled/50/d4af37/shield.png'
+                        }" width="22" height="22" style="display: block; margin: 0 auto 10px auto;">
+                        <span style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1e2633; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; line-height: 1.2;">
+                          ${f.text}
+                        </span>
+                    </td>
+                `,
+                  )
+                  .join('')}
+            </tr>
+        </table>
+      `;
+    }
 
-      <div
-        style="
-          margin: 20px auto;
-          font-size: min(15px, 3vw); /* Adjust font size for mobile */
-          line-height: 1.2; /* Slightly tighter line height for mobile */
-          max-width: 90%; /* Ensure proper fit on smaller screens */
-          color: #333;
-          text-align: left;
-        "
-      >
-        ${body.message1}
+    return `<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>3arbon Notification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light dark;
+            supported-color-schemes: light dark;
+        }
 
-        <div style="text-align: center">
-          <a
-            href="${body.Button_URL}"
-            style="
-              display: inline-block;
-              padding: 12px 20px;
-              background-color: #a91d3a !important;
-              -webkit-background-color: #a91d3a !important;
-              -moz-background-color: #a91d3a !important;
-              color: #ffffff !important;
-              text-decoration: none;
-              border-radius: 10px;
-              font-weight: bold;
-              margin: 20px 0;
-              font-size: 18px;
-            "
-          >
-            ${body.Button_text}
-          </a>
-        </div>
-        <div style="margin: 50px auto; text-align: center">
-          <img
-            src="${imgSrc}"
-            style="
-            width: 100%;
-            max-width: 250px; 
-            height: auto;
-            border-radius: 8px;
-            display: inline-block;
-            "
-          />
-        </div>
-        <p>${body.message2}</p>
+        @media only screen and (max-width: 480px) {
+            .mobile-h1 { font-size: 24px !important; }
+            .mobile-text { font-size: 14px !important; padding: 10px 30px !important; text-align: left !important; }
+            .mobile-greeting { font-size: 16px !important; }
+            .mobile-button { padding: 14px 30px !important; font-size: 14px !important; }
+            .mobile-feature { display: block !important; width: 100% !important; margin-bottom: 12px !important; }
+        }
 
-        
-      </div>
-    </div>
-    <h3
-      style="
-        margin: 30px auto 20px auto; /* Matches auto margins of the p element */
-        font-size: min(16px, 4vw); /* Smaller size for mobile */
-        font-weight: bold;
-        color: #a91d3a;
-        text-align: left; /* Align text to the left */
-        max-width: 90%; /* Ensure proper fit and alignment */
-      "
-    >
-      Ecommerce and Online Auctions: Revolutionizing the Digital Marketplace
-    </h3>
-    <p
-      style="
-        margin: 20px auto;
-        font-size: min(13px, 3vw); /* Adjust font size for mobile */
-        line-height: 1.4; /* Slightly tighter line height for mobile */
-        max-width: 90%; /* Ensure proper fit on smaller screens */
-        text-align: left;
-        color: #707070;
-      "
-    >
-      The world of ecommerce and online auctions has significantly transformed
-      the way people buy and sell goods and services. As technology continues to
-      evolve, both of these models have shaped the digital economy, offering
-      convenience, access, and new opportunities for both consumers and sellers
-      alike. Let's dive deeper into how ecommerce and online auctions work,
-      their benefits, challenges, and how they continue to shape the future of
-      retail.
-    </p>
+        @media (prefers-color-scheme: dark) {
+            .body-bg { background-color: #111111 !important; }
+            .content-bg { background-color: #111111 !important; }
+            .header-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; }
+            .footer-bg { background-color: #1a222f !important; background-image: linear-gradient(#1a222f, #1a222f) !important; border-radius: 0 0 8px 8px !important; }
+            .main-text { color: #e9ecef !important; }
+            .sub-text { color: #adb5bd !important; text-align: center !important; }
+            .heading-text { color: #ffffff !important; }
+            .footer-text { color: #ffffff !important; }
+            .box-bg { background-color: #1a222f !important; border: 1px solid #2d3748 !important; }
+            .button-lock { background-color: #1a222f !important; color: #ffffff !important; }
+            .force-white { color: #ffffff !important; }
+        }
 
-    <p style="font-size: min(16px, 4vw); color: #707070">FOLLOW US!</p>
-    <div style="margin: 20px 0">
-      <!-- Instagram Icon -->
-      <a
-        href="https://www.instagram.com/alletre.ae/"
-        target="_blank"
-        style="margin: 0 5px; display: inline-block"
-      >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/instagram%20Icon.png?alt=media&token=4ca91fcd-2e6f-476c-a0e6-fb6c81c0ac47"
-          alt="Instagram"
-          style="width: 30px; height: 30px"
-        />
-      </a>
+        /* Forced Dark Mode Logic */
+        [data-ogsc] .body-bg { background-color: #111111 !important; }
+        [data-ogsc] .content-bg { background-color: #111111 !important; }
+        [data-ogsc] .heading-text { color: #ffffff !important; }
+        [data-ogsc] .footer-text { color: #ffffff !important; }
+        [data-ogsc] .force-white { color: #ffffff !important; }
+        [data-ogsc] .button-lock { background-color: #1a222f !important; color: #ffffff !important; }
+    </style>
+</head>
+<body class="body-bg" style="margin: 0; padding: 0; background-color: #e9ecef; font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="body-bg" style="background-color: #e9ecef; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="content-bg" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.06);">
+                    
+                    <!-- Header Area -->
+                    <tr>
+                        <td align="left" class="header-bg" style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); padding: 25px 40px; border-bottom: 2px solid #d4af37;">
+                            <a href="https://3arbon.com" style="text-decoration: none;">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/g217.png?alt=media&token=fc1c5fac-7f9c-48a1-8cf4-b41819ddeda5" 
+                                     alt="3arbon" 
+                                     style="display: block; border: 0; height: 35px; width: auto;">
+                            </a>
+                        </td>
+                    </tr>
 
-      <!-- Facebook Icon -->
-      <a
-        href="https://www.facebook.com/alletr.ae"
-        target="_blank"
-        style="margin: 0 5px; display: inline-block"
-      >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Facebook%20Icon.png?alt=media&token=15e160e4-1bfb-4e81-9a12-1c41f83edabb"
-          alt="Facebook"
-          style="width: 30px; height: 30px"
-        />
-      </a>
+                    <!-- Status Icon & Label -->
+                    <tr>
+                        <td align="center" style="padding: 50px 0 10px 0;">
+                            <div style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); width: 64px; height: 64px; border-radius: 50%; display: table; margin: 0 auto;">
+                               <div style="display: table-cell; vertical-align: middle; text-align: center; padding: 0;">
+                                    <img src="https://img.icons8.com/ios-filled/50/d4af37/ok.png" width="30" height="30" style="display: block; margin: 0 auto;">
+                                </div>
+                            </div>
+                            <p style="color: #d4af37; text-transform: uppercase; letter-spacing: 3px; font-size: 11px; margin-top: 20px; font-weight: 700;">
+                                ${body.preHeader || 'NOTIFICATION'}
+                            </p>
+                        </td>
+                    </tr>
 
-      <!-- Snapchat Icon -->
-      <a
-        href="https://www.snapchat.com/add/alletre"
-        target="_blank"
-        style="margin: 0 5px; display: inline-block"
-      >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Snapchat%20Icon.png?alt=media&token=1a20756e-84f5-4e33-bf1a-f935e626e9b7"
-          alt="Snapchat"
-          style="width: 30px; height: 30px"
-        />
-      </a>
+                    <!-- Title -->
+                    <tr>
+                        <td align="center" style="padding: 10px 40px 20px 40px;">
+                            <h1 class="mobile-h1 heading-text" style="color: #1e2633; font-size: 32px; margin: 0; font-weight: 700; line-height: 1.2;">
+                                ${body.title}
+                            </h1>
+                            <div style="width: 50px; height: 3px; background-color: #d4af37; margin: 15px auto 0 auto;"></div>
+                        </td>
+                    </tr>
 
-      <!-- TikTok Icon -->
-      <a
-        href="https://www.tiktok.com/@alletre.ae"
-        target="_blank"
-        style="margin: 0 5px; display: inline-block"
-      >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Tick%20Tok%20Icon.png?alt=media&token=6bb9d534-2031-4bf2-870d-a867be937d83"
-          alt="TikTok"
-          style="width: 30px; height: 30px"
-        />
-      </a>
+                    <!-- Main Text Area -->
+                    <tr>
+                        <td class="mobile-text main-text" style="padding: 20px 60px; color: #515b6f; font-size: 16px; line-height: 1.8; text-align: left;">
+                            <p class="mobile-greeting heading-text" style="font-weight: 700; color: #1e2633; font-size: 18px; margin-bottom: 10px; margin-top: 0;">
+                                Hi, ${body.userName}
+                            </p>
+                            <div style="margin: 0;">
+                                ${body.message1}
+                            </div>
+                        </td>
+                    </tr>
 
-      <!-- YouTube Icon -->
-      <a
-        href="https://www.youtube.com/@Alletre_ae"
-        target="_blank"
-        style="margin: 0 5px; display: inline-block"
-      >
-        <img
-          src="https://firebasestorage.googleapis.com/v0/b/allatre-2e988.appspot.com/o/Youtube%20Icon.png?alt=media&token=ccb87278-f063-4838-9b02-7ceffae7c710"
-          alt="YouTube"
-          style="width: 30px; height: 30px"
-        />
-      </a>
-    </div>
+                    <!-- Features Grid -->
+                    ${
+                      featuresHtml
+                        ? `
+                    <tr>
+                        <td align="center" style="padding: 0 40px 30px 40px;">
+                            ${featuresHtml}
+                        </td>
+                    </tr>
+                    `
+                        : ''
+                    }
 
-    <p
-      style="
-        font-size: 16px;
-        margin-top: -20px;
-        color: #333;
-        letter-spacing: 4px;
-      "
-    >
-      www.alletre.com
-    </p>
-    <p
-      style="
-        margin: 20px auto;
-        font-size: min(10px, 3vw); /* Adjust font size for mobile */
-        line-height: 1.4; /* Slightly tighter line height for mobile */
-        max-width: 90%; /* Ensure proper fit on smaller screens */
-        color: #acacac;
-      "
-    >
-      This email was sent to ${body.userName} because you indicated that you'd
-      like to receive new, Auctions, and updates from Alletre. If you don't want
-      to receive such emails in the future, please
-      <a
-        href="<%asm_preferences_raw_url%>"
-        style="
-          display: inline-block;
-          color: blue; /* Text color */
-          text-decoration: underline; /* Add underline */
-          background: none; /* No background */
-          border: none; /* No border */
-          padding: 0; /* Remove padding */
-          font-size: inherit; /* Match the paragraph font size */
-        "
-      >
-        Unsubscribe Here </a
-      >.
-    </p>
-  </div>
+                    <!-- Dynamic Details Box -->
+                    ${
+                      data
+                        ? `
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <div class="box-bg main-text" style="background-color: #ffffff; border-left: 4px solid #d4af37; padding: 20px; color: #515b6f; font-size: 13px; border-radius: 0 4px 4px 0; line-height: 1.5; border: 1px solid #e2e8f0;">
+                                ${data}
+                            </div>
+                        </td>
+                    </tr>
+                    `
+                        : ''
+                    }
+
+                    <!-- CTA Button -->
+                    ${
+                      body.Button_URL
+                        ? `
+                    <tr>
+                        <td align="center" style="padding: 20px 40px 40px 40px;">
+                            <a href="${body.Button_URL}" class="mobile-button button-lock force-white" style="background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); color: #ffffff !important; padding: 18px 50px; text-decoration: none; border-radius: 4px; font-weight: 700; font-size: 16px; display: inline-block; border-bottom: 4px solid #d4af37;">
+                                <span class="force-white" style="color: #d4af37 !important; font-weight: 700;">
+                                    ${body.Button_text}
+                                </span>
+                            </a>
+                        </td>
+                    </tr>
+                    `
+                        : ''
+                    }
+
+                    <!-- Message 2 -->
+                    ${
+                      body.message2
+                        ? `
+                    <tr>
+                        <td align="center" class="sub-text" style="padding: 0 40px 40px 40px;">
+                            <div class="main-text" style="font-size: 14px; color: #515b6f !important; margin: 0; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 30px;">
+                                ${body.message2}
+                            </div>
+                        </td>
+                    </tr>
+                    `
+                        : ''
+                    }
+
+                    <!-- Premium Dark Footer -->
+                    <tr>
+                        <td align="center" class="footer-bg" bgcolor="#1a222f" style="padding: 45px 40px; background-color: #1a222f; background-image: linear-gradient(#1a222f, #1a222f); border-radius: 0 0 8px 8px;">
+                            <p class="footer-text force-white" style="font-size: 14px; color: #ffffff !important; margin: 0; line-height: 1.6; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; font-weight: 400;"><font color="#adb5bd">Best regards,</font></span><br>
+                                <strong style="color: #d4af37; font-size: 18px; font-weight: 700;">The 3arbon Team</strong>
+                            </p>
+                            <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
+                                <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
+                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
-
-  </html>`;
+</html>`;
   }
 }

@@ -2,4 +2,5 @@ export enum EmailsType {
   VERIFICATION = 'VERIFICATION',
   RESET_PASSWORD = 'RESET_PASSWORD',
   OTHER = 'OTHER',
+  WELCOME = 'WELCOME',
 }
