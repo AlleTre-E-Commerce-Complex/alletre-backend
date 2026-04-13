@@ -334,138 +334,82 @@ export class AuthService {
   }
 
   async activateAccount(token: string) {
-    if (!token)
-      throw new ForbiddenResponse({
-        en: 'Forbidden Access',
-        ar: 'غير مصرح لك ',
-      });
-
-    let payload: { email: string };
-    try {
-      payload = this.jwtService.verify(token, {
-        secret: process.env.EMAIL_VERIFICATION_SECRET,
-      });
-    } catch (error) {
-      throw new ForbiddenResponse({
-        en: 'Forbidden Access',
-        ar: 'غير مصرح لك ',
-      });
-    }
-    console.log(payload);
-
-    const verificationResult = await this.userService.verifyUserEmail(
-      payload.email,
-    );
-    if (verificationResult.status === 'SUCCESS') {
-      // const emailBodyToNewUser = {
-      //   subject: 'Welcome to Alle Tre!',
-      //   title: 'We’re Excited to Have You Onboard!',
-      //   message: `
-      //     Hi ${verificationResult.user.userName},
-
-      //     Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
-
-      //     Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
-
-      //     If you ever have questions or need assistance, our team is just a click away.
-      //   `,
-      //   Button_text: 'Get Started',
-      //   Button_URL: process.env.FRONT_URL,
-      // };
-      const emailBodyToNewUser = {
-        subject: 'Welcome to Alle Tre!',
-        title: 'We’re Excited to Have You Onboard!',
-        userName: `${verificationResult.user.userName}`,
-        message1: `
-          Welcome to Alle Tre! We’re thrilled to have you as part of our growing community. Whether you're here to explore, buy, or sell, we’re here to support you every step of the way.
-      
-          Start discovering amazing auctions, creating your own, and connecting with a vibrant community of auction enthusiasts. Your journey begins now, and we’re excited to see you succeed!
-          
-          If you ever have questions or need assistance, our team is just a click away. 
-        `,
-        message2: `
-          <h3>What’s Next?</h3>
-          <ul>
-            <li>1. <b>Explore More Auctions</b>: Browse our platform for more items you’ll love.</li>
-            <li>2. <b>Bid Smarter</b>: Use the “Buy Now” feature or set higher auto-bids to secure your favorite items next time.</li>
-          </ul>
-          <p>Thank you for Joining our platform. We look forward to seeing you in future bids!</p>
-           <p style="margin-bottom: 0;">Best regards,</p>
-       <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
-          <p>P.S. If you have any questions or need assistance, don’t hesitate to contact our support team.</p>
-        `,
-        Button_text: 'Browse Auctions',
-        Button_URL: 'https://www.alletre.com',
-      };
-      await this.emailSerivce.sendEmail(
-        payload.email,
-        'token',
-        EmailsType.OTHER,
-        emailBodyToNewUser,
-        verificationResult.user.userName,
-      );
-    }
-
     const successMessage = `
         <html>
         <head>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@400;600&display=swap');
+            
             body {
-              background-color: rgba(0, 0, 0, 0.5);
+              background-color: #0f172a;
               display: flex;
               justify-content: center;
               align-items: center;
               height: 100vh;
               margin: 0;
-              
+              font-family: 'Plus Jakarta Sans', sans-serif;
             }
             .modal {
-              background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              width: 400px;
+              background-color: #1e293b;
+              border-radius: 24px;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+              width: 440px;
+              padding: 60px 40px;
               text-align: center;
+              border: 1px solid #334155;
             }
-            .modal-header {
-              background-color: #801f50;
+            .icon-wrapper {
+              width: 100px;
+              height: 100px;
+              background-color: rgba(234, 179, 8, 0.1);
+              border-radius: 50%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin: 0 auto 40px auto;
+              border: 3px solid #eab308;
+            }
+            h1 {
+              font-family: 'Playfair Display', serif;
               color: white;
-              padding: 10px;
-              border-top-left-radius: 8px;
-              border-top-right-radius: 8px;
+              font-size: 32px;
+              margin: 0 0 15px 0;
+              line-height: 1.2;
             }
-            .modal-body {
-              padding: 20px;
-              
+            p {
+              color: #94a3b8;
+              font-size: 16px;
+              margin-bottom: 40px;
             }
-            .modal-footer {
-              padding: 10px;
-            }
-            .modal a {
+            .btn {
               display: inline-block;
-              margin-top: 20px;
-              padding: 10px 20px;
-              background-color: #a91d3a;
-              color: white;
+              padding: 16px 40px;
+              background-color: #fbbf24;
+              color: #1e293b;
               text-decoration: none;
-              border-radius: 4px;
-              transition: background-color 0.3s;
+              border-radius: 14px;
+              font-weight: 700;
+              font-size: 16px;
+              transition: all 0.3s ease;
+              box-shadow: 0 10px 15px -3px rgba(251, 191, 36, 0.3);
             }
-            .modal a:hover {
-              background-color: #5b0c1f;
+            .btn:hover {
+              background-color: #f59e0b;
+              transform: translateY(-2px);
+              box-shadow: 0 20px 25px -5px rgba(251, 191, 36, 0.4);
             }
           </style>
         </head>
         <body>
           <div class="modal">
-             <img
-        src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/tick%20mark%20round%20icon.png?alt=media&token=ae88bf91-643c-4d3c-87b1-4d4f64601963"
-       
-         style="width: 90px; height: 90px; margin-top:30px;"
-      />
-            <div class="modal-body">
-              <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verified Successfully</h1>
-              <a href="${process.env.FRONT_URL}/home?isLoginModal=true">Login </a>
+            <div class="icon-wrapper">
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 13l4 4L19 7" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+            <h1>Verified Successfully</h1>
+            <p>Your account is now fully active. Ready to explore the elite world of listing?</p>
+            <a href="${process.env.FRONT_URL}/home?isLoginModal=true" class="btn">Login to Your Account</a>
           </div>
         </body>
       </html>`;
@@ -474,90 +418,144 @@ export class AuthService {
         <html>
         <head>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@400;600&display=swap');
+            
             body {
-              background-color: rgba(0, 0, 0, 0.5);
+              background-color: #0f172a;
               display: flex;
               justify-content: center;
               align-items: center;
               height: 100vh;
               margin: 0;
-              
+              font-family: 'Plus Jakarta Sans', sans-serif;
             }
             .modal {
-              background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              width: 400px;
+              background-color: #1e293b;
+              border-radius: 24px;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+              width: 440px;
+              padding: 60px 40px;
               text-align: center;
+              border: 1px solid #334155;
             }
-            .modal-header {
-              background-color: #801f50;
+            .icon-wrapper {
+              width: 100px;
+              height: 100px;
+              background-color: rgba(251, 191, 36, 0.1);
+              border-radius: 50%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin: 0 auto 40px auto;
+              border: 3px solid #fbbf24;
+            }
+            h1 {
+              font-family: 'Playfair Display', serif;
               color: white;
-              padding: 10px;
-              border-top-left-radius: 8px;
-              border-top-right-radius: 8px;
+              font-size: 32px;
+              margin: 0 0 15px 0;
+              line-height: 1.2;
             }
-            .modal-body {
-              padding: 20px;
-              
+            p {
+              color: #94a3b8;
+              font-size: 16px;
+              margin-bottom: 40px;
             }
-            .modal-footer {
-              padding: 10px;
-            }
-            .modal a {
+            .btn {
               display: inline-block;
-              margin-top: 20px;
-              padding: 10px 20px;
-              background-color: #a91d3a;
-              color: white;
+              padding: 16px 40px;
+              background-color: #fbbf24;
+              color: #1e293b;
               text-decoration: none;
-              border-radius: 4px;
-              transition: background-color 0.3s;
+              border-radius: 14px;
+              font-weight: 700;
+              font-size: 16px;
+              transition: all 0.3s ease;
+              box-shadow: 0 10px 15px -3px rgba(251, 191, 36, 0.3);
             }
-            .modal a:hover {
-              background-color: #5b0c1f;
+            .btn:hover {
+              background-color: #f59e0b;
+              transform: translateY(-2px);
+              box-shadow: 0 20px 25px -5px rgba(251, 191, 36, 0.4);
             }
           </style>
         </head>
         <body>
           <div class="modal">
-             <img
-        src=https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/tick%20mark%20failed%20mark-02.png?alt=media&token=69f43881-b26e-43ef-b4c2-a595feb1f16b 
-       
-         style="width: 90px; height: 90px; margin-top:30px;"
-      />
-            <div class="modal-body">
-              <h1 style="font-family: "Times New Roman", Times, serif ">Your Email Verification Failed</h1>
-              <a href="${process.env.FRONT_URL}">Try Again</a>
+            <div class="icon-wrapper">
+              <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+            <h1>Verification Failed</h1>
+            <p>We couldn't verify your email. The link might be expired or invalid.</p>
+            <a href="${process.env.FRONT_URL}/home" class="btn">Return to Home</a>
           </div>
         </body>
       </html>`;
 
+    if (!token) return failureMessage;
+
+    let payload: { email: string };
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: process.env.EMAIL_VERIFICATION_SECRET,
+      });
+    } catch (error) {
+      return failureMessage;
+    }
+    console.log(payload);
+
+    const verificationResult = await this.userService.verifyUserEmail(
+      payload.email,
+    );
+
     if (verificationResult.status === 'SUCCESS') {
+      const emailBodyToNewUser = {
+        subject: 'Welcome to 3arbon!',
+        preHeader: 'WELCOME ONBOARD',
+        title: 'We’re Excited to Have You Onboard!',
+        userName: `${verificationResult.user.userName}`,
+        features: [
+          {
+            text: 'Secure Account',
+            icon: 'https://img.icons8.com/ios-filled/50/d4af37/shield.png',
+          },
+          {
+            text: 'Stay Updated',
+            icon: 'https://img.icons8.com/ios-filled/50/d4af37/appointment-reminders--v1.png',
+          },
+          {
+            text: 'Easy Listing',
+            icon: 'https://img.icons8.com/ios-filled/50/d4af37/add-list.png',
+          },
+        ],
+        message1: `
+          Welcome to 3arbon! You've just joined a community where finding and listing great products is easier than ever. Dive in and start discovering!
+        `,
+        message2: `
+          <h3>Ready to start?</h3>
+          <ul style="list-style-type: none; padding: 0;">
+            <li style="margin-bottom: 10px;">🌟 <b>Explore</b> unique products from trusted sellers.</li>
+            <li>🚀 <b>List</b> your own products in minutes.</li>
+          </ul>
+          <p>We’re excited to see what you’ll find (and list) first!</p>
+        `,
+        Button_text: 'Browse Products',
+        Button_URL: 'https://www.3arbon.com',
+      };
+      await this.emailSerivce.sendEmail(
+        payload.email,
+        'token',
+        EmailsType.WELCOME,
+        emailBodyToNewUser,
+        verificationResult.user.userName,
+      );
       return successMessage;
     } else {
       return failureMessage;
     }
   }
-
-  // async logout(refreshToken: string) {
-  //   if (!refreshToken) {
-  //     throw new NotFoundResponse({
-  //       ar: 'رمز التحديث غير موجود',
-  //       en: 'Refresh token not found',
-  //     });
-  //   }
-
-  //   try {
-  //     const payload = this.decodeRefreshToken(refreshToken);
-  //     this.clearUserSessions(payload.id);
-  //     return { message: 'Logged out successfully' };
-  //   } catch (error) {
-  //     // If token is invalid, still consider it a successful logout
-  //     return { message: 'Logged out successfully' };
-  //   }
-  // }
 
   async logout(refreshToken: string) {
     // If there's no cookie/token, treat as success (idempotent)
@@ -592,69 +590,6 @@ export class AuthService {
       return { message: 'Logged out successfully' };
     }
   }
-
-  // async refreshToken(oldRefreshToken: string) {
-  //   console.log('refreshToken', oldRefreshToken);
-  //   if (!oldRefreshToken)
-  //     throw new NotFoundResponse({
-  //       ar: 'لا يوجد',
-  //       en: 'not found',
-  //     });
-
-  //   try {
-  //     // decode refreshToken first to validate it
-  //     const payload = this.decodeRefreshToken(oldRefreshToken);
-
-  //     // Check if token has been used or invalidated
-  //     if (this.usedRefreshTokens.has(oldRefreshToken)) {
-  //       // Clear all sessions for this user for security
-  //       this.clearUserSessions(payload.id);
-  //       throw new ForbiddenResponse({
-  //         en: 'Token has been invalidated',
-  //         ar: 'تم إبطال رمز التحديث',
-  //       });
-  //     }
-
-  //     // Check user existence
-  //     const user = await this.getUserByRole(payload.id, payload.roles[0]);
-
-  //     if (!user) {
-  //       throw new ForbiddenResponse({
-  //         en: 'User not found',
-  //         ar: 'المستخدم غير موجود',
-  //       });
-  //     }
-
-  //     // Add old token to used tokens
-  //     this.usedRefreshTokens.add(oldRefreshToken);
-
-  //     // Generate new tokens
-  //     const userWithPhone = user as { phone: string | null };
-  //     const { accessToken, refreshToken } = this.generateTokens({
-  //       id: user.id,
-  //       email: user.email,
-  //       roles: payload.roles,
-  //       phone: userWithPhone.phone,
-  //     });
-
-  //     // Update session with new refresh token
-  //     this.manageUserSession(user.id, refreshToken);
-
-  //     return {
-  //       accessToken,
-  //       refreshToken,
-  //     };
-  //   } catch (error) {
-  //     console.error('Refresh token error:', error);
-  //     if (error instanceof ForbiddenResponse) {
-  //       throw error;
-  //     }
-  //     throw new ForbiddenResponse({
-  //       en: 'Invalid session',
-  //       ar: 'جلسة غير صالحة',
-  //     });
-  //   }
-  // }
 
   async refreshToken(oldRefreshToken: string) {
     console.log('refreshToken', oldRefreshToken);
