@@ -20,6 +20,7 @@ import { WithdrawalModule } from './withdrawal-requests/withdrawal.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppVersionModule } from './version/version.module';
+import { BugReportModule } from './bug-report/bug-report.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AppVersionModule } from './version/version.module';
     WhatsAppModule,
     DashboardModule,
     AppVersionModule,
+    BugReportModule,
   ],
 })
 export class AppModule {
