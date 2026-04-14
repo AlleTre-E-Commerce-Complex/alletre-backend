@@ -43,7 +43,8 @@ model User {
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
   profit                   Profit[]
-
+  bugReports               BugReport[]
+  bugReportMessages        BugReportMessage[]
 }
 
 model NonRegisteredUser {
@@ -444,6 +445,7 @@ model Admin {
   imageLink String?
   imagePath String?
   createdAt DateTime @default(now())
+  bugReportMessages BugReportMessage[]
 }
 
 model Wallet {
@@ -514,6 +516,42 @@ model ComplaintImages {
   imageLink   String
   createdAt   DateTime          @default(now())
   complaint   AuctionComplaints @relation(fields: [complaintId], references: [id])
+}
+
+model BugReport {
+  id          Int              @id @default(autoincrement())
+  userId      Int?
+  email       String?          
+  description String
+  status      ProblemStatus    @default(PENDING)
+  createdAt   DateTime         @default(now())
+  user        User?            @relation(fields: [userId], references: [id])
+  images      BugReportImages[]
+  messages    BugReportMessage[]
+  unreadCount     Int              @default(0)
+  userUnreadCount Int              @default(0)
+  updatedAt       DateTime         @default(now()) @updatedAt
+}
+
+model BugReportImages {
+  id           Int       @id @default(autoincrement())
+  bugReportId  Int
+  imagePath    String
+  imageLink    String
+  createdAt    DateTime  @default(now())
+  bugReport    BugReport @relation(fields: [bugReportId], references: [id])
+}
+
+model BugReportMessage {
+  id            Int       @id @default(autoincrement())
+  bugReportId   Int
+  userId        Int?      // Null if sent by admin
+  adminId       Int?      // Null if sent by user
+  message       String
+  createdAt     DateTime  @default(now())
+  bugReport     BugReport @relation(fields: [bugReportId], references: [id])
+  user          User?     @relation(fields: [userId], references: [id])
+  admin         Admin?    @relation(fields: [adminId], references: [id])
 }
 
 model Notification {

@@ -3,6 +3,7 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
@@ -58,5 +59,35 @@ export class NotificationGateway
         .to(`user:${notification.usersId ?? null}`)
         .emit('notification', notification);
     }
+  }
+
+  @SubscribeMessage('room:join')
+  handleJoinRoom(client: Socket, room: string) {
+    client.join(room);
+    console.log(`Client ${client.id} joined room: ${room}`);
+  }
+
+  @SubscribeMessage('room:leave')
+  handleLeaveRoom(client: Socket, room: string) {
+    client.leave(room);
+    console.log(`Client ${client.id} left room: ${room}`);
+  }
+
+  sendBugReportMessage(reportId: number, message: any, userId?: number) {
+    this.server.to(`bug_report:${reportId}`).emit('new_bug_report_message', {
+      reportId,
+      message,
+    });
+
+    if (userId) {
+      this.server.to(`user:${userId}`).emit('new_bug_report_message', {
+        reportId,
+        message,
+      });
+    }
+  }
+
+  broadcastToAdmins(event: string, data: any) {
+    this.server.to('admins').emit(event, data);
   }
 }
