@@ -45,6 +45,9 @@ model User {
   profit                   Profit[]
   bugReports               BugReport[]
   bugReportMessages        BugReportMessage[]
+  buyerConversations       Conversation[]       @relation("BuyerConversations")
+  sellerConversations      Conversation[]       @relation("SellerConversations")
+  chatMessages             ChatMessage[]
 }
 
 model NonRegisteredUser {
@@ -285,6 +288,7 @@ model Product {
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
   notifications       Notification[]
+  conversations       Conversation[]
 }
 
 model Image {
@@ -584,6 +588,32 @@ model AppVersion {
   
   @@index([platform, isLatest])
   @@index([platform, isMinSupported])
+}
+
+model Conversation {
+  id        Int           @id @default(autoincrement())
+  productId Int?
+  buyerId   Int
+  sellerId  Int
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+  product   Product?      @relation(fields: [productId], references: [id])
+  buyer     User          @relation("BuyerConversations", fields: [buyerId], references: [id])
+  seller    User          @relation("SellerConversations", fields: [sellerId], references: [id])
+
+  @@unique([buyerId, sellerId, productId])
+}
+
+model ChatMessage {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id])
 }
 
 
