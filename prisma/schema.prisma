@@ -20,34 +20,39 @@ model User {
   isOAuth                  Boolean              @default(false)
   hasCompletedProfile      Boolean              @default(false)
   isVerified               Boolean              @default(false)
-  lang                     String               @default("en")
-  isBlocked                Boolean              @default(false)
+
+
+
+
+
   oAuthType                OAuthType?
-  ipAddress                String?
+  lang                     String               @default("en")
   socketId                 String?
   stripeId                 String?
   stripeConnectedAccountId String?
+  ipAddress                String?
+  isBlocked                Boolean              @default(false)
   alletreWallet            AlletreWallet[]
   auctions                 Auction[]
   auctionComplaints        AuctionComplaints[]
   bankAccount              BankAccount[]
   bids                     Bids[]
+  bugReports               BugReport[]
+  bugReportMessages        BugReportMessage[]
+  chatMessages             ChatMessage[]
+  buyerConversations       Conversation[]       @relation("BuyerConversations")
+  sellerConversations      Conversation[]       @relation("SellerConversations")
   JoinedAuction            JoinedAuction[]
   listedProducts           ListedProducts[]
   locations                Location[]
   notifications            Notification[]
   Payment                  Payment[]
   ListedProducts           Product[]
+  profit                   Profit[]
   pushSubscriptions        PushSubscription?
   wallet                   Wallet[]
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
-  profit                   Profit[]
-  bugReports               BugReport[]
-  bugReportMessages        BugReportMessage[]
-  buyerConversations       Conversation[]       @relation("BuyerConversations")
-  sellerConversations      Conversation[]       @relation("SellerConversations")
-  chatMessages             ChatMessage[]
 }
 
 model NonRegisteredUser {
@@ -58,33 +63,33 @@ model NonRegisteredUser {
   address     String?
   companyName String?
   remarks     String?
-  categoryId  Int?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  categoryId  Int?
   category    Category? @relation(fields: [categoryId], references: [id])
 }
 
 model SubscribedUser {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  isActive  Boolean
   createdAt DateTime @default(now())
+  isActive  Boolean
 }
 
 model UnsubscribedUser {
   id        Int      @id @default(autoincrement())
   phone     String   @unique
-  email     String?
   reason    String?
   createdAt DateTime @default(now())
+  email     String?
 }
 
 model Country {
   id        Int        @id @default(autoincrement())
   nameAr    String
   nameEn    String
-  currency  String?
   createdAt DateTime   @default(now())
+  currency  String?
   cities    City[]
   locations Location[]
   Product   Product[]
@@ -126,16 +131,16 @@ model City {
 model Location {
   id             Int              @id @default(autoincrement())
   userId         Int
-  countryId      Int
-  cityId         Int
+  createdAt      DateTime         @default(now())
   address        String
   zipCode        String?
   addressLabel   String?
+  isMain         Boolean          @default(false)
   phone          String?
   lat            Float?
   lng            Float?
-  createdAt      DateTime         @default(now())
-  isMain         Boolean          @default(false)
+  cityId         Int
+  countryId      Int
   auctions       Auction[]
   listedProducts ListedProducts[]
   city           City             @relation(fields: [cityId], references: [id])
@@ -145,28 +150,28 @@ model Location {
 
 model Category {
   id                              Int                 @id @default(autoincrement())
-  nameEn                          String
-  nameAr                          String
   createdAt                       DateTime            @default(now())
+  nameAr                          String
+  nameEn                          String
   hasUsageCondition               Boolean             @default(false)
-  sellerDepositFixedAmount        Decimal?
   bidderDepositFixedAmount        Decimal?
+  sellerDepositFixedAmount        Decimal?
   bannerLink                      String?
   bannerPath                      String?
   sliderLink                      String?
   sliderPath                      String?
-  bannerLinkAr                    String?
-  bannerPathAr                    String?
-  maxStartPrice                   Decimal?
-  maxBidLimit                     Decimal?
+  status                          Boolean             @default(true)
   luxuaryAmount                   Decimal?
-  percentageOfLuxuarySD_forSeller Decimal?
+  maxBidLimit                     Decimal?
+  maxStartPrice                   Decimal?
+  minimumLuxuarySD_forBidder      Decimal?
   minimumLuxuarySD_forSeller      Decimal?
   percentageOfLuxuarySD_forBidder Decimal?
-  minimumLuxuarySD_forBidder      Decimal?
-  feesPercentage                  Decimal?            @default(0.5)
+  percentageOfLuxuarySD_forSeller Decimal?
   LuxuaryFeesPercentage           Decimal?            @default(2)
-  status                          Boolean             @default(true)
+  feesPercentage                  Decimal?            @default(0.5)
+  bannerLinkAr                    String?
+  bannerPathAr                    String?
   brands                          Brand[]
   customFields                    CustomFields[]
   nonRegisteredUsers              NonRegisteredUser[]
@@ -176,10 +181,10 @@ model Category {
 
 model SubCategory {
   id           Int            @id @default(autoincrement())
-  nameAr       String
-  nameEn       String
   categoryId   Int
   createdAt    DateTime       @default(now())
+  nameAr       String
+  nameEn       String
   imageLink    String?
   imagePath    String?
   customFields CustomFields[]
@@ -192,10 +197,10 @@ model CustomFields {
   subCategoryId Int?
   categoryId    Int?
   key           String
-  resKey        String       @default("")
   type          String
   labelAr       String
   labelEn       String
+  resKey        String       @default("")
   category      Category?    @relation(fields: [categoryId], references: [id])
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 }
@@ -210,85 +215,85 @@ model Brand {
 
 model Product {
   id                  Int             @id @default(autoincrement())
-  userId              Int?
-  isAuctionProduct    Boolean?        @default(true)
   categoryId          Int
   subCategoryId       Int?
-  brandId             Int?
   quantity            Int             @default(1)
   title               String
   model               String?
   usageStatus         UsageStatus?
   description         String?
   color               String?
-  screenSize          Float?
-  processor           String?
-  operatingSystem     String?
-  releaseYear         String?
-  regionOfManufacture String?
-  ramSize             Int?
-  isOffer             Boolean         @default(false)
-  offerAmount         Decimal?        @default(0)
-  ProductListingPrice Decimal?        @default(0)
+  brandId             Int?
   cameraType          String?
-  material            String?
-  memory              String?
-  age                 Int?
-  totalArea           Float?
-  numberOfRooms       Int?
-  numberOfFloors      Int?
-  landType            String?
-  countryId           Int?
   cityId              Int?
+  countryId           Int?
+  landType            String?
+  material            String?
+  numberOfFloors      Int?
+  numberOfRooms       Int?
+  operatingSystem     String?
+  processor           String?
+  ramSize             Int?
+  regionOfManufacture String?
+  releaseYear         String?
+  screenSize          Float?
+  totalArea           Float?
+  age                 Int?
   carType             String?
+  offerAmount         Decimal?        @default(0)
+  isOffer             Boolean         @default(false)
+  memory              String?
   brand               String?
-  trim                String?
-  regionalSpecs       String?
-  kilometers          String?
-  interiorColor       String?
-  insuredInUae        String?
-  warranty            String?
-  fuelType            String?
-  doors               String?
-  transmissionType    String?
-  seatingCapacity     String?
-  horsepower          String?
-  steeringSide        String?
-  engineCapacity      String?
-  numberOfCylinders   String?
-  driverAssistance    String?
-  entertainment       String?
-  comfort             String?
-  exteriorFeatures    String?
-  emirate             String?
-  totalClosingFee     Decimal?
-  numberOfBathrooms   Int?
-  developer           String?
-  readyBy             String?
-  annualCommunityFee  Decimal?
-  isFurnished         String?
-  propertyReferenceId String?
-  buyerTransferFee    Decimal?
-  sellerTransferFee   Decimal?
-  maintenanceFee      Decimal?
-  occupancyStatus     String?
+  isAuctionProduct    Boolean?        @default(true)
+  ProductListingPrice Decimal?        @default(0)
+  userId              Int?
   amenities           String?
-  zonedFor            String?
+  annualCommunityFee  Decimal?
   approvedBuildUpArea Decimal?
-  freehold            String?
-  residentialType     String?
+  buyerTransferFee    Decimal?
+  comfort             String?
   commercialType      String?
-  watchLists          WatchList[]
+  developer           String?
+  doors               String?
+  driverAssistance    String?
+  emirate             String?
+  engineCapacity      String?
+  entertainment       String?
+  exteriorFeatures    String?
+  freehold            String?
+  fuelType            String?
+  horsepower          String?
+  insuredInUae        String?
+  interiorColor       String?
+  isFurnished         String?
+  kilometers          String?
+  maintenanceFee      Decimal?
+  numberOfBathrooms   Int?
+  numberOfCylinders   String?
+  occupancyStatus     String?
+  propertyReferenceId String?
+  readyBy             String?
+  regionalSpecs       String?
+  residentialType     String?
+  seatingCapacity     String?
+  sellerTransferFee   Decimal?
+  steeringSide        String?
+  totalClosingFee     Decimal?
+  transmissionType    String?
+  trim                String?
+  warranty            String?
+  zonedFor            String?
   auction             Auction?
+  conversations       Conversation[]
   images              Image[]
   listedProducts      ListedProducts?
+  notifications       Notification[]
   category            Category        @relation(fields: [categoryId], references: [id])
   city                City?           @relation(fields: [cityId], references: [id])
   country             Country?        @relation(fields: [countryId], references: [id])
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
-  notifications       Notification[]
-  conversations       Conversation[]
+  watchLists          WatchList[]
 }
 
 model Image {
@@ -304,9 +309,9 @@ model Image {
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
-  fcmToken  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  fcmToken  String?
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -314,30 +319,33 @@ model Auction {
   id                          Int                    @id @default(autoincrement())
   userId                      Int
   productId                   Int                    @unique
-  locationId                  Int?
   status                      AuctionStatus          @default(PENDING_OWNER_DEPOIST)
   type                        AuctionType?
-  durationUnit                DurationUnits?
   durationInDays              Int?
   durationInHours             Int?
   startBidAmount              Decimal?
   isBuyNowAllowed             Boolean                @default(false)
-  isItemSendForDelivery       Boolean?               @default(false)
-  IsDelivery                  Boolean?               @default(false)
-  deliveryPolicyDescription   String?
-  numOfDaysOfExpecetdDelivery Int?
-  deliveryType                DeliveryType?          @default(NOT_SPECIFIED)
-  DeliveryFees                Decimal?
-  IsReturnPolicy              Boolean?               @default(false)
-  returnPolicyDescription     String?
-  IsWarranty                  Boolean?               @default(false)
-  warrantyPolicyDescription   String?
   acceptedAmount              Decimal?
   startDate                   DateTime?
-  expiryDate                  DateTime?
-  endDate                     DateTime?
-  deliveryRequestsStatus      DeliveryRequestsStatus @default(DELIVERY_PENDING)
   createdAt                   DateTime               @default(now())
+  durationUnit                DurationUnits?
+  expiryDate                  DateTime?
+  locationId                  Int?
+  endDate                     DateTime?
+  isItemSendForDelivery       Boolean?               @default(false)
+  IsDelivery                  Boolean?               @default(false)
+  IsReturnPolicy              Boolean?               @default(false)
+  IsWarranty                  Boolean?               @default(false)
+  deliveryPolicyDescription   String?
+  numOfDaysOfExpecetdDelivery Int?
+  returnPolicyDescription     String?
+  warrantyPolicyDescription   String?
+  DeliveryFees                Decimal?
+  deliveryType                DeliveryType?          @default(NOT_SPECIFIED)
+  deliveryRequestsStatus      DeliveryRequestsStatus @default(DELIVERY_PENDING)
+  isLocked                    Boolean?               @default(false)
+  lockedAt                    DateTime?
+  lockedByUserId              Int?
   alletreWallet               AlletreWallet[]
   location                    Location?              @relation(fields: [locationId], references: [id])
   product                     Product                @relation(fields: [productId], references: [id])
@@ -345,14 +353,11 @@ model Auction {
   auctionComplaints           AuctionComplaints[]
   bids                        Bids[]
   JoinedAuction               JoinedAuction[]
+  notifications               Notification[]
   Payment                     Payment[]
+  profit                      Profit[]
   Wallet                      Wallet[]
   watchLists                  WatchList[]
-  profit                      Profit[]
-  isLocked                    Boolean?                 @default(false)
-  lockedByUserId              Int?                    // user who locked it
-  lockedAt                    DateTime?             
-  notifications               Notification[]
 }
 
 model ListedProducts {
@@ -378,19 +383,18 @@ model Purchase {
   productAmount   Decimal
   totalAmount     Decimal
   alletreWallet   AlletreWallet[]
-  Wallet          Wallet[]
   profit          Profit[]
-
+  Wallet          Wallet[]
 }
 
 model WatchList {
   id        Int      @id @default(autoincrement())
   userId    Int
   auctionId Int?
-  productId Int?
   createdAt DateTime @default(now())
-  auction   Auction?  @relation(fields: [auctionId], references: [id])
-  product   Product?  @relation(fields: [productId], references: [id])
+  productId Int?
+  auction   Auction? @relation(fields: [auctionId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -411,9 +415,9 @@ model Payment {
   paymentIntentId String?        @unique
   amount          Decimal
   createdAt       DateTime       @default(now())
+  status          PaymentStatus  @default(PENDING)
   type            PaymentType?
   isWalletPayment Boolean        @default(false)
-  status          PaymentStatus  @default(PENDING)
   bankStatement   BankStatement?
   auction         Auction        @relation(fields: [auctionId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
@@ -435,69 +439,68 @@ model JoinedAuction {
   createdAt                   DateTime            @default(now())
   status                      JoinedAuctionStatus @default(IN_PROGRESS)
   paymentExpiryDate           DateTime?
-  isWarningMessageSent24Hours Boolean             @default(false)
   isWarningMessageSent1Hour   Boolean             @default(false)
+  isWarningMessageSent24Hours Boolean             @default(false)
   auction                     Auction             @relation(fields: [auctionId], references: [id])
   user                        User                @relation(fields: [userId], references: [id])
 }
 
 model Admin {
-  id        Int      @id @default(autoincrement())
-  fullName  String?
-  email     String
-  password  String
-  imageLink String?
-  imagePath String?
-  createdAt DateTime @default(now())
+  id                Int                @id @default(autoincrement())
+  fullName          String?
+  email             String
+  password          String
+  imageLink         String?
+  imagePath         String?
+  createdAt         DateTime           @default(now())
   bugReportMessages BugReportMessage[]
 }
 
 model Wallet {
-  id                    Int                   @id @default(autoincrement())
-  userId                Int
-  auctionId             Int?
-  purchaseId            Int?
-  amount                Decimal               
-  date                  DateTime              @default(now())
-  description           String
-  status                WalletStatus
-  transactionType       WalletTransactionType
-  transactionReference  String?               @unique
-  balance               Decimal               
-  auction               Auction?              @relation(fields: [auctionId], references: [id])
-  purchase              Purchase?             @relation(fields: [purchaseId], references: [id])
-  user                  User                  @relation(fields: [userId], references: [id])
-
+  id                   Int                   @id @default(autoincrement())
+  userId               Int
+  auctionId            Int?
+  purchaseId           Int?
+  amount               Decimal
+  date                 DateTime              @default(now())
+  description          String
+  status               WalletStatus
+  transactionType      WalletTransactionType
+  balance              Decimal
+  transactionReference String?               @unique
+  auction              Auction?              @relation(fields: [auctionId], references: [id])
+  purchase             Purchase?             @relation(fields: [purchaseId], references: [id])
+  user                 User                  @relation(fields: [userId], references: [id])
 }
 
 model AlletreWallet {
-  id                     Int                   @id @default(autoincrement())
-  userId                 Int
-  auctionId              Int?
-  purchaseId             Int?
-  amount                 Decimal               
-  date                   DateTime              @default(now())
-  description            String
-  status                 WalletStatus
-  transactionType        WalletTransactionType
-  balance                Decimal               
-  transactionReference   String?               @unique
-  auction                Auction?              @relation(fields: [auctionId], references: [id])
-  purchase               Purchase?             @relation(fields: [purchaseId], references: [id])
-  user                   User                  @relation(fields: [userId], references: [id])
+  id                   Int                   @id @default(autoincrement())
+  userId               Int
+  auctionId            Int?
+  purchaseId           Int?
+  amount               Decimal
+  date                 DateTime              @default(now())
+  description          String
+  status               WalletStatus
+  transactionType      WalletTransactionType
+  balance              Decimal
+  transactionReference String?               @unique
+  auction              Auction?              @relation(fields: [auctionId], references: [id])
+  purchase             Purchase?             @relation(fields: [purchaseId], references: [id])
+  user                 User                  @relation(fields: [userId], references: [id])
 }
 
 model Profit {
-  id                     Int                   @id @default(autoincrement())
-  userId                 Int
-  auctionId              Int?
-  purchaseId             Int?
-  amount                 Decimal               
-  createdAt              DateTime              @default(now())
-  description            String
-  auction                Auction?              @relation(fields: [auctionId], references: [id])
-  purchase               Purchase?             @relation(fields: [purchaseId], references: [id])
-  user                   User                  @relation(fields: [userId], references: [id])
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  auctionId   Int?
+  purchaseId  Int?
+  amount      Decimal
+  createdAt   DateTime  @default(now())
+  description String
+  auction     Auction?  @relation(fields: [auctionId], references: [id])
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
 }
 
 model AuctionComplaints {
@@ -523,69 +526,69 @@ model ComplaintImages {
 }
 
 model BugReport {
-  id          Int              @id @default(autoincrement())
-  userId      Int?
-  email       String?          
-  description String
-  status      ProblemStatus    @default(PENDING)
-  createdAt   DateTime         @default(now())
-  user        User?            @relation(fields: [userId], references: [id])
-  images      BugReportImages[]
-  messages    BugReportMessage[]
-  unreadCount     Int              @default(0)
-  userUnreadCount Int              @default(0)
-  updatedAt       DateTime         @default(now()) @updatedAt
+  id              Int                @id @default(autoincrement())
+  userId          Int?
+  email           String?
+  description     String
+  status          ProblemStatus      @default(PENDING)
+  createdAt       DateTime           @default(now())
+  unreadCount     Int                @default(0)
+  userUnreadCount Int                @default(0)
+  updatedAt       DateTime           @default(now()) @updatedAt
+  user            User?              @relation(fields: [userId], references: [id])
+  images          BugReportImages[]
+  messages        BugReportMessage[]
 }
 
 model BugReportImages {
-  id           Int       @id @default(autoincrement())
-  bugReportId  Int
-  imagePath    String
-  imageLink    String
-  createdAt    DateTime  @default(now())
-  bugReport    BugReport @relation(fields: [bugReportId], references: [id])
+  id          Int       @id @default(autoincrement())
+  bugReportId Int
+  imagePath   String
+  imageLink   String
+  createdAt   DateTime  @default(now())
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id])
 }
 
 model BugReportMessage {
-  id            Int       @id @default(autoincrement())
-  bugReportId   Int
-  userId        Int?      // Null if sent by admin
-  adminId       Int?      // Null if sent by user
-  message       String
-  createdAt     DateTime  @default(now())
-  bugReport     BugReport @relation(fields: [bugReportId], references: [id])
-  user          User?     @relation(fields: [userId], references: [id])
-  admin         Admin?    @relation(fields: [adminId], references: [id])
+  id          Int       @id @default(autoincrement())
+  bugReportId Int
+  userId      Int?
+  adminId     Int?
+  message     String
+  createdAt   DateTime  @default(now())
+  admin       Admin?    @relation(fields: [adminId], references: [id])
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
 }
 
 model Notification {
   id           Int      @id @default(autoincrement())
   userId       Int
   message      String
-  productTitle String?
-  imageLink    String?
-  auctionId    Int?
-  productId    Int?
-  isRead       Boolean  @default(false)
   createdAt    DateTime @default(now())
+  auctionId    Int?
+  isRead       Boolean  @default(false)
   updatedAt    DateTime @default(now()) @updatedAt
-  user         User     @relation(fields: [userId], references: [id])
+  imageLink    String?
+  productTitle String?
+  productId    Int?
   auction      Auction? @relation(fields: [auctionId], references: [id])
   product      Product? @relation(fields: [productId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model AppVersion {
-  id                 Int      @id @default(autoincrement())
-  platform           String   // 'ios' or 'android'
-  version            String   // semver string, e.g. "2.1.0"
-  isLatest           Boolean  @default(false)
-  isMinSupported     Boolean  @default(false)
-  releaseNotes       String?
-  downloadUrl        String?
-  createdAt          DateTime @default(now())
-  
+  id             Int      @id @default(autoincrement())
+  platform       String
+  version        String
+  isLatest       Boolean  @default(false)
+  isMinSupported Boolean  @default(false)
+  releaseNotes   String?
+  downloadUrl    String?
+  createdAt      DateTime @default(now())
+
   @@index([platform, isLatest])
   @@index([platform, isMinSupported])
 }
@@ -598,25 +601,36 @@ model Conversation {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
-  product   Product?      @relation(fields: [productId], references: [id])
   buyer     User          @relation("BuyerConversations", fields: [buyerId], references: [id])
+  product   Product?      @relation(fields: [productId], references: [id])
   seller    User          @relation("SellerConversations", fields: [sellerId], references: [id])
 
   @@unique([buyerId, sellerId, productId])
 }
 
 model ChatMessage {
-  id             Int          @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   conversationId Int
   senderId       Int
   content        String
-  isRead         Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  sender         User         @relation(fields: [senderId], references: [id])
+  isRead         Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  attachmentPath String?
+  attachmentUrl  String?
+  lat            Float?
+  lng            Float?
+  type           ChatMessageType @default(TEXT)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  sender         User            @relation(fields: [senderId], references: [id])
 }
 
-
+enum ChatMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  DOCUMENT
+  LOCATION
+}
 
 enum DeliveryRequestsStatus {
   DELIVERY_PENDING
@@ -649,12 +663,12 @@ enum UsageStatus {
 }
 
 enum PaymentStatus {
-  BANK_STATEMENT_UPLOADED
   PENDING
   SUCCESS
   FAILED
   HOLD
   CANCELLED
+  BANK_STATEMENT_UPLOADED
 }
 
 enum WithdrawalStatus {
@@ -673,8 +687,8 @@ enum AuctionStatus {
   IN_SCHEDULED
   ARCHIVED
   SOLD
-  WAITING_FOR_PAYMENT
   EXPIRED
+  WAITING_FOR_PAYMENT
   CANCELLED_BEFORE_EXP_DATE
   CANCELLED_AFTER_EXP_DATE
   CANCELLED_BY_ADMIN

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatGateway } from './chat.gateway';
+import { ChatMessageType } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
@@ -12,6 +13,8 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  // ... (getConversations and getMessages remain same structure but will benefit from schema change)
 
   async getConversations(userId: number) {
     return this.prisma.conversation.findMany({
@@ -69,7 +72,16 @@ export class ChatService {
     });
   }
 
-  async sendMessage(userId: number, conversationId: number, content: string) {
+  async sendMessage(
+    userId: number,
+    conversationId: number,
+    content: string,
+    type: ChatMessageType = ChatMessageType.TEXT,
+    attachmentUrl?: string,
+    attachmentPath?: string,
+    lat?: number,
+    lng?: number,
+  ) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
     });
@@ -86,6 +98,11 @@ export class ChatService {
         conversationId,
         senderId: userId,
         content,
+        type,
+        attachmentUrl,
+        attachmentPath,
+        lat,
+        lng,
       },
       include: {
         sender: { select: { id: true, userName: true, imageLink: true } },

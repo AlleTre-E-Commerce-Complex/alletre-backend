@@ -5,15 +5,23 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { Account } from '../auth/decorators/account.decorator';
 import { ChatService } from './chat.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { FirebaseService } from '../firebase/firebase.service';
+import { ChatMessageType } from '@prisma/client';
 
 @Controller('chat')
 @UseGuards(AuthGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
   @Get('conversations')
   async getConversations(@Account() account: any) {
@@ -35,11 +43,47 @@ export class ChatController {
   async sendMessage(
     @Account() account: any,
     @Param('id') id: string,
-    @Body('content') content: string,
+    @Body()
+    body: {
+      content: string;
+      type?: ChatMessageType;
+      attachmentUrl?: string;
+      attachmentPath?: string;
+      lat?: number;
+      lng?: number;
+    },
   ) {
     return {
       success: true,
-      data: await this.chatService.sendMessage(account.id, +id, content),
+      data: await this.chatService.sendMessage(
+        account.id,
+        +id,
+        body.content,
+        body.type,
+        body.attachmentUrl,
+        body.attachmentPath,
+        body.lat,
+        body.lng,
+      ),
+    };
+  }
+
+  @Post('conversations/upload')
+  @UseInterceptors(FilesInterceptor('files', 10, { dest: 'uploads/' }))
+  async uploadAttachment(@UploadedFiles() files: Array<Express.Multer.File>) {
+    const results = [];
+    for (const file of files) {
+      let result;
+      if (file.mimetype === 'application/pdf') {
+        result = await this.firebaseService.uploadPdf(file, 'chat-doc');
+      } else {
+        result = await this.firebaseService.uploadImage(file, 'chat-media');
+      }
+      results.push(result);
+    }
+    return {
+      success: true,
+      data: results,
     };
   }
 
