@@ -20,7 +20,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private connectedUsers: Set<string> = new Set();
+  // Track session counts per user: Map<userId, count>
+  private connectedUsers: Map<string, number> = new Map();
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -29,15 +30,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (userId) {
       const userIdStr = String(userId);
       client.join(`user:${userIdStr}`);
-      this.connectedUsers.add(userIdStr);
       
-      console.log(`User connected to chat: ${userIdStr}`);
+      const currentCount = this.connectedUsers.get(userIdStr) || 0;
+      this.connectedUsers.set(userIdStr, currentCount + 1);
       
-      // Notify others and send current online list to the user
-      this.server.emit('user_status', { userId: userIdStr, status: 'online' });
+      console.log(`[ChatSocket] User connected: ${userIdStr} (Total sessions: ${currentCount + 1})`);
       
-      // Sending current online users to the new client
-      client.emit('online_users', Array.from(this.connectedUsers));
+      // Notify everyone about online status if this is the first session
+      if (currentCount === 0) {
+        this.server.emit('user_status', { userId: userIdStr, status: 'online' });
+      }
+      
+      // Send the current list of online users solely to the connecting client
+      const onlineUserIds = Array.from(this.connectedUsers.keys());
+      client.emit('online_users', onlineUserIds);
+    } else {
+      console.log(`[ChatSocket] Anonymous connection: ${client.id}`);
     }
   }
 
@@ -45,9 +53,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.handshake.query.userId;
     if (userId) {
       const userIdStr = String(userId);
-      this.connectedUsers.delete(userIdStr);
-      console.log(`User disconnected from chat: ${userIdStr}`);
-      this.server.emit('user_status', { userId: userIdStr, status: 'offline' });
+      const currentCount = this.connectedUsers.get(userIdStr) || 1;
+      
+      if (currentCount <= 1) {
+        this.connectedUsers.delete(userIdStr);
+        console.log(`[ChatSocket] User disconnected: ${userIdStr} (Now Offline)`);
+        // Only notify offline if all sessions are gone
+        this.server.emit('user_status', { userId: userIdStr, status: 'offline' });
+      } else {
+        this.connectedUsers.set(userIdStr, currentCount - 1);
+        console.log(`[ChatSocket] Session closed for user: ${userIdStr} (Remaining: ${currentCount - 1})`);
+      }
     }
   }
 
@@ -58,6 +74,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const convIdStr = String(conversationId);
     client.join(`conversation:${convIdStr}`);
+    console.log(`[ChatSocket] Client ${client.id} joined conversation: ${convIdStr}`);
     return { event: 'joined', data: conversationId };
   }
 
@@ -68,6 +85,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const convIdStr = String(conversationId);
     client.leave(`conversation:${convIdStr}`);
+    console.log(`[ChatSocket] Client ${client.id} left conversation: ${convIdStr}`);
     return { event: 'left', data: conversationId };
   }
 
@@ -77,8 +95,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody()
     data: { conversationId: number; userId: number; isTyping: boolean },
   ) {
-    const conversationIdNum = Number(data.conversationId);
-    client.to(`conversation:${conversationIdNum}`).emit('typing', data);
+    const conversationIdStr = String(data.conversationId);
+    client.to(`conversation:${conversationIdStr}`).emit('typing', data);
   }
 
   @SubscribeMessage('mark_as_read')
@@ -109,7 +127,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           : conversation.buyerId;
 
       const recipientIdStr = String(recipientId);
-      const userIdStr = String(userIdNum);
+      const conversationIdStr = String(conversationIdNum);
 
       this.server.to(`user:${recipientIdStr}`).emit('messages_read', {
         conversationId: conversationIdNum,
@@ -117,7 +135,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       this.server
-        .to(`conversation:${conversationIdNum}`)
+        .to(`conversation:${conversationIdStr}`)
         .emit('messages_read', {
           conversationId: conversationIdNum,
           readerId: userIdNum,
