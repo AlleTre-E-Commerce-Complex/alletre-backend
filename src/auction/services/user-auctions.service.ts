@@ -5662,8 +5662,12 @@ export class UserAuctionsService {
           where: { productId },
           data: {
             userId,
-            ProductListingPrice: productData.ProductListingPrice,
-            locationId: productData.locationId,
+            ProductListingPrice: productData.ProductListingPrice
+              ? Number(productData.ProductListingPrice)
+              : undefined,
+            locationId: productData.locationId
+              ? Number(productData.locationId)
+              : undefined,
             status: 'IN_PROGRESS',
           },
         });
@@ -5674,8 +5678,12 @@ export class UserAuctionsService {
         data: {
           productId,
           userId,
-          ProductListingPrice: productData.ProductListingPrice,
-          locationId: productData.locationId,
+          ProductListingPrice: productData.ProductListingPrice
+            ? Number(productData.ProductListingPrice)
+            : undefined,
+          locationId: productData.locationId
+            ? Number(productData.locationId)
+            : undefined,
         },
         include: {
           product: {

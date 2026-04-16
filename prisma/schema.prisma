@@ -53,6 +53,8 @@ model User {
   wallet                   Wallet[]
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
+  comments                 Comment[]
+  commentLikes             CommentLike[]
 }
 
 model NonRegisteredUser {
@@ -294,6 +296,7 @@ model Product {
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
   watchLists          WatchList[]
+  comments            Comment[]
 }
 
 model Image {
@@ -739,4 +742,30 @@ enum ListedProductsStatus {
   IN_PROGRESS
   OUT_OF_STOCK
   SOLD_OUT
+}
+
+model Comment {
+  id        Int           @id @default(autoincrement())
+  content   String
+  productId Int
+  userId    Int
+  parentId  Int?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  product   Product       @relation(fields: [productId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("CommentReplies")
+  likes     CommentLike[]
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
 }

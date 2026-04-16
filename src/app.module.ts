@@ -22,6 +22,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { AppVersionModule } from './version/version.module';
 import { BugReportModule } from './bug-report/bug-report.module';
 import { ChatModule } from './chat/chat.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ChatModule } from './chat/chat.module';
     AppVersionModule,
     BugReportModule,
     ChatModule,
+    CommentsModule,
   ],
 })
 export class AppModule {
