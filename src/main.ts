@@ -44,7 +44,12 @@ async function bootstrap() {
   app.use(cookieParser());
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
-      ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
+      ? [
+          process.env.FRONT_URL,
+          process.env.FRONT_URL?.replace('https://', 'https://www.'),
+          process.env.FRONT_URL?.replace('https://www.', 'https://'),
+          process.env.ADMIN_FRONT_URL,
+        ].filter(Boolean)
       : [
           'http://localhost:3000',
           'http://localhost:3002',
