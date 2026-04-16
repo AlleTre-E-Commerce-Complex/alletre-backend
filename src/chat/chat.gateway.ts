@@ -20,18 +20,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private connectedUsers: Set<string> = new Set();
+
   constructor(private readonly prisma: PrismaService) {}
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
-      client.join(`user:${userId}`);
-      console.log(`User connected to chat: ${userId}`);
+      const userIdStr = String(userId);
+      client.join(`user:${userIdStr}`);
+      this.connectedUsers.add(userIdStr);
+      
+      console.log(`User connected to chat: ${userIdStr}`);
+      
+      // Notify others and send current online list to the user
+      this.server.emit('user_status', { userId: userIdStr, status: 'online' });
+      
+      // Sending current online users to the new client
+      client.emit('online_users', Array.from(this.connectedUsers));
     }
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`User disconnected from chat: ${client.id}`);
+    const userId = client.handshake.query.userId;
+    if (userId) {
+      const userIdStr = String(userId);
+      this.connectedUsers.delete(userIdStr);
+      console.log(`User disconnected from chat: ${userIdStr}`);
+      this.server.emit('user_status', { userId: userIdStr, status: 'offline' });
+    }
   }
 
   @SubscribeMessage('join_conversation')
@@ -39,7 +56,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: number,
   ) {
-    client.join(`conversation:${conversationId}`);
+    const convIdStr = String(conversationId);
+    client.join(`conversation:${convIdStr}`);
     return { event: 'joined', data: conversationId };
   }
 
@@ -48,7 +66,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: number,
   ) {
-    client.leave(`conversation:${conversationId}`);
+    const convIdStr = String(conversationId);
+    client.leave(`conversation:${convIdStr}`);
     return { event: 'left', data: conversationId };
   }
 
@@ -58,7 +77,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody()
     data: { conversationId: number; userId: number; isTyping: boolean },
   ) {
-    client.to(`conversation:${data.conversationId}`).emit('typing', data);
+    const conversationIdNum = Number(data.conversationId);
+    client.to(`conversation:${conversationIdNum}`).emit('typing', data);
   }
 
   @SubscribeMessage('mark_as_read')
@@ -88,7 +108,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           ? conversation.sellerId
           : conversation.buyerId;
 
-      this.server.to(`user:${recipientId}`).emit('messages_read', {
+      const recipientIdStr = String(recipientId);
+      const userIdStr = String(userIdNum);
+
+      this.server.to(`user:${recipientIdStr}`).emit('messages_read', {
         conversationId: conversationIdNum,
         readerId: userIdNum,
       });

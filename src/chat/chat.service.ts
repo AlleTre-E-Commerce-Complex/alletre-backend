@@ -119,11 +119,15 @@ export class ChatService {
       conversation.buyerId === userId
         ? conversation.sellerId
         : conversation.buyerId;
+    
+    const recipientIdStr = String(recipientId);
+    const conversationIdStr = String(conversationId);
+
     this.chatGateway.server
-      .to(`user:${recipientId}`)
+      .to(`user:${recipientIdStr}`)
       .emit('new_message', message);
     this.chatGateway.server
-      .to(`conversation:${conversationId}`)
+      .to(`conversation:${conversationIdStr}`)
       .emit('new_message', message);
 
     return message;
@@ -220,13 +224,16 @@ export class ChatService {
             ? conversation.sellerId
             : conversation.buyerId;
 
+        const recipientIdStr = String(recipientId);
+        const conversationIdStr = String(conversationId);
+
         this.chatGateway.server
-          .to(`user:${recipientId}`)
+          .to(`user:${recipientIdStr}`)
           .emit('messages_read', { conversationId, readerId: userId });
         
         // Also emit to the conversation room if needed
         this.chatGateway.server
-          .to(`conversation:${conversationId}`)
+          .to(`conversation:${conversationIdStr}`)
           .emit('messages_read', { conversationId, readerId: userId });
       }
     }
