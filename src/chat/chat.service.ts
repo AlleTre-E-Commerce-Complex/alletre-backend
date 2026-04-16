@@ -25,6 +25,7 @@ export class ChatService {
     return this.prisma.conversation.findMany({
       where: {
         OR: [{ buyerId: userId }, { sellerId: userId }],
+        messages: { some: {} },
       },
       include: {
         buyer: { select: userSelect },
