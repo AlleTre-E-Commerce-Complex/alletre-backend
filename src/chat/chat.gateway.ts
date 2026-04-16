@@ -29,19 +29,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.handshake.query.userId;
     if (userId) {
       const userIdStr = String(userId);
+      const userIdNum = Number(userId);
       client.join(`user:${userIdStr}`);
       
-      const currentCount = this.connectedUsers.get(userIdStr) || 0;
-      this.connectedUsers.set(userIdStr, currentCount + 1);
+      // Update Prisma with the latest socket ID for this user
+      await this.prisma.user.update({
+        where: { id: userIdNum },
+        data: { socketId: client.id }
+      }).catch(err => console.error(`[ChatSocket] DB Update Error: ${err.message}`));
+
+      const currentCount = (this.connectedUsers.get(userIdStr) || 0) + 1;
+      this.connectedUsers.set(userIdStr, currentCount);
       
-      console.log(`[ChatSocket] User connected: ${userIdStr} (Total sessions: ${currentCount + 1})`);
+      console.log(`[ChatSocket] User connected: ${userIdStr} (Session count on this instance: ${currentCount})`);
       
-      // Notify everyone about online status if this is the first session
-      if (currentCount === 0) {
-        this.server.emit('user_status', { userId: userIdStr, status: 'online' });
-      }
+      // Notify everyone about online status
+      this.server.emit('user_status', { userId: userIdStr, status: 'online' });
       
-      // Send the current list of online users solely to the connecting client
+      // Send the current list of online users (from DB could be slow, using local Map for now for online_users list)
       const onlineUserIds = Array.from(this.connectedUsers.keys());
       client.emit('online_users', onlineUserIds);
     } else {
@@ -49,20 +54,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
       const userIdStr = String(userId);
-      const currentCount = this.connectedUsers.get(userIdStr) || 1;
+      const userIdNum = Number(userId);
+      const currentCount = (this.connectedUsers.get(userIdStr) || 1) - 1;
       
-      if (currentCount <= 1) {
+      if (currentCount <= 0) {
         this.connectedUsers.delete(userIdStr);
-        console.log(`[ChatSocket] User disconnected: ${userIdStr} (Now Offline)`);
-        // Only notify offline if all sessions are gone
-        this.server.emit('user_status', { userId: userIdStr, status: 'offline' });
+        
+        // Only clear the DB socketId if it matches THIS disconnecting client
+        const user = await this.prisma.user.findUnique({ where: { id: userIdNum } });
+        if (user && user.socketId === client.id) {
+          await this.prisma.user.update({
+            where: { id: userIdNum },
+            data: { socketId: null }
+          }).catch(() => {});
+          console.log(`[ChatSocket] User disconnected: ${userIdStr} (Now Offline globally)`);
+          this.server.emit('user_status', { userId: userIdStr, status: 'offline' });
+        }
       } else {
-        this.connectedUsers.set(userIdStr, currentCount - 1);
-        console.log(`[ChatSocket] Session closed for user: ${userIdStr} (Remaining: ${currentCount - 1})`);
+        this.connectedUsers.set(userIdStr, currentCount);
+        console.log(`[ChatSocket] Session closed for user: ${userIdStr} (Remaining sessions on this instance: ${currentCount})`);
       }
     }
   }
