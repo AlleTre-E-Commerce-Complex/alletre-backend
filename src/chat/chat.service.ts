@@ -14,16 +14,21 @@ export class ChatService {
     private readonly chatGateway: ChatGateway,
   ) {}
 
-  // ... (getConversations and getMessages remain same structure but will benefit from schema change)
-
   async getConversations(userId: number) {
+    const userSelect = {
+      id: true,
+      userName: true,
+      imageLink: true,
+      socketId: true,
+    };
+
     return this.prisma.conversation.findMany({
       where: {
         OR: [{ buyerId: userId }, { sellerId: userId }],
       },
       include: {
-        buyer: { select: { id: true, userName: true, imageLink: true } },
-        seller: { select: { id: true, userName: true, imageLink: true } },
+        buyer: { select: userSelect },
+        seller: { select: userSelect },
         product: {
           select: {
             id: true,
@@ -66,7 +71,7 @@ export class ChatService {
     return this.prisma.chatMessage.findMany({
       where: { conversationId },
       include: {
-        sender: { select: { id: true, userName: true, imageLink: true } },
+        sender: { select: { id: true, userName: true, imageLink: true, socketId: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -105,7 +110,7 @@ export class ChatService {
         lng,
       },
       include: {
-        sender: { select: { id: true, userName: true, imageLink: true } },
+        sender: { select: { id: true, userName: true, imageLink: true, socketId: true } },
       },
     });
 
@@ -144,9 +149,16 @@ export class ChatService {
       );
     }
 
+    const userSelect = {
+      id: true,
+      userName: true,
+      imageLink: true,
+      socketId: true,
+    };
+
     const include = {
-      buyer: { select: { id: true, userName: true, imageLink: true } },
-      seller: { select: { id: true, userName: true, imageLink: true } },
+      buyer: { select: userSelect },
+      seller: { select: userSelect },
       product: {
         select: {
           id: true,
