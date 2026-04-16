@@ -45,4 +45,62 @@ export class AdminService {
     }
     return admin;
   }
+
+  async searchProducts(query: string) {
+    return this.prismaService.product.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { id: !isNaN(Number(query)) ? Number(query) : undefined },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        images: { take: 1 },
+        user: {
+          select: {
+            userName: true,
+          },
+        },
+      },
+      take: 20,
+    });
+  }
+
+  async deleteComment(commentId: number) {
+    return this.prismaService.$transaction(async (tx: any) => {
+      // 1. Get all reply IDs
+      const replies = await tx.comment.findMany({
+        where: { parentId: commentId },
+        select: { id: true },
+      });
+      const replyIds = replies.map((r) => r.id);
+
+      // 2. Delete likes for replies
+      if (replyIds.length > 0) {
+        await tx.commentLike.deleteMany({
+          where: { commentId: { in: replyIds } },
+        });
+      }
+
+      // 3. Delete likes for the parent comment
+      await tx.commentLike.deleteMany({
+        where: { commentId },
+      });
+
+      // 4. Delete replies
+      if (replyIds.length > 0) {
+        await tx.comment.deleteMany({
+          where: { id: { in: replyIds } },
+        });
+      }
+
+      // 5. Delete the parent comment
+      return tx.comment.delete({
+        where: { id: commentId },
+      });
+    });
+  }
 }

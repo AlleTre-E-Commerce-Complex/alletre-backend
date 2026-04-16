@@ -1165,15 +1165,29 @@ export class AuctionsController {
   @UseInterceptors(AnyFilesInterceptor({ dest: 'uploads/' }))
   async listOnlyProduct(
     @UploadedFiles() images: Array<Express.Multer.File>,
-    @Body('product') productDTO: ProductDTO,
-    @Body('auctionId') auctionId: string,
+    @Body() body: any,
     @Account() account: any,
   ) {
-    console.log('product DAta :', productDTO);
+    // Manually parse product object if sent in nested FormData format (product[key])
+    let productData = body.product;
+    if (!productData || typeof productData === 'string') {
+      productData = {};
+      Object.keys(body).forEach((key) => {
+        if (key.startsWith('product[')) {
+          const field = key.match(/product\[(.*)\]/)?.[1];
+          if (field) {
+            productData[field] = body[key];
+          }
+        }
+      });
+    }
+
+    const auctionId = body.auctionId;
+    console.log('Processed product Data:', productData);
     return {
       success: true,
       data: await this.userAuctionsService.listOnlyProduct(
-        productDTO,
+        productData as ProductDTO,
         images,
         account.id,
         auctionId ? Number(auctionId) : undefined,
