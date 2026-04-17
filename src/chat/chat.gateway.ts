@@ -28,8 +28,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
-      const userIdStr = String(userId);
-      const userIdNum = Number(userId);
+      const userIdNum = parseInt(String(userId), 10);
+      if (isNaN(userIdNum)) return;
+      
+      const userIdStr = String(userIdNum);
       client.join(`user:${userIdStr}`);
       
       // Update Prisma with the latest socket ID for this user
@@ -57,8 +59,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
-      const userIdStr = String(userId);
-      const userIdNum = Number(userId);
+      const userIdNum = parseInt(String(userId), 10);
+      if (isNaN(userIdNum)) return;
+      
+      const userIdStr = String(userIdNum);
       const currentCount = (this.connectedUsers.get(userIdStr) || 1) - 1;
       
       if (currentCount <= 0) {
