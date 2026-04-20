@@ -1906,6 +1906,8 @@ export class UserAuctionsService {
       categories,
       subCategory,
       countries,
+      countryId,
+      cityId,
       priceFrom,
       priceTo,
       sellingType,
@@ -1927,12 +1929,38 @@ export class UserAuctionsService {
     const productFilter =
       this.auctionsHelper._productFilterApplied(getAuctionsDTO);
 
+    const locationFilters = [];
+    const effectiveCountryIds = countryId?.length ? countryId : countries;
+    if (effectiveCountryIds?.length) {
+      locationFilters.push({
+        OR: [
+          { location: { countryId: { in: effectiveCountryIds.map(Number) } } },
+          { product: { countryId: { in: effectiveCountryIds.map(Number) } } },
+        ],
+      });
+    }
+    if (cityId?.length) {
+      locationFilters.push({
+        OR: [
+          { location: { cityId: { in: cityId.map(Number) } } },
+          { product: { cityId: { in: cityId.map(Number) } } },
+        ],
+      });
+    }
+
     const auctionFilter = this.auctionsHelper._auctionFilterApplied({
       priceFrom,
       priceTo,
       countries,
+      countryId,
+      cityId,
       sellingType,
     });
+
+    // Explicitly destructure location safely from auctionFilter
+    const auctionFilterData: any = auctionFilter;
+    const { location: _unused_location, ...restAuctionFilter } =
+      auctionFilterData;
 
     const queryOptions: any = {
       where: {
@@ -1943,7 +1971,8 @@ export class UserAuctionsService {
                 in: [AuctionStatus.ACTIVE],
               },
             }),
-        ...auctionFilter,
+        ...restAuctionFilter,
+        ...(locationFilters.length > 0 ? { AND: locationFilters } : {}),
         product: { ...productFilter },
       },
       select: {
@@ -2019,17 +2048,7 @@ export class UserAuctionsService {
     const auctions = await this.prismaService.auction.findMany(queryOptions);
 
     const auctionsCount = await this.prismaService.auction.count({
-      where: {
-        ...(auctionStatus
-          ? { status: auctionStatus }
-          : {
-              status: {
-                in: [AuctionStatus.ACTIVE],
-              },
-            }),
-        ...auctionFilter,
-        product: { ...productFilter },
-      },
+      where: queryOptions.where,
     });
 
     const pagination = this.paginationService.getPagination(
@@ -2562,6 +2581,8 @@ export class UserAuctionsService {
       categories,
       subCategory,
       countries,
+      countryId,
+      cityId,
       priceFrom,
       priceTo,
       sellingType,
@@ -2594,8 +2615,33 @@ export class UserAuctionsService {
       priceFrom,
       priceTo,
       countries,
+      countryId,
+      cityId,
       sellingType,
     });
+
+    const locationFilters = [];
+    const effectiveCountryIds = countryId?.length ? countryId : countries;
+    if (effectiveCountryIds?.length) {
+      locationFilters.push({
+        OR: [
+          { location: { countryId: { in: effectiveCountryIds.map(Number) } } },
+          { product: { countryId: { in: effectiveCountryIds.map(Number) } } },
+        ],
+      });
+    }
+    if (cityId?.length) {
+      locationFilters.push({
+        OR: [
+          { location: { cityId: { in: cityId.map(Number) } } },
+          { product: { cityId: { in: cityId.map(Number) } } },
+        ],
+      });
+    }
+
+    const { location: _location_unused, ...restAuctionFilter } =
+      auctionFilter as any;
+
     console.log('PPPPPP', productFilter);
     console.log('auctionFilter', auctionFilter);
 
@@ -2669,12 +2715,7 @@ export class UserAuctionsService {
 
     const auctions = await this.prismaService.auction.findMany(queryOptions);
     const auctionsCount = await this.prismaService.auction.count({
-      where: {
-        status: AuctionStatus.IN_SCHEDULED,
-        startDate: { gte: startOfToday },
-        product: productFilter,
-        ...auctionFilter,
-      },
+      where: queryOptions.where,
     });
 
     const pagination = this.paginationService.getPagination(
@@ -5765,18 +5806,38 @@ export class UserAuctionsService {
       console.log('limit and skip', limit, skip);
       const productFilter =
         this.auctionsHelper._productFilterApplied(getListedProductDTO);
-      console.log('productfilteer,', productFilter);
+      const { countryId, cityId, countries } = getListedProductDTO;
+      const effectiveCountryIds = countryId?.length ? countryId : countries;
+
+      const locationFilters = [];
+      if (effectiveCountryIds?.length) {
+        locationFilters.push({
+          OR: [
+            { product: { countryId: { in: effectiveCountryIds.map(Number) } } },
+            { location: { countryId: { in: effectiveCountryIds.map(Number) } } },
+          ],
+        });
+      }
+      if (cityId?.length) {
+        locationFilters.push({
+          OR: [
+            { product: { cityId: { in: cityId.map(Number) } } },
+            { location: { cityId: { in: cityId.map(Number) } } },
+          ],
+        });
+      }
+
       const queryOptions: any = {
         where: {
           status: statusFilter,
           ...(roles.includes(Role.Admin) ? {} : { userId }),
+          ...(locationFilters.length > 0 ? { AND: locationFilters } : {}),
           product: {
-            is: {
-              ...productFilter,
-              isAuctionProduct: false,
-            },
+            ...productFilter,
+            isAuctionProduct: false,
           },
           AND: [
+            ...(locationFilters.length > 0 ? locationFilters : []),
             { ProductListingPrice: { gte: priceFrom } },
             { ProductListingPrice: { lte: priceTo } },
           ],

@@ -52,10 +52,22 @@ export class GetListedProductDTO {
   brands: string[];
 
   @IsOptional()
-  @Transform(({ value }) => parseNumbers(value))
+  @Transform(({ value }) => parseNumbers(Array.isArray(value) ? value : [value]))
   @IsArray()
   @IsNumber({}, { each: true })
   countries: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumbers(Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsNumber({}, { each: true })
+  countryId: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumbers(Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsNumber({}, { each: true })
+  cityId: number[];
 
   @IsOptional()
   @Transform(({ value }) => parseNumbers(value))
