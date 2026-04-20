@@ -300,7 +300,14 @@ export class AuctionsHelper {
 
     return formatedAuction;
   }
-  _auctionFilterApplied({ priceFrom, priceTo, countries, sellingType }) {
+  _auctionFilterApplied({
+    priceFrom,
+    priceTo,
+    countries,
+    countryId,
+    cityId,
+    sellingType,
+  }) {
     let auctionFilterOrSearch = {};
 
     if (priceFrom || priceTo) {
@@ -313,10 +320,21 @@ export class AuctionsHelper {
       };
     }
 
-    if (countries?.length) {
+    const effectiveCountryIds = countryId?.length ? countryId : countries;
+    let locationFilter: any = {};
+
+    if (effectiveCountryIds?.length) {
+      locationFilter.countryId = { in: effectiveCountryIds.map(Number) };
+    }
+
+    if (cityId?.length) {
+      locationFilter.cityId = { in: cityId.map(Number) };
+    }
+
+    if (Object.keys(locationFilter).length > 0) {
       auctionFilterOrSearch = {
         ...auctionFilterOrSearch,
-        ...{ location: { countryId: { in: countries } } },
+        location: locationFilter,
       };
     }
     if (sellingType && sellingType.length) {
