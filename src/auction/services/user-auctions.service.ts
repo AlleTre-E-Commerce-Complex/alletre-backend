@@ -5759,6 +5759,33 @@ export class UserAuctionsService {
         this.notificationService.sendNotificationToSpecificUsers(
           notificationData,
         );
+
+        // Send email notification
+        try {
+          const userDetails = await this.prismaService.user.findUnique({
+            where: { id: userId },
+            select: { email: true, userName: true },
+          });
+
+          if (userDetails?.email) {
+            await this.emailService.sendEmail(
+              userDetails.email,
+              '',
+              EmailsType.PRODUCT_LISTED,
+              {
+                productTitle: newListedProduct.product.title,
+                price: newListedProduct.ProductListingPrice || 0,
+                currency: 'AED',
+                category: newListedProduct.product.categoryId.toString(),
+              },
+              userDetails.userName || 'Valued User',
+            );
+          } else {
+            console.warn(`[UserAuctionsService] No email found for user ${userId}, skipping email.`);
+          }
+        } catch (emailError) {
+          console.error('[UserAuctionsService] Error sending product listing email:', emailError);
+        }
       } catch (error) {
         console.error('Error sending product creation notification:', error);
       }

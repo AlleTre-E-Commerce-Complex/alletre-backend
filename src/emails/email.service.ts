@@ -371,6 +371,45 @@ export class EmailSerivce extends EmailBody {
 </html>`,
         };
 
+      case EmailsType.PRODUCT_LISTED:
+        return {
+          from: {
+            name: '3arbon Team',
+            address: process.env.EMAIL_FROM,
+          },
+          to: email,
+          subject: `✨ Success! Your product "${body.productTitle}" is live`,
+          html: this.emailBody({
+            userName: userName,
+            title: 'Product Successfully Listed!',
+            preHeader: 'SUCCESSFUL LISTING',
+            message1: `Great news! Your product <strong>${
+              body.productTitle
+            }</strong> has been successfully listed on 3arbon. It is now visible to thousands of potential buyers.`,
+            message2:
+              'You can manage your listings, view bids, and track sales directly from your profile dashboard.',
+            Price: `${body.price} ${body.currency || 'USD'}`,
+            Category: body.category,
+            Status: 'Live & Active',
+            Button_text: 'View My Products',
+            Button_URL: `${process.env.FRONT_URL}/profile/my-products/in-progress`,
+            features: [
+              {
+                text: 'Safe Payments',
+                icon: 'https://img.icons8.com/ios-filled/50/d4af37/shield.png',
+              },
+              {
+                text: 'Global Reach',
+                icon: 'https://img.icons8.com/ios-filled/50/d4af37/globe.png',
+              },
+              {
+                text: 'Expert Support',
+                icon: 'https://img.icons8.com/ios-filled/50/d4af37/customer-support.png',
+              },
+            ],
+          }),
+        };
+
       case EmailsType.WELCOME:
         return {
           from: {
@@ -407,9 +446,11 @@ export class EmailSerivce extends EmailBody {
     const isBypassed =
       emailType === EmailsType.VERIFICATION ||
       emailType === EmailsType.RESET_PASSWORD ||
+      emailType === EmailsType.PRODUCT_LISTED ||
       emailType === EmailsType.WELCOME;
 
     if (process.env.ENABLE_EMAILS === 'false' && !isBypassed) {
+      console.log(`[EmailService] Email sending is DISABLED for type: ${emailType}`);
       return;
     }
     const mailOptions = this.mailOptionsGenerator(
@@ -420,9 +461,11 @@ export class EmailSerivce extends EmailBody {
       userName,
     );
     try {
+      console.log(`[EmailService] Attempting to send ${emailType} email to: ${email}`);
       const sendEmailresult = await this.transporter.sendMail(mailOptions);
+      console.log(`[EmailService] Email SENT successfully to: ${email}`);
     } catch (error) {
-      console.log(error);
+      console.error(`[EmailService] FAILED to send email to: ${email}`, error);
     }
   }
 

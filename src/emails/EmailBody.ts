@@ -103,7 +103,7 @@ export class EmailBody {
                     <tr>
                         <td align="left" class="header-bg" style="background-color: #1e2633; background-image: linear-gradient(#1e2633, #1e2633); padding: 25px 40px; border-bottom: 2px solid #d4af37;">
                             <a href="https://3arbon.com" style="text-decoration: none;">
-                                <img src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/g217.png?alt=media&token=fc1c5fac-7f9c-48a1-8cf4-b41819ddeda5" 
+                                <img src="https://firebasestorage.googleapis.com/v0/b/alletre-auctions.firebasestorage.app/o/g217.png?alt=media&token=7020f633-e773-4c45-830f-a78aed390640" 
                                      alt="3arbon" 
                                      style="display: block; border: 0; height: 35px; width: auto;">
                             </a>
