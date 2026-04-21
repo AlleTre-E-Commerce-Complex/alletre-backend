@@ -20,11 +20,6 @@ model User {
   isOAuth                  Boolean              @default(false)
   hasCompletedProfile      Boolean              @default(false)
   isVerified               Boolean              @default(false)
-
-
-
-
-
   oAuthType                OAuthType?
   lang                     String               @default("en")
   socketId                 String?
@@ -40,6 +35,8 @@ model User {
   bugReports               BugReport[]
   bugReportMessages        BugReportMessage[]
   chatMessages             ChatMessage[]
+  comments                 Comment[]
+  commentLikes             CommentLike[]
   buyerConversations       Conversation[]       @relation("BuyerConversations")
   sellerConversations      Conversation[]       @relation("SellerConversations")
   JoinedAuction            JoinedAuction[]
@@ -53,8 +50,6 @@ model User {
   wallet                   Wallet[]
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
-  comments                 Comment[]
-  commentLikes             CommentLike[]
 }
 
 model NonRegisteredUser {
@@ -286,6 +281,7 @@ model Product {
   warranty            String?
   zonedFor            String?
   auction             Auction?
+  comments            Comment[]
   conversations       Conversation[]
   images              Image[]
   listedProducts      ListedProducts?
@@ -296,7 +292,6 @@ model Product {
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
   watchLists          WatchList[]
-  comments            Comment[]
 }
 
 model Image {
@@ -627,6 +622,32 @@ model ChatMessage {
   sender         User            @relation(fields: [senderId], references: [id])
 }
 
+model Comment {
+  id        Int           @id @default(autoincrement())
+  content   String
+  productId Int
+  userId    Int
+  parentId  Int?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("CommentReplies")
+  product   Product       @relation(fields: [productId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+  likes     CommentLike[]
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
 enum ChatMessageType {
   TEXT
   IMAGE
@@ -742,30 +763,4 @@ enum ListedProductsStatus {
   IN_PROGRESS
   OUT_OF_STOCK
   SOLD_OUT
-}
-
-model Comment {
-  id        Int           @id @default(autoincrement())
-  content   String
-  productId Int
-  userId    Int
-  parentId  Int?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  product   Product       @relation(fields: [productId], references: [id])
-  user      User          @relation(fields: [userId], references: [id])
-  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[]     @relation("CommentReplies")
-  likes     CommentLike[]
-}
-
-model CommentLike {
-  id        Int      @id @default(autoincrement())
-  commentId Int
-  userId    Int
-  createdAt DateTime @default(now())
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@unique([commentId, userId])
 }

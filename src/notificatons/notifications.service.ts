@@ -248,8 +248,8 @@ export class NotificationsService {
         this.notificationGateway.sendNotificationToAll(notification);
       } else {
         const notification = {
-          status: 'ON_SELLING',
-          userType: 'ALL_USERS',
+          status: 'PRIVATE_MESSAGE', // Changed from ON_SELLING to avoid global broadcast
+          userType: 'SPECIFIC_USERS',
           usersId: usersId,
           message: message,
           imageLink,
@@ -257,7 +257,7 @@ export class NotificationsService {
           auctionId,
           productId,
         };
-        this.notificationGateway.sendNotificationToAll(notification);
+        this.notificationGateway.sendNotificationToSpecificUser(notification);
       }
 
       let totalNotificationsSent = 0;
@@ -298,7 +298,6 @@ export class NotificationsService {
 
           // 3. Send Firebase push notifications in batches
           const fcmResults = [];
-          console.log('users tokens :', userTokens);
           if (userTokens.length > 0) {
             const fcmMessages = userTokens.map((userToken) => ({
               token: userToken.fcmToken,
@@ -326,15 +325,12 @@ export class NotificationsService {
                 },
               },
             }));
-            console.log('fcmResult:', fcmResults);
             // Send in batches of 500 (Firebase limit)
             const fcmBatchSize = 500;
             for (let i = 0; i < fcmMessages.length; i += fcmBatchSize) {
               const fcmBatch: any = fcmMessages.slice(i, i + fcmBatchSize);
               try {
-                console.log('fcmBacth:', fcmBatch);
                 const result = await admin.messaging().sendEach(fcmBatch);
-                console.log('result :', result);
                 fcmResults.push(result);
               } catch (error) {
                 console.error('FCM batch send error:', error);

@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notificatons/notifications.service';
+import { Role } from '../auth/enums/role.enum';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async getCommentsByProduct(productId: number, userId?: number) {
     const comments = await (this.prisma as any).comment.findMany({
@@ -62,13 +67,14 @@ export class CommentsService {
     }));
   }
 
-  async addComment(userId: number, productId: number, content: string, parentId?: number) {
+  async addComment(userId: number, productId: number, content: string, roles: string[] = [], parentId?: number) {
     // Verify product exists first
-    const product = await this.prisma.product.findUnique({
+    const productData = await this.prisma.product.findUnique({
       where: { id: productId },
+      select: { title: true, images: { take: 1 } },
     });
 
-    if (!product) {
+    if (!productData) {
       throw new NotFoundException('Product not found');
     }
 
@@ -81,7 +87,7 @@ export class CommentsService {
       }
     }
 
-    return (this.prisma as any).comment.create({
+    const newComment = await (this.prisma as any).comment.create({
       data: {
         userId: Number(userId),
         productId: Number(productId),
@@ -98,6 +104,43 @@ export class CommentsService {
         },
       },
     });
+
+    // Send notification if it's a reply
+    if (parentId) {
+      this.handleReplyNotification(newComment, parentId, roles, productData);
+    }
+
+    return newComment;
+  }
+
+  private async handleReplyNotification(newComment: any, parentId: number, roles: string[], productData: any) {
+    try {
+      const parentComment = await (this.prisma as any).comment.findUnique({
+        where: { id: parentId },
+        select: { userId: true },
+      });
+
+      // Don't notify if the user is replying to their own comment
+      if (parentComment && parentComment.userId !== newComment.userId) {
+        const isAdmin = roles.includes(Role.Admin);
+        const replierName = newComment.user.userName || 'Someone';
+        const messageEn = isAdmin 
+          ? `Admin replied to your comment: "${newComment.content.substring(0, 50)}${newComment.content.length > 50 ? '...' : ''}"`
+          : `${replierName} replied to your comment: "${newComment.content.substring(0, 50)}${newComment.content.length > 50 ? '...' : ''}"`;
+
+        await this.notificationsService.sendNotifications(
+          [parentComment.userId.toString()],
+          messageEn,
+          productData.images[0]?.imageLink || '',
+          productData.title || '',
+          undefined,
+          false,
+          newComment.productId,
+        );
+      }
+    } catch (error) {
+      console.error('[CommentsService] Error sending reply notification:', error);
+    }
   }
 
   async updateComment(userId: number, commentId: number, content: string) {

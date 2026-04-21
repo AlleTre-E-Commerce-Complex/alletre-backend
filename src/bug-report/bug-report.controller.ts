@@ -94,9 +94,11 @@ export class BugReportController {
     @Account() account: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    const isAdmin = account.roles?.includes(Role.Admin);
     const bugReport = await this.bugReportService.getBugReportById(
       id,
       Number(account.id),
+      isAdmin,
     );
     return {
       success: true,

@@ -48,6 +48,7 @@ export class CommentsController {
           Number(account.id), 
           Number(body.productId), 
           body.content,
+          account.roles,
           body.parentId ? Number(body.parentId) : undefined
         ),
       };

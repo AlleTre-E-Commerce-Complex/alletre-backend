@@ -44,20 +44,13 @@ export class NotificationGateway
   sendNotificationToSpecificUser(notification: any) {
     if (notification.status === 'ON_SELLING') {
       this.server.emit('notification', notification);
-    } else if (
-      notification.status === 'ON_BIDDING' &&
-      notification.userType === 'OTHER_BIDDERS'
-    ) {
-      console.log('111');
-      for (const userID of notification.usersId) {
-        this.server
-          .to(`user:${userID ?? null}`)
-          .emit('notification', notification);
-      }
     } else {
-      this.server
-        .to(`user:${notification.usersId ?? null}`)
-        .emit('notification', notification);
+      const users = Array.isArray(notification.usersId) ? notification.usersId : [notification.usersId];
+      for (const userID of users) {
+        if (userID) {
+          this.server.to(`user:${userID}`).emit('notification', notification);
+        }
+      }
     }
   }
 
