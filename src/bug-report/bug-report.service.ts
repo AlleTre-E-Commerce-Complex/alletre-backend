@@ -7,6 +7,7 @@ import {
 } from './dtos/create-bug-report.dto';
 import { ProblemStatus } from '@prisma/client';
 import { NotificationGateway } from '../notificatons/notifications.gateway';
+import { NotificationsService } from '../notificatons/notifications.service';
 
 @Injectable()
 export class BugReportService {
@@ -14,6 +15,7 @@ export class BugReportService {
     private readonly prismaService: PrismaService,
     private readonly firebaseService: FirebaseService,
     private readonly notificationGateway: NotificationGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createBugReport(
@@ -202,6 +204,28 @@ export class BugReportService {
         where: { id: reportId },
         data: { unreadCount: 0, userUnreadCount: { increment: 1 } },
       });
+
+      // Send formal notification to the user
+      if (bugReport.userId) {
+        try {
+          const firstImage = await this.prismaService.bugReportImages.findFirst({
+            where: { bugReportId: reportId },
+            select: { imageLink: true },
+          });
+
+          await this.notificationsService.sendNotifications(
+            [bugReport.userId.toString()],
+            `Admin replied to your bug report: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+            firstImage?.imageLink || '',
+            'Bug Report Update',
+            undefined, // auctionId
+            false, // isBidders
+            undefined, // productId
+          );
+        } catch (error) {
+          console.error('[BugReportService] Failed to send formal notification:', error);
+        }
+      }
     }
 
     return message;
