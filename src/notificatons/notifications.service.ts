@@ -114,6 +114,12 @@ export class NotificationsService {
           product: {
             select: {
               title: true,
+              images: {
+                select: {
+                  imageLink: true,
+                },
+                take: 1,
+              },
             },
           },
         },

@@ -216,7 +216,7 @@ export class BugReportService {
           await this.notificationsService.sendNotifications(
             [bugReport.userId.toString()],
             `Admin replied to your bug report: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-            firstImage?.imageLink || '',
+            firstImage?.imageLink || null,
             'Bug Report Update',
             undefined, // auctionId
             false, // isBidders
