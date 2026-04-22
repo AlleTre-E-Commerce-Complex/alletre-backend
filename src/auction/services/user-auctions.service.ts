@@ -107,12 +107,13 @@ export class UserAuctionsService {
 
       const createProductStatus = isListedProductSignal ? 'LISTING' : 'AUCTION';
 
-      productId = await this._createProduct(
+      const createProductResult = await this._createProduct(
         product,
         files,
         createProductStatus,
         userId,
       );
+      productId = createProductResult.productId;
 
       if (isListedProductSignal) {
         // Additional logic for listed products if needed
@@ -274,12 +275,13 @@ export class UserAuctionsService {
       productDTO.isAuction === false;
 
     const createProductStatus = isListedProductSignal ? 'LISTING' : 'AUCTION';
-    const productId = await this._createProduct(
+    const createProductResult = await this._createProduct(
       productDTO,
       images,
       createProductStatus,
       userId,
     );
+    const productId = createProductResult.productId;
 
     const draftAuction = await this.prismaService.auction.create({
       data: {
@@ -302,7 +304,7 @@ export class UserAuctionsService {
       const notificationData = {
         usersId: userId,
         message: notificationMessage,
-        imageLink: draftAuction.product.images[0]?.imageLink,
+        imageLink: draftAuction.product.images[0]?.imageLink || createProductResult.firstImageLink || null,
         productTitle: draftAuction.product.title,
         productId: draftAuction.productId,
       };
@@ -5646,6 +5648,7 @@ export class UserAuctionsService {
   ) {
     try {
       let productId: number;
+      let firstImageLink: string = null;
       if (auctionId) {
         // Find the existing draft auction and its product ID
         const auctionDraft = await this.prismaService.auction.findUnique({
@@ -5667,6 +5670,7 @@ export class UserAuctionsService {
         if (images?.length) {
           for (const image of images) {
             const uploadedImage = await this.firebaseService.uploadImage(image);
+            if (!firstImageLink) firstImageLink = uploadedImage.fileLink;
             await this.prismaService.image.create({
               data: {
                 productId: productId,
@@ -5684,12 +5688,14 @@ export class UserAuctionsService {
       } else {
         // Create a new product if no draft exists
         const createProductStatus = 'LISTING';
-        productId = await this._createProduct(
+        const createProductResult = await this._createProduct(
           productData,
           images,
           createProductStatus,
           userId,
         );
+        productId = createProductResult.productId;
+        firstImageLink = createProductResult.firstImageLink;
       }
 
       // Check if this product already has a ListedProducts entry (shouldn't normally happen, but good to be safe)
@@ -5737,11 +5743,13 @@ export class UserAuctionsService {
 
       // Send notification
       try {
+        let imageLink = newListedProduct.product.images[0]?.imageLink || firstImageLink;
+
         const notificationMessage = `Your product "${newListedProduct.product.title}" has been successfully listed.`;
         const notificationData = {
           usersId: userId,
           message: notificationMessage,
-          imageLink: newListedProduct.product.images[0]?.imageLink,
+          imageLink: imageLink || null,
           productTitle: newListedProduct.product.title,
           productId: newListedProduct.product.id,
         };
@@ -6413,11 +6421,22 @@ export class UserAuctionsService {
 
       // Send notification
       try {
+        let imageLink = updatedProduct.images[0]?.imageLink;
+
+        // Fallback robust check if images array is empty
+        if (!imageLink && updatedProduct.id) {
+          const firstImage = await this.prismaService.image.findFirst({
+            where: { productId: Number(updatedProduct.id) },
+            select: { imageLink: true },
+          });
+          imageLink = firstImage?.imageLink;
+        }
+
         const notificationMessage = `Your product "${updatedProduct.title}" has been successfully updated.`;
         const notificationData = {
           usersId: userId,
           message: notificationMessage,
-          imageLink: updatedProduct.images[0]?.imageLink,
+          imageLink: imageLink || null,
           productTitle: updatedProduct.title,
           productId: updatedProduct.id,
         };
@@ -7228,8 +7247,8 @@ export class UserAuctionsService {
       });
     }
 
+    const imagesHolder = [];
     try {
-      const imagesHolder = [];
 
       if (images?.length) {
         for (const image of images) {
@@ -7258,7 +7277,10 @@ export class UserAuctionsService {
       });
     }
 
-    return createdProduct.id;
+    return {
+      productId: createdProduct.id,
+      firstImageLink: imagesHolder[0]?.fileLink || null,
+    };
   }
 
   private async _updateProduct(
