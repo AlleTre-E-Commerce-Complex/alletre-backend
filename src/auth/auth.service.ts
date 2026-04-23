@@ -19,13 +19,10 @@ import { AdminService } from 'src/admin/admin.service';
 import axios from 'axios';
 // import { WalletStatus, WalletTransactionType } from '@prisma/client';
 import { WalletService } from 'src/wallet/wallet.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  private usedRefreshTokens: Set<string> = new Set();
-  private userSessions: Map<number, Set<string>> = new Map();
-  private adminSessions: Map<number, Set<string>> = new Map();
-  private usedAdminRefreshTokens: Set<string> = new Set();
   private readonly MAX_SESSIONS_PER_USER = 5;
 
   constructor(
@@ -35,6 +32,7 @@ export class AuthService {
     private readonly emailSerivce: EmailSerivce,
     private readonly adminService: AdminService,
     private readonly walletService: WalletService,
+    private readonly prismaService: PrismaService,
   ) {
     /* TODO document why this constructor is empty */
   }
@@ -91,7 +89,7 @@ export class AuthService {
       if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
 
       // Clear old sessions for this user
-      this.clearUserSessions(user.id);
+      await this.clearUserSessions(user.id);
 
       if (user) await this.userService.updateUserIpAddress(user.id, userIp);
 
@@ -103,7 +101,7 @@ export class AuthService {
       });
 
       // Manage new session
-      this.manageUserSession(user.id, refreshToken);
+      await this.manageUserSession(user.id, refreshToken);
 
       const userWithoutPassword = this.userService.exclude(user, ['password']);
 
@@ -122,34 +120,42 @@ export class AuthService {
     }
   }
 
-  private clearUserSessions(userId: number) {
+  private async clearUserSessions(userId: number) {
     try {
-      const userTokens = this.userSessions.get(userId);
-      if (userTokens) {
-        userTokens.forEach((token) => this.usedRefreshTokens.add(token));
-        this.userSessions.delete(userId);
-      }
+      await (this.prismaService as any).refreshToken.deleteMany({
+        where: { userId },
+      });
     } catch (error) {
       console.error('Error clearing user sessions:', error);
     }
   }
 
-  private manageUserSession(userId: number, refreshToken: string) {
+  private async manageUserSession(userId: number, refreshToken: string) {
     try {
-      let userTokens = this.userSessions.get(userId);
-      if (!userTokens) {
-        userTokens = new Set();
-        this.userSessions.set(userId, userTokens);
-      }
-
       // Enforce session limit
-      if (userTokens.size >= this.MAX_SESSIONS_PER_USER) {
-        const oldestToken = Array.from(userTokens)[0];
-        userTokens.delete(oldestToken);
-        this.usedRefreshTokens.add(oldestToken);
+      const sessionCount = await (this.prismaService as any).refreshToken.count({
+        where: { userId },
+      });
+
+      if (sessionCount >= this.MAX_SESSIONS_PER_USER) {
+        const oldestSession = await (this.prismaService as any).refreshToken.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (oldestSession) {
+          await (this.prismaService as any).refreshToken.delete({
+            where: { id: oldestSession.id },
+          });
+        }
       }
 
-      userTokens.add(refreshToken);
+      await (this.prismaService as any).refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        },
+      });
     } catch (error) {
       console.error('Error managing user session:', error);
     }
@@ -169,7 +175,7 @@ export class AuthService {
     );
 
     // Clear any lingering sessions for this ID (in case of ID reuse after DB reset)
-    this.clearUserSessions(user.id);
+    await this.clearUserSessions(user.id);
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens({
@@ -178,6 +184,9 @@ export class AuthService {
       roles: [Role.User],
       phone: user.phone,
     });
+
+    // Manage new session
+    await this.manageUserSession(user.id, refreshToken);
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
 
@@ -560,39 +569,27 @@ export class AuthService {
   async logout(refreshToken: string) {
     // If there's no cookie/token, treat as success (idempotent)
     if (!refreshToken) {
-      // still clear any server-side sessions? nothing to do
       return { message: 'Logged out successfully' };
     }
 
     try {
-      const payload = this.decodeRefreshToken(refreshToken);
+      // 1. Verify and decode refreshToken (optional, but good for validation)
+      // const payload = this.decodeRefreshToken(refreshToken);
 
-      // Remove the token from active sessions and mark it used
-      try {
-        // mark as used (prevent replay)
-        this.usedRefreshTokens.add(refreshToken);
-
-        // remove from the user's active session set
-        const userTokens = this.userSessions.get(payload.id);
-        if (userTokens && userTokens.has(refreshToken)) {
-          userTokens.delete(refreshToken);
-        }
-
-        // Optionally clear all sessions for the user for a strict logout:
-        // this.clearUserSessions(payload.id);
-      } catch (err) {
-        console.error('Error clearing session for logout', err);
-      }
+      // 2. Delete the session from DB
+      await (this.prismaService as any).refreshToken.deleteMany({
+        where: { token: refreshToken },
+      });
 
       return { message: 'Logged out successfully' };
     } catch (error) {
       // If token is invalid or already expired, still respond success (idempotent)
+      console.error('Logout error:', error);
       return { message: 'Logged out successfully' };
     }
   }
 
   async refreshToken(oldRefreshToken: string) {
-    console.log('refreshToken', oldRefreshToken);
     if (!oldRefreshToken)
       throw new NotFoundResponse({
         ar: 'لا يوجد',
@@ -600,22 +597,24 @@ export class AuthService {
       });
 
     try {
-      // decode refreshToken first to validate it
+      // 1. Verify and decode refreshToken
       const payload = this.decodeRefreshToken(oldRefreshToken);
 
-      // Check if token has been used or invalidated
-      if (this.usedRefreshTokens.has(oldRefreshToken)) {
-        // Clear all sessions for this user for security
-        this.clearUserSessions(payload.id);
+      // 2. Check if token exists in Database
+      const session = await (this.prismaService as any).refreshToken.findUnique({
+        where: { token: oldRefreshToken },
+      });
+
+      if (!session) {
+        // This could be a replay attack or a cleared session
         throw new ForbiddenResponse({
-          en: 'Token has been invalidated',
-          ar: 'تم إبطال رمز التحديث',
+          en: 'Token has been invalidated or expired',
+          ar: 'تم إبطال رمز التحديث أو انتهت صلاحيته',
         });
       }
 
-      // Check user existence
+      // 3. Check Admin/User role mismatch or stale session (Optional)
       const user = await this.getUserByRole(payload.id, payload.roles[0]);
-
       if (!user) {
         throw new ForbiddenResponse({
           en: 'User not found',
@@ -623,30 +622,12 @@ export class AuthService {
         });
       }
 
-      // Check for stale token (issued before user was created)
-      const tokenIssuedAt = payload.iat * 1000;
-      const userCreatedAt = new Date(user.createdAt).getTime();
-      if (tokenIssuedAt < userCreatedAt - 1000) {
-        throw new ForbiddenResponse({
-          en: 'Stale session - please log in again',
-          ar: 'جلسة قديمة - يرجى تسجيل الدخول مرة أخرى',
-        });
-      }
+      // 4. Delete old token (Rotation)
+      await (this.prismaService as any).refreshToken.delete({
+        where: { id: session.id },
+      });
 
-      // Mark old token as used (prevent replay)
-      this.usedRefreshTokens.add(oldRefreshToken);
-
-      // Remove old token from active session set for this user (important)
-      try {
-        const userTokens = this.userSessions.get(payload.id);
-        if (userTokens && userTokens.has(oldRefreshToken)) {
-          userTokens.delete(oldRefreshToken);
-        }
-      } catch (err) {
-        console.error('Error removing old refresh token from session set', err);
-      }
-
-      // Generate new tokens
+      // 5. Generate new tokens
       const userWithPhone = user as { phone: string | null };
       const { accessToken, refreshToken } = this.generateTokens({
         id: user.id,
@@ -655,11 +636,8 @@ export class AuthService {
         phone: userWithPhone.phone,
       });
 
-      // Update session with new refresh token
-      this.manageUserSession(user.id, refreshToken);
-
-      // IMPORTANT: Do not persist the raw refreshToken in DB without hashing.
-      // If you persist, store only a hash.
+      // 6. Save new session to DB
+      await this.manageUserSession(user.id, refreshToken);
 
       return {
         accessToken,
@@ -667,44 +645,50 @@ export class AuthService {
       };
     } catch (error) {
       console.error('Refresh token error:', error);
-      if (error instanceof ForbiddenResponse) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       throw new ForbiddenResponse({
-        en: 'Invalid session',
-        ar: 'جلسة غير صالحة',
+        en: 'Invalid or expired session',
+        ar: 'جلسة غير صالحة أو منتهية الصلاحية',
       });
     }
   }
 
-  private clearAdminSessions(adminId: number) {
+  private async clearAdminSessions(adminId: number) {
     try {
-      const adminTokens = this.adminSessions.get(adminId);
-      if (adminTokens) {
-        adminTokens.forEach((token) => this.usedAdminRefreshTokens.add(token));
-        this.adminSessions.delete(adminId);
-      }
+      await (this.prismaService as any).refreshToken.deleteMany({
+        where: { adminId },
+      });
     } catch (error) {
       console.error('Error clearing admin sessions:', error);
     }
   }
 
-  private manageAdminSession(adminId: number, refreshToken: string) {
+  private async manageAdminSession(adminId: number, refreshToken: string) {
     try {
-      let adminTokens = this.adminSessions.get(adminId);
-      if (!adminTokens) {
-        adminTokens = new Set();
-        this.adminSessions.set(adminId, adminTokens);
+      // Enforce session limit
+      const sessionCount = await (this.prismaService as any).refreshToken.count({
+        where: { adminId },
+      });
+
+      if (sessionCount >= this.MAX_SESSIONS_PER_USER) {
+        const oldestSession = await (this.prismaService as any).refreshToken.findFirst({
+          where: { adminId },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (oldestSession) {
+          await (this.prismaService as any).refreshToken.delete({
+            where: { id: oldestSession.id },
+          });
+        }
       }
 
-      // For admin, we only allow one active session
-      if (adminTokens.size > 0) {
-        const oldToken = Array.from(adminTokens)[0];
-        adminTokens.delete(oldToken);
-        this.usedAdminRefreshTokens.add(oldToken);
-      }
-
-      adminTokens.add(refreshToken);
+      await (this.prismaService as any).refreshToken.create({
+        data: {
+          token: refreshToken,
+          adminId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        },
+      });
     } catch (error) {
       console.error('Error managing admin session:', error);
     }
@@ -758,7 +742,6 @@ export class AuthService {
   }
 
   async adminRefreshToken(oldRefreshToken: string) {
-    console.log('adminRefreshToken', oldRefreshToken);
     if (!oldRefreshToken)
       throw new NotFoundResponse({
         ar: 'لا يوجد',
@@ -766,18 +749,10 @@ export class AuthService {
       });
 
     try {
-      // Check if token has been used or invalidated
-      if (this.usedAdminRefreshTokens.has(oldRefreshToken)) {
-        throw new ForbiddenResponse({
-          en: 'Token has been invalidated',
-          ar: 'تم إبطال رمز التحديث',
-        });
-      }
-
-      // decode refreshToken
+      // 1. Verify and decode refreshToken
       const payload = this.decodeRefreshToken(oldRefreshToken);
 
-      // Validate admin role
+      // 2. Validate admin role from payload
       if (!payload.roles.includes(Role.Admin)) {
         throw new ForbiddenResponse({
           en: 'Not authorized as admin',
@@ -785,48 +760,40 @@ export class AuthService {
         });
       }
 
-      // Validate the session exists
-      const adminTokens = this.adminSessions.get(payload.id);
-      if (!adminTokens || !adminTokens.has(oldRefreshToken)) {
+      // 3. Check if token exists in Database
+      const session = await (this.prismaService as any).refreshToken.findUnique({
+        where: { token: oldRefreshToken },
+      });
+
+      if (!session || session.adminId !== payload.id) {
         throw new ForbiddenResponse({
           en: 'Invalid admin session',
           ar: 'جلسة المسؤول غير صالحة',
         });
       }
 
-      // Check Admin Existence
+      // 4. Check Admin Existence
       const admin = await this.adminService.getAdminByIdOr404(payload.id);
 
-      // Check for stale token (issued before admin was created)
-      const tokenIssuedAt = payload.iat * 1000;
-      const adminCreatedAt = new Date(admin.createdAt).getTime();
-      if (tokenIssuedAt < adminCreatedAt - 1000) {
-        throw new ForbiddenResponse({
-          en: 'Stale session - please log in again',
-          ar: 'جلسة قديمة - يرجى تسجيل الدخول مرة أخرى',
-        });
-      }
-
-      // Invalidate old refresh token
-      adminTokens.delete(oldRefreshToken);
-      this.usedAdminRefreshTokens.add(oldRefreshToken);
-
-      // Generate new tokens
-      const { accessToken, refreshToken } = this.generateTokens({
-        id: admin.id,
-        email: admin.email,
-        roles: [Role.Admin],
+      // 5. Delete old token (Rotation)
+      await (this.prismaService as any).refreshToken.delete({
+        where: { id: session.id },
       });
 
-      // Store new refresh token
-      this.manageAdminSession(admin.id, refreshToken);
+      // 6. Generate new tokens
+      const { accessToken, refreshToken: newRefreshToken } = this.generateTokens({
+        id: admin.id,
+        email: admin.email,
+        roles: payload.roles,
+      });
 
-      return { accessToken, refreshToken };
+      // 7. Save new session to DB
+      await this.manageAdminSession(admin.id, newRefreshToken);
+
+      return { accessToken, refreshToken: newRefreshToken };
     } catch (error) {
       console.error('Admin refresh token error:', error);
-      if (error instanceof ForbiddenResponse) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       throw new ForbiddenResponse({
         en: 'Invalid admin session',
         ar: 'جلسة المسؤول غير صالحة',
@@ -842,7 +809,7 @@ export class AuthService {
   }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
-      expiresIn: '15m',
+      expiresIn: '24h',
     });
 
     const refreshToken = this.jwtService.sign(payload, {

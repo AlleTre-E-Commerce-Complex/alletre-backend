@@ -304,7 +304,11 @@ export class ProductDTO {
   isListedProduct?: boolean;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isAuction?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['FIXED', 'NEGOTIABLE'])
+  priceType?: string;
 }

@@ -9,6 +9,7 @@ import { EmailModule } from '../emails/email.module';
 import { AdminModule } from 'src/admin/admin.module';
 import { WalletService } from 'src/wallet/wallet.service';
 import { WalletModule } from 'src/wallet/wallet.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { WalletModule } from 'src/wallet/wallet.module';
     EmailModule,
     AdminModule,
     WalletModule,
+    PrismaModule,
   ],
   providers: [AuthService],
   controllers: [AuthController],

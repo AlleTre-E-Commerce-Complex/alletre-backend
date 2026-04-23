@@ -50,6 +50,7 @@ model User {
   wallet                   Wallet[]
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
+  refreshTokens            RefreshToken[]
 }
 
 model NonRegisteredUser {
@@ -243,6 +244,7 @@ model Product {
   brand               String?
   isAuctionProduct    Boolean?        @default(true)
   ProductListingPrice Decimal?        @default(0)
+  priceType           PriceType       @default(FIXED)
   userId              Int?
   amenities           String?
   annualCommunityFee  Decimal?
@@ -452,6 +454,18 @@ model Admin {
   imagePath         String?
   createdAt         DateTime           @default(now())
   bugReportMessages BugReportMessage[]
+  refreshTokens     RefreshToken[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int?
+  adminId   Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 }
 
 model Wallet {
@@ -684,6 +698,11 @@ enum UsageStatus {
   NEW
   USED
   OPEN_BOX
+}
+
+enum PriceType {
+  FIXED
+  NEGOTIABLE
 }
 
 enum PaymentStatus {

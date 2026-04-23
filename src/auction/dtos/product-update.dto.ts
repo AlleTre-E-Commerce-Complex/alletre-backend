@@ -1,6 +1,7 @@
 import {
   IsOptional,
   IsString,
+  IsIn,
   IsArray,
   IsNumber,
   ValidateIf,
@@ -208,4 +209,9 @@ export class ProductUpdateDTO {
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
   locationId?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['FIXED', 'NEGOTIABLE'])
+  priceType?: string;
 }
