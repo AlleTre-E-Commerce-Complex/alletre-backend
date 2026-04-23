@@ -1,5 +1,0 @@
--- CreateEnum
-CREATE TYPE "DeliveryRequestsStatus" AS ENUM ('DELIVERY_PENDING', 'DELIVERY_SUCCESS', 'DELIVERY_IN_PROGRESS', 'DELIVERY_FAILED', 'DELIVERY_HOLD');
-
--- AlterTable
-ALTER TABLE "Auction" ADD COLUMN     "deliveryRequestsStatus" "DeliveryRequestsStatus" NOT NULL DEFAULT 'DELIVERY_PENDING';
