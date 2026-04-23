@@ -147,8 +147,8 @@ export class AppVersionService {
     });
 
     return {
-      LatestAndroidVersion: latestAndroid?.version ?? '2.0.0',
-      LatestIOSVersion: latestIos?.version ?? '2.0.1',
+      LatestAndroidVersion: latestAndroid?.version ?? '2.0.1',
+      LatestIOSVersion: latestIos?.version ?? '2.0.2',
       IOSAppUpdateURL:
         iosAppUpdateURL ??
         latestIos?.downloadUrl ??
