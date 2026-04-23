@@ -11,22 +11,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$BACKEND_DIR/.env"
 
-# Load environment variables from .env
+# BETTER WAY TO LOAD .ENV (Handles complex keys like Firebase)
 if [ -f "$ENV_FILE" ]; then
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
+    set -a
+    source "$ENV_FILE"
+    set +a
 else
     echo "Error: .env file not found at $ENV_FILE"
     exit 1
 fi
 
+# Clean up the DATABASE_URL (Removes Prisma-specific ?schema=public part)
+CLEAN_DB_URL=$(echo "$DATABASE_URL" | sed 's/?schema=.*//')
+
 # Variables (Overridable via .env)
 BACKUP_ROOT="${BACKUP_ROOT:-/home/backups/db}"
-# Self-correction: Strip any existing slash and add exactly one to ensure gs://bucket/ format
+# Self-correction: Strip any existing slash to ensure consistent path format
 GCS_BUCKET=$(echo "${GCS_BUCKET:-gs://alletre-db-backups}" | sed 's/\/*$//')
 WEBHOOK_URL="${BACKUP_NOTIFICATION_WEBHOOK:-}" # Discord/Slack Webhook URL
 
-# Extract DB name from DATABASE_URL
-DB_NAME=$(echo $DATABASE_URL | sed -e 's/.*\///' -e 's/?.*//')
+# Extract DB name from CLEAN_DB_URL
+DB_NAME=$(echo $CLEAN_DB_URL | sed -e 's/.*\///' -e 's/?.*//')
 
 # Timestamps
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -56,7 +61,8 @@ echo "Starting backup for $DB_NAME to $BACKUP_PATH..."
 
 # Use -Fc for custom format (compressed, flexible, fast restore)
 # Use --no-owner --no-privileges for portability
-pg_dump -Fc --no-owner --no-privileges "$DATABASE_URL" > "$BACKUP_PATH"
+# Use CLEAN_DB_URL to avoid Prisma ?schema= errors
+pg_dump -Fc --no-owner --no-privileges "$CLEAN_DB_URL" > "$BACKUP_PATH"
 
 if [ $? -eq 0 ]; then
     echo "Successfully created daily backup."
