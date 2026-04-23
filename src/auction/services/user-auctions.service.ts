@@ -6149,6 +6149,7 @@ export class UserAuctionsService {
       updateData.description = productData?.description;
     if (productData?.usageStatus)
       updateData.usageStatus = productData?.usageStatus;
+    if (productData?.priceType) updateData.priceType = productData?.priceType;
     if (productData?.brand) updateData.brand = productData?.brand;
     if (productData?.color) updateData.color = productData?.color;
     if (productData?.landType) updateData.landType = productData?.landType;
@@ -7135,6 +7136,7 @@ export class UserAuctionsService {
       freehold,
       residentialType,
       commercialType,
+      priceType,
     } = productBody;
 
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
@@ -7145,6 +7147,7 @@ export class UserAuctionsService {
       operatingSystem,
       releaseYear,
       regionOfManufacture,
+      priceType,
       cameraType,
       material,
       memory,
@@ -7185,58 +7188,38 @@ export class UserAuctionsService {
       residentialType,
       commercialType,
     };
+    const productData: any = {
+      title,
+      categoryId: Number(categoryId),
+      description,
+      ...(userId ? { userId: Number(userId) } : {}),
+      ...(age ? { age: Number(age) } : {}),
+      ...(subCategoryId
+        ? { subCategoryId: Number(subCategoryId) }
+        : { subCategoryId: null }),
+      ...(brand ? { brand } : { brand: null }),
+      ...(screenSize ? { screenSize: Number(screenSize) } : { screenSize: null }),
+      ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
+      ...(totalArea ? { totalArea: Number(totalArea) } : { totalArea: null }),
+      ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : { numberOfRooms: null }),
+      ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : { numberOfFloors: null }),
+      ...(countryId ? { countryId: Number(countryId) } : { countryId: null }),
+      ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
+      ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
+      ...(ProductListingPrice ? { ProductListingPrice: Number(ProductListingPrice) } : {}),
+      ...(totalClosingFee ? { totalClosingFee: Number(totalClosingFee) } : {}),
+      ...(annualCommunityFee ? { annualCommunityFee: Number(annualCommunityFee) } : {}),
+      ...(buyerTransferFee ? { buyerTransferFee: Number(buyerTransferFee) } : {}),
+      ...(sellerTransferFee ? { sellerTransferFee: Number(sellerTransferFee) } : {}),
+      ...(maintenanceFee ? { maintenanceFee: Number(maintenanceFee) } : {}),
+      ...(approvedBuildUpArea ? { approvedBuildUpArea: Number(approvedBuildUpArea) } : {}),
+      ...nonNumericOptionalFields,
+    };
+
     let createdProduct: Product;
     try {
       createdProduct = await this.prismaService.product.create({
-        data: {
-          title,
-          categoryId: Number(categoryId),
-          description,
-          ...(userId ? { userId: Number(userId) } : {}),
-          ...(age ? { age: Number(age) } : {}),
-          ...(subCategoryId
-            ? { subCategoryId: Number(subCategoryId) }
-            : { subCategoryId: null }),
-          ...(brand ? { brand } : { brand: null }),
-          ...(screenSize
-            ? { screenSize: Number(screenSize) }
-            : { screenSize: null }),
-          ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
-          ...(totalArea
-            ? { totalArea: Number(totalArea) }
-            : { totalArea: null }),
-          ...(numberOfRooms
-            ? { numberOfRooms: Number(numberOfRooms) }
-            : { numberOfRooms: null }),
-          ...(numberOfFloors
-            ? { numberOfFloors: Number(numberOfFloors) }
-            : { numberOfFloors: null }),
-          ...(countryId
-            ? { countryId: Number(countryId) }
-            : { countryId: null }),
-          ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
-          ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
-          ...(ProductListingPrice
-            ? { ProductListingPrice: Number(ProductListingPrice) }
-            : {}),
-          ...(totalClosingFee
-            ? { totalClosingFee: Number(totalClosingFee) }
-            : {}),
-          ...(annualCommunityFee
-            ? { annualCommunityFee: Number(annualCommunityFee) }
-            : {}),
-          ...(buyerTransferFee
-            ? { buyerTransferFee: Number(buyerTransferFee) }
-            : {}),
-          ...(sellerTransferFee
-            ? { sellerTransferFee: Number(sellerTransferFee) }
-            : {}),
-          ...(maintenanceFee ? { maintenanceFee: Number(maintenanceFee) } : {}),
-          ...(approvedBuildUpArea
-            ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
-            : {}),
-          ...nonNumericOptionalFields,
-        },
+        data: productData,
       });
     } catch (error) {
       console.log(error);
@@ -7302,6 +7285,7 @@ export class UserAuctionsService {
       operatingSystem,
       releaseYear,
       regionOfManufacture,
+      priceType,
       ramSize,
       cameraType,
       material,
@@ -7352,135 +7336,117 @@ export class UserAuctionsService {
       commercialType,
     } = productBody;
 
+    const productData: any = {
+      title,
+      isAuctionProduct,
+      ProductListingPrice: productBody.ProductListingPrice
+        ? Number(productBody.ProductListingPrice)
+        : undefined,
+      categoryId: Number(categoryId),
+      description,
+      ...(age ? { age: Number(age) } : { age: null }),
+      ...(subCategoryId
+        ? { subCategoryId: Number(subCategoryId) }
+        : { subCategoryId: null }),
+      ...(brand ? { brand } : { brand: null }),
+      ...(screenSize
+        ? { screenSize: Number(screenSize) }
+        : { screenSize: null }),
+      ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
+      ...(totalArea ? { totalArea: Number(totalArea) } : { totalArea: null }),
+      ...(numberOfRooms
+        ? { numberOfRooms: Number(numberOfRooms) }
+        : { numberOfRooms: null }),
+      ...(numberOfFloors
+        ? { numberOfFloors: Number(numberOfFloors) }
+        : { numberOfFloors: null }),
+      ...(countryId
+        ? { countryId: Number(countryId) }
+        : { countryId: null }),
+      ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
+      ...(usageStatus ? { usageStatus: usageStatus } : { usageStatus: null }),
+      ...(model ? { model } : { model: null }),
+      ...(color ? { color } : { color: null }),
+      ...(priceType ? { priceType } : { priceType: 'FIXED' }),
+      ...(processor ? { processor } : { processor: null }),
+      ...(operatingSystem
+        ? { operatingSystem }
+        : { operatingSystem: null }),
+      ...(releaseYear ? { releaseYear } : { releaseYear: null }),
+      ...(regionOfManufacture
+        ? { regionOfManufacture }
+        : { regionOfManufacture: null }),
+      ...(cameraType ? { cameraType } : { cameraType: null }),
+      ...(material ? { material } : { material: null }),
+      ...(memory ? { memory } : { memory: null }),
+      ...(landType ? { landType } : { landType: null }),
+      ...(carType ? { carType } : { carType: null }),
+      ...(trim ? { trim } : { trim: null }),
+      ...(regionalSpecs ? { regionalSpecs } : { regionalSpecs: null }),
+      ...(kilometers ? { kilometers } : { kilometers: null }),
+      ...(interiorColor ? { interiorColor: interiorColor } : { interiorColor: null }),
+      ...(insuredInUae ? { insuredInUae } : { insuredInUae: null }),
+      ...(warranty ? { warranty } : { warranty: null }),
+      ...(fuelType ? { fuelType } : { fuelType: null }),
+      ...(doors ? { doors } : { doors: null }),
+      ...(transmissionType
+        ? { transmissionType }
+        : { transmissionType: null }),
+      ...(seatingCapacity
+        ? { seatingCapacity }
+        : { seatingCapacity: null }),
+      ...(horsepower ? { horsepower } : { horsepower: null }),
+      ...(steeringSide ? { steeringSide } : { steeringSide: null }),
+      ...(engineCapacity ? { engineCapacity } : { engineCapacity: null }),
+      ...(numberOfCylinders
+        ? { numberOfCylinders }
+        : { numberOfCylinders: null }),
+      ...(driverAssistance
+        ? { driverAssistance }
+        : { driverAssistance: null }),
+      ...(entertainment ? { entertainment } : { entertainment: null }),
+      ...(comfort ? { comfort } : { comfort: null }),
+      ...(exteriorFeatures
+        ? { exteriorFeatures }
+        : { exteriorFeatures: null }),
+      ...(emirate ? { emirate } : { emirate: null }),
+      ...(totalClosingFee
+        ? { totalClosingFee: Number(totalClosingFee) }
+        : { totalClosingFee: null }),
+      ...(numberOfBathrooms
+        ? { numberOfBathrooms: Number(numberOfBathrooms) }
+        : { numberOfBathrooms: null }),
+      ...(developer ? { developer } : { developer: null }),
+      ...(readyBy ? { readyBy } : { readyBy: null }),
+      ...(isFurnished ? { isFurnished } : { isFurnished: null }),
+      ...(propertyReferenceId
+        ? { propertyReferenceId }
+        : { propertyReferenceId: null }),
+      ...(occupancyStatus
+        ? { occupancyStatus }
+        : { occupancyStatus: null }),
+      ...(amenities ? { amenities } : { amenities: null }),
+      ...(zonedFor ? { zonedFor } : { zonedFor: null }),
+      ...(approvedBuildUpArea
+        ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
+        : { approvedBuildUpArea: null }),
+      ...(freehold ? { freehold } : { freehold: null }),
+      ...(residentialType ? { residentialType } : { residentialType: null }),
+      ...(commercialType ? { commercialType } : { commercialType: null }),
+    };
+
     let updatedProduct: Product;
     try {
       updatedProduct = await this.prismaService.product.update({
         where: { id: productId },
-        data: {
-          title,
-          isAuctionProduct,
-          ProductListingPrice: productBody.ProductListingPrice
-            ? Number(productBody.ProductListingPrice)
-            : undefined,
-          categoryId: Number(categoryId),
-          description,
-          ...(age ? { age: Number(age) } : { age: null }),
-          ...(subCategoryId
-            ? { subCategoryId: Number(subCategoryId) }
-            : { subCategoryId: null }),
-          ...(brand ? { brand } : { brand: null }),
-          ...(screenSize
-            ? { screenSize: Number(screenSize) }
-            : { screenSize: null }),
-          ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
-          ...(totalArea
-            ? { totalArea: Number(totalArea) }
-            : { totalArea: null }),
-          ...(numberOfRooms
-            ? { numberOfRooms: Number(numberOfRooms) }
-            : { numberOfRooms: null }),
-          ...(numberOfFloors
-            ? { numberOfFloors: Number(numberOfFloors) }
-            : { numberOfFloors: null }),
-          ...(countryId
-            ? { countryId: Number(countryId) }
-            : { countryId: null }),
-          ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
-          ...(usageStatus
-            ? { usageStatus: usageStatus }
-            : { usageStatus: null }),
-          ...(model ? { model } : { model: null }),
-          ...(color ? { color } : { color: null }),
-          ...(processor ? { processor } : { processor: null }),
-          ...(operatingSystem
-            ? { operatingSystem }
-            : { operatingSystem: null }),
-          ...(releaseYear ? { releaseYear } : { releaseYear: null }),
-          ...(regionOfManufacture
-            ? { regionOfManufacture }
-            : { regionOfManufacture: null }),
-          ...(cameraType ? { cameraType } : { cameraType: null }),
-          ...(material ? { material } : { material: null }),
-          ...(memory ? { memory } : { memory: null }),
-          ...(landType ? { landType } : { landType: null }),
-          ...(numberOfRooms
-            ? { numberOfRooms: Number(numberOfRooms) }
-            : { numberOfRooms: null }),
-          ...(carType ? { carType } : { carType: null }),
-          ...(trim ? { trim } : { trim: null }),
-          ...(regionalSpecs ? { regionalSpecs } : { regionalSpecs: null }),
-          ...(kilometers ? { kilometers } : { kilometers: null }),
-          ...(interiorColor ? { interiorColor } : { interiorColor: null }),
-          ...(insuredInUae ? { insuredInUae } : { insuredInUae: null }),
-          ...(warranty ? { warranty } : { warranty: null }),
-          ...(fuelType ? { fuelType } : { fuelType: null }),
-          ...(doors ? { doors } : { doors: null }),
-          ...(transmissionType
-            ? { transmissionType }
-            : { transmissionType: null }),
-          ...(seatingCapacity
-            ? { seatingCapacity }
-            : { seatingCapacity: null }),
-          ...(horsepower ? { horsepower } : { horsepower: null }),
-          ...(steeringSide ? { steeringSide } : { steeringSide: null }),
-          ...(engineCapacity ? { engineCapacity } : { engineCapacity: null }),
-          ...(numberOfCylinders
-            ? { numberOfCylinders }
-            : { numberOfCylinders: null }),
-          ...(driverAssistance
-            ? { driverAssistance }
-            : { driverAssistance: null }),
-          ...(entertainment ? { entertainment } : { entertainment: null }),
-          ...(comfort ? { comfort } : { comfort: null }),
-          ...(exteriorFeatures
-            ? { exteriorFeatures }
-            : { exteriorFeatures: null }),
-          ...(emirate ? { emirate } : { emirate: null }),
-          ...(totalClosingFee
-            ? { totalClosingFee: Number(totalClosingFee) }
-            : { totalClosingFee: null }),
-          ...(numberOfBathrooms
-            ? { numberOfBathrooms: Number(numberOfBathrooms) }
-            : { numberOfBathrooms: null }),
-          ...(developer ? { developer } : { developer: null }),
-          ...(readyBy ? { readyBy } : { readyBy: null }),
-          ...(annualCommunityFee
-            ? { annualCommunityFee: Number(annualCommunityFee) }
-            : { annualCommunityFee: null }),
-          ...(isFurnished ? { isFurnished } : { isFurnished: null }),
-          ...(propertyReferenceId
-            ? { propertyReferenceId }
-            : { propertyReferenceId: null }),
-          ...(buyerTransferFee
-            ? { buyerTransferFee: Number(buyerTransferFee) }
-            : { buyerTransferFee: null }),
-          ...(sellerTransferFee
-            ? { sellerTransferFee: Number(sellerTransferFee) }
-            : { sellerTransferFee: null }),
-          ...(maintenanceFee
-            ? { maintenanceFee: Number(maintenanceFee) }
-            : { maintenanceFee: null }),
-          ...(occupancyStatus
-            ? { occupancyStatus }
-            : { occupancyStatus: null }),
-          ...(amenities ? { amenities } : { amenities: null }),
-          ...(zonedFor ? { zonedFor } : { zonedFor: null }),
-          ...(approvedBuildUpArea
-            ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
-            : { approvedBuildUpArea: null }),
-          ...(freehold ? { freehold } : { freehold: null }),
-          ...(residentialType
-            ? { residentialType }
-            : { residentialType: null }),
-          ...(commercialType ? { commercialType } : { commercialType: null }),
-        },
+        data: productData,
       });
     } catch (error) {
       console.log(error);
 
       throw new MethodNotAllowedResponse({
-        ar: 'خطأ في عملية إضافة المنتج',
-        en: 'Something Went Wrong While Adding Your Product',
+        ar: 'خطأ في عملية تعديل المنتج',
+        en: 'Something Went Wrong While Updating Your Product',
       });
     }
 

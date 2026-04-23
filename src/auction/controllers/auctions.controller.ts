@@ -77,13 +77,6 @@ export class AuctionsController {
     @Body() auctionCreationDTO: AuctionCreationDTO,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    console.log('The form data of the publish auction :', auctionCreationDTO);
-    console.log(
-      'The form data of the publish auction :',
-      auctionCreationDTO.product,
-    );
-    console.log('The files of the publish auction :', files);
-
     return {
       success: true,
       data: await this.userAuctionsService.createPendingAuction(
@@ -1201,11 +1194,15 @@ export class AuctionsController {
     @Account() account: any,
     @Query() getListedProductDTO: GetListedProductDTO,
   ) {
+    const filterUserId = getListedProductDTO.isMyListing
+      ? Number(account.id)
+      : undefined;
+
     const listedProductsPaginated =
       await this.userAuctionsService.fetchAllListedOnlyProduct(
         account.roles,
         getListedProductDTO,
-        undefined, // filterUserId (null because it's global)
+        filterUserId, 
         account.id ? Number(account.id) : undefined, // viewerUserId
       );
     return {
