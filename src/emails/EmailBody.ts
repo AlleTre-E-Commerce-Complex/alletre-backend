@@ -215,7 +215,7 @@ export class EmailBody {
                             </p>
                             <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
                                 <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
-                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                                <a href="mailto:info3arbon@gmail.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info3arbon@gmail.com</a>
                             </p>
                         </td>
                     </tr>
