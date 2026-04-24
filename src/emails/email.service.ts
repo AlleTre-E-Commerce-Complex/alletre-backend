@@ -36,10 +36,7 @@ export class EmailSerivce extends EmailBody {
       case EmailsType.VERIFICATION:
         const verificationLink = `${process.env.CLIENT_URL}/auth/activate?token=${token}`;
         return {
-          from: {
-            name: '3arbon Team',
-            address: process.env.EMAIL_FROM,
-          },
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
           to: email,
           subject: `📨 Please Verify Your Email to Get Started`,
           html: `<!DOCTYPE html>
@@ -183,7 +180,7 @@ export class EmailSerivce extends EmailBody {
                             </p>
                             <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
                                 <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
-                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                                <a href="mailto:info3arbon@gmail.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info3arbon@gmail.com</a>
                             </p>
                         </td>
                     </tr>
@@ -198,10 +195,7 @@ export class EmailSerivce extends EmailBody {
       case EmailsType.RESET_PASSWORD:
         const resetLink = `${process.env.FRONT_URL}/credentials-update/change-password?token=${token}`;
         return {
-          from: {
-            name: '3arbon Team',
-            address: process.env.EMAIL_FROM,
-          },
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
           to: email,
           subject: `🔒 Reset Your Password for Alletre`,
           html: `<!DOCTYPE html>
@@ -359,7 +353,7 @@ export class EmailSerivce extends EmailBody {
                             </p>
                             <p class="footer-text force-white" style="font-size: 13px; color: #ffffff !important; margin-top: 25px; text-align: center;">
                                 <span class="force-white" style="color: #adb5bd !important; opacity: 0.9;"><font color="#adb5bd">Need help? Contact our support team at</font></span><br>
-                                <a href="mailto:info@3arbon.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info@3arbon.com</a>
+                                <a href="mailto:info3arbon@gmail.com" style="color: #d4af37; text-decoration: none; font-weight: 700;">info3arbon@gmail.com</a>
                             </p>
                         </td>
                     </tr>
@@ -373,10 +367,7 @@ export class EmailSerivce extends EmailBody {
 
       case EmailsType.PRODUCT_LISTED:
         return {
-          from: {
-            name: '3arbon Team',
-            address: process.env.EMAIL_FROM,
-          },
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
           to: email,
           subject: `✨ Success! Your product "${body.productTitle}" is live`,
           html: this.emailBody({
@@ -412,10 +403,7 @@ export class EmailSerivce extends EmailBody {
 
       case EmailsType.WELCOME:
         return {
-          from: {
-            name: '3arbon Team',
-            address: process.env.EMAIL_FROM,
-          },
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
           to: email,
           subject: body.subject || 'Welcome to 3arbon!',
           html: this.emailBody(body),
@@ -423,10 +411,7 @@ export class EmailSerivce extends EmailBody {
 
       case EmailsType.OTHER:
         return {
-          from: {
-            name: '3arbon Team',
-            address: process.env.EMAIL_FROM,
-          },
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
           to: email,
           subject: body.subject,
           html: this.emailBody(body),
