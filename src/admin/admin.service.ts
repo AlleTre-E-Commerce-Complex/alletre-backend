@@ -62,6 +62,12 @@ export class AdminService {
         user: {
           select: {
             userName: true,
+            phone: true,
+          },
+        },
+        listedProducts: {
+          select: {
+            location: true,
           },
         },
       },
@@ -102,5 +108,58 @@ export class AdminService {
         where: { id: commentId },
       });
     });
+  }
+
+  async updateProductLocation(productId: number, updateDto: any) {
+    const { address, phone, lat, lng, cityId, countryId } = updateDto;
+
+    // Find the listed product to get its locationId
+    const listedProduct = await this.prismaService.listedProducts.findUnique({
+      where: { productId },
+      include: { location: true, product: true },
+    });
+
+    if (!listedProduct) {
+      throw new NotFoundResponse({
+        en: 'Listed product not found',
+        ar: 'المنتج المدرج غير موجود',
+      });
+    }
+
+    if (listedProduct.locationId) {
+      // Update existing location
+      return this.prismaService.location.update({
+        where: { id: listedProduct.locationId },
+        data: {
+          address: address !== undefined ? address : undefined,
+          phone: phone !== undefined ? phone : undefined,
+          lat: lat !== undefined ? parseFloat(lat.toString()) : undefined,
+          lng: lng !== undefined ? parseFloat(lng.toString()) : undefined,
+          cityId: cityId !== undefined ? Number(cityId) : undefined,
+          countryId: countryId !== undefined ? Number(countryId) : undefined,
+        },
+      });
+    } else {
+      // Create new location and link it
+      // Use the listedProduct's userId (should be the company account)
+      const newLocation = await this.prismaService.location.create({
+        data: {
+          userId: listedProduct.userId,
+          address: address || '',
+          phone: phone || '',
+          lat: lat ? parseFloat(lat.toString()) : 0,
+          lng: lng ? parseFloat(lng.toString()) : 0,
+          cityId: cityId ? Number(cityId) : 1, // Fallback to 1 if not provided
+          countryId: countryId ? Number(countryId) : 1, // Fallback to 1 if not provided
+        },
+      });
+
+      await this.prismaService.listedProducts.update({
+        where: { id: listedProduct.id },
+        data: { locationId: newLocation.id },
+      });
+
+      return newLocation;
+    }
   }
 }
