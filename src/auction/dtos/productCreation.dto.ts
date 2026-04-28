@@ -311,4 +311,14 @@ export class ProductDTO {
   @IsString()
   @IsIn(['FIXED', 'NEGOTIABLE'])
   priceType?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isArbon?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }): number => parseFloat(value))
+  @IsNumber()
+  arbonAmount?: number;
 }
