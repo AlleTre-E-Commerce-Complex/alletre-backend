@@ -324,9 +324,23 @@ export class AuctionsController {
   )
   async saveAuctionAsDraftController(
     @Account() account: any,
-    @Body() productDTO: ProductDTO,
+    @Body() body: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
+    // Manually parse product object if sent in nested FormData format (product[key])
+    let productData = body.product;
+    if (!productData || typeof productData === 'string') {
+      productData = {};
+      Object.keys(body).forEach((key) => {
+        if (key.startsWith('product[')) {
+          const field = key.match(/product\[(.*)\]/)?.[1];
+          if (field) {
+            productData[field] = body[key];
+          }
+        }
+      });
+    }
+
     // Separate images and PDFs based on file extension
     const images = files.filter((file) => file.mimetype.startsWith('image/'));
     const relatedDocuments = files.filter(
@@ -339,7 +353,7 @@ export class AuctionsController {
       success: true,
       data: await this.userAuctionsService.createDraftAuction(
         account.id,
-        productDTO,
+        productData as ProductDTO,
         files,
         // relatedDocuments,
       ),

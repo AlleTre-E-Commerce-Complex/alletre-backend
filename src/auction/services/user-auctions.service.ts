@@ -7137,6 +7137,8 @@ export class UserAuctionsService {
       residentialType,
       commercialType,
       priceType,
+      isArbon,
+      arbonAmount,
     } = productBody;
 
     const isAuctionProduct = createProductStatus === 'LISTING' ? false : true;
@@ -7187,6 +7189,8 @@ export class UserAuctionsService {
       freehold,
       residentialType,
       commercialType,
+      isArbon: (isArbon as any) === 'true' || isArbon === true,
+      arbonAmount: arbonAmount ? Number(arbonAmount) : null,
     };
     const productData: any = {
       title,
@@ -7334,6 +7338,8 @@ export class UserAuctionsService {
       freehold,
       residentialType,
       commercialType,
+      isArbon,
+      arbonAmount,
     } = productBody;
 
     const productData: any = {
@@ -7433,6 +7439,8 @@ export class UserAuctionsService {
       ...(freehold ? { freehold } : { freehold: null }),
       ...(residentialType ? { residentialType } : { residentialType: null }),
       ...(commercialType ? { commercialType } : { commercialType: null }),
+      isArbon: (isArbon as any) === 'true' || isArbon === true,
+      arbonAmount: arbonAmount ? Number(arbonAmount) : null,
     };
 
     let updatedProduct: Product;
