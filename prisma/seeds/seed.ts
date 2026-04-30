@@ -912,6 +912,18 @@ async function main() {
     hasUsageCondition: true,
     bidderDepositFixedAmount: 500,
     sellerDepositFixedAmount: 500,
+    subCategories: {
+      create: [
+        {
+          nameEn: 'Sale',
+          nameAr: 'للبيع',
+        },
+        {
+          nameEn: 'Rent',
+          nameAr: 'للإيجار',
+        },
+      ],
+    },
     brands: {
       create: [
         { name: 'Alfa Romeo' },
