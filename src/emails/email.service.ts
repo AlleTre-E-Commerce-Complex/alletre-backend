@@ -374,9 +374,7 @@ export class EmailSerivce extends EmailBody {
             userName: userName,
             title: 'Product Successfully Listed!',
             preHeader: 'SUCCESSFUL LISTING',
-            message1: `Great news! Your product <strong>${
-              body.productTitle
-            }</strong> has been successfully listed on 3arbon. It is now visible to thousands of potential buyers.`,
+            message1: `Great news! Your product <strong>${body.productTitle}</strong> has been successfully listed on 3arbon. It is now visible to thousands of potential buyers.`,
             message2:
               'You can manage your listings, view bids, and track sales directly from your profile dashboard.',
             Price: `${body.price} ${body.currency || 'USD'}`,
@@ -401,6 +399,41 @@ export class EmailSerivce extends EmailBody {
           }),
         };
 
+      case EmailsType.OBJECTION_RAISED:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `Objection Received: ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: 'Objection Filed Successfully',
+            preHeader: 'OBJECTION STATUS',
+            message1: `You have successfully raised an objection for the product <strong>${body.productTitle}</strong>.`,
+            importantNote:
+              'Our team is currently reviewing the details. Within 3 business days, you will receive an update from the company side regarding the next steps.',
+            Button_text: 'View Objection Details',
+            Button_URL: `${process.env.FRONT_URL}/profile/deposit-details`,
+          }),
+        };
+
+      case EmailsType.OBJECTION_RECEIVED:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `Urgent: Objection Raised for ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: 'An Objection has been Raised',
+            preHeader: 'URGENT ACTION REQUIRED',
+            message1: `The other person has raised an objection for the product <strong>${body.productTitle}</strong>.`,
+            message2: `<strong>Reason:</strong> ${body.reason}<br/><strong>Description:</strong> ${body.description}`,
+            importantNote:
+              'Please note that you must reply to this objection within 2 business days. If no reply is received within this timeframe, you may lose the deposit as per our policy.',
+            Button_text: 'Reply to Objection',
+            Button_URL: `${process.env.FRONT_URL}/profile/deposit-details`,
+          }),
+        };
+
       case EmailsType.WELCOME:
         return {
           from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
@@ -415,9 +448,7 @@ export class EmailSerivce extends EmailBody {
           to: email,
           subject: body.subject,
           html: this.emailBody(body),
-          attachments: body.attachment
-            ? [{ filename: 'invoice.pdf', content: body.attachment }]
-            : [],
+          attachments: body.attachments || [],
         };
     }
   }
@@ -428,16 +459,6 @@ export class EmailSerivce extends EmailBody {
     body?: any,
     userName?: string,
   ) {
-    const isBypassed =
-      emailType === EmailsType.VERIFICATION ||
-      emailType === EmailsType.RESET_PASSWORD ||
-      emailType === EmailsType.PRODUCT_LISTED ||
-      emailType === EmailsType.WELCOME;
-
-    if (process.env.ENABLE_EMAILS === 'false' && !isBypassed) {
-      console.log(`[EmailService] Email sending is DISABLED for type: ${emailType}`);
-      return;
-    }
     const mailOptions = this.mailOptionsGenerator(
       email,
       token,
@@ -446,7 +467,19 @@ export class EmailSerivce extends EmailBody {
       userName,
     );
     try {
-      console.log(`[EmailService] Attempting to send ${emailType} email to: ${email}`);
+      console.log(
+        `[EmailService] Attempting to send ${emailType} email to: ${email} with subject: "${mailOptions.subject}"`,
+      );
+      if (mailOptions.attachments && mailOptions.attachments.length > 0) {
+        console.log(
+          `[EmailService] Email has ${mailOptions.attachments.length} attachments:`,
+          mailOptions.attachments.map((a) => ({
+            filename: a.filename,
+            size: a.content?.length,
+          })),
+        );
+      }
+
       const sendEmailresult = await this.transporter.sendMail(mailOptions);
       console.log(`[EmailService] Email SENT successfully to: ${email}`);
     } catch (error) {
@@ -455,12 +488,6 @@ export class EmailSerivce extends EmailBody {
   }
 
   async sendAuctionBulkEmail(auctionId: string) {
-    if (process.env.ENABLE_EMAILS === 'false') {
-      console.log(
-        'Bulk auction email sending is disabled via ENABLE_EMAILS flag.',
-      );
-      return;
-    }
     try {
       const auction = await this.prismaService.auction.findUnique({
         where: {
@@ -481,12 +508,6 @@ export class EmailSerivce extends EmailBody {
   }
 
   async sendListedProductBulkEmail(listedId: string) {
-    if (process.env.ENABLE_EMAILS === 'false') {
-      console.log(
-        'Listed product bulk email sending is disabled via ENABLE_EMAILS flag.',
-      );
-      return;
-    }
     try {
       const listedProduct = await this.prismaService.listedProducts.findUnique({
         where: {

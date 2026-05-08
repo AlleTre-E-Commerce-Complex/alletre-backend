@@ -9,7 +9,8 @@ export class StripeService {
   private stripe: Stripe;
 
   constructor(private readonly prismaService: PrismaService) {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    const key = process.env.STRIPE_SECRET_KEY || "";
+    this.stripe = new Stripe(key, {
       apiVersion: '2022-11-15',
     });
   }
@@ -46,11 +47,9 @@ export class StripeService {
         // customer: stripeCustomerId,
         amount: Math.ceil(amountInSmallestUnit),
         currency: currency,
+        payment_method_types: ['card'],
         capture_method: 'manual', // Authorize only, don't capture immediately
         setup_future_usage: 'off_session',
-        automatic_payment_methods: {
-          enabled: true,
-        },
         metadata,
       });
     } catch (error) {
@@ -86,6 +85,10 @@ export class StripeService {
     }
   }
 
+  async capturePayment(paymentIntentId: string) {
+    return this.captureDepositPaymentIntent(paymentIntentId);
+  }
+
   // Add a method to cancel the authorized payment
   async cancelDepositPaymentIntent(paymentIntentId: string) {
     try {
@@ -95,11 +98,8 @@ export class StripeService {
       );
       return canceledIntent;
     } catch (error) {
-      console.error('Error canceling Payment Intent:', error);
-      throw new MethodNotAllowedResponse({
-        ar: 'فشل في إلغاء عملية الدفع',
-        en: 'Failed to cancel payment.',
-      });
+      console.error('STRP DEBUG: Error canceling Payment Intent:', error.message || error);
+      throw error;
     }
   }
 
@@ -121,10 +121,8 @@ export class StripeService {
         customer: stripeCustomerId,
         amount: Math.ceil(amountInSmallestUnit),
         currency: currency,
+        automatic_payment_methods: { enabled: true },
         setup_future_usage: 'off_session',
-        automatic_payment_methods: {
-          enabled: true,
-        },
         metadata,
       });
     } catch (error) {
@@ -139,6 +137,19 @@ export class StripeService {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     };
+  }
+
+  async refundPayment(paymentIntentId: string) {
+    try {
+      console.log('refundPayment: -->', paymentIntentId);
+      const refund = await this.stripe.refunds.create({
+        payment_intent: paymentIntentId,
+      });
+      return refund;
+    } catch (error) {
+      console.error('STRP DEBUG: Error refunding Payment Intent:', error.message || error);
+      throw error;
+    }
   }
 
   async retrievePaymentIntent(paymentIntentId: string) {
@@ -179,9 +190,15 @@ export class StripeService {
       event = this.stripe.webhooks.constructEvent(
         payload,
         stripeSignature,
-        process.env.WEBHOOK_SECRETS,
+        process.env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (err) {
+      console.error('>>> STRIPE WEBHOOK VERIFICATION FAILED! <<<');
+      console.error('Error Message:', err.message);
+      console.error('Payload Type:', typeof payload);
+      console.error('Payload Length:', payload ? payload.length : 'undefined');
+      console.error('Signature:', stripeSignature);
+      console.error('Secret Key Length:', process.env.STRIPE_WEBHOOK_SECRET ? process.env.STRIPE_WEBHOOK_SECRET.length : 'undefined');
       throw new MethodNotAllowedException(`Webhook error ${err.message}`);
     }
 
@@ -197,17 +214,27 @@ export class StripeService {
           `PaymentIntent for ${holdPaymentIntent.amount} was Holded (authorized)!`,
         );
         const intent = event.data.object;
-        const { auctionId, userId, bidAmount } = intent.metadata;
+        const { auctionId, userId, productId, type } = intent.metadata;
 
-        // ✅ Safely release auction lock and set accepted amount
-        await this.prismaService.auction.update({
-          where: { id: Number(auctionId) },
-          data: {
-            isLocked: false,
-            lockedByUserId: null,
-            lockedAt: null,
-          },
-        });
+        if (type === 'ARBON_DEPOSIT' && productId) {
+          // Handle Arbon Hold
+          console.log('Webhook: Processing Arbon Hold for product:', productId);
+          // We don't update DB here, because the main logic in PaymentsService
+          // will be triggered by the RETURN of this webhook status to the controller.
+          // Wait! The webhook handler is usually called by Stripe asynchronously.
+          // Actually, we should update the DB here just like Auctions.
+        } else if (auctionId) {
+          // ✅ Safely release auction lock and set accepted amount
+          await this.prismaService.auction.update({
+            where: { id: Number(auctionId) },
+            data: {
+              isLocked: false,
+              lockedByUserId: null,
+              lockedAt: null,
+            },
+          });
+        }
+
         return {
           status: PaymentStatus.HOLD,
           paymentIntent: holdPaymentIntent,
@@ -262,6 +289,10 @@ export class StripeService {
       default:
         // Unexpected event type
         console.log(`Unhandled event type ${event.type}.`);
+        return {
+          status: 'IGNORED',
+          paymentIntent: null,
+        };
     }
   }
 

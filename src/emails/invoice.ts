@@ -1,6 +1,4 @@
-const wkhtmltopdf = require('wkhtmltopdf');
-
-import { Readable } from 'stream';
+import * as puppeteer from 'puppeteer';
 
 export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
   const amount = parseFloat(invoiceData?.amount) || 0;
@@ -80,23 +78,40 @@ export const generateInvoicePDF = async (invoiceData: any): Promise<Buffer> => {
 </html>
   `;
 
+  let browser;
   try {
-    return new Promise<Buffer>((resolve, reject) => {
-      const pdfChunks: Buffer[] = [];
-      const pdfStream: Readable = wkhtmltopdf(htmlContent, {
-        pageSize: 'A4',
-        marginTop: '0',
-        marginBottom: '0',
-        marginLeft: '0',
-        marginRight: '0',
-      });
-
-      pdfStream.on('data', (chunk) => pdfChunks.push(chunk));
-      pdfStream.on('end', () => resolve(Buffer.concat(pdfChunks)));
-      pdfStream.on('error', (error) => reject(error));
+    console.log('Puppeteer launching for invoice...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+    console.log('Puppeteer launched. Creating new page for invoice...');
+    const page = await browser.newPage();
+    console.log('Setting page content for invoice...');
+    await page.setContent(htmlContent, { 
+      waitUntil: 'networkidle2',
+      timeout: 60000 
+    });
+    console.log('Generating invoice PDF buffer...');
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0px',
+        bottom: '0px',
+        left: '0px',
+        right: '0px',
+      },
+    });
+    console.log('Invoice PDF generated. Length:', pdfBuffer.length);
+    return Buffer.from(pdfBuffer);
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    console.error('Puppeteer Invoice PDF generation error:', error);
     throw error;
+  } finally {
+    if (browser) {
+      console.log('Closing browser after invoice generation...');
+      await browser.close();
+    }
   }
 };

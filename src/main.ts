@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { json, urlencoded, raw } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { ForbiddenExceptionFilter } from './common/filters/forbiddenException.filter';
 import { UnauthorizedExceptionFilter } from './common/filters/unauthorizedException.filter';
@@ -8,7 +9,7 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { BadRequestExceptionFilter } from './common/filters/badrequestException.filter';
 import { PrismaService } from './prisma/prisma.service';
 import * as cookieParser from 'cookie-parser';
-import { json, urlencoded, Express } from 'express';
+import { Express } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,8 +18,20 @@ async function bootstrap() {
   });
 
   // Increase payload limits
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ limit: '50mb', extended: true }));
+  app.use((req, res, next) => {
+    if (req.originalUrl.includes('/sw')) {
+      raw({ type: '*/*' })(req, res, next);
+    } else {
+      json({ limit: '50mb' })(req, res, next);
+    }
+  });
+  app.use((req, res, next) => {
+    if (req.originalUrl.includes('/sw')) {
+      next();
+    } else {
+      urlencoded({ limit: '50mb', extended: true })(req, res, next);
+    }
+  });
   // const allowedOrigins =
   //   process.env.NODE_ENV === 'production'
   //     ? [process.env.FRONT_URL, process.env.ADMIN_FRONT_URL]
@@ -52,14 +65,19 @@ async function bootstrap() {
         ].filter(Boolean)
       : [
           'http://localhost:3000',
+          'http://localhost:3001',
           'http://localhost:3002',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001',
+          'http://127.0.0.1:3002',
           'http://192.168.0.89:3000',
         ]; // Add your development URLs
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        // Allow requests with valid origin or no origin (e.g., Postman)
+      const isNgrok = origin && origin.endsWith('.ngrok-free.app');
+      if (!origin || allowedOrigins.includes(origin) || isNgrok) {
+        // Allow requests with valid origin, ngrok origin, or no origin (e.g., Postman)
         callback(null, true);
       } else {
         console.error(`Blocked by CORS: ${origin}`); // Log the rejected origin
@@ -97,12 +115,12 @@ async function bootstrap() {
     }),
   );
 
-  app.setGlobalPrefix('api/');
+  app.setGlobalPrefix('api');
   app.useLogger(app.get(Logger));
 
   const PORT = process.env.PORT || 3001;
-  await app.listen(PORT, () =>
-    console.log(`The port is running at http://localhost:${PORT}`),
+  await app.listen(PORT, '0.0.0.0', () =>
+    console.log(`Backend is running at http://127.0.0.1:${PORT}`),
   );
 }
 

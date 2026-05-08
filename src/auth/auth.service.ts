@@ -98,6 +98,7 @@ export class AuthService {
         email: user.email,
         roles: [Role.User],
         phone: user.phone,
+        userName: user.userName,
       });
 
       // Manage new session
@@ -183,6 +184,7 @@ export class AuthService {
       email: user.email,
       roles: [Role.User],
       phone: user.phone,
+      userName: user.userName,
     });
 
     // Manage new session
@@ -266,6 +268,7 @@ export class AuthService {
       email: user.email,
       roles: [Role.User],
       phone: user.phone,
+      userName: user.userName,
     });
 
     const userWithoutPassword = this.userService.exclude(user, ['password']);
@@ -628,12 +631,13 @@ export class AuthService {
       });
 
       // 5. Generate new tokens
-      const userWithPhone = user as { phone: string | null };
+      const userWithDetails = user as { phone: string | null; userName?: string; fullName?: string };
       const { accessToken, refreshToken } = this.generateTokens({
         id: user.id,
         email: user.email,
         roles: payload.roles,
-        phone: userWithPhone.phone,
+        phone: userWithDetails.phone,
+        userName: userWithDetails.userName || userWithDetails.fullName,
       });
 
       // 6. Save new session to DB
@@ -725,6 +729,7 @@ export class AuthService {
       id: admin.id,
       email: admin.email,
       roles: [Role.Admin],
+      userName: admin.fullName,
     });
 
     // Manage admin session
@@ -785,6 +790,7 @@ export class AuthService {
         id: admin.id,
         email: admin.email,
         roles: payload.roles,
+        userName: admin.fullName,
       });
 
       // 7. Save new session to DB
@@ -806,6 +812,7 @@ export class AuthService {
     email: string;
     roles: string[];
     phone?: string;
+    userName?: string;
   }) {
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,

@@ -10,9 +10,6 @@ export class EmailBatchService {
   // private batchSize = 100; // Customize batch size as needed
 
   async sendBulkEmails(updatedAuction: any, currentUserEmail?: string) {
-    if (process.env.ENABLE_EMAILS === 'false') {
-      return;
-    }
     try {
       const emails = await this.getAllRegisteredUsers(
         updatedAuction.user.email,
@@ -415,12 +412,6 @@ The <b>Alletre</b> Team
     updatedListedProduct: any,
     currentUserEmail?: string,
   ) {
-    if (process.env.ENABLE_EMAILS === 'false') {
-      console.log(
-        'Listed product bulk email sending is disabled via ENABLE_EMAILS flag.',
-      );
-      return;
-    }
     try {
       const emails = await this.getAllRegisteredUsers(
         updatedListedProduct.user.email,

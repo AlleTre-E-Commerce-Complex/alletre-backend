@@ -162,4 +162,31 @@ export class AdminService {
       return newLocation;
     }
   }
+
+  async getObjections() {
+    return this.prismaService.productObjection.findMany({
+      include: {
+        product: {
+          include: {
+            images: { take: 1 },
+            user: {
+              select: { id: true, userName: true, email: true, phone: true },
+            },
+          },
+        },
+        user: {
+          select: { id: true, userName: true, email: true, phone: true },
+        },
+        documents: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateObjectionStatus(id: number, status: any) {
+    return this.prismaService.productObjection.update({
+      where: { id },
+      data: { status },
+    });
+  }
 }
