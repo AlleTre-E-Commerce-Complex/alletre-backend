@@ -304,7 +304,10 @@ export class UserAuctionsService {
       const notificationData = {
         usersId: userId,
         message: notificationMessage,
-        imageLink: draftAuction.product.images[0]?.imageLink || createProductResult.firstImageLink || null,
+        imageLink:
+          draftAuction.product.images[0]?.imageLink ||
+          createProductResult.firstImageLink ||
+          null,
         productTitle: draftAuction.product.title,
         productId: draftAuction.productId,
       };
@@ -5743,7 +5746,8 @@ export class UserAuctionsService {
 
       // Send notification
       try {
-        let imageLink = newListedProduct.product.images[0]?.imageLink || firstImageLink;
+        let imageLink =
+          newListedProduct.product.images[0]?.imageLink || firstImageLink;
 
         const notificationMessage = `Your product "${newListedProduct.product.title}" has been successfully listed.`;
         const notificationData = {
@@ -5789,10 +5793,15 @@ export class UserAuctionsService {
               userDetails.userName || 'Valued User',
             );
           } else {
-            console.warn(`[UserAuctionsService] No email found for user ${userId}, skipping email.`);
+            console.warn(
+              `[UserAuctionsService] No email found for user ${userId}, skipping email.`,
+            );
           }
         } catch (emailError) {
-          console.error('[UserAuctionsService] Error sending product listing email:', emailError);
+          console.error(
+            '[UserAuctionsService] Error sending product listing email:',
+            emailError,
+          );
         }
       } catch (error) {
         console.error('Error sending product creation notification:', error);
@@ -5849,7 +5858,9 @@ export class UserAuctionsService {
         locationFilters.push({
           OR: [
             { product: { countryId: { in: effectiveCountryIds.map(Number) } } },
-            { location: { countryId: { in: effectiveCountryIds.map(Number) } } },
+            {
+              location: { countryId: { in: effectiveCountryIds.map(Number) } },
+            },
           ],
         });
       }
@@ -7202,21 +7213,37 @@ export class UserAuctionsService {
         ? { subCategoryId: Number(subCategoryId) }
         : { subCategoryId: null }),
       ...(brand ? { brand } : { brand: null }),
-      ...(screenSize ? { screenSize: Number(screenSize) } : { screenSize: null }),
+      ...(screenSize
+        ? { screenSize: Number(screenSize) }
+        : { screenSize: null }),
       ...(ramSize ? { ramSize: Number(ramSize) } : { ramSize: null }),
       ...(totalArea ? { totalArea: Number(totalArea) } : { totalArea: null }),
-      ...(numberOfRooms ? { numberOfRooms: Number(numberOfRooms) } : { numberOfRooms: null }),
-      ...(numberOfFloors ? { numberOfFloors: Number(numberOfFloors) } : { numberOfFloors: null }),
+      ...(numberOfRooms
+        ? { numberOfRooms: Number(numberOfRooms) }
+        : { numberOfRooms: null }),
+      ...(numberOfFloors
+        ? { numberOfFloors: Number(numberOfFloors) }
+        : { numberOfFloors: null }),
       ...(countryId ? { countryId: Number(countryId) } : { countryId: null }),
       ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
       ...(offerAmount ? { offerAmount: Number(offerAmount) } : {}),
-      ...(ProductListingPrice ? { ProductListingPrice: Number(ProductListingPrice) } : {}),
+      ...(ProductListingPrice
+        ? { ProductListingPrice: Number(ProductListingPrice) }
+        : {}),
       ...(totalClosingFee ? { totalClosingFee: Number(totalClosingFee) } : {}),
-      ...(annualCommunityFee ? { annualCommunityFee: Number(annualCommunityFee) } : {}),
-      ...(buyerTransferFee ? { buyerTransferFee: Number(buyerTransferFee) } : {}),
-      ...(sellerTransferFee ? { sellerTransferFee: Number(sellerTransferFee) } : {}),
+      ...(annualCommunityFee
+        ? { annualCommunityFee: Number(annualCommunityFee) }
+        : {}),
+      ...(buyerTransferFee
+        ? { buyerTransferFee: Number(buyerTransferFee) }
+        : {}),
+      ...(sellerTransferFee
+        ? { sellerTransferFee: Number(sellerTransferFee) }
+        : {}),
       ...(maintenanceFee ? { maintenanceFee: Number(maintenanceFee) } : {}),
-      ...(approvedBuildUpArea ? { approvedBuildUpArea: Number(approvedBuildUpArea) } : {}),
+      ...(approvedBuildUpArea
+        ? { approvedBuildUpArea: Number(approvedBuildUpArea) }
+        : {}),
       ...nonNumericOptionalFields,
     };
 
@@ -7236,7 +7263,6 @@ export class UserAuctionsService {
 
     const imagesHolder = [];
     try {
-
       if (images?.length) {
         for (const image of images) {
           const uploadedImage = await this.firebaseService.uploadImage(image);
@@ -7366,18 +7392,14 @@ export class UserAuctionsService {
       ...(numberOfFloors
         ? { numberOfFloors: Number(numberOfFloors) }
         : { numberOfFloors: null }),
-      ...(countryId
-        ? { countryId: Number(countryId) }
-        : { countryId: null }),
+      ...(countryId ? { countryId: Number(countryId) } : { countryId: null }),
       ...(cityId ? { cityId: Number(cityId) } : { cityId: null }),
       ...(usageStatus ? { usageStatus: usageStatus } : { usageStatus: null }),
       ...(model ? { model } : { model: null }),
       ...(color ? { color } : { color: null }),
       ...(priceType ? { priceType } : { priceType: 'FIXED' }),
       ...(processor ? { processor } : { processor: null }),
-      ...(operatingSystem
-        ? { operatingSystem }
-        : { operatingSystem: null }),
+      ...(operatingSystem ? { operatingSystem } : { operatingSystem: null }),
       ...(releaseYear ? { releaseYear } : { releaseYear: null }),
       ...(regionOfManufacture
         ? { regionOfManufacture }
@@ -7390,31 +7412,25 @@ export class UserAuctionsService {
       ...(trim ? { trim } : { trim: null }),
       ...(regionalSpecs ? { regionalSpecs } : { regionalSpecs: null }),
       ...(kilometers ? { kilometers } : { kilometers: null }),
-      ...(interiorColor ? { interiorColor: interiorColor } : { interiorColor: null }),
+      ...(interiorColor
+        ? { interiorColor: interiorColor }
+        : { interiorColor: null }),
       ...(insuredInUae ? { insuredInUae } : { insuredInUae: null }),
       ...(warranty ? { warranty } : { warranty: null }),
       ...(fuelType ? { fuelType } : { fuelType: null }),
       ...(doors ? { doors } : { doors: null }),
-      ...(transmissionType
-        ? { transmissionType }
-        : { transmissionType: null }),
-      ...(seatingCapacity
-        ? { seatingCapacity }
-        : { seatingCapacity: null }),
+      ...(transmissionType ? { transmissionType } : { transmissionType: null }),
+      ...(seatingCapacity ? { seatingCapacity } : { seatingCapacity: null }),
       ...(horsepower ? { horsepower } : { horsepower: null }),
       ...(steeringSide ? { steeringSide } : { steeringSide: null }),
       ...(engineCapacity ? { engineCapacity } : { engineCapacity: null }),
       ...(numberOfCylinders
         ? { numberOfCylinders }
         : { numberOfCylinders: null }),
-      ...(driverAssistance
-        ? { driverAssistance }
-        : { driverAssistance: null }),
+      ...(driverAssistance ? { driverAssistance } : { driverAssistance: null }),
       ...(entertainment ? { entertainment } : { entertainment: null }),
       ...(comfort ? { comfort } : { comfort: null }),
-      ...(exteriorFeatures
-        ? { exteriorFeatures }
-        : { exteriorFeatures: null }),
+      ...(exteriorFeatures ? { exteriorFeatures } : { exteriorFeatures: null }),
       ...(emirate ? { emirate } : { emirate: null }),
       ...(totalClosingFee
         ? { totalClosingFee: Number(totalClosingFee) }
@@ -7428,9 +7444,7 @@ export class UserAuctionsService {
       ...(propertyReferenceId
         ? { propertyReferenceId }
         : { propertyReferenceId: null }),
-      ...(occupancyStatus
-        ? { occupancyStatus }
-        : { occupancyStatus: null }),
+      ...(occupancyStatus ? { occupancyStatus } : { occupancyStatus: null }),
       ...(amenities ? { amenities } : { amenities: null }),
       ...(zonedFor ? { zonedFor } : { zonedFor: null }),
       ...(approvedBuildUpArea

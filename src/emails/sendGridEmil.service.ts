@@ -9,9 +9,6 @@ export class SendGridEmailService {
   }
 
   async sendEmail(to: string[], subject: string, text: string, html: string) {
-    if (process.env.ENABLE_EMAILS === 'false') {
-      return;
-    }
     const msg = {
       to,
       from: 'info@alletre.com', // Use your verified SendGrid email

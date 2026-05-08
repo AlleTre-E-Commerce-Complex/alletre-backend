@@ -2,8 +2,11 @@ import {
   Injectable,
   InternalServerErrorException,
   MethodNotAllowedException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
+  ArbonStatus,
   Auction,
   AuctionStatus,
   AuctionType,
@@ -31,6 +34,8 @@ import { timeout } from 'rxjs';
 import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 import { MethodNotAllowedResponse } from 'src/common/errors';
 import { BidsWebSocketGateway } from 'src/auction/gateway/bids.gateway';
+import { generateArbonContractPDF } from 'src/emails/arbon-contract';
+import { FirebaseService } from 'src/firebase/firebase.service';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -44,6 +49,7 @@ export class PaymentsService {
     private readonly adminGateway: AdminWebSocketGateway,
     private readonly whatsappService: WhatsAppService,
     private bidsWebSocketGateway: BidsWebSocketGateway,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
   async walletPayDepositBySeller(
@@ -786,6 +792,244 @@ export class PaymentsService {
       throw new InternalServerErrorException(
         'Failed to process wallet payment for bidder deoposit',
       );
+    }
+  }
+
+  async payDepositByArbon(
+    user: User,
+    productId: number,
+    currency: string,
+    amount: number,
+  ) {
+    try {
+      if (!user) {
+        throw new MethodNotAllowedResponse({
+          ar: 'يجب تسجيل الدخول لإتمام عملية الدفع',
+          en: 'You must be logged in to make a payment',
+        });
+      }
+      console.log('Online Arbon deposit payment');
+
+      // Create StripeCustomer if has no account
+      let stripeCustomerId: string = user?.stripeId || '';
+      if (!user?.stripeId) {
+        stripeCustomerId = await this.stripeService.createCustomer(
+          user.email,
+          user.userName,
+        );
+        await this.prismaService.user.update({
+          where: { id: user.id },
+          data: { stripeId: stripeCustomerId },
+        });
+      }
+
+      // Check if product already has an active Arbon deposit
+      const product = await this.prismaService.product.findUnique({
+        where: { id: productId },
+      });
+
+      if ((product as any).arbonStatus === 'PAID') {
+        throw new MethodNotAllowedResponse({
+          ar: 'تم دفع العربون بالفعل لهذا المنتج',
+          en: 'Arbon deposit already paid for this product',
+        });
+      }
+
+      const { clientSecret, paymentIntentId } =
+        await this.stripeService.createDepositPaymentIntent(
+          stripeCustomerId,
+          amount,
+          currency,
+          { productId, userId: user.id, type: 'ARBON_DEPOSIT' },
+        );
+
+      await this.prismaService.payment.create({
+        // @ts-ignore: Temporary bypass until Prisma client is regenerated
+        data: {
+          userId: user.id,
+          productId: productId,
+          amount: amount,
+          paymentIntentId: paymentIntentId,
+          type: 'ARBON_DEPOSIT' as any,
+        },
+      });
+
+      return { clientSecret, paymentIntentId };
+    } catch (error) {
+      console.log('stripe pay arbon deposit error :', error);
+      if (error instanceof MethodNotAllowedResponse) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Failed to process arbon payment',
+      );
+    }
+  }
+
+  async releaseArbonDeposit(user: User, productId: number) {
+    console.log('>>> PAYMENTS SERVICE: releaseArbonDeposit CALLED <<<', {
+      userId: user.id,
+      productId,
+    });
+    try {
+      const product = await this.prismaService.product.findUnique({
+        where: { id: productId },
+        include: { user: true },
+      });
+
+      if (!product || product.userId !== user.id) {
+        throw new ForbiddenException('You are not the seller of this product');
+      }
+
+      if ((product as any).arbonStatus !== 'PAID') {
+        throw new BadRequestException('Arbon deposit is not in PAID status');
+      }
+
+      // Validity check: 7 days
+      const now = new Date();
+      const paidAt = new Date((product as any).arbonPaidAt);
+      const diffTime = Math.abs(now.getTime() - paidAt.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 7) {
+        throw new BadRequestException('Release period of 7 days has expired');
+      }
+
+      // Fetch all active payment records for this product
+      const payments = await this.prismaService.payment.findMany({
+        where: {
+          productId,
+          type: 'ARBON_DEPOSIT' as any,
+          status: { in: [PaymentStatus.HOLD, PaymentStatus.SUCCESS] },
+        } as any,
+      });
+
+      if (payments.length === 0) {
+        throw new BadRequestException('No active arbon payment records found');
+      }
+      console.log(`Found ${payments.length} payments to release for product ${productId}`);
+
+      // Logic to release (refund to buyer) all payments
+      for (const payment of payments) {
+        try {
+          if (payment.status === PaymentStatus.SUCCESS) {
+            await this.stripeService.refundPayment(payment.paymentIntentId);
+          } else if (payment.status === PaymentStatus.HOLD) {
+            await this.stripeService.cancelDepositPaymentIntent(payment.paymentIntentId);
+          }
+
+          // Update payment status to CANCELLED or REFUNDED in DB
+          await this.prismaService.payment.update({
+            where: { id: payment.id },
+            data: { status: PaymentStatus.CANCELLED },
+          });
+        } catch (err) {
+          console.error(`Error during Stripe refund/cancel for payment ${payment.id}:`, err);
+        }
+      }
+
+      // Update product status once
+      await this.prismaService.product.update({
+        where: { id: productId },
+        data: { arbonStatus: 'RELEASED' } as any,
+      });
+
+      return {
+        success: true,
+        message: `Released ${payments.length} deposit(s) and refunded to buyer successfully`,
+      };
+    } catch (error) {
+      console.log('releaseArbonDeposit error:', error);
+      throw error;
+    }
+  }
+
+  async claimArbonDepositToCompany(productId: number) {
+    console.log('>>> PAYMENTS SERVICE: claimArbonDepositToCompany CALLED <<<', {
+      productId,
+    });
+    try {
+      const product = await this.prismaService.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!product) {
+        throw new BadRequestException('Product not found');
+      }
+
+      if ((product as any).arbonStatus !== 'PAID') {
+        throw new BadRequestException('Arbon deposit is not in PAID status');
+      }
+
+      // Check if 7 days have passed
+      const now = new Date();
+      const paidAt = new Date((product as any).arbonPaidAt);
+      const diffTime = Math.abs(now.getTime() - paidAt.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 7) {
+        throw new BadRequestException(
+          'Cannot claim deposit yet. 7 days have not passed.',
+        );
+      }
+
+      const payment = await this.prismaService.payment.findFirst({
+        where: {
+          productId,
+          type: 'ARBON_DEPOSIT' as any,
+          status: { in: [PaymentStatus.HOLD, PaymentStatus.SUCCESS] },
+        } as any,
+      });
+
+      if (!payment) {
+        throw new BadRequestException('Arbon payment record not found');
+      }
+
+      // Logic to capture for company
+      if (payment.status === PaymentStatus.HOLD) {
+        console.log('Capturing HOLD payment for company...');
+        await this.stripeService.capturePayment(payment.paymentIntentId);
+      }
+
+      await this.prismaService.$transaction(async (prisma) => {
+        // 1. Update product status
+        await prisma.product.update({
+          where: { id: productId },
+          data: { arbonStatus: 'RELEASED' } as any, // Or maybe 'CLAIMED_BY_COMPANY' if you add that enum
+        });
+
+        // 2. Record in Alletre Wallet (Company Account)
+        const lastAlletreTransaction = await prisma.alletreWallet.findFirst({
+          orderBy: { id: 'desc' },
+        });
+
+        const currentBalance = lastAlletreTransaction
+          ? Number(lastAlletreTransaction.balance)
+          : 0;
+        const newBalance = currentBalance + Number(product.arbonAmount);
+
+        await prisma.alletreWallet.create({
+          data: {
+            userId: product.userId, // Record who it came from
+            amount: product.arbonAmount,
+            balance: newBalance,
+            status: 'DEPOSIT',
+            transactionType: 'BY_DIRECT_SELL',
+            description: `Arbon deposit claimed by company (7-day period expired) for product: ${product.title}`,
+          } as any,
+        });
+
+        // 3. Update payment status
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: PaymentStatus.SUCCESS },
+        });
+      });
+
+      return {
+        success: true,
+        message: 'Deposit claimed by company successfully',
+      };
+    } catch (error) {
+      console.log('claimArbonDepositToCompany error:', error);
+      throw error;
     }
   }
 
@@ -2044,6 +2288,7 @@ export class PaymentsService {
   }
 
   async webHookEventHandler(payload: Buffer, stripeSignature: string) {
+    console.log('--- STRIPE WEBHOOK RECEIVED ---');
     const { paymentIntent, status } = await this.stripeService.webHookHandler(
       payload,
       stripeSignature,
@@ -2059,8 +2304,8 @@ export class PaymentsService {
 
         break;
       case PaymentStatus.HOLD:
-        const auctionHoldPaymentTransaction =
-          await this.prismaService.payment.findUnique({
+        const holdPaymentTransaction =
+          (await this.prismaService.payment.findUnique({
             where: { paymentIntentId: paymentIntent.id },
             include: {
               auction: {
@@ -2071,11 +2316,50 @@ export class PaymentsService {
                   Payment: { where: { type: 'SELLER_DEPOSIT' } },
                 },
               },
+              product: { include: { images: true, user: true } },
               user: true,
-            },
+            } as any,
+          })) as any;
+
+        if (!holdPaymentTransaction) {
+          console.log('Webhook HOLD: Payment transaction not found');
+          break;
+        }
+
+        // Handle ARBON_DEPOSIT Hold
+        if (holdPaymentTransaction.type === ('ARBON_DEPOSIT' as any)) {
+          console.log('Webhook HOLD: Handling ARBON_DEPOSIT authorization');
+          await this.prismaService.$transaction(async (prisma) => {
+            // Update payment transaction
+            await prisma.payment.update({
+              where: { paymentIntentId: paymentIntent.id },
+              data: { status: PaymentStatus.HOLD },
+            });
+
+            // Update product status
+            await prisma.product.update({
+              where: { id: holdPaymentTransaction.productId },
+              data: {
+                arbonStatus: 'PAID', // Or 'RESERVED' - currently using PAID as it works with UI
+                arbonBuyerId: holdPaymentTransaction.userId,
+                arbonPaidAt: new Date(),
+              } as any,
+            });
           });
 
-        switch (auctionHoldPaymentTransaction.type) {
+          // Trigger email/PDF generation
+          console.log(
+            'ARBON_DEPOSIT Authorization successful, triggering contract generation...',
+          );
+          await this.sendArbonContractEmails(
+            holdPaymentTransaction,
+            holdPaymentTransaction.product,
+          );
+          break;
+        }
+
+        // Handle Auction Holds
+        switch (holdPaymentTransaction.type) {
           case PaymentType.BIDDER_DEPOSIT:
             console.log('Webhook BIDDER_DEPOSIT ...');
 
@@ -2090,16 +2374,16 @@ export class PaymentsService {
 
             //   this.prismaService.joinedAuction.create({
             //     data: {
-            //       userId: auctionHoldPaymentTransaction.userId,
-            //       auctionId: auctionHoldPaymentTransaction.auctionId,
+            //       userId: holdPaymentTransaction.userId,
+            //       auctionId: holdPaymentTransaction.auctionId,
             //     },
             //   }),
 
             //   // Create bid for user
             //   this.prismaService.bids.create({
             //     data: {
-            //       userId: auctionHoldPaymentTransaction.userId,
-            //       auctionId: auctionHoldPaymentTransaction.auctionId,
+            //       userId: holdPaymentTransaction.userId,
+            //       auctionId: holdPaymentTransaction.auctionId,
             //       amount: paymentIntent.metadata.bidAmount,
             //     },
             //   }),
@@ -2115,15 +2399,15 @@ export class PaymentsService {
               // Join user to auction
               const existing = await prisma.joinedAuction.findFirst({
                 where: {
-                  userId: auctionHoldPaymentTransaction.userId,
-                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                  userId: holdPaymentTransaction.userId,
+                  auctionId: holdPaymentTransaction.auctionId,
                 },
               });
               if (!existing) {
                 await prisma.joinedAuction.create({
                   data: {
-                    userId: auctionHoldPaymentTransaction.userId,
-                    auctionId: auctionHoldPaymentTransaction.auctionId,
+                    userId: holdPaymentTransaction.userId,
+                    auctionId: holdPaymentTransaction.auctionId,
                   },
                 });
               }
@@ -2131,8 +2415,8 @@ export class PaymentsService {
               // Create bid for user
               await prisma.bids.create({
                 data: {
-                  userId: auctionHoldPaymentTransaction.userId,
-                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                  userId: holdPaymentTransaction.userId,
+                  auctionId: holdPaymentTransaction.auctionId,
                   amount: paymentIntent.metadata.bidAmount,
                 },
               });
@@ -2140,24 +2424,23 @@ export class PaymentsService {
 
             console.log('call notieceTheSellerToCompleteThePayment1');
 
-            const sellerPayment = auctionHoldPaymentTransaction.auction.Payment;
+            const sellerPayment = holdPaymentTransaction.auction.Payment;
             if (
-              auctionHoldPaymentTransaction.auction.product.categoryId === 4 &&
-              Number(auctionHoldPaymentTransaction.auction.startBidAmount) <
-                5000 &&
+              holdPaymentTransaction.auction.product.categoryId === 4 &&
+              Number(holdPaymentTransaction.auction.startBidAmount) < 5000 &&
               paymentIntent.metadata.bidAmount >= 5000 &&
               sellerPayment.length === 0
             ) {
               console.log('call notieceTheSellerToCompleteThePayment2');
 
               this.notieceTheSellerToCompleteThePayment(
-                auctionHoldPaymentTransaction.auction.user,
-                auctionHoldPaymentTransaction.auction,
+                holdPaymentTransaction.auction.user,
+                holdPaymentTransaction.auction,
               );
             }
             const joinedBidders = await this.prismaService.bids.findMany({
               where: {
-                auctionId: auctionHoldPaymentTransaction.auctionId,
+                auctionId: holdPaymentTransaction.auctionId,
               },
               include: {
                 user: true,
@@ -2184,20 +2467,19 @@ export class PaymentsService {
               joinedBidders[0].auction.bids.length,
             );
             const auctionEndDate = new Date(
-              auctionHoldPaymentTransaction.auction.expiryDate,
+              holdPaymentTransaction.auction.expiryDate,
             );
             const formattedEndDate = auctionEndDate.toISOString().split('T')[0];
             const formattedEndTime = auctionEndDate.toTimeString().slice(0, 5);
             const emailBodyToSeller = {
               subject: '🎉 Exciting News: Your Auction Just Got Its First Bid!',
               title: 'Your Auction is Officially in Motion!',
-              Product_Name: auctionHoldPaymentTransaction.auction.product.title,
-              img: auctionHoldPaymentTransaction.auction.product.images[0]
-                .imageLink,
-              userName: `${auctionHoldPaymentTransaction.auction.user.userName}`,
+              Product_Name: holdPaymentTransaction.auction.product.title,
+              img: holdPaymentTransaction.auction.product.images[0].imageLink,
+              userName: `${holdPaymentTransaction.auction.user.userName}`,
               message1: ` 
                   <p>Congratulations! Your auction ${
-                    auctionHoldPaymentTransaction.auction.product.title
+                    holdPaymentTransaction.auction.product.title
                   } has received its first bid! This is an exciting milestone, and the competition has officially begun.</p>
                   <p>Here’s the latest update:</p>
                   <ul>
@@ -2224,18 +2506,18 @@ export class PaymentsService {
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for more updates as your auction gains momentum.</p>`,
               Button_text: 'View My Auction ',
-              Button_URL: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              Button_URL: `https://www.alletre.com/alletre/home/${holdPaymentTransaction.auctionId}/details`,
             };
 
             const emailBodyToSecondLastBidder = {
               subject: 'You have been outbid! 🔥 Don’t Let This Slip Away!',
               title: 'Your Bid Just Got Beaten!',
-              Product_Name: auctionHoldPaymentTransaction.auction.product.title,
-              img: auctionHoldPaymentTransaction.auction.product.images[0],
+              Product_Name: holdPaymentTransaction.auction.product.title,
+              img: holdPaymentTransaction.auction.product.images[0],
               userName: `${joinedBidders[1]?.user.userName}`,
               message1: ` 
                   <p>Exciting things are happening on ${
-                    auctionHoldPaymentTransaction.auction.product.title
+                    holdPaymentTransaction.auction.product.title
                   }! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead.</p>
                   <p>Here’s the current standing:</p>
                   <ul>
@@ -2248,7 +2530,7 @@ export class PaymentsService {
                 
                   </ul>
                      <p>Don’t miss your chance to claim this one-of-a-kind ${
-                       auctionHoldPaymentTransaction.auction.product.title
+                       holdPaymentTransaction.auction.product.title
                      } . The clock is ticking, and every second counts!</p>       
                      <p><b>Reclaim Your Spot as the Top Bidder Now!</b></p>
                   `,
@@ -2260,7 +2542,7 @@ export class PaymentsService {
                               <p style="margin-top: 0;">The <b>Alletre</b> Team</p>
                               <p>P.S. Stay tuned for updates—we’ll let you know if there’s more action on this auction.</p>`,
               Button_text: 'Place a Higher Bid',
-              Button_URL: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              Button_URL: `https://www.alletre.com/alletre/home/${holdPaymentTransaction.auctionId}/details`,
             };
 
             console.log('joinedBidders1111111111111', joinedBidders);
@@ -2273,8 +2555,8 @@ export class PaymentsService {
               );
             }
             const whatsappBodyToSeller = {
-              1: `${auctionHoldPaymentTransaction.user.userName}`,
-              2: `Congratulations! Your auction *${auctionHoldPaymentTransaction.auction.product.title}* has received its first bid! This is an exciting milestone, and the competition has officially begun`,
+              1: `${holdPaymentTransaction.user.userName}`,
+              2: `Congratulations! Your auction *${holdPaymentTransaction.auction.product.title}* has received its first bid! This is an exciting milestone, and the competition has officially begun`,
               3: `*First Bid Amount:* ${
                 joinedBidders[joinedBidders.length - 1].amount
               }`,
@@ -2284,14 +2566,13 @@ export class PaymentsService {
               5: `*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
               6: `*This is just the beginning—more bidders could be on their way!*`,
               7: `Please visit Now to see my auctions`,
-              8: auctionHoldPaymentTransaction.auction.product.images[0]
-                .imageLink,
-              9: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+              8: holdPaymentTransaction.auction.product.images[0].imageLink,
+              9: `https://www.alletre.com/alletre/home/${holdPaymentTransaction.auctionId}/details`,
             };
-            if (auctionHoldPaymentTransaction.auction.user.phone) {
+            if (holdPaymentTransaction.auction.user.phone) {
               await this.whatsappService.sendOtherUtilityMessages(
                 whatsappBodyToSeller,
-                auctionHoldPaymentTransaction.user.phone,
+                holdPaymentTransaction.user.phone,
                 'alletre_common_utility_templet',
               );
             }
@@ -2305,7 +2586,7 @@ export class PaymentsService {
               );
               const whatsappBodyTosecondLastBidders = {
                 1: `${joinedBidders[1].user.userName}`,
-                2: `Exciting things are happening on *${auctionHoldPaymentTransaction.auction.product.title}* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
+                2: `Exciting things are happening on *${holdPaymentTransaction.auction.product.title}* ! Unfortunately, someone has just placed a higher bid, and you're no longer in the lead`,
                 3: `* Current Highest Bid:* ${
                   joinedBidders.length > 1
                     ? joinedBidders[0].amount
@@ -2313,11 +2594,10 @@ export class PaymentsService {
                 }`,
                 4: `*Your Last Bid*: ${joinedBidders[1]?.amount}`,
                 5: `*Auction Ends: ${formattedEndDate} & ${formattedEndTime}`,
-                6: `Do not miss your chance to claim this one-of-a-kind *${auctionHoldPaymentTransaction.auction.product.title}* . The clock is ticking, and every second counts!`,
+                6: `Do not miss your chance to claim this one-of-a-kind *${holdPaymentTransaction.auction.product.title}* . The clock is ticking, and every second counts!`,
                 7: `Please visit Now to reclaim Your Spot as the Top Bidder Now!`,
-                8: auctionHoldPaymentTransaction.auction.product.images[0]
-                  .imageLink,
-                9: `https://www.alletre.com/alletre/home/${auctionHoldPaymentTransaction.auctionId}/details`,
+                8: holdPaymentTransaction.auction.product.images[0].imageLink,
+                9: `https://www.alletre.com/alletre/home/${holdPaymentTransaction.auctionId}/details`,
               };
               if (joinedBidders[1].user.phone) {
                 await this.whatsappService.sendOtherUtilityMessages(
@@ -2329,33 +2609,32 @@ export class PaymentsService {
             }
 
             // create notification for seller
-            const auction = auctionHoldPaymentTransaction.auction;
+            const auction = holdPaymentTransaction.auction;
             const isCreateNotificationToSeller =
               await this.prismaService.notification.create({
                 data: {
-                  userId: auctionHoldPaymentTransaction.auction.user.id,
-                  message: `Mr. ${auctionHoldPaymentTransaction.user.userName} has placed a new bid on your auction for the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`,
+                  userId: holdPaymentTransaction.auction.user.id,
+                  message: `Mr. ${holdPaymentTransaction.user.userName} has placed a new bid on your auction for the product "${holdPaymentTransaction.auction.product.title}" (Model: ${holdPaymentTransaction.auction.product.model}).`,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
-                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                  auctionId: holdPaymentTransaction.auctionId,
                 },
               });
 
             const isCreateNotificationToCurrentBidder =
               await this.prismaService.notification.create({
                 data: {
-                  userId: auctionHoldPaymentTransaction.userId,
-                  message: `You have successfully placed a bid on the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`,
+                  userId: holdPaymentTransaction.userId,
+                  message: `You have successfully placed a bid on the product "${holdPaymentTransaction.auction.product.title}" (Model: ${holdPaymentTransaction.auction.product.model}).`,
                   imageLink: auction.product.images[0].imageLink,
                   productTitle: auction.product.title,
-                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                  auctionId: holdPaymentTransaction.auctionId,
                 },
               });
 
             if (isCreateNotificationToSeller) {
               // Send notification to seller
-              const sellerUserId =
-                auctionHoldPaymentTransaction.auction.user.id;
+              const sellerUserId = holdPaymentTransaction.auction.user.id;
 
               const notification = {
                 status: 'ON_BIDDING',
@@ -2378,7 +2657,7 @@ export class PaymentsService {
             if (isCreateNotificationToCurrentBidder) {
               try {
                 // Send notification to bidder
-                const currentBidderId = auctionHoldPaymentTransaction.userId;
+                const currentBidderId = holdPaymentTransaction.userId;
 
                 const notification = {
                   status: 'ON_BIDDING',
@@ -2394,22 +2673,22 @@ export class PaymentsService {
                 );
 
                 // Send notification other bidders
-                const currentUserId = auctionHoldPaymentTransaction.userId;
+                const currentUserId = holdPaymentTransaction.userId;
                 const joinedAuctionUsers =
                   await this.notificationsService.getAllJoinedAuctionUsers(
-                    auctionHoldPaymentTransaction.auctionId,
+                    holdPaymentTransaction.auctionId,
                     currentUserId,
                   );
                 const imageLink = auction.product.images[0].imageLink;
                 const productTitle = auction.product.title;
-                const otherBidderMessage = `${auctionHoldPaymentTransaction.user.userName} has placed a bid of AED ${paymentIntent.metadata.bidAmount} on the product "${auctionHoldPaymentTransaction.auction.product.title}" (Model: ${auctionHoldPaymentTransaction.auction.product.model}).`;
+                const otherBidderMessage = `${holdPaymentTransaction.user.userName} has placed a bid of AED ${paymentIntent.metadata.bidAmount} on the product "${holdPaymentTransaction.auction.product.title}" (Model: ${holdPaymentTransaction.auction.product.model}).`;
                 const isBidders = true;
                 await this.notificationsService.sendNotifications(
                   joinedAuctionUsers,
                   otherBidderMessage,
                   imageLink,
                   productTitle,
-                  auctionHoldPaymentTransaction.auctionId,
+                  holdPaymentTransaction.auctionId,
                   isBidders,
                 );
               } catch (error) {
@@ -2430,33 +2709,29 @@ export class PaymentsService {
             });
 
             await this.publishAuction(
-              auctionHoldPaymentTransaction.auctionId,
-              auctionHoldPaymentTransaction.auction.user.email,
+              holdPaymentTransaction.auctionId,
+              holdPaymentTransaction.auction.user.email,
             );
-            if (auctionHoldPaymentTransaction.auction.type !== 'SCHEDULED') {
+            if (holdPaymentTransaction.auction.type !== 'SCHEDULED') {
               await this.prismaService.notification.create({
                 data: {
-                  userId: auctionHoldPaymentTransaction.userId,
+                  userId: holdPaymentTransaction.userId,
                   message:
                     'Congratulations! Your auction has been published successfully.',
                   imageLink:
-                    auctionHoldPaymentTransaction.auction.product.images[0]
-                      .imageLink,
-                  productTitle:
-                    auctionHoldPaymentTransaction.auction.product.title,
-                  auctionId: auctionHoldPaymentTransaction.auctionId,
+                    holdPaymentTransaction.auction.product.images[0].imageLink,
+                  productTitle: holdPaymentTransaction.auction.product.title,
+                  auctionId: holdPaymentTransaction.auctionId,
                 },
               });
-              const currentUserId = auctionHoldPaymentTransaction.userId;
+              const currentUserId = holdPaymentTransaction.userId;
               const usersId =
                 await this.notificationsService.getAllRegisteredUsers(
                   currentUserId,
                 );
               const imageLink =
-                auctionHoldPaymentTransaction.auction.product.images[0]
-                  .imageLink;
-              const productTitle =
-                auctionHoldPaymentTransaction.auction.product.title;
+                holdPaymentTransaction.auction.product.images[0].imageLink;
+              const productTitle = holdPaymentTransaction.auction.product.title;
               const message = 'New Auction has been published.';
               const isBidders = false;
               await this.notificationsService.sendNotifications(
@@ -2464,7 +2739,7 @@ export class PaymentsService {
                 message,
                 imageLink,
                 productTitle,
-                auctionHoldPaymentTransaction.auctionId,
+                holdPaymentTransaction.auctionId,
                 isBidders,
               );
             }
@@ -2497,42 +2772,92 @@ export class PaymentsService {
           auctionPaymentTransaction,
           paymentIntent,
         );
+        console.log(
+          'EXACT TYPE CHECK:',
+          `|${auctionPaymentTransaction.type}|`,
+          'LENGTH:',
+          auctionPaymentTransaction.type?.length,
+        );
         switch (auctionPaymentTransaction.type) {
+          case PaymentType.ARBON_DEPOSIT:
+            try {
+              console.log(
+                'HANDLING ARBON_DEPOSIT WEBHOOK (TOP)...',
+                paymentIntent.id,
+              );
+              const arbonPayment: any =
+                await this.prismaService.payment.findUnique({
+                  where: { paymentIntentId: paymentIntent.id },
+                  include: {
+                    user: true,
+                    product: { include: { images: true, user: true } },
+                  } as any,
+                });
+
+              console.log(
+                'ARBON PAYMENT RECORD FOUND:',
+                arbonPayment?.id,
+                'PRODUCT ID:',
+                arbonPayment?.productId,
+              );
+
+              if (arbonPayment && arbonPayment.product) {
+                const product: any = arbonPayment.product;
+                console.log('UPDATING PRODUCT STATUS TO PAID...');
+
+                await this.prismaService.product.update({
+                  where: { id: product.id },
+                  data: {
+                    arbonStatus: ArbonStatus.PAID,
+                    arbonBuyerId: arbonPayment.userId,
+                    arbonPaidAt: new Date(),
+                  } as any,
+                });
+                console.log('PRODUCT STATUS UPDATED SUCCESSFULLY IN DB.');
+
+                // Generate and send contracts via email
+                await this.sendArbonContractEmails(arbonPayment, product);
+
+                // Update Payment status
+                console.log('UPDATING PAYMENT RECORD STATUS TO SUCCESS...');
+                await this.prismaService.payment.update({
+                  where: { id: arbonPayment.id },
+                  data: { status: PaymentStatus.SUCCESS },
+                });
+                console.log('PAYMENT RECORD UPDATED SUCCESSFULLY.');
+              } else {
+                console.log('ARBON PAYMENT OR PRODUCT NOT FOUND!');
+              }
+              console.log('ARBON_DEPOSIT WEBHOOK HANDLING FINISHED.');
+            } catch (outerError) {
+              console.error(
+                'FATAL ERROR IN ARBON_DEPOSIT WEBHOOK:',
+                outerError,
+              );
+            }
+            break;
+
           case PaymentType.BIDDER_DEPOSIT:
-            console.log('Webhook BIDDER_DEPOSIT ...');
+            try {
+              console.log('Webhook BIDDER_DEPOSIT ...');
 
-            await this.prismaService.$transaction([
-              // Update payment transaction
-              this.prismaService.payment.update({
-                where: { paymentIntentId: paymentIntent.id },
-                data: { status: PaymentStatus.SUCCESS },
-              }),
-
-              // // Join user to auction
-              // this.prismaService.joinedAuction.create({
-              //   data: {
-              //     userId: auctionPaymentTransaction.userId,
-              //     auctionId: auctionPaymentTransaction.auctionId,
-              //   },
-              // }),
-
-              // // Create bid for user
-              // this.prismaService.bids.create({
-              //   data: {
-              //     userId: auctionPaymentTransaction.userId,
-              //     auctionId: auctionPaymentTransaction.auctionId,
-              //     amount: paymentIntent.metadata.bidAmount,
-              //   },
-              // }),
-            ]);
-
+              await this.prismaService.$transaction([
+                // Update payment transaction
+                this.prismaService.payment.update({
+                  where: { paymentIntentId: paymentIntent.id },
+                  data: { status: PaymentStatus.SUCCESS },
+                }),
+              ]);
+            } catch (error) {
+              console.error('ERROR IN BIDDER_DEPOSIT WEBHOOK:', error);
+            }
             break;
 
           case PaymentType.SELLER_DEPOSIT:
-            console.log('Webhook SELLER_DEPOSIT ...');
+            try {
+              console.log('Webhook SELLER_DEPOSIT ...');
 
-            await this.prismaService.$transaction(async (tx) => {
-              try {
+              await this.prismaService.$transaction(async (tx) => {
                 const sellerPayment = await tx.payment.update({
                   where: { paymentIntentId: paymentIntent.id },
                   data: { status: PaymentStatus.SUCCESS },
@@ -2567,19 +2892,13 @@ export class PaymentsService {
                       : Number(sellerPayment.amount),
                   };
 
-                  // await this.walletService.addToAlletreWallet(
-                  //   sellerPayment.userId,
-                  //   alletreWalletData,
-                  //   tx,
-                  // );
                   const roundedAmount = Number(
                     Number(alletreWalletData.amount).toFixed(2),
                   );
                   const roundedBalance = Number(
                     Number(alletreWalletData.balance).toFixed(2),
                   );
-                  console.log('roundedAmount', roundedAmount);
-                  console.log('roundedBalance', roundedBalance);
+
                   await tx.alletreWallet.create({
                     data: {
                       userId: sellerPayment.userId,
@@ -2588,7 +2907,6 @@ export class PaymentsService {
                       status: alletreWalletData.status,
                       transactionType: alletreWalletData.transactionType,
                       auctionId: alletreWalletData.auctionId,
-                      // purchaseId: alletreWalletData.purchaseId,
                       balance: roundedBalance,
                       transactionReference:
                         alletreWalletData?.transactionReference,
@@ -2597,91 +2915,50 @@ export class PaymentsService {
                 } else {
                   console.log('Skipping duplicate wallet transaction...');
                 }
-              } catch (error) {
-                console.log('seller deposit error webhook--:', error);
-                throw error;
-              }
-            });
-
-            //   // Update payment transaction
-            //  const sellerPayment =  await this.prismaService.payment.update({
-            //     where: { paymentIntentId: paymentIntent.id },
-            //     data: { status: PaymentStatus.SUCCESS },
-            //   });
-            //   //assign  the seller payment to admin wallet
-            //  if(sellerPayment){
-
-            //   // Check if this paymentIntent has already been processed
-            //   const existingWalletTransaction = await this.prismaService.wallet.findFirst({
-            //     where: {
-            //       auctionId: sellerPayment.auctionId,
-            //       amount: Number(sellerPayment.amount),
-            //       transactionType: WalletTransactionType.By_AUCTION,
-            //       status: WalletStatus.DEPOSIT,
-            //     },
-            //   });
-            //       if(!existingWalletTransaction){
-            //         //find the last transaction balane of the alletre
-            //             const lastBalanceOfAlletre =
-            //             await this.walletService.findLastTransactionOfAlletre();
-            //           //tranfering data for the alletre fees
-            //           const alletreWalletData = {
-            //             status: WalletStatus.DEPOSIT,
-            //             transactionType: WalletTransactionType.By_AUCTION,
-            //             description: `Seller security payment to create new auction.`,
-            //             amount: Number(sellerPayment.amount) ,
-            //             auctionId: Number(sellerPayment.auctionId),
-            //             balance: lastBalanceOfAlletre
-            //               ? Number(lastBalanceOfAlletre) +
-            //                 Number(sellerPayment.amount)
-            //               : Number(sellerPayment.amount) ,
-            //           };
-            //           await this.walletService.addToAlletreWallet(
-            //             sellerPayment.userId,
-            //             alletreWalletData,
-            //           );
-            //       }else{
-            //         console.log('Skipping duplicate wallet transaction...');
-            //       }
-            //   }
-            if (auctionPaymentTransaction.auction.status !== 'ACTIVE') {
-              await this.publishAuction(
-                auctionPaymentTransaction.auctionId,
-                auctionPaymentTransaction.auction.user.email,
-              );
-            }
-            if (auctionPaymentTransaction.auction.type !== 'SCHEDULED') {
-              await this.prismaService.notification.create({
-                data: {
-                  userId: auctionPaymentTransaction.userId,
-                  message:
-                    'Congratulations! Your auction has been published successfully.',
-                  imageLink:
-                    auctionPaymentTransaction.auction.product.images[0]
-                      .imageLink,
-                  productTitle: auctionPaymentTransaction.auction.product.title,
-                  auctionId: auctionPaymentTransaction.auctionId,
-                },
               });
-              const currentUserId = auctionPaymentTransaction.userId;
-              const usersId =
-                await this.notificationsService.getAllRegisteredUsers(
-                  currentUserId,
+
+              if (auctionPaymentTransaction.auction.status !== 'ACTIVE') {
+                await this.publishAuction(
+                  auctionPaymentTransaction.auctionId,
+                  auctionPaymentTransaction.auction.user.email,
                 );
-              const imageLink =
-                auctionPaymentTransaction.auction.product.images[0].imageLink;
-              const productTitle =
-                auctionPaymentTransaction.auction.product.title;
-              const message = 'New Auction has been published.';
-              const isBidders = false;
-              await this.notificationsService.sendNotifications(
-                usersId,
-                message,
-                imageLink,
-                productTitle,
-                auctionPaymentTransaction.auctionId,
-                isBidders,
-              );
+              }
+              if (auctionPaymentTransaction.auction.type !== 'SCHEDULED') {
+                await this.prismaService.notification.create({
+                  data: {
+                    userId: auctionPaymentTransaction.userId,
+                    message:
+                      'Congratulations! Your auction has been published successfully.',
+                    imageLink:
+                      auctionPaymentTransaction.auction.product.images[0]
+                        .imageLink,
+                    productTitle:
+                      auctionPaymentTransaction.auction.product.title,
+                    auctionId: auctionPaymentTransaction.auctionId,
+                  },
+                });
+                const currentUserId = auctionPaymentTransaction.userId;
+                const usersId =
+                  await this.notificationsService.getAllRegisteredUsers(
+                    currentUserId,
+                  );
+                const imageLink =
+                  auctionPaymentTransaction.auction.product.images[0].imageLink;
+                const productTitle =
+                  auctionPaymentTransaction.auction.product.title;
+                const message = 'New Auction has been published.';
+                const isBidders = false;
+                await this.notificationsService.sendNotifications(
+                  usersId,
+                  message,
+                  imageLink,
+                  productTitle,
+                  auctionPaymentTransaction.auctionId,
+                  isBidders,
+                );
+              }
+            } catch (error) {
+              console.error('ERROR IN SELLER_DEPOSIT WEBHOOK:', error);
             }
             break;
 
@@ -2930,7 +3207,20 @@ export class PaymentsService {
                 auctionId: paymentSuccessData.auctionId,
               };
               console.log('purchase test5');
-              const invoicePDF = await generateInvoicePDF(paymentSuccessData);
+              let invoicePDF = null;
+              try {
+                invoicePDF = await generateInvoicePDF(paymentSuccessData);
+              } catch (pdfError) {
+                console.error(
+                  'Invoice PDF Generation failed, sending email without attachment:',
+                  pdfError.message || pdfError,
+                );
+              }
+
+              const attachments = invoicePDF
+                ? [{ filename: 'invoice.pdf', content: invoicePDF }]
+                : [];
+
               // const auctionEndDate = new Date(
               //   paymentSuccessData.auction.expiryDate,
               // );
@@ -2948,14 +3238,27 @@ export class PaymentsService {
                 img: paymentSuccessData.auction.product.images[0].imageLink,
                 userName: `${paymentSuccessData.auction.bids[0].user.userName}`,
                 message1: `
-                  <p>We are pleased to inform you that your payment for the auction of <b>${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model})</b> has been successfully processed.</p>
+                  <p>We are pleased to inform you that your payment for the auction of <b>${
+                    paymentSuccessData.auction.product.title
+                  } (Model: ${
+                  paymentSuccessData.auction.product.model
+                })</b> has been successfully processed. ${
+                  invoicePDF
+                    ? 'An invoice for this transaction is attached.'
+                    : ''
+                }</p>
                   <p>Here are the auction details for your reference:</p>
                   <ul>
-                    <li><b>Item:</b> ${paymentSuccessData.auction.product.title}</li>
-                    <li><b>Winning Bid:</b> ${paymentSuccessData.auction.bids[0].amount}</li>
-                    <li><b>Seller:</b> ${paymentSuccessData.auction.user.userName}</li>
+                    <li><b>Item:</b> ${
+                      paymentSuccessData.auction.product.title
+                    }</li>
+                    <li><b>Winning Bid:</b> ${
+                      paymentSuccessData.auction.bids[0].amount
+                    }</li>
+                    <li><b>Seller:</b> ${
+                      paymentSuccessData.auction.user.userName
+                    }</li>
                   </ul>
-                  <p>An invoice for this transaction is attached to this email for your records.</p>
                 `,
                 message2: `
                   <h3>What’s Next?</h3>
@@ -2970,7 +3273,7 @@ export class PaymentsService {
                 Button_text: 'Go to MY Bids',
                 Button_URL:
                   'https://www.alletre.com/alletre/profile/my-bids/waiting-for-delivery',
-                attachment: invoicePDF,
+                attachments: attachments,
               };
               //send notification to the winner
               const notificationMessageToWinner = `We are pleased to inform you that your payment for the auction of ${paymentSuccessData.auction.product.title} (Model: ${paymentSuccessData.auction.product.model}) has been successfully processed.
@@ -3630,8 +3933,13 @@ export class PaymentsService {
                 'Faild to complete the buy now payment',
               );
             }
+            break;
 
           default:
+            console.log(
+              'UNHANDLED PAYMENT TYPE:',
+              auctionPaymentTransaction.type,
+            );
             break;
         }
 
@@ -4261,5 +4569,255 @@ export class PaymentsService {
       amountToAlletteWalletInTheStripeWEBHOOK,
       payingAmountWithStripeAndAlletreFees: payingAmountOfStripe,
     };
+  }
+
+  async sendArbonContractEmails(arbonPayment: any, product: any) {
+    console.log('--- sendArbonContractEmails CALLED ---');
+    try {
+      const contractData = {
+        buyerName:
+          arbonPayment?.user?.userName || arbonPayment?.user?.email || 'Buyer',
+        buyerEmail: arbonPayment?.user?.email || 'N/A',
+        sellerName: product?.user?.userName || product?.user?.email || 'Seller',
+        sellerEmail: product?.user?.email || 'N/A',
+        productTitle: product?.title || 'Product',
+        productDescription: product?.description || '',
+        productPrice: (product?.ProductListingPrice || 0).toString(),
+        arbonAmount: (arbonPayment?.amount || 0).toString(),
+        lang: arbonPayment?.user?.lang || 'en',
+      };
+
+      console.log(
+        'STARTING PDF GENERATION...',
+        JSON.stringify(contractData, null, 2),
+      );
+      let pdfBuffer = null;
+      try {
+        pdfBuffer = await generateArbonContractPDF(contractData);
+        console.log(
+          'PDF GENERATED SUCCESSFULLY. Buffer length:',
+          pdfBuffer?.length,
+        );
+      } catch (pdfError) {
+        console.error(
+          'PDF Generation failed, sending email without attachment:',
+          pdfError.message || pdfError,
+        );
+      }
+
+      const emailBody = {
+        subject: 'Arbon Deposit Confirmation & Contract',
+        title: 'Transaction Successful',
+        Product_Name: product.title,
+        img: product.images[0]?.imageLink,
+        userName: arbonPayment?.user?.userName,
+        message1: `You have successfully paid the Arbon deposit for "${
+          product.title
+        }". ${pdfBuffer ? 'A copy of the contract is attached.' : ''}`,
+        message2:
+          'The deposit is held securely. The seller has 7 days to release it if needed.',
+        Button_text: 'View Product',
+        Button_URL: `https://www.alletre.com/alletre/my-product/${product.id}/details`,
+      };
+
+      const attachments = pdfBuffer
+        ? [{ filename: 'contract.pdf', content: pdfBuffer }]
+        : [];
+
+      // Send email to buyer
+      if (arbonPayment?.user?.email) {
+        await this.emailService.sendEmail(
+          arbonPayment.user.email,
+          'token',
+          EmailsType.OTHER,
+          {
+            ...emailBody,
+            subject: `Arbon Contract for "${product.title}"`,
+            userName: arbonPayment.user.userName,
+            attachments: attachments,
+          },
+          arbonPayment.user.userName,
+        );
+      }
+
+      // Send email to seller
+      if (product?.user?.email) {
+        await this.emailService.sendEmail(
+          product.user.email,
+          'token',
+          EmailsType.OTHER,
+          {
+            ...emailBody,
+            subject: `Arbon Deposit Received for "${product.title}"`,
+            userName: product.user.userName,
+            message1: `An Arbon deposit has been paid for your product "${
+              product.title
+            }" by ${arbonPayment?.user?.userName || 'a buyer'}. ${
+              pdfBuffer ? 'A copy of the contract is attached.' : ''
+            }`,
+            message2:
+              'The deposit is held securely. You can release it to the buyer within 7 days if needed.',
+            Button_text: 'Release Deposit',
+            Button_URL: `https://www.3arbon.com/my-product/${product.id}/details`,
+            attachments: attachments,
+          },
+          product.user.userName,
+        );
+      }
+      console.log('EMAILS SENT SUCCESSFULLY.');
+    } catch (error) {
+      console.error(
+        'CRITICAL ERROR in sendArbonContractEmails:',
+        error.message || error,
+      );
+    }
+  }
+
+  async getDepositDetails(user: User) {
+    const products = await this.prismaService.product.findMany({
+      where: {
+        isArbon: true,
+        OR: [{ userId: user.id }, { arbonBuyerId: user.id }],
+      },
+      include: {
+        user: {
+          select: { id: true, userName: true, email: true, phone: true },
+        },
+        arbonBuyer: {
+          select: { id: true, userName: true, email: true, phone: true },
+        },
+        images: { take: 1 },
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    // Auto-finalize if 7 days passed
+    const now = new Date();
+    for (const product of products) {
+      if (
+        (product as any).arbonStatus === 'PAID' &&
+        (product as any).arbonPaidAt
+      ) {
+        const paidAt = new Date((product as any).arbonPaidAt);
+        const diffTime = Math.abs(now.getTime() - paidAt.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 7) {
+          console.log(
+            `Auto-finalizing Arbon for product ${product.id} to company...`,
+          );
+          await this.claimArbonDepositToCompany(product.id).catch((err) =>
+            console.error(
+              `Auto-finalize failed for product ${product.id}:`,
+              err,
+            ),
+          );
+          // Update the local object status so it reflects in the response immediately
+          (product as any).arbonStatus = 'RELEASED';
+        }
+      }
+    }
+
+    return products;
+  }
+
+  async createObjection(user: User, data: any, files?: Array<Express.Multer.File>) {
+    const { productId, reason, description } = data;
+
+    const objection = await this.prismaService.productObjection.create({
+      data: {
+        productId: Number(productId),
+        userId: user.id,
+        reason,
+        description,
+      },
+    });
+
+    if (files?.length) {
+      for (const file of files) {
+        const uploadedFile = await this.firebaseService.uploadImage(file);
+        await this.prismaService.productObjectionImage.create({
+          data: {
+            objectionId: objection.id,
+            imageLink: uploadedFile.fileLink,
+            imagePath: uploadedFile.filePath,
+          },
+        });
+      }
+    }
+
+    // Update product status to DISPUTED
+    await this.prismaService.product.update({
+      where: { id: Number(productId) },
+      data: { arbonStatus: 'DISPUTED' },
+    });
+
+    // Capture any active HOLD payments to company account immediately
+    // The admin will decide later what to do with the funds
+    try {
+      const activePayments = await this.prismaService.payment.findMany({
+        where: {
+          productId: Number(productId),
+          type: 'ARBON_DEPOSIT' as any,
+          status: PaymentStatus.HOLD,
+        } as any,
+      });
+
+      for (const payment of activePayments) {
+        console.log(`OBJECTION: Capturing payment ${payment.paymentIntentId} for product ${productId}`);
+        await this.stripeService.capturePayment(payment.paymentIntentId);
+        
+        // Update payment status in DB to SUCCESS (Captured)
+        await this.prismaService.payment.update({
+          where: { id: payment.id },
+          data: { status: PaymentStatus.SUCCESS },
+        });
+      }
+    } catch (err) {
+      console.error('Error capturing payment during objection:', err);
+      // We don't throw error here to not block the objection creation
+    }
+
+    // Send emails to seller and buyer
+    try {
+      const product = await this.prismaService.product.findUnique({
+        where: { id: Number(productId) },
+        include: {
+          user: true, // Seller
+          arbonBuyer: true, // Buyer
+        },
+      });
+
+      if (product) {
+        // 1. Email to Seller (the person who raised the objection)
+        await this.emailService.sendEmail(
+          product.user.email,
+          '',
+          EmailsType.OBJECTION_RAISED,
+          {
+            productTitle: product.title,
+          },
+          product.user.userName,
+        );
+
+        // 2. Email to Buyer (the other party)
+        if (product.arbonBuyer) {
+          await this.emailService.sendEmail(
+            product.arbonBuyer.email,
+            '',
+            EmailsType.OBJECTION_RECEIVED,
+            {
+              productTitle: product.title,
+              reason: reason,
+              description: description,
+            },
+            product.arbonBuyer.userName,
+          );
+        }
+      }
+    } catch (emailErr) {
+      console.error('Error sending objection emails:', emailErr);
+    }
+
+    return objection;
   }
 }

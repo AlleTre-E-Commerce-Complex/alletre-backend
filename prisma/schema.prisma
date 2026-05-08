@@ -51,6 +51,8 @@ model User {
   watchLists               WatchList[]
   withdrawalRequests       WithdrawalRequests[]
   refreshTokens            RefreshToken[]
+  arbonPurchases           Product[]            @relation("ArbonBuyer")
+  productObjections        ProductObjection[]
 }
 
 model NonRegisteredUser {
@@ -242,6 +244,10 @@ model Product {
   isOffer             Boolean         @default(false)
   isArbon             Boolean         @default(false)
   arbonAmount         Decimal?        @default(0)
+  arbonStatus         ArbonStatus     @default(AVAILABLE)
+  arbonBuyerId        Int?
+  arbonPaidAt         DateTime?
+  arbonBuyer          User?           @relation("ArbonBuyer", fields: [arbonBuyerId], references: [id])
   memory              String?
   brand               String?
   isAuctionProduct    Boolean?        @default(true)
@@ -296,6 +302,8 @@ model Product {
   subCategory         SubCategory?    @relation(fields: [subCategoryId], references: [id])
   user                User?           @relation(fields: [userId], references: [id])
   watchLists          WatchList[]
+  Payment             Payment[]
+  objections          ProductObjection[]
 }
 
 model Image {
@@ -413,7 +421,8 @@ model Bids {
 model Payment {
   id              Int            @id @default(autoincrement())
   userId          Int
-  auctionId       Int
+  auctionId       Int?
+  productId       Int?
   paymentIntentId String?        @unique
   amount          Decimal
   createdAt       DateTime       @default(now())
@@ -421,7 +430,8 @@ model Payment {
   type            PaymentType?
   isWalletPayment Boolean        @default(false)
   bankStatement   BankStatement?
-  auction         Auction        @relation(fields: [auctionId], references: [id])
+  auction         Auction?       @relation(fields: [auctionId], references: [id])
+  product         Product?       @relation(fields: [productId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
 }
 
@@ -772,6 +782,38 @@ enum PaymentType {
   BIDDER_DEPOSIT
   AUCTION_PURCHASE
   BUY_NOW_PURCHASE
+  ARBON_DEPOSIT
+}
+
+enum ArbonStatus {
+  AVAILABLE
+  PAID
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+model ProductObjection {
+  id          Int                     @id @default(autoincrement())
+  productId   Int
+  userId      Int
+  reason      String
+  description String
+  status      ProblemStatus           @default(PENDING)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  product     Product                 @relation(fields: [productId], references: [id])
+  user        User                    @relation(fields: [userId], references: [id])
+  documents   ProductObjectionImage[]
+}
+
+model ProductObjectionImage {
+  id          Int              @id @default(autoincrement())
+  objectionId Int
+  imagePath   String
+  imageLink   String
+  createdAt   DateTime         @default(now())
+  objection   ProductObjection @relation(fields: [objectionId], references: [id])
 }
 
 enum DeliveryType {

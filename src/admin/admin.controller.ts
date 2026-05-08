@@ -34,4 +34,23 @@ export class AdminController {
       data: await this.adminService.updateProductLocation(id, updateDto),
     };
   }
+
+  @Get('objections')
+  async getObjections() {
+    return {
+      success: true,
+      data: await this.adminService.getObjections(),
+    };
+  }
+
+  @Patch('objections/:id/status')
+  async updateObjectionStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
+    return {
+      success: true,
+      data: await this.adminService.updateObjectionStatus(id, status),
+    };
+  }
 }

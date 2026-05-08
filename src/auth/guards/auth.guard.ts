@@ -22,7 +22,6 @@ export class AuthGuard implements CanActivate {
   }
 
   async validateAccessToken(accessToken: string) {
-    console.log('validateAccessToken cheking...');
 
     if (accessToken.split(' ')[0] !== 'Bearer') {
       throw new ForbiddenException('Invalid token');
@@ -35,8 +34,7 @@ export class AuthGuard implements CanActivate {
         // Check if the user exists and is not blocked
         const user = await this.userService.findUserByIdOr404(
           Number(decoded.id),
-        ); // Assuming `id` is in the token payload
-        console.log('token***', token);
+        ); 
 
         if (!user) {
           throw new UnauthorizedException('User not found');

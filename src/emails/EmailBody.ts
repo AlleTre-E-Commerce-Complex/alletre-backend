@@ -15,7 +15,9 @@ export class EmailBody {
         key !== 'message1' &&
         key !== 'message2' &&
         key !== 'preHeader' &&
-        key !== 'features'
+        key !== 'features' &&
+        key !== 'importantNote' &&
+        key !== 'attachments'
       ) {
         data += `<p style="margin: 8px 0; font-size: 14px; color: #515b6f;"><strong style="color: #1e2633;">${key}:</strong> ${value}</p>`;
       }
@@ -199,6 +201,22 @@ export class EmailBody {
                         <td align="center" class="sub-text" style="padding: 0 40px 40px 40px;">
                             <div class="main-text" style="font-size: 14px; color: #515b6f !important; margin: 0; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 30px;">
                                 ${body.message2}
+                            </div>
+                        </td>
+                    </tr>
+                    `
+                        : ''
+                    }
+
+                    <!-- Important Note -->
+                    ${
+                      body.importantNote
+                        ? `
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <div style="background-color: #fffaf0; border: 1px solid #feebc8; border-left: 4px solid #f6ad55; padding: 20px; color: #744210; font-size: 14px; border-radius: 4px; line-height: 1.6;">
+                                <strong style="color: #9c4221; display: block; margin-bottom: 5px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Important Note</strong>
+                                ${body.importantNote}
                             </div>
                         </td>
                     </tr>
