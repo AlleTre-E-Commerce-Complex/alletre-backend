@@ -4617,7 +4617,7 @@ export class PaymentsService {
         message2:
           'The deposit is held securely. The seller has 7 days to release it if needed.',
         Button_text: 'View Product',
-        Button_URL: `https://www.alletre.com/alletre/my-product/${product.id}/details`,
+        Button_URL: `https://www.3arbon.com/my-product/${product.id}/details`,
       };
 
       const attachments = pdfBuffer
@@ -4687,6 +4687,7 @@ export class PaymentsService {
           select: { id: true, userName: true, email: true, phone: true },
         },
         images: { take: 1 },
+        objections: true,
       },
       orderBy: { id: 'desc' },
     });
@@ -4795,6 +4796,7 @@ export class PaymentsService {
           EmailsType.OBJECTION_RAISED,
           {
             productTitle: product.title,
+            objectionId: objection.id,
           },
           product.user.userName,
         );
@@ -4809,6 +4811,7 @@ export class PaymentsService {
               productTitle: product.title,
               reason: reason,
               description: description,
+              objectionId: objection.id,
             },
             product.arbonBuyer.userName,
           );
@@ -4816,6 +4819,109 @@ export class PaymentsService {
       }
     } catch (emailErr) {
       console.error('Error sending objection emails:', emailErr);
+    }
+
+    return objection;
+  }
+
+  async getObjection(id: number) {
+    return this.prismaService.productObjection.findUnique({
+      where: { id: Number(id) },
+      include: {
+        documents: true,
+        replyDocuments: true,
+        product: {
+          include: {
+            user: true,
+            arbonBuyer: true,
+            images: true,
+          },
+        },
+        user: true,
+      },
+    });
+  }
+
+  async replyToObjection(user: User, objectionId: number, data: any, files?: Array<Express.Multer.File>) {
+    const { replyReason, replyDescription } = data;
+
+    // Fetch the objection to check creation date
+    const existingObjection = await this.prismaService.productObjection.findUnique({
+      where: { id: Number(objectionId) },
+    });
+
+    if (!existingObjection) {
+      throw new BadRequestException("Objection not found");
+    }
+
+    // Check if already replied
+    if (existingObjection.repliedAt) {
+      throw new MethodNotAllowedException("This objection has already been replied to");
+    }
+
+    // Validation for 2 days (48 hours)
+    const createdAt = new Date(existingObjection.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+    if (diffDays > 2) {
+      throw new MethodNotAllowedException("The 2-day period for replying to this objection has expired.");
+    }
+
+    const objection = await this.prismaService.productObjection.update({
+      where: { id: Number(objectionId) },
+      data: {
+        replyReason,
+        replyDescription,
+        repliedAt: new Date(),
+        status: 'IN_PROGRESS',
+      },
+      include: {
+        product: true,
+        user: true,
+      },
+    });
+
+    if (files?.length) {
+      for (const file of files) {
+        const uploadedFile = await this.firebaseService.uploadImage(file);
+        await this.prismaService.productObjectionReplyImage.create({
+          data: {
+            objectionId: objection.id,
+            imageLink: uploadedFile.fileLink,
+            imagePath: uploadedFile.filePath,
+          },
+        });
+      }
+    }
+
+    try {
+      // Notify the person who raised the objection
+      await this.emailService.sendEmail(
+        objection.user.email,
+        "",
+        EmailsType.OBJECTION_REPLY_RECEIVED,
+        {
+          productTitle: objection.product.title,
+          objectionId: objection.id,
+        },
+        objection.user.userName,
+      );
+
+      // Notify the person who replied (confirmation)
+      await this.emailService.sendEmail(
+        user.email,
+        "",
+        EmailsType.OBJECTION_REPLY_SENT,
+        {
+          productTitle: objection.product.title,
+          objectionId: objection.id,
+        },
+        user.userName,
+      );
+    } catch (err) {
+      console.error('Error sending objection reply emails:', err);
     }
 
     return objection;

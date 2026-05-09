@@ -416,6 +416,7 @@ export class EmailSerivce extends EmailBody {
           }),
         };
 
+
       case EmailsType.OBJECTION_RECEIVED:
         return {
           from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
@@ -423,14 +424,48 @@ export class EmailSerivce extends EmailBody {
           subject: `Urgent: Objection Raised for ${body.productTitle}`,
           html: this.emailBody({
             userName: userName,
-            title: 'An Objection has been Raised',
-            preHeader: 'URGENT ACTION REQUIRED',
+            title: "An Objection has been Raised",
+            preHeader: "URGENT ACTION REQUIRED",
             message1: `The other person has raised an objection for the product <strong>${body.productTitle}</strong>.`,
             message2: `<strong>Reason:</strong> ${body.reason}<br/><strong>Description:</strong> ${body.description}`,
             importantNote:
-              'Please note that you must reply to this objection within 2 business days. If no reply is received within this timeframe, you may lose the deposit as per our policy.',
-            Button_text: 'Reply to Objection',
-            Button_URL: `${process.env.FRONT_URL}/profile/deposit-details`,
+              "Please note that you must reply to this objection within 2 business days. If no reply is received within this timeframe, you may lose the deposit as per our policy.",
+            Button_text: "Reply to Objection",
+            Button_URL: `${process.env.FRONT_URL}/objection/${body.objectionId}`,
+          }),
+        };
+
+      case EmailsType.OBJECTION_REPLY_RECEIVED:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `Reply Received for your Objection: ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: "Objection Reply Received",
+            preHeader: "OBJECTION UPDATE",
+            message1: `A reply has been submitted for your objection regarding <strong>${body.productTitle}</strong>.`,
+            message2:
+              "The Alletre team will review both perspectives and reach a decision soon.",
+            Button_text: "View Details",
+            Button_URL: `${process.env.FRONT_URL}/objection/${body.objectionId}`,
+          }),
+        };
+
+      case EmailsType.OBJECTION_REPLY_SENT:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `Reply Submitted Successfully: ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: "Reply Submitted Successfully",
+            preHeader: "CONFIRMATION",
+            message1: `Your reply to the objection for <strong>${body.productTitle}</strong> has been successfully submitted.`,
+            message2:
+              "The Alletre team will now review all provided information and reach a decision. We will keep you updated on any progress.",
+            Button_text: "View My Reply",
+            Button_URL: `${process.env.FRONT_URL}/objection/${body.objectionId}`,
           }),
         };
 

@@ -178,6 +178,7 @@ export class AdminService {
           select: { id: true, userName: true, email: true, phone: true },
         },
         documents: true,
+        replyDocuments: true,
       },
       orderBy: { createdAt: 'desc' },
     });

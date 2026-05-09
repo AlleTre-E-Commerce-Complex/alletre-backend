@@ -802,12 +802,25 @@ model ProductObjection {
   status      ProblemStatus           @default(PENDING)
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
-  product     Product                 @relation(fields: [productId], references: [id])
-  user        User                    @relation(fields: [userId], references: [id])
-  documents   ProductObjectionImage[]
+  replyReason      String?
+  replyDescription String?
+  repliedAt        DateTime?
+  product          Product                 @relation(fields: [productId], references: [id])
+  user             User                    @relation(fields: [userId], references: [id])
+  documents        ProductObjectionImage[]
+  replyDocuments   ProductObjectionReplyImage[]
 }
 
 model ProductObjectionImage {
+  id          Int              @id @default(autoincrement())
+  objectionId Int
+  imagePath   String
+  imageLink   String
+  createdAt   DateTime         @default(now())
+  objection   ProductObjection @relation(fields: [objectionId], references: [id])
+}
+
+model ProductObjectionReplyImage {
   id          Int              @id @default(autoincrement())
   objectionId Int
   imagePath   String
