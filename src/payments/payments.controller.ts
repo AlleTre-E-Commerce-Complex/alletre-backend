@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFiles,
+  Param,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { PaymentsService } from './services/payments.service';
@@ -97,6 +98,37 @@ export class PaymentsController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     const result = await this.paymentsService.createObjection(user, data, files);
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Get('objections/:id')
+  @UseGuards(AuthGuard)
+  async getObjection(@Param('id') id: number) {
+    const result = await this.paymentsService.getObjection(id);
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Post('objections/:id/reply')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
+  async replyToObjection(
+    @Account() user: User,
+    @Param('id') id: number,
+    @Body() data: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    const result = await this.paymentsService.replyToObjection(user, id, data, files);
     return {
       success: true,
       data: result,
