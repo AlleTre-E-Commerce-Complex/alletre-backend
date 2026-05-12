@@ -9,7 +9,17 @@ import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({
+  cors: {
+    origin: [
+      'https://3arbon.com',
+      'https://www.3arbon.com',
+      'https://admin.3arbon.com',
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+})
 export class AuctionWebSocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
