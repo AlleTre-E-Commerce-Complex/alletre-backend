@@ -2293,6 +2293,10 @@ export class PaymentsService {
       payload,
       stripeSignature,
     );
+    console.log('Webhook Event Parsed. Status:', status, 'PI ID:', paymentIntent?.id);
+    if (paymentIntent?.metadata) {
+      console.log('Webhook PI Metadata:', paymentIntent.metadata);
+    }
     switch (status) {
       case PaymentStatus.CANCELLED:
         console.log('Webhook CANCELLED ...', status);
@@ -2322,12 +2326,15 @@ export class PaymentsService {
           })) as any;
 
         if (!holdPaymentTransaction) {
-          console.log('Webhook HOLD: Payment transaction not found');
+          console.log('Webhook HOLD: Payment transaction NOT FOUND for ID:', paymentIntent.id);
           break;
         }
 
+        console.log('Webhook HOLD: Payment transaction found:', holdPaymentTransaction.id, 'Type:', holdPaymentTransaction.type);
+
         // Handle ARBON_DEPOSIT Hold
-        if (holdPaymentTransaction.type === ('ARBON_DEPOSIT' as any)) {
+        const pType = holdPaymentTransaction.type?.toString().trim();
+        if (pType === 'ARBON_DEPOSIT') {
           console.log('Webhook HOLD: Handling ARBON_DEPOSIT authorization');
           await this.prismaService.$transaction(async (prisma) => {
             // Update payment transaction
@@ -2338,13 +2345,14 @@ export class PaymentsService {
 
             // Update product status
             await prisma.product.update({
-              where: { id: holdPaymentTransaction.productId },
+              where: { id: Number(holdPaymentTransaction.productId) },
               data: {
-                arbonStatus: 'PAID', // Or 'RESERVED' - currently using PAID as it works with UI
+                arbonStatus: ArbonStatus.PAID,
                 arbonBuyerId: holdPaymentTransaction.userId,
                 arbonPaidAt: new Date(),
               } as any,
             });
+            console.log('DB UPDATE SUCCESS: Product', holdPaymentTransaction.productId, 'status set to PAID');
           });
 
           // Trigger email/PDF generation
@@ -2778,8 +2786,10 @@ export class PaymentsService {
           'LENGTH:',
           auctionPaymentTransaction.type?.length,
         );
-        switch (auctionPaymentTransaction.type) {
-          case PaymentType.ARBON_DEPOSIT:
+        console.log('Webhook SUCCESS: Handling payment type:', auctionPaymentTransaction.type);
+        const successPType = auctionPaymentTransaction.type?.toString().trim();
+        switch (successPType) {
+          case 'ARBON_DEPOSIT':
             try {
               console.log(
                 'HANDLING ARBON_DEPOSIT WEBHOOK (TOP)...',
