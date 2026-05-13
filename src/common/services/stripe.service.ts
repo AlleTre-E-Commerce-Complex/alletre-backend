@@ -203,9 +203,7 @@ export class StripeService {
     }
 
     // Handle the event
-    console.log(`[IMPORTANT] event type : ${event.type}`);
-
-    // Handle the event
+    console.log(`[IMPORTANT] Stripe Webhook Event Received: ${event.type}`);
 
     switch (event.type) {
       case 'payment_intent.amount_capturable_updated':
