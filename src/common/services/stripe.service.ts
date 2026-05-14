@@ -53,10 +53,13 @@ export class StripeService {
         metadata,
       });
     } catch (error) {
-      console.log('Error in createDepositPaymentIntent:', error);
+      console.error(
+        'STRP DEBUG: Error in createDepositPaymentIntent:',
+        error.message || error,
+      );
       throw new MethodNotAllowedResponse({
-        ar: 'قيمة عملية الدفع غير صالحة',
-        en: 'Invalid Payment Amount',
+        ar: 'قيمة عملية الدفع غير صالحة: ' + (error.message || ''),
+        en: 'Invalid Payment Amount: ' + (error.message || ''),
       });
     }
     console.log('Create Deposite Payment Intent---->', paymentIntent);
@@ -126,10 +129,10 @@ export class StripeService {
         metadata,
       });
     } catch (error) {
-      console.log(error);
+      console.error('STRP DEBUG: Error in createPaymentIntent:', error.message || error);
       throw new MethodNotAllowedResponse({
-        ar: 'قيمة عملية الدفع غير صالحة',
-        en: 'Invalid Payment Amount',
+        ar: 'قيمة عملية الدفع غير صالحة: ' + (error.message || ''),
+        en: 'Invalid Payment Amount: ' + (error.message || ''),
       });
     }
 
