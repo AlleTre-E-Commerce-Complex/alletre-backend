@@ -24,6 +24,12 @@ import { User } from '@prisma/client';
 @Controller('payments-v2')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
+  
+  @Get('ping')
+  async ping() {
+    console.log('--- PAYMENTS PING REACHED ---');
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 
   @HttpCode(200)
   @Post('sw')
@@ -50,7 +56,14 @@ export class PaymentsController {
     @Body('productId', ParseIntPipe) productId: number,
     @Body('amount', ParseIntPipe) amount: number,
     @Body('currency') currency: string,
+    @Req() req: Request,
   ) {
+    console.log('--- PAY-ARBON REQUEST RECEIVED ---', {
+      productId,
+      amount,
+      userId: user?.id,
+      path: req.originalUrl
+    });
     const result = await this.paymentsService.payDepositByArbon(
       user,
       productId,
