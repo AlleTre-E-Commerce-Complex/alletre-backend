@@ -27,8 +27,14 @@ export class PaymentsController {
   
   @Get('ping')
   async ping() {
-    console.log('--- PAYMENTS PING REACHED ---');
-    return { status: 'ok', timestamp: new Date().toISOString() };
+    console.log('--- PAYMENTS GET PING REACHED ---');
+    return { status: 'ok', method: 'GET', timestamp: new Date().toISOString() };
+  }
+
+  @Post('post-ping')
+  async postPing() {
+    console.log('--- PAYMENTS POST PING REACHED ---');
+    return { status: 'ok', method: 'POST', timestamp: new Date().toISOString() };
   }
 
   @HttpCode(200)
@@ -59,6 +65,13 @@ export class PaymentsController {
     @Req() req: Request,
   ) {
     console.log('--- PAY-ARBON REQUEST RECEIVED ---', {
+      allowedOrigins: [
+        'https://3arbon.com',
+        'https://www.3arbon.com',
+        'https://alletre.com',
+        'https://www.alletre.com',
+        'https://admin.3arbon.com',
+      ],
       productId,
       amount,
       userId: user?.id,
