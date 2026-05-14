@@ -11,12 +11,11 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
+    origin: [
       'https://3arbon.com',
       'https://www.3arbon.com',
-      'https://alletre.com',
-      'https://www.alletre.com',
       'https://admin.3arbon.com',
-    ,
+    ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
