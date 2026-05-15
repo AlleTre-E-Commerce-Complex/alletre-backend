@@ -1,4 +1,5 @@
-import { Controller, Get, Query, Delete, Param, UseGuards, Patch, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Query, Delete, Param, UseGuards, Patch, Body, ParseIntPipe, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AdminProductUpdateDto } from './dtos/admin-product-update.dto';
 import { AdminService } from './admin.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -51,6 +52,44 @@ export class AdminController {
     return {
       success: true,
       data: await this.adminService.updateObjectionStatus(id, status),
+    };
+  }
+
+  @Patch('objections/:id/final-decision')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      dest: 'uploads/',
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
+  async submitFinalDecision(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('finalDecision') finalDecision: string,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return {
+      success: true,
+      data: await this.adminService.submitFinalDecision(id, finalDecision, files || []),
+    };
+  }
+
+  @Delete('objections/:id/final-decision')
+  async deleteFinalDecision(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return {
+      success: true,
+      data: await this.adminService.deleteFinalDecision(id),
+    };
+  }
+
+  @Delete('objections/final-decision-documents/:docId')
+  async deleteFinalDecisionDocument(
+    @Param('docId', ParseIntPipe) docId: number,
+  ) {
+    return {
+      success: true,
+      data: await this.adminService.deleteFinalDecisionDocument(docId),
     };
   }
 }

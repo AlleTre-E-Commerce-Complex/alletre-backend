@@ -27,6 +27,7 @@ model User {
   stripeConnectedAccountId String?
   ipAddress                String?
   isBlocked                Boolean              @default(false)
+  uaePassUuid              String?              @unique
   alletreWallet            AlletreWallet[]
   auctions                 Auction[]
   auctionComplaints        AuctionComplaints[]
@@ -52,6 +53,7 @@ model User {
   withdrawalRequests       WithdrawalRequests[]
   refreshTokens            RefreshToken[]
   arbonPurchases           Product[]            @relation("ArbonBuyer")
+  objectionReplies         ProductObjection[]   @relation("ObjectionRepliedBy")
   productObjections        ProductObjection[]
 }
 
@@ -763,6 +765,7 @@ enum OAuthType {
   GOOGLE
   FACEBOOK
   APPLE
+  UAE_PASS
 }
 
 enum JoinedAuctionStatus {
@@ -805,10 +808,15 @@ model ProductObjection {
   replyReason      String?
   replyDescription String?
   repliedAt        DateTime?
+  repliedById      Int?
+  finalDecision    String?
+  finalDecisionAt  DateTime?
   product          Product                 @relation(fields: [productId], references: [id])
   user             User                    @relation(fields: [userId], references: [id])
+  repliedBy        User?                   @relation("ObjectionRepliedBy", fields: [repliedById], references: [id])
   documents        ProductObjectionImage[]
   replyDocuments   ProductObjectionReplyImage[]
+  finalDecisionDocuments ProductObjectionFinalDecisionImage[]
 }
 
 model ProductObjectionImage {
@@ -821,6 +829,15 @@ model ProductObjectionImage {
 }
 
 model ProductObjectionReplyImage {
+  id          Int              @id @default(autoincrement())
+  objectionId Int
+  imagePath   String
+  imageLink   String
+  createdAt   DateTime         @default(now())
+  objection   ProductObjection @relation(fields: [objectionId], references: [id])
+}
+
+model ProductObjectionFinalDecisionImage {
   id          Int              @id @default(autoincrement())
   objectionId Int
   imagePath   String

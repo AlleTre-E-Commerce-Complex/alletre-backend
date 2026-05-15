@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { NotFoundResponse } from 'src/common/errors';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
   async getAdminByEmailOr404(email: string) {
     console.log('ethi');
@@ -177,8 +181,12 @@ export class AdminService {
         user: {
           select: { id: true, userName: true, email: true, phone: true },
         },
+        repliedBy: {
+          select: { id: true, userName: true, email: true, phone: true, imageLink: true },
+        },
         documents: true,
         replyDocuments: true,
+        finalDecisionDocuments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -188,6 +196,101 @@ export class AdminService {
     return this.prismaService.productObjection.update({
       where: { id },
       data: { status },
+    });
+  }
+
+  async submitFinalDecision(id: number, finalDecision: string, files?: Array<Express.Multer.File>) {
+    if (!finalDecision || !finalDecision.trim()) {
+      throw new BadRequestException('Final decision text is required');
+    }
+
+    const existingObjection = await this.prismaService.productObjection.findUnique({
+      where: { id },
+    });
+
+    if (!existingObjection) {
+      throw new BadRequestException('Objection not found');
+    }
+
+    await this.prismaService.productObjection.update({
+      where: { id },
+      data: {
+        finalDecision: finalDecision.trim(),
+        finalDecisionAt: new Date(),
+        status: 'SOLVED',
+      },
+    });
+
+    if (files?.length) {
+      for (const file of files) {
+        const uploadedFile = await this.firebaseService.uploadImage(file);
+        await this.prismaService.productObjectionFinalDecisionImage.create({
+          data: {
+            objectionId: id,
+            imageLink: uploadedFile.fileLink,
+            imagePath: uploadedFile.filePath,
+          },
+        });
+      }
+    }
+
+    const updatedObjection = await this.prismaService.productObjection.findUnique({
+      where: { id },
+      include: {
+        product: true,
+        user: true,
+        finalDecisionDocuments: true,
+      },
+    });
+
+    return updatedObjection;
+  }
+
+  async deleteFinalDecision(id: number) {
+    const existingObjection = await this.prismaService.productObjection.findUnique({
+      where: { id },
+    });
+
+    if (!existingObjection) {
+      throw new BadRequestException('Objection not found');
+    }
+
+    await this.prismaService.$transaction(async (tx) => {
+      await tx.productObjectionFinalDecisionImage.deleteMany({
+        where: { objectionId: id },
+      });
+
+      await tx.productObjection.update({
+        where: { id },
+        data: {
+          finalDecision: null,
+          finalDecisionAt: null,
+          status: existingObjection.repliedAt ? 'IN_PROGRESS' : 'PENDING',
+        },
+      });
+    });
+
+    return this.prismaService.productObjection.findUnique({
+      where: { id },
+      include: {
+        product: true,
+        user: true,
+        finalDecisionDocuments: true,
+      },
+    });
+  }
+
+  async deleteFinalDecisionDocument(docId: number) {
+    const doc = await this.prismaService.productObjectionFinalDecisionImage.findUnique({
+      where: { id: docId },
+    });
+
+    if (!doc) {
+      throw new BadRequestException('Document not found');
+    }
+
+    return this.prismaService.productObjectionFinalDecisionImage.delete({
+      where: { id: docId },
     });
   }
 }
