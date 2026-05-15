@@ -207,6 +207,8 @@ export class StripeService {
 
     // Handle the event
     console.log(`[IMPORTANT] Stripe Webhook Event Received: ${event.type}`);
+    console.log('Event Data Object Metadata:', JSON.stringify(event.data.object.metadata));
+    console.log('Event Data Object Status:', event.data.object.status);
 
     switch (event.type) {
       case 'payment_intent.amount_capturable_updated':
@@ -268,7 +270,7 @@ export class StripeService {
         const auctionIdNum = Number(auction_Id);
         const auction = await this.prismaService.auction.findUnique({
           where: {
-            id: auctionId,
+            id: auctionIdNum,
           },
         });
         if (auction?.isLocked) {

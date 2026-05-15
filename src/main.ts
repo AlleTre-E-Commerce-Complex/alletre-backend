@@ -20,6 +20,7 @@ async function bootstrap() {
   // Increase payload limits
   app.use((req, res, next) => {
     if (req.originalUrl.includes('/sw')) {
+      console.log('--- WEBHOOK RAW BODY MIDDLEWARE TRIGGERED ---', req.originalUrl);
       raw({ type: '*/*' })(req, res, next);
     } else {
       json({ limit: '50mb' })(req, res, next);

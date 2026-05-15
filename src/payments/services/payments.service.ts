@@ -844,13 +844,12 @@ export class PaymentsService {
         );
 
       await this.prismaService.payment.create({
-        // @ts-ignore: Temporary bypass until Prisma client is regenerated
         data: {
           userId: user.id,
           productId: productId,
           amount: amount,
           paymentIntentId: paymentIntentId,
-          type: 'ARBON_DEPOSIT' as any,
+          type: PaymentType.ARBON_DEPOSIT,
         },
       });
 
@@ -2293,7 +2292,8 @@ export class PaymentsService {
       payload,
       stripeSignature,
     );
-    console.log('Webhook Event Parsed. Status:', status, 'PI ID:', paymentIntent?.id);
+    console.log('--- WEBHOOK SERVICE HANDLER START ---');
+    console.log('Parsed Status:', status, 'PI ID:', paymentIntent?.id);
     if (paymentIntent?.metadata) {
       console.log('Webhook PI Metadata:', paymentIntent.metadata);
     }
@@ -2326,15 +2326,15 @@ export class PaymentsService {
           })) as any;
 
         if (!holdPaymentTransaction) {
-          console.log('Webhook HOLD: Payment transaction NOT FOUND for ID:', paymentIntent.id);
+          console.error(`[ERROR] Webhook HOLD: Payment transaction NOT FOUND in DB for PI ID: ${paymentIntent.id}`);
           break;
         }
 
         console.log('Webhook HOLD: Payment transaction found:', holdPaymentTransaction.id, 'Type:', holdPaymentTransaction.type);
 
         // Handle ARBON_DEPOSIT Hold
-        const pType = holdPaymentTransaction.type?.toString().trim();
-        if (pType === 'ARBON_DEPOSIT') {
+        const pType = holdPaymentTransaction.type;
+        if (pType === PaymentType.ARBON_DEPOSIT) {
           console.log('Webhook HOLD: Handling ARBON_DEPOSIT authorization');
           await this.prismaService.$transaction(async (prisma) => {
             // Update payment transaction
@@ -2787,9 +2787,9 @@ export class PaymentsService {
           auctionPaymentTransaction.type?.length,
         );
         console.log('Webhook SUCCESS: Handling payment type:', auctionPaymentTransaction.type);
-        const successPType = auctionPaymentTransaction.type?.toString().trim();
+        const successPType = auctionPaymentTransaction.type;
         switch (successPType) {
-          case 'ARBON_DEPOSIT':
+          case PaymentType.ARBON_DEPOSIT:
             try {
               console.log(
                 'HANDLING ARBON_DEPOSIT WEBHOOK (TOP)...',
@@ -4697,7 +4697,22 @@ export class PaymentsService {
           select: { id: true, userName: true, email: true, phone: true },
         },
         images: { take: 1 },
-        objections: true,
+        objections: {
+          select: {
+            id: true,
+            reason: true,
+            description: true,
+            status: true,
+            createdAt: true,
+            repliedAt: true,
+            replyReason: true,
+            replyDescription: true,
+            userId: true,
+            finalDecision: true,
+            finalDecisionAt: true,
+            finalDecisionDocuments: true,
+          },
+        },
       },
       orderBy: { id: 'desc' },
     });
@@ -4725,6 +4740,22 @@ export class PaymentsService {
           // Update the local object status so it reflects in the response immediately
           (product as any).arbonStatus = 'RELEASED';
         }
+      }
+    }
+
+    // Debug: log objections with finalDecision
+    for (const product of products) {
+      if (product.objections?.length > 0) {
+        const o = product.objections[0] as any;
+        console.log(`[DEBUG getDepositDetails] product ${product.id} objection keys:`, Object.keys(o));
+        console.log(`[DEBUG getDepositDetails] product ${product.id} raw objection:`, {
+          id: o.id,
+          finalDecision: o.finalDecision,
+          finalDecisionAt: o.finalDecisionAt,
+          status: o.status,
+          hasDocs: !!o.finalDecisionDocuments,
+          docCount: o.finalDecisionDocuments?.length || 0,
+        });
       }
     }
 
@@ -4835,11 +4866,12 @@ export class PaymentsService {
   }
 
   async getObjection(id: number) {
-    return this.prismaService.productObjection.findUnique({
+    const result = await this.prismaService.productObjection.findUnique({
       where: { id: Number(id) },
       include: {
         documents: true,
         replyDocuments: true,
+        finalDecisionDocuments: true,
         product: {
           include: {
             user: true,
@@ -4848,8 +4880,13 @@ export class PaymentsService {
           },
         },
         user: true,
+        repliedBy: {
+          select: { id: true, userName: true, email: true, phone: true, imageLink: true },
+        },
       },
     });
+    console.log(`[DEBUG getObjection] id=${id} finalDecision=`, result?.finalDecision, 'docs=', result?.finalDecisionDocuments?.length || 0);
+    return result;
   }
 
   async replyToObjection(user: User, objectionId: number, data: any, files?: Array<Express.Multer.File>) {
@@ -4885,11 +4922,13 @@ export class PaymentsService {
         replyReason,
         replyDescription,
         repliedAt: new Date(),
+        repliedById: user.id,
         status: 'IN_PROGRESS',
       },
       include: {
         product: true,
         user: true,
+        repliedBy: true,
       },
     });
 

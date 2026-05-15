@@ -46,6 +46,8 @@ export class PaymentsController {
     console.log('--- WEBHOOK CONTROLLER HIT ---');
     // Use rawBody for Stripe signature verification
     const payload = req.rawBody || req.body;
+    console.log('Webhook Raw Body Length:', req.rawBody ? req.rawBody.length : 'MISSING');
+    console.log('Webhook Body Type:', typeof payload);
     await this.paymentsService.webHookEventHandler(
       payload,
       stripeSignature,
