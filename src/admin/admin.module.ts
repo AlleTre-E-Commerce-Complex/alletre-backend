@@ -3,11 +3,12 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { UserModule } from 'src/user/user.module';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 
 @Module({
   providers: [AdminService],
   controllers: [AdminController],
-  imports: [PrismaModule, UserModule],
+  imports: [PrismaModule, UserModule, FirebaseModule],
   exports: [AdminService],
 })
 export class AdminModule {}
