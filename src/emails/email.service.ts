@@ -477,6 +477,40 @@ export class EmailSerivce extends EmailBody {
           html: this.emailBody(body),
         };
 
+      case EmailsType.ARBON_REMINDER:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `🔔 Reminder: Confirm Deposit Status for ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: 'Action Required: Deposit Reminder',
+            preHeader: 'DEPOSIT UPDATE',
+            message1: `The deposit for your product <strong>${body.productTitle}</strong> has been held for 6 days.`,
+            message2:
+              'If the transaction has been completed successfully, please release the amount to finalize the deal. If you have encountered any issues, you should raise an objection immediately before the 7-day window expires.',
+            Button_text: 'View Product Details',
+            Button_URL: `${process.env.FRONT_URL}/profile/deposit-details`,
+          }),
+        };
+
+      case EmailsType.ARBON_RELEASED:
+        return {
+          from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,
+          to: email,
+          subject: `💸 Deposit Refunded: ${body.productTitle}`,
+          html: this.emailBody({
+            userName: userName,
+            title: 'Deposit Released & Refunded',
+            preHeader: 'REFUND CONFIRMATION',
+            message1: `The seller has released the deposit for <strong>${body.productTitle}</strong>.`,
+            message2:
+              'The funds have been sent back to your original payment method. You should see the refund reflected in your account within a few hours (depending on your bank).',
+            Button_text: 'View Transaction Details',
+            Button_URL: `${process.env.FRONT_URL}/profile/deposit-details`,
+          }),
+        };
+
       case EmailsType.OTHER:
         return {
           from: `"3arbon Team" <${process.env.EMAIL_FROM}>`,

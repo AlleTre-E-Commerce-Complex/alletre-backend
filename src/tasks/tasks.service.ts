@@ -2474,4 +2474,45 @@ export class TasksService {
       });
     });
   }
+
+  @Cron(CronExpression.EVERY_DAY_AT_9AM, { timeZone: 'Asia/Dubai' })
+  async sendArbonReminders() {
+    this.logger.log('Running Arbon Reminders Cron Job...');
+    try {
+      const d6 = new Date();
+      d6.setDate(d6.getDate() - 6);
+      const d7 = new Date();
+      d7.setDate(d7.getDate() - 7);
+
+      const products = await this.prismaService.product.findMany({
+        where: {
+          arbonStatus: 'PAID' as any,
+          arbonPaidAt: {
+            lte: d6,
+            gt: d7,
+          },
+        },
+        include: {
+          user: true,
+        },
+      });
+
+      this.logger.log(`Found ${products.length} products for Arbon reminder.`);
+
+      for (const product of products) {
+        if (product.user?.email) {
+          await this.emailService.sendEmail(
+            product.user.email,
+            'token',
+            EmailsType.ARBON_REMINDER,
+            { productTitle: product.title },
+            product.user.userName,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error in Arbon Reminders Cron Job:', error);
+    }
+  }
 }
+
