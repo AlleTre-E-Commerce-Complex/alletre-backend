@@ -871,7 +871,7 @@ export class PaymentsService {
     try {
       const product = await this.prismaService.product.findUnique({
         where: { id: productId },
-        include: { user: true },
+        include: { user: true, arbonBuyer: true },
       });
 
       if (!product || product.userId !== user.id) {
@@ -927,8 +927,19 @@ export class PaymentsService {
       // Update product status once
       await this.prismaService.product.update({
         where: { id: productId },
-        data: { arbonStatus: 'RELEASED' } as any,
+        data: { arbonStatus: 'REFUNDED' } as any,
       });
+
+      // Send Email to Buyer
+      if (product.arbonBuyer?.email) {
+        await this.emailService.sendEmail(
+          product.arbonBuyer.email,
+          'token',
+          EmailsType.ARBON_RELEASED,
+          { productTitle: product.title },
+          product.arbonBuyer.userName,
+        );
+      }
 
       return {
         success: true,
@@ -940,13 +951,14 @@ export class PaymentsService {
     }
   }
 
-  async claimArbonDepositToCompany(productId: number) {
-    console.log('>>> PAYMENTS SERVICE: claimArbonDepositToCompany CALLED <<<', {
+  async autoReleaseArbonDeposit(productId: number) {
+    console.log('>>> PAYMENTS SERVICE: autoReleaseArbonDeposit CALLED <<<', {
       productId,
     });
     try {
       const product = await this.prismaService.product.findUnique({
         where: { id: productId },
+        include: { arbonBuyer: true },
       });
 
       if (!product) {
@@ -965,11 +977,12 @@ export class PaymentsService {
 
       if (diffDays <= 7) {
         throw new BadRequestException(
-          'Cannot claim deposit yet. 7 days have not passed.',
+          'Cannot release deposit yet. 7 days have not passed.',
         );
       }
 
-      const payment = await this.prismaService.payment.findFirst({
+      // Fetch all active payment records for this product
+      const payments = await this.prismaService.payment.findMany({
         where: {
           productId,
           type: 'ARBON_DEPOSIT' as any,
@@ -977,57 +990,52 @@ export class PaymentsService {
         } as any,
       });
 
-      if (!payment) {
-        throw new BadRequestException('Arbon payment record not found');
+      if (payments.length === 0) {
+        throw new BadRequestException('No active arbon payment records found');
       }
 
-      // Logic to capture for company
-      if (payment.status === PaymentStatus.HOLD) {
-        console.log('Capturing HOLD payment for company...');
-        await this.stripeService.capturePayment(payment.paymentIntentId);
+      // Logic to release (refund to buyer) all payments
+      for (const payment of payments) {
+        try {
+          if (payment.status === PaymentStatus.SUCCESS) {
+            await this.stripeService.refundPayment(payment.paymentIntentId);
+          } else if (payment.status === PaymentStatus.HOLD) {
+            await this.stripeService.cancelDepositPaymentIntent(payment.paymentIntentId);
+          }
+
+          // Update payment status to CANCELLED in DB
+          await this.prismaService.payment.update({
+            where: { id: payment.id },
+            data: { status: PaymentStatus.CANCELLED },
+          });
+        } catch (err) {
+          console.error(`Error during Stripe refund/cancel for payment ${payment.id}:`, err);
+        }
       }
 
-      await this.prismaService.$transaction(async (prisma) => {
-        // 1. Update product status
-        await prisma.product.update({
-          where: { id: productId },
-          data: { arbonStatus: 'RELEASED' } as any, // Or maybe 'CLAIMED_BY_COMPANY' if you add that enum
-        });
-
-        // 2. Record in Alletre Wallet (Company Account)
-        const lastAlletreTransaction = await prisma.alletreWallet.findFirst({
-          orderBy: { id: 'desc' },
-        });
-
-        const currentBalance = lastAlletreTransaction
-          ? Number(lastAlletreTransaction.balance)
-          : 0;
-        const newBalance = currentBalance + Number(product.arbonAmount);
-
-        await prisma.alletreWallet.create({
-          data: {
-            userId: product.userId, // Record who it came from
-            amount: product.arbonAmount,
-            balance: newBalance,
-            status: 'DEPOSIT',
-            transactionType: 'BY_DIRECT_SELL',
-            description: `Arbon deposit claimed by company (7-day period expired) for product: ${product.title}`,
-          } as any,
-        });
-
-        // 3. Update payment status
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: PaymentStatus.SUCCESS },
-        });
+      // Update product status once to RELEASED (system finalized)
+      await this.prismaService.product.update({
+        where: { id: productId },
+        data: { arbonStatus: 'RELEASED' } as any,
       });
+
+      // Send Email to Buyer
+      if (product.arbonBuyer?.email) {
+        await this.emailService.sendEmail(
+          product.arbonBuyer.email,
+          'token',
+          EmailsType.ARBON_RELEASED,
+          { productTitle: product.title },
+          product.arbonBuyer.userName,
+        );
+      }
 
       return {
         success: true,
-        message: 'Deposit claimed by company successfully',
+        message: 'Deposit auto-released and refunded to buyer successfully',
       };
     } catch (error) {
-      console.log('claimArbonDepositToCompany error:', error);
+      console.log('autoReleaseArbonDeposit error:', error);
       throw error;
     }
   }
@@ -4710,7 +4718,13 @@ export class PaymentsService {
             userId: true,
             finalDecision: true,
             finalDecisionAt: true,
-            finalDecisionDocuments: true,
+            finalDecisionDocuments: {
+              select: {
+                id: true,
+                imageLink: true,
+                imagePath: true,
+              },
+            },
           },
         },
       },
@@ -4731,7 +4745,7 @@ export class PaymentsService {
           console.log(
             `Auto-finalizing Arbon for product ${product.id} to company...`,
           );
-          await this.claimArbonDepositToCompany(product.id).catch((err) =>
+          await this.autoReleaseArbonDeposit(product.id).catch((err) =>
             console.error(
               `Auto-finalize failed for product ${product.id}:`,
               err,
@@ -4742,23 +4756,6 @@ export class PaymentsService {
         }
       }
     }
-
-    // Debug: log objections with finalDecision
-    for (const product of products) {
-      if (product.objections?.length > 0) {
-        const o = product.objections[0] as any;
-        console.log(`[DEBUG getDepositDetails] product ${product.id} objection keys:`, Object.keys(o));
-        console.log(`[DEBUG getDepositDetails] product ${product.id} raw objection:`, {
-          id: o.id,
-          finalDecision: o.finalDecision,
-          finalDecisionAt: o.finalDecisionAt,
-          status: o.status,
-          hasDocs: !!o.finalDecisionDocuments,
-          docCount: o.finalDecisionDocuments?.length || 0,
-        });
-      }
-    }
-
     return products;
   }
 
@@ -4812,6 +4809,25 @@ export class PaymentsService {
         await this.prismaService.payment.update({
           where: { id: payment.id },
           data: { status: PaymentStatus.SUCCESS },
+        });
+
+        // Record in Alletre Wallet (Company Account) so admin can track it
+        const lastAlletreTransaction = await this.prismaService.alletreWallet.findFirst({
+          orderBy: { id: 'desc' },
+        });
+
+        const currentBalance = lastAlletreTransaction ? Number(lastAlletreTransaction.balance) : 0;
+        const newBalance = currentBalance + Number(payment.amount);
+
+        await this.prismaService.alletreWallet.create({
+          data: {
+            userId: user.id, // Who triggered the capture (the person raising the objection)
+            amount: payment.amount,
+            balance: newBalance,
+            status: 'DEPOSIT',
+            transactionType: 'BY_DIRECT_SELL',
+            description: `Safety Capture: Arbon deposit moved to company account due to Objection on product #${productId}.`,
+          } as any,
         });
       }
     } catch (err) {

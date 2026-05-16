@@ -249,6 +249,7 @@ model Product {
   arbonStatus         ArbonStatus     @default(AVAILABLE)
   arbonBuyerId        Int?
   arbonPaidAt         DateTime?
+  arbonReminderSent   Boolean         @default(false)
   arbonBuyer          User?           @relation("ArbonBuyer", fields: [arbonBuyerId], references: [id])
   memory              String?
   brand               String?

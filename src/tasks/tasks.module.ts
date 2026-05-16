@@ -7,6 +7,7 @@ import { StripeService } from 'src/common/services/stripe.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { EmailSerivce } from 'src/emails/email.service';
 import { EmailBatchService } from 'src/emails/email-batch.service';
+import { PaymentsModule } from 'src/payments/payments.module';
 import { NotificationsService } from 'src/notificatons/notifications.service';
 import { NotificationsModule } from 'src/notificatons/notifications.module';
 import { AdminWebSocketGateway } from 'src/auction/gateway/admin.gateway';
@@ -20,10 +21,9 @@ import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 import { BidsWebSocketGateway } from 'src/auction/gateway/bids.gateway';
 
 @Module({
-  imports: [PrismaModule, AuctionModule, NotificationsModule],
+  imports: [PrismaModule, AuctionModule, NotificationsModule, PaymentsModule],
   providers: [
     TasksService,
-    PaymentsService,
     WhatsAppService,
     StripeService,
     WalletService,
