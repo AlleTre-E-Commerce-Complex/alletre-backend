@@ -65,11 +65,12 @@ export class AdminController {
   async submitFinalDecision(
     @Param('id', ParseIntPipe) id: number,
     @Body('finalDecision') finalDecision: string,
+    @Body('payoutTo') payoutTo: string,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     return {
       success: true,
-      data: await this.adminService.submitFinalDecision(id, finalDecision, files || []),
+      data: await this.adminService.submitFinalDecision(id, finalDecision, payoutTo, files || []),
     };
   }
 

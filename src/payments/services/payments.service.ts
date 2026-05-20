@@ -800,26 +800,13 @@ export class PaymentsService {
     productId: number,
     currency: string,
     amount: number,
+    isWalletPayment?: boolean
   ) {
     try {
       if (!user) {
         throw new MethodNotAllowedResponse({
           ar: 'يجب تسجيل الدخول لإتمام عملية الدفع',
           en: 'You must be logged in to make a payment',
-        });
-      }
-      console.log('Online Arbon deposit payment');
-
-      // Create StripeCustomer if has no account
-      let stripeCustomerId: string = user?.stripeId || '';
-      if (!user?.stripeId) {
-        stripeCustomerId = await this.stripeService.createCustomer(
-          user.email,
-          user.userName,
-        );
-        await this.prismaService.user.update({
-          where: { id: user.id },
-          data: { stripeId: stripeCustomerId },
         });
       }
 
@@ -832,6 +819,83 @@ export class PaymentsService {
         throw new MethodNotAllowedResponse({
           ar: 'تم دفع العربون بالفعل لهذا المنتج',
           en: 'Arbon deposit already paid for this product',
+        });
+      }
+
+      if (isWalletPayment) {
+        console.log('Wallet Arbon deposit payment');
+        const userWalletBalance = await this.walletService.findLastTransaction(user.id);
+        if (Number(userWalletBalance) < amount) {
+          throw new MethodNotAllowedResponse({
+            en: 'Insufficient wallet balance',
+            ar: 'رصيد المحفظة غير كاف',
+          });
+        }
+
+        const lastAlletreBalance = await this.walletService.findLastTransactionOfAlletre();
+
+        const userWalletTransaction = await this.walletService.create(
+          user.id,
+          {
+            status: WalletStatus.WITHDRAWAL,
+            transactionType: WalletTransactionType.BY_DIRECT_SELL,
+            description: `Paid Arbon deposit for product #${productId} via Wallet`,
+            amount: amount,
+            balance: Number(userWalletBalance) - amount,
+          } as any
+        );
+
+        const alletreWalletTransaction = await this.walletService.addToAlletreWallet(
+          user.id,
+          {
+            status: WalletStatus.DEPOSIT,
+            transactionType: WalletTransactionType.BY_DIRECT_SELL,
+            description: `Received Arbon deposit for product #${productId} via Wallet`,
+            amount: amount,
+            balance: lastAlletreBalance ? Number(lastAlletreBalance) + amount : amount,
+          } as any
+        );
+
+        if (!userWalletTransaction || !alletreWalletTransaction) {
+           throw new InternalServerErrorException('Failed to process wallet payment');
+        }
+
+        // Update product arbon status
+        await this.prismaService.product.update({
+          where: { id: productId },
+          data: { 
+            arbonStatus: 'PAID', 
+            arbonBuyerId: user.id,
+            arbonPaidAt: new Date()
+          } as any,
+        });
+
+        await this.prismaService.payment.create({
+          data: {
+            userId: user.id,
+            productId: productId,
+            amount: amount,
+            type: PaymentType.ARBON_DEPOSIT,
+            status: 'SUCCESS',
+            isWalletPayment: true,
+          },
+        });
+
+        return { walletPaymentSuccess: true };
+      }
+
+      console.log('Online Arbon deposit payment');
+
+      // Create StripeCustomer if has no account
+      let stripeCustomerId: string = user?.stripeId || '';
+      if (!user?.stripeId) {
+        stripeCustomerId = await this.stripeService.createCustomer(
+          user.email,
+          user.userName,
+        );
+        await this.prismaService.user.update({
+          where: { id: user.id },
+          data: { stripeId: stripeCustomerId },
         });
       }
 
