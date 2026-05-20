@@ -44,16 +44,21 @@ export class WalletService {
     return result;
   }
 
-  async addToUserWalletByAdmin(createWalletData: any) {
+  async addToUserWalletByAdmin(createWalletData: any, prismaClient?: Prisma.TransactionClient) {
     let result: any;
     try {
       const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
       console.log('addToUserWalletByAdmin is called', createWalletData);
 
-      await this.prismaSevice.$transaction(async (prisma) => {
+      const prisma = prismaClient || this.prismaSevice;
+      const executeTransaction = prismaClient 
+        ? (cb: any) => cb(prisma) 
+        : (cb: any) => this.prismaSevice.$transaction(cb);
+
+      await executeTransaction(async (tx) => {
         const lastUserWalletBalance = await this.findLastTransaction(
           createWalletData.userId,
-          prisma,
+          tx,
         );
         const newBalanceToUserWallet =
           createWalletData.status === 'WITHDRAWAL'
@@ -62,7 +67,7 @@ export class WalletService {
         const roundedBalance = Number(
           Number(newBalanceToUserWallet).toFixed(2),
         );
-        result = await prisma.wallet.create({
+        result = await tx.wallet.create({
           data: {
             userId: createWalletData.userId,
             description: createWalletData.description,
@@ -110,6 +115,7 @@ export class WalletService {
           await this.addToAlletreWalletByAdmin(
             createWalletData.userId,
             createWalletDataForAdmin,
+            tx,
           );
         }
       });
@@ -161,22 +167,27 @@ export class WalletService {
     return result;
   }
 
-  async addToAlletreWalletByAdmin(userId: number, createWalletData: any) {
+  async addToAlletreWalletByAdmin(userId: number, createWalletData: any, prismaClient?: Prisma.TransactionClient) {
     let result: any;
     try {
       console.log('wallet.service is called admin', createWalletData);
 
+      const prisma = prismaClient || this.prismaSevice;
+      const executeTransaction = prismaClient 
+        ? (cb: any) => cb(prisma) 
+        : (cb: any) => this.prismaSevice.$transaction(cb);
+
       const roundedAmount = Number(Number(createWalletData.amount).toFixed(2));
-      await this.prismaSevice.$transaction(async (prisma) => {
+      await executeTransaction(async (tx) => {
         const lastAdminWalletBalance = await this.findLastTransactionOfAlletre(
-          prisma,
+          tx,
         );
         const newBalanceToAlletre =
           createWalletData.status === 'WITHDRAWAL'
             ? Number(lastAdminWalletBalance) - Number(createWalletData.amount)
             : Number(lastAdminWalletBalance) + Number(createWalletData.amount);
         const roundedBalance = Number(Number(newBalanceToAlletre).toFixed(2));
-        result = await prisma.alletreWallet.create({
+        result = await tx.alletreWallet.create({
           data: {
             userId,
             description: createWalletData.description,
@@ -246,13 +257,45 @@ export class WalletService {
       orderBy: { id: 'desc' },
     });
 
-    const one = await this.prismaSevice.wallet.findFirst({
-      where: { id: 521 },
+    const productIds: number[] = [];
+    const productMap = new Map<number, any>();
+
+    for (const transaction of walletData) {
+      if (!transaction.auctionId && transaction.description) {
+        const match = transaction.description.match(/product\s+#(\d+)/i);
+        if (match) {
+          const productId = parseInt(match[1], 10);
+          productIds.push(productId);
+        }
+      }
+    }
+
+    if (productIds.length > 0) {
+      const products = await this.prismaSevice.product.findMany({
+        where: { id: { in: productIds } },
+        include: { images: true },
+      });
+      for (const product of products) {
+        productMap.set(product.id, product);
+      }
+    }
+
+    const mappedData = walletData.map((transaction) => {
+      let product = null;
+      if (!transaction.auctionId && transaction.description) {
+        const match = transaction.description.match(/product\s+#(\d+)/i);
+        if (match) {
+          const productId = parseInt(match[1], 10);
+          product = productMap.get(productId) || null;
+        }
+      }
+      return {
+        ...transaction,
+        product,
+      };
     });
-    // console.log('wallet data :',walletData)
-    // let balance = walletData[walletData.length-1]
-    console.log('walletDataof1', one);
-    return walletData;
+
+    return mappedData;
   }
 
   async findAllAdminWalletDetails() {
@@ -294,9 +337,10 @@ export class WalletService {
       const walletLastTransaction = await prisma.alletreWallet.findFirst({
         orderBy: { id: 'desc' },
       });
-      return walletLastTransaction?.balance;
+      return walletLastTransaction?.balance ?? 0;
     } catch (error) {
       console.log('error at find last transaction of alletre :', error);
+      return 0;
     }
   }
 

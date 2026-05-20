@@ -64,6 +64,7 @@ export class PaymentsController {
     @Body('productId', ParseIntPipe) productId: number,
     @Body('amount', ParseIntPipe) amount: number,
     @Body('currency') currency: string,
+    @Body('isWalletPayment') isWalletPayment: boolean,
     @Req() req: Request,
   ) {
     console.log('--- PAY-ARBON REQUEST RECEIVED ---', {
@@ -84,6 +85,7 @@ export class PaymentsController {
       productId,
       currency || 'AED',
       amount,
+      isWalletPayment
     );
     return {
       success: true,

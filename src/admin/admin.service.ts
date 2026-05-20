@@ -2,12 +2,14 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { NotFoundResponse } from 'src/common/errors';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly firebaseService: FirebaseService,
+    private readonly walletService: WalletService,
   ) {}
 
   async getAdminByEmailOr404(email: string) {
@@ -199,26 +201,58 @@ export class AdminService {
     });
   }
 
-  async submitFinalDecision(id: number, finalDecision: string, files?: Array<Express.Multer.File>) {
+  async submitFinalDecision(
+    id: number,
+    finalDecision: string,
+    payoutTo: string,
+    files?: Array<Express.Multer.File>,
+  ) {
     if (!finalDecision || !finalDecision.trim()) {
       throw new BadRequestException('Final decision text is required');
     }
 
     const existingObjection = await this.prismaService.productObjection.findUnique({
       where: { id },
+      include: {
+        product: true,
+      },
     });
 
     if (!existingObjection) {
       throw new BadRequestException('Objection not found');
     }
 
-    await this.prismaService.productObjection.update({
-      where: { id },
-      data: {
-        finalDecision: finalDecision.trim(),
-        finalDecisionAt: new Date(),
-        status: 'SOLVED',
-      },
+    await this.prismaService.$transaction(async (prisma) => {
+      // 1. Update Objection
+      await prisma.productObjection.update({
+        where: { id },
+        data: {
+          finalDecision: finalDecision.trim(),
+          finalDecisionAt: new Date(),
+          status: 'SOLVED',
+        },
+      });
+
+      // 2. Transfer Funds if necessary
+      if (payoutTo === 'BUYER' || payoutTo === 'SELLER') {
+        const targetUserId =
+          payoutTo === 'BUYER'
+            ? existingObjection.product.arbonBuyerId
+            : existingObjection.product.userId;
+
+        if (targetUserId && existingObjection.product.arbonAmount) {
+          // Add to target user's wallet and deduct from admin wallet
+          await this.walletService.addToUserWalletByAdmin({
+            userId: targetUserId,
+            amount: Number(existingObjection.product.arbonAmount),
+            status: 'DEPOSIT', // Deposit into user's wallet
+            adminChanges: true, // This automatically deducts from AlletreWallet (Company Account)
+            description: `Refund from dispute resolution for product #${existingObjection.productId}`,
+          }, prisma);
+        }
+      }
+
+      // If 'COMPANY', the funds are already in the AlletreWallet due to the Safety Capture, so we do nothing.
     });
 
     if (files?.length) {
