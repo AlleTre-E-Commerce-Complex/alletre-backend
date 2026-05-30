@@ -115,6 +115,8 @@ export class WatchListService {
             images: true,
             ProductListingPrice: true,
             usageStatus: true,
+            arbonStatus: true,
+            priceType: true,
             city: { select: { nameEn: true, nameAr: true } },
             country: { select: { nameEn: true, nameAr: true } },
             listedProducts: {

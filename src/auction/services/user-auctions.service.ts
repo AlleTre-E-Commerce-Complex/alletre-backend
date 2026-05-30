@@ -2554,6 +2554,8 @@ export class UserAuctionsService {
             categoryId: true,
             images: true,
             usageStatus: true,
+            arbonStatus: true,
+            priceType: true,
             user: {
               select: {
                 id: true,
@@ -6063,6 +6065,7 @@ export class UserAuctionsService {
                   locations: { include: { country: true, city: true } },
                 },
               },
+              objections: true,
             },
           },
           user: true,
