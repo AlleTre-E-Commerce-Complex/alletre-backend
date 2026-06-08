@@ -33,7 +33,7 @@ export class AuthGuard implements CanActivate {
       if (!decoded?.roles?.includes(Role.Admin)) {
         // Check if the user exists and is not blocked
         const user = await this.userService.findUserByIdOr404(
-          Number(decoded.id),
+          decoded.id,
         ); 
 
         if (!user) {

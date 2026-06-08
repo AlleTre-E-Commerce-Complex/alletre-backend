@@ -370,7 +370,7 @@ export class AuctionsController {
       await this.userAuctionsService.findAuctionsForUser(
         account.roles,
         getAuctionsDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -390,7 +390,7 @@ export class AuctionsController {
       await this.userAuctionsService.findLiveAuctionsForUser(
         account.roles,
         paginationDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -410,7 +410,7 @@ export class AuctionsController {
       await this.userAuctionsService.findBuyNowAuctionsForUser(
         account.roles,
         paginationDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -430,7 +430,7 @@ export class AuctionsController {
       await this.userAuctionsService.findExpiredAuctions(
         account.roles,
         paginationDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -450,7 +450,7 @@ export class AuctionsController {
       await this.userAuctionsService.findUpCommingAuctionsForUser(
         account.roles,
         getAuctionsDTO,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -470,7 +470,7 @@ export class AuctionsController {
       await this.userAuctionsService.findSimilarAuctions(
         Number(auctionId),
         account.roles,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -489,7 +489,7 @@ export class AuctionsController {
     const similarProductsResult =
       await this.userAuctionsService.findSimilarProducts(
         Number(productId),
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       );
 
     return {
@@ -506,7 +506,7 @@ export class AuctionsController {
 
     const auctions = await this.userAuctionsService.findSponseredAuctions(
       account.roles,
-      account.roles.includes(Role.User) ? Number(account.id) : undefined,
+      account.roles.includes(Role.User) ? account.id : undefined,
     );
 
     // console.log('auctions ====> account',auctions)
@@ -727,7 +727,7 @@ export class AuctionsController {
   @Get('/user/getAccountData')
   @UseGuards(AuthGuard)
   async checkKYCStatus(@Account() account: any) {
-    return await this.userAuctionsService.getAccountData(Number(account.id));
+    return await this.userAuctionsService.getAccountData(account.id);
   }
 
   @Post('/user/withdrawalRequest')
@@ -805,7 +805,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.deleteDraftedAuction(
-        Number(account.id),
+        account.id,
         auctionId,
       ),
     };
@@ -822,7 +822,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.findAuctionByIdOr404(
         auctionId,
         account.roles,
-        account.roles.includes(Role.User) ? Number(account.id) : undefined,
+        account.roles.includes(Role.User) ? account.id : undefined,
       ),
     };
   }
@@ -956,7 +956,7 @@ export class AuctionsController {
     @Param('auctionId', ParseIntPipe) auctionId: number,
   ) {
     await this.userAuctionsService.submitBidForAuction(
-      Number(account.id),
+      account.id,
       auctionId,
       Number(submitBidDTO.bidAmount),
     );
@@ -976,7 +976,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.payDepositByBidder(
-        Number(account.id),
+        account.id,
         walletPayDto.auctionId,
         Number(walletPayDto.bidAmount),
         isWalletPayment,
@@ -995,7 +995,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.payDepositByBidder(
-        Number(account.id),
+        account.id,
         auctionId,
         Number(submitBidDTO.bidAmount),
       ),
@@ -1020,7 +1020,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.payAuctionByBidder(
-        Number(account.id),
+        account.id,
         auctionId,
       ),
     };
@@ -1036,7 +1036,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.payAuctionByBidder(
-        Number(account.id),
+        account.id,
         auctionId,
         isWalletPayment,
       ),
@@ -1052,7 +1052,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.buyNowAuction(
-        Number(account.id),
+        account.id,
         auctionId,
       ),
     };
@@ -1066,7 +1066,7 @@ export class AuctionsController {
   ) {
     const isWalletPayment = true;
     return await this.userAuctionsService.buyNowAuction(
-      Number(account.id),
+      account.id,
       auctionId,
       isWalletPayment,
     );
@@ -1080,7 +1080,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.confirmDelivery(
-        Number(account.id),
+        account.id,
         auctionId,
       ),
     };
@@ -1096,7 +1096,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.IsSendItemForDelivery(
-        Number(account.id),
+        account.id,
         auctionId,
         body.message,
       ),
@@ -1137,7 +1137,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.uploadAuctionComplaints(
-        Number(account.id),
+        account.id,
         AuctionComplaintsData,
         images,
       ),
@@ -1157,7 +1157,7 @@ export class AuctionsController {
   @UseGuards(AuthOrGuestGuard)
   async viewBidsHistoryForUser(
     @Param('auctionId', ParseIntPipe) auctionId: number,
-    @Query('userId', ParseIntPipe) userId: number,
+    @Query('userId') userId: string,
   ) {
     return {
       success: true,
@@ -1209,7 +1209,7 @@ export class AuctionsController {
     @Query() getListedProductDTO: GetListedProductDTO,
   ) {
     const filterUserId = getListedProductDTO.isMyListing
-      ? Number(account.id)
+      ? account.id
       : undefined;
 
     const listedProductsPaginated =
@@ -1217,7 +1217,7 @@ export class AuctionsController {
         account.roles,
         getListedProductDTO,
         filterUserId, 
-        account.id ? Number(account.id) : undefined, // viewerUserId
+        account.id ? account.id : undefined, // viewerUserId
       );
     return {
       success: true,
@@ -1236,7 +1236,7 @@ export class AuctionsController {
         account.roles,
         getListedProductByOhterUserDTO,
         getListedProductByOhterUserDTO.userId, // filterUserId (owner)
-        account.id ? Number(account.id) : undefined, // viewerUserId
+        account.id ? account.id : undefined, // viewerUserId
       );
     return {
       success: true,
@@ -1256,7 +1256,7 @@ export class AuctionsController {
       data: await this.userAuctionsService.findProductByIdOr404(
         productId,
         account.roles,
-        account.id ? Number(account.id) : undefined,
+        account.id ? account.id : undefined,
       ),
     };
   }
@@ -1270,7 +1270,7 @@ export class AuctionsController {
     return {
       success: true,
       data: await this.userAuctionsService.deleteListedProduct(
-        Number(account.id),
+        account.id,
         productId,
       ),
     };

@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id                       Int                  @id @default(autoincrement())
+  id                       String               @id @default(uuid())
   userName                 String?
   email                    String?              @unique
   password                 String?
@@ -103,7 +103,7 @@ model BankAccount {
   bankName           String
   accountNumber      String
   routingNumber      String
-  userId             Int
+  userId             String
   user               User                 @relation(fields: [userId], references: [id])
   withdrawalRequests WithdrawalRequests[]
 }
@@ -113,7 +113,7 @@ model WithdrawalRequests {
   amount           Decimal
   referenceNumber  Int              @unique @default(autoincrement())
   bankAccountId    Int
-  userId           Int
+  userId           String
   withdrawalStatus WithdrawalStatus @default(PENDING)
   bankAccount      BankAccount      @relation(fields: [bankAccountId], references: [id])
   user             User             @relation(fields: [userId], references: [id])
@@ -132,7 +132,7 @@ model City {
 
 model Location {
   id             Int              @id @default(autoincrement())
-  userId         Int
+  userId         String
   createdAt      DateTime         @default(now())
   address        String
   zipCode        String?
@@ -247,7 +247,7 @@ model Product {
   isArbon             Boolean         @default(false)
   arbonAmount         Decimal?        @default(0)
   arbonStatus         ArbonStatus     @default(AVAILABLE)
-  arbonBuyerId        Int?
+  arbonBuyerId        String?
   arbonPaidAt         DateTime?
   arbonReminderSent   Boolean         @default(false)
   arbonBuyer          User?           @relation("ArbonBuyer", fields: [arbonBuyerId], references: [id])
@@ -256,7 +256,7 @@ model Product {
   isAuctionProduct    Boolean?        @default(true)
   ProductListingPrice Decimal?        @default(0)
   priceType           PriceType       @default(FIXED)
-  userId              Int?
+  userId              String?
   amenities           String?
   annualCommunityFee  Decimal?
   approvedBuildUpArea Decimal?
@@ -321,7 +321,7 @@ model Image {
 
 model PushSubscription {
   id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  userId    String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   fcmToken  String?
@@ -330,7 +330,7 @@ model PushSubscription {
 
 model Auction {
   id                          Int                    @id @default(autoincrement())
-  userId                      Int
+  userId                      String
   productId                   Int                    @unique
   status                      AuctionStatus          @default(PENDING_OWNER_DEPOIST)
   type                        AuctionType?
@@ -358,7 +358,7 @@ model Auction {
   deliveryRequestsStatus      DeliveryRequestsStatus @default(DELIVERY_PENDING)
   isLocked                    Boolean?               @default(false)
   lockedAt                    DateTime?
-  lockedByUserId              Int?
+  lockedByUserId              String?
   alletreWallet               AlletreWallet[]
   location                    Location?              @relation(fields: [locationId], references: [id])
   product                     Product                @relation(fields: [productId], references: [id])
@@ -377,7 +377,7 @@ model ListedProducts {
   id                  Int                  @id @default(autoincrement())
   productId           Int                  @unique
   status              ListedProductsStatus @default(IN_PROGRESS)
-  userId              Int
+  userId              String
   locationId          Int?
   ProductListingPrice Decimal?             @default(0)
   createdAt           DateTime             @default(now())
@@ -389,8 +389,8 @@ model ListedProducts {
 model Purchase {
   id              Int             @id @default(autoincrement())
   productId       Int             @unique
-  sellerId        Int
-  buyerId         Int
+  sellerId        String
+  buyerId         String
   purchaseDate    DateTime        @default(now())
   productQuantity Int             @default(1)
   productAmount   Decimal
@@ -402,7 +402,7 @@ model Purchase {
 
 model WatchList {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    String
   auctionId Int?
   createdAt DateTime @default(now())
   productId Int?
@@ -413,7 +413,7 @@ model WatchList {
 
 model Bids {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    String
   auctionId Int
   amount    Decimal
   createdAt DateTime @default(now())
@@ -423,7 +423,7 @@ model Bids {
 
 model Payment {
   id              Int            @id @default(autoincrement())
-  userId          Int
+  userId          String
   auctionId       Int?
   productId       Int?
   paymentIntentId String?        @unique
@@ -449,7 +449,7 @@ model BankStatement {
 
 model JoinedAuction {
   id                          Int                 @id @default(autoincrement())
-  userId                      Int
+  userId                      String
   auctionId                   Int
   createdAt                   DateTime            @default(now())
   status                      JoinedAuctionStatus @default(IN_PROGRESS)
@@ -475,7 +475,7 @@ model Admin {
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
-  userId    Int?
+  userId    String?
   adminId   Int?
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: Cascade)
@@ -485,8 +485,8 @@ model RefreshToken {
 
 model Wallet {
   id                   Int                   @id @default(autoincrement())
-  userId               Int
-  auctionId            Int?
+  userId      String
+  auctionId   Int?
   purchaseId           Int?
   amount               Decimal
   date                 DateTime              @default(now())
@@ -502,7 +502,7 @@ model Wallet {
 
 model AlletreWallet {
   id                   Int                   @id @default(autoincrement())
-  userId               Int
+  userId               String
   auctionId            Int?
   purchaseId           Int?
   amount               Decimal
@@ -519,8 +519,8 @@ model AlletreWallet {
 
 model Profit {
   id          Int       @id @default(autoincrement())
-  userId      Int
-  auctionId   Int?
+  userId               String
+  auctionId            Int?
   purchaseId  Int?
   amount      Decimal
   createdAt   DateTime  @default(now())
@@ -532,7 +532,7 @@ model Profit {
 
 model AuctionComplaints {
   id            Int                 @id @default(autoincrement())
-  userId        Int
+  userId        String
   auctionId     Int
   date          DateTime            @default(now())
   message       String
@@ -554,7 +554,7 @@ model ComplaintImages {
 
 model BugReport {
   id              Int                @id @default(autoincrement())
-  userId          Int?
+  userId          String?
   email           String?
   description     String
   status          ProblemStatus      @default(PENDING)
@@ -579,7 +579,7 @@ model BugReportImages {
 model BugReportMessage {
   id          Int       @id @default(autoincrement())
   bugReportId Int
-  userId      Int?
+  userId      String?
   adminId     Int?
   message     String
   createdAt   DateTime  @default(now())
@@ -590,7 +590,7 @@ model BugReportMessage {
 
 model Notification {
   id           Int      @id @default(autoincrement())
-  userId       Int
+  userId       String
   message      String
   createdAt    DateTime @default(now())
   auctionId    Int?
@@ -623,8 +623,8 @@ model AppVersion {
 model Conversation {
   id        Int           @id @default(autoincrement())
   productId Int?
-  buyerId   Int
-  sellerId  Int
+  buyerId   String
+  sellerId  String
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
@@ -638,7 +638,7 @@ model Conversation {
 model ChatMessage {
   id             Int             @id @default(autoincrement())
   conversationId Int
-  senderId       Int
+  senderId       String
   content        String
   isRead         Boolean         @default(false)
   createdAt      DateTime        @default(now())
@@ -655,7 +655,7 @@ model Comment {
   id        Int           @id @default(autoincrement())
   content   String
   productId Int
-  userId    Int
+  userId    String
   parentId  Int?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -669,7 +669,7 @@ model Comment {
 model CommentLike {
   id        Int      @id @default(autoincrement())
   commentId Int
-  userId    Int
+  userId    String
   createdAt DateTime @default(now())
   comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
@@ -800,7 +800,7 @@ enum ArbonStatus {
 model ProductObjection {
   id          Int                     @id @default(autoincrement())
   productId   Int
-  userId      Int
+  userId      String
   reason      String
   description String
   status      ProblemStatus           @default(PENDING)
@@ -809,7 +809,7 @@ model ProductObjection {
   replyReason      String?
   replyDescription String?
   repliedAt        DateTime?
-  repliedById      Int?
+  repliedById      String?
   finalDecision    String?
   finalDecisionAt  DateTime?
   product          Product                 @relation(fields: [productId], references: [id])

@@ -30,5 +30,5 @@ export class GetAuctionsByOtherUserDTO {
 
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  userId: number;
+  userId: string;
 }

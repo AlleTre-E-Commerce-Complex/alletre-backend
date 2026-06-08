@@ -9,7 +9,7 @@ import { CreateWalletDtoFromAdminSide } from './dto/createWalletDtoFromAdminside
 export class WalletService {
   constructor(private prismaSevice: PrismaService) {}
   async create(
-    userId: number,
+    userId: string,
     createWalletData: CreateWalletDto,
     prismaClient?: Prisma.TransactionClient,
   ) {
@@ -133,7 +133,7 @@ export class WalletService {
 
   //add to alletre wallet(Note : here we add user id to understand from whose mone came to wallet)
   async addToAlletreWallet(
-    userId: number,
+    userId: string,
     createWalletData: CreateWalletDto,
     prismaClient?: Prisma.TransactionClient,
   ) {
@@ -167,7 +167,7 @@ export class WalletService {
     return result;
   }
 
-  async addToAlletreWalletByAdmin(userId: number, createWalletData: any, prismaClient?: Prisma.TransactionClient) {
+  async addToAlletreWalletByAdmin(userId: string, createWalletData: any, prismaClient?: Prisma.TransactionClient) {
     let result: any;
     try {
       console.log('wallet.service is called admin', createWalletData);
@@ -243,7 +243,7 @@ export class WalletService {
     return result;
   }
 
-  async findAll(userId: number) {
+  async findAll(userId: string) {
     const walletData = await this.prismaSevice.wallet.findMany({
       where: { userId },
       include: {
@@ -315,7 +315,7 @@ export class WalletService {
   }
 
   async findLastTransaction(
-    userId: number,
+    userId: string,
     prismaClient?: Prisma.TransactionClient,
   ) {
     try {
@@ -404,7 +404,7 @@ export class WalletService {
   }
 
   /*
-  async applyWelcomeReward(userId: number) {
+  async applyWelcomeReward(userId: string) {
     try {
       return await this.prismaSevice.$transaction(async (prisma) => {
         // Double check within transaction to prevent race conditions

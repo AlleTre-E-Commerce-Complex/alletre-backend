@@ -279,6 +279,19 @@ export class UserService {
     });
   }
 
+  async findUserByUaePassUuid(uaePassUuid: string) {
+    return await this.prismaService.user.findFirst({
+      where: { uaePassUuid },
+    });
+  }
+
+  async linkUaePassToUser(userId: string, uaePassUuid: string) {
+    return await this.prismaService.user.update({
+      where: { id: userId },
+      data: { uaePassUuid },
+    });
+  }
+
   async checkEmailVerification(email: string) {
     const user = await this.prismaService.user.findFirst({
       where: { email: email },
@@ -312,7 +325,7 @@ export class UserService {
       });
   }
 
-  async findUserProfileByIdOr404(id: number) {
+  async findUserProfileByIdOr404(id: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id: id },
     });
@@ -350,7 +363,7 @@ export class UserService {
     };
   }
 
-  async findUserByIdOr404(id: number) {
+  async findUserByIdOr404(id: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id: id },
     });
@@ -375,7 +388,7 @@ export class UserService {
       return { status: 'FAILED' };
     }
   }
-  async updateUserIpAddress(userId: number, ipAddress: string) {
+  async updateUserIpAddress(userId: string, ipAddress: string) {
     await this.prismaService.user.update({
       where: { id: userId },
       data: { ipAddress },
@@ -397,7 +410,7 @@ export class UserService {
     }
   }
 
-  async addNewLocation(userId: number, locationDTO: LocationDTO) {
+  async addNewLocation(userId: string, locationDTO: LocationDTO) {
     const {
       address,
       addressLabel,
@@ -465,7 +478,7 @@ export class UserService {
     }
   }
 
-  async getAllUserLocations(userId: number) {
+  async getAllUserLocations(userId: string) {
     return await this.prismaService.location.findMany({
       where: { userId },
       include: { country: true, city: true },
@@ -473,7 +486,7 @@ export class UserService {
   }
 
   async updateUserLocation(
-    userId: number,
+    userId: string,
     locationId: number,
     locationDTO: LocationDTO,
   ) {
@@ -500,7 +513,7 @@ export class UserService {
   }
 
   async updatePersonalInfo(
-    userId: number,
+    userId: string,
     updatePersonalInfoDTO: UpdatePersonalInfoDTO,
     image?: Express.Multer.File,
   ) {
@@ -528,7 +541,7 @@ export class UserService {
 
     // Update profile
     const updatedUser = await this.prismaService.user.update({
-      where: { id: Number(userId) },
+      where: { id: userId },
       data: {
         ...(uploadedImage ? { imageLink: uploadedImage.fileLink } : {}),
         ...(uploadedImage ? { imagePath: uploadedImage.filePath } : {}),
@@ -540,7 +553,7 @@ export class UserService {
     return this.exclude(updatedUser, ['password']);
   }
 
-  async changePassword(userId: number, changePasswordDTO: ChangePasswordDTO) {
+  async changePassword(userId: string, changePasswordDTO: ChangePasswordDTO) {
     const { newPassword, oldPassword } = changePasswordDTO;
     const user = await this.findUserByIdOr404(userId);
 
@@ -565,7 +578,7 @@ export class UserService {
     );
 
     const updatedUser = await this.prismaService.user.update({
-      where: { id: Number(userId) },
+      where: { id: userId },
       data: {
         password: hashedPassword,
       },
@@ -574,7 +587,7 @@ export class UserService {
     return this.exclude(updatedUser, ['password']);
   }
 
-  async setLocationAsMainLocation(userId: number, locationId: number) {
+  async setLocationAsMainLocation(userId: string, locationId: number) {
     // Check location authorization
     await this._isMyLocation(userId, locationId);
 
@@ -605,7 +618,7 @@ export class UserService {
     }
   }
 
-  async deleteLocationById(userId: number, locationId: number) {
+  async deleteLocationById(userId: string, locationId: number) {
     await this._isMyLocation(userId, locationId);
     await this._isLocationRelatedToAuction(locationId);
     await this._isMainLocation(locationId);
@@ -629,7 +642,7 @@ export class UserService {
     });
   }
 
-  private async _isMyLocation(userId: number, locationId: number) {
+  private async _isMyLocation(userId: string, locationId: number) {
     const location = await this.prismaService.location.findUnique({
       where: { id: Number(locationId) },
     });
@@ -639,7 +652,7 @@ export class UserService {
         en: 'Location Is NotFound',
       });
 
-    if (location.userId !== Number(userId))
+    if (location.userId !== userId)
       throw new MethodNotAllowedResponse({
         ar: 'هذا العنوان غير مصرح لك',
         en: 'You Are Not Authorized Access To Location',
@@ -880,7 +893,7 @@ export class UserService {
       });
     }
   }
-  async updateBlockStatus(userId: number, currentStatus: boolean) {
+  async updateBlockStatus(userId: string, currentStatus: boolean) {
     try {
       const user = await this.prismaService.user.update({
         where: {

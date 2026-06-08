@@ -160,7 +160,7 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.updatePersonalInfo(
-        Number(account.id),
+        account.id,
         updatePersonalInfoDTO,
         image,
       ),
@@ -175,7 +175,7 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.changePassword(
-        Number(account.id),
+        account.id,
         changePasswordDTO,
       ),
     };
@@ -190,7 +190,7 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.updateUserLocation(
-        Number(account.id),
+        account.id,
         locationId,
         locationDTO,
       ),
@@ -206,7 +206,7 @@ export class UserController {
     return {
       success: true,
       data: await this.userService.deleteLocationById(
-        Number(account.id),
+        account.id,
         locationId,
       ),
     };
@@ -219,7 +219,7 @@ export class UserController {
     @Param('locationId', ParseIntPipe) locationId: number,
   ) {
     await this.userService.setLocationAsMainLocation(
-      Number(account.id),
+      account.id,
       locationId,
     );
     return {
@@ -245,7 +245,7 @@ export class UserController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.Admin)
   async getAllAuctionsByAdmin(
-    @Query('userId') userId: number,
+    @Query('userId') userId: string,
     @Query('currentStatus') currentStatus: boolean,
   ) {
     const data = await this.userService.updateBlockStatus(
@@ -262,7 +262,7 @@ export class UserController {
   @Get('/updateUserBlockStatus')
   @UseGuards(AuthGuard)
   async getBlockStatus(@Account() account: any) {
-    const user = await this.userService.findUserByIdOr404(Number(account.id));
+    const user = await this.userService.findUserByIdOr404(account.id);
     return {
       success: true,
       data: { isBlocked: user.isBlocked },
@@ -277,7 +277,7 @@ export class UserController {
     @Query('currentStatus') currentStatus: boolean,
   ) {
     const data = await this.userService.updateBlockStatus(
-      Number(account.id),
+      account.id,
       currentStatus,
     );
 

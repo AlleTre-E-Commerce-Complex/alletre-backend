@@ -75,7 +75,7 @@ export class BidsWebSocketGateway
   /**
    * notify winner user
    */
-  notifyWinner(socketId: string, userId: number) {
+  notifyWinner(socketId: string, userId: string) {
     this.server.to(socketId).emit('auction:winner', { userId });
   }
 }

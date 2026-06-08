@@ -23,7 +23,7 @@ async function sendNotifications(
     // 1. Save notifications to database in bulk
     const notifications = await prismaService.notification.createMany({
       data: users.map((usersId) => ({
-        userId: Number(usersId),
+        userId: usersId,
         message,
         imageLink,
         productTitle,
@@ -35,7 +35,7 @@ async function sendNotifications(
     const userTokens = await prismaService.pushSubscription.findMany({
       where: {
         userId: {
-          in: users.map(Number),
+          in: users,
         },
         fcmToken: {
           not: null,

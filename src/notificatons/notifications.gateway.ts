@@ -66,7 +66,7 @@ export class NotificationGateway
     console.log(`Client ${client.id} left room: ${room}`);
   }
 
-  sendBugReportMessage(reportId: number, message: any, userId?: number) {
+  sendBugReportMessage(reportId: number, message: any, userId?: string) {
     this.server.to(`bug_report:${reportId}`).emit('new_bug_report_message', {
       reportId,
       message,

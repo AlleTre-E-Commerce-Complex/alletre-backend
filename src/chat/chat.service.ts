@@ -14,7 +14,7 @@ export class ChatService {
     private readonly chatGateway: ChatGateway,
   ) {}
 
-  async getConversations(userId: number) {
+  async getConversations(userId: string) {
     const userSelect = {
       id: true,
       userName: true,
@@ -47,7 +47,7 @@ export class ChatService {
     });
   }
 
-  async getMessages(conversationId: number, userId: number) {
+  async getMessages(conversationId: number, userId: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
     });
@@ -79,7 +79,7 @@ export class ChatService {
   }
 
   async sendMessage(
-    userId: number,
+    userId: string,
     conversationId: number,
     content: string,
     type: ChatMessageType = ChatMessageType.TEXT,
@@ -140,11 +140,11 @@ export class ChatService {
   }
 
   async getOrCreateConversation(
-    buyerId: number,
-    sellerId: number,
+    buyerId: string,
+    sellerId: string,
     productId?: number,
   ) {
-    if (Number(buyerId) === Number(sellerId)) {
+    if (buyerId === sellerId) {
       throw new BadRequestException(
         'You cannot start a conversation with yourself',
       );
@@ -214,7 +214,7 @@ export class ChatService {
     }
   }
 
-  async markAsRead(conversationId: number, userId: number) {
+  async markAsRead(conversationId: number, userId: string) {
     // Mark all messages from the other user as read
     const updated = await this.prisma.chatMessage.updateMany({
       where: {
