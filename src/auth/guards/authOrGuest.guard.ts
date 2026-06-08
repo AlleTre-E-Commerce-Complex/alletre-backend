@@ -55,7 +55,7 @@ export class AuthOrGuestGuard implements CanActivate {
       // Only check user status for non-admin users
       if (!decoded.roles.includes(Role.Admin)) {
         const user = await this.userService.findUserByIdOr404(
-          Number(decoded.id),
+          decoded.id,
         );
 
         if (!user) {

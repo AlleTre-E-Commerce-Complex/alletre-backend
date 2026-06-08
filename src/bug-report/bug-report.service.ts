@@ -19,7 +19,7 @@ export class BugReportService {
   ) {}
 
   async createBugReport(
-    userId: number | undefined,
+    userId: string | undefined,
     createBugReportDto: CreateBugReportDTO,
     files: Express.Multer.File[],
   ) {
@@ -77,7 +77,7 @@ export class BugReportService {
     });
   }
 
-  async getUserBugReports(userId: number) {
+  async getUserBugReports(userId: string) {
     return this.prismaService.bugReport.findMany({
       where: { userId },
       include: {
@@ -87,7 +87,7 @@ export class BugReportService {
     });
   }
 
-  async getBugReportById(id: number, userId?: number, isAdmin = false) {
+  async getBugReportById(id: number, userId?: string, isAdmin = false) {
     const bugReport = await this.prismaService.bugReport.findUnique({
       where: { id },
       include: {
@@ -148,7 +148,7 @@ export class BugReportService {
   async addBugReportMessage(
     reportId: number,
     content: string,
-    userId?: number,
+    userId?: string,
     adminId?: number,
   ) {
     const bugReport = await this.prismaService.bugReport.findUnique({
@@ -214,7 +214,7 @@ export class BugReportService {
           });
 
           await this.notificationsService.sendNotifications(
-            [bugReport.userId.toString()],
+            [bugReport.userId],
             `Admin replied to your bug report: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
             firstImage?.imageLink || null,
             'Bug Report Update',

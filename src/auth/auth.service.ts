@@ -121,7 +121,7 @@ export class AuthService {
     }
   }
 
-  private async clearUserSessions(userId: number) {
+  private async clearUserSessions(userId: string) {
     try {
       await (this.prismaService as any).refreshToken.deleteMany({
         where: { userId },
@@ -131,7 +131,7 @@ export class AuthService {
     }
   }
 
-  private async manageUserSession(userId: number, refreshToken: string) {
+  private async manageUserSession(userId: string, refreshToken: string) {
     try {
       // Enforce session limit
       const sessionCount = await (this.prismaService as any).refreshToken.count({
@@ -641,7 +641,7 @@ export class AuthService {
       });
 
       // 6. Save new session to DB
-      await this.manageUserSession(user.id, refreshToken);
+      await this.manageUserSession(user.id as string, refreshToken);
 
       return {
         accessToken,
@@ -808,7 +808,7 @@ export class AuthService {
   }
 
   generateTokens(payload: {
-    id: number;
+    id: string | number;
     email: string;
     roles: string[];
     phone?: string;
@@ -875,27 +875,27 @@ export class AuthService {
     }
   }
 
-  async getUserByRole(id: number, role: string) {
-    if (role == Role.User) return await this.userService.findUserByIdOr404(id);
+  async getUserByRole(id: string | number, role: string) {
+    if (role == Role.User) return await this.userService.findUserByIdOr404(id as string);
     if (role == Role.Admin)
-      return await this.adminService.getAdminByIdOr404(id);
+      return await this.adminService.getAdminByIdOr404(id as number);
   }
 
   async getAuthorizationUrl(): Promise<string> {
-    const scope = 'urn:uae:digitalid:profile';
-    const state = Math.random().toString(36).substring(7);
+    const scope = process.env.UAE_PASS_SCOPE || 'urn:uae:digitalid:profile';
+    const state = Math.random().toString(36).substring(2, 15);
     console.log('state', state);
     return (
-      `${process.env.UAE_PASS_SANDBOX_URL}/authorize?` +
+      `${process.env.UAE_PASS_SANDBOX_URL}/idshub/authorize?` +
       `client_id=${process.env.UAE_PASS_CLIENT_ID}&` +
       `response_type=code&` +
-      `scope=${scope}&` +
+      `scope=${encodeURIComponent(scope)}&` +
       `state=${state}&` +
-      `redirect_uri=${process.env.UAE_PASS_REDIRECT_URI}`
+      `redirect_uri=${encodeURIComponent(process.env.UAE_PASS_REDIRECT_URI)}`
     );
   }
 
-  async handleCallback(code: string): Promise<any> {
+  async handleCallback(code: string, userIp: string): Promise<any> {
     try {
       // Get access token
       const tokenResponse = await this.getAccessToken(code);
@@ -904,18 +904,20 @@ export class AuthService {
       // Get user profile
       const userProfile = await this.getUserProfile(accessToken);
       console.log('userProfile', userProfile);
-      // Create or update user
-      //   const user = await this.upsertUser(userProfile);
 
-      // Generate JWT token
-      //   const tokens = await this.authService.generateTokens(user);
+      if (!userProfile || !userProfile.uuid) {
+        throw new HttpException(
+          'Invalid UAE Pass profile',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
 
-      return {
-        // user,
-        // ...tokens,
-        userProfile,
-      };
+      // Create or update user via UAE Pass
+      const result = await this.uaePassAuth(userProfile, userIp);
+      return result;
     } catch (error) {
+      console.error('UAE Pass authentication error:', error);
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         'UAE Pass authentication failed',
         HttpStatus.UNAUTHORIZED,
@@ -923,8 +925,77 @@ export class AuthService {
     }
   }
 
+  async uaePassAuth(userProfile: any, userIp: string) {
+    const { uuid, email, fullname, firstname, lastname, mobile } = userProfile;
+    const userName = fullname || `${firstname || ''} ${lastname || ''}`.trim() || 'UAE Pass User';
+    const phone = mobile || null;
+    const userEmail = email || null;
+
+    let user: any;
+    let addedBonus: any;
+    let isNewUser = false;
+
+    // Try to find user by UAE Pass UUID first
+    user = await this.userService.findUserByUaePassUuid(uuid);
+
+    // If not found by UUID, try to find by email and link accounts
+    if (!user && userEmail) {
+      user = await this.userService.findUserByEmail(userEmail);
+      if (user) {
+        // Link existing account to UAE Pass
+        await this.userService.linkUaePassToUser(user.id, uuid);
+        user = await this.userService.findUserByUaePassUuid(uuid);
+      }
+    }
+
+    if (!user) {
+      isNewUser = true;
+      const oAuthData = await this.userService.oAuth(
+        userEmail,
+        phone,
+        userName,
+        'UAE_PASS' as any,
+      );
+      user = oAuthData.user;
+      addedBonus = oAuthData.addedBonus;
+
+      // Link UAE Pass UUID
+      await this.userService.linkUaePassToUser(user.id, uuid);
+      user = await this.userService.findUserByUaePassUuid(uuid);
+    }
+
+    // Check user is blocked or not
+    if (user?.isBlocked) throw new UnauthorizedException('User is blocked');
+
+    // Clear old sessions and update IP
+    await this.clearUserSessions(user.id);
+    if (user) await this.userService.updateUserIpAddress(user.id, userIp);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens({
+      id: user.id,
+      email: user.email,
+      roles: [Role.User],
+      phone: user.phone,
+      userName: user.userName,
+    });
+
+    // Manage new session
+    await this.manageUserSession(user.id, refreshToken);
+
+    const userWithoutPassword = this.userService.exclude(user, ['password']);
+    return {
+      ...userWithoutPassword,
+      imageLink: undefined,
+      imagePath: undefined,
+      accessToken,
+      refreshToken,
+      isAddedBonus: isNewUser || (addedBonus ? true : false),
+    };
+  }
+
   private async getAccessToken(code: string): Promise<any> {
-    const tokenUrl = `${process.env.UAE_PASS_SANDBOX_URL}/token`;
+    const tokenUrl = `${process.env.UAE_PASS_SANDBOX_URL}/idshub/token`;
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
@@ -943,7 +1014,7 @@ export class AuthService {
   }
 
   private async getUserProfile(accessToken: string): Promise<any> {
-    const userInfoUrl = `${process.env.UAE_PASS_SANDBOX_URL}/userinfo`;
+    const userInfoUrl = `${process.env.UAE_PASS_SANDBOX_URL}/idshub/userinfo`;
     const response = await axios.get(userInfoUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,

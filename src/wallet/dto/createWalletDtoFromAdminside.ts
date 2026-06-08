@@ -42,5 +42,5 @@ export class CreateWalletDtoFromAdminSide {
   @IsOptional()
   @Transform(({ value }): number => parseInt(value))
   @IsNumber()
-  userId?: number;
+  userId?: string;
 }

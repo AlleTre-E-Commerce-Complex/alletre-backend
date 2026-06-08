@@ -28,15 +28,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
-      const userIdNum = parseInt(String(userId), 10);
-      if (isNaN(userIdNum)) return;
+      const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+      if (!userIdStr) return;
       
-      const userIdStr = String(userIdNum);
       client.join(`user:${userIdStr}`);
       
       // Update Prisma with the latest socket ID for this user
       await this.prisma.user.update({
-        where: { id: userIdNum },
+        where: { id: userIdStr },
         data: { socketId: client.id }
       }).catch(err => console.error(`[ChatSocket] DB Update Error: ${err.message}`));
 
@@ -59,20 +58,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId;
     if (userId) {
-      const userIdNum = parseInt(String(userId), 10);
-      if (isNaN(userIdNum)) return;
+      const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+      if (!userIdStr) return;
       
-      const userIdStr = String(userIdNum);
       const currentCount = (this.connectedUsers.get(userIdStr) || 1) - 1;
       
       if (currentCount <= 0) {
         this.connectedUsers.delete(userIdStr);
         
         // Only clear the DB socketId if it matches THIS disconnecting client
-        const user = await this.prisma.user.findUnique({ where: { id: userIdNum } });
+        const user = await this.prisma.user.findUnique({ where: { id: userIdStr } });
         if (user && user.socketId === client.id) {
           await this.prisma.user.update({
-            where: { id: userIdNum },
+            where: { id: userIdStr },
             data: { socketId: null }
           }).catch(() => {});
           console.log(`[ChatSocket] User disconnected: ${userIdStr} (Now Offline globally)`);
@@ -111,7 +109,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleTyping(
     @ConnectedSocket() client: Socket,
     @MessageBody()
-    data: { conversationId: number; userId: number; isTyping: boolean },
+    data: { conversationId: number; userId: string; isTyping: boolean },
   ) {
     const conversationIdStr = String(data.conversationId);
     client.to(`conversation:${conversationIdStr}`).emit('typing', data);
@@ -120,15 +118,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('mark_as_read')
   async handleMarkAsRead(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: number; userId: number },
+    @MessageBody() data: { conversationId: number; userId: string },
   ) {
     const conversationIdNum = Number(data.conversationId);
-    const userIdNum = Number(data.userId);
+    const userIdStr = String(data.userId);
 
     const updated = await this.prisma.chatMessage.updateMany({
       where: {
         conversationId: conversationIdNum,
-        senderId: { not: userIdNum },
+        senderId: { not: userIdStr },
         isRead: false,
       },
       data: { isRead: true },
@@ -140,7 +138,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (conversation) {
       const recipientId =
-        conversation.buyerId === userIdNum
+        conversation.buyerId === userIdStr
           ? conversation.sellerId
           : conversation.buyerId;
 
@@ -149,14 +147,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(`user:${recipientIdStr}`).emit('messages_read', {
         conversationId: conversationIdNum,
-        readerId: userIdNum,
+        readerId: userIdStr,
       });
 
       this.server
         .to(`conversation:${conversationIdStr}`)
         .emit('messages_read', {
           conversationId: conversationIdNum,
-          readerId: userIdNum,
+          readerId: userIdStr,
         });
     }
 

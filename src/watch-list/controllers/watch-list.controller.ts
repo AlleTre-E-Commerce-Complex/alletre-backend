@@ -25,7 +25,7 @@ export class WatchListController {
     @Body('productId') productId?: number,
   ) {
     await this.watchListService.addToWatchList(
-      Number(account.id),
+      account.id,
       auctionId ? Number(auctionId) : undefined,
       productId ? Number(productId) : undefined,
     );
@@ -43,7 +43,7 @@ export class WatchListController {
     @Query('productId') productId?: number,
   ) {
     await this.watchListService.removeFromWatchList(
-      Number(account.id),
+      account.id,
       auctionId ? Number(auctionId) : undefined,
       productId ? Number(productId) : undefined,
     );
@@ -58,7 +58,7 @@ export class WatchListController {
   async getAllSavedWatchList(@Account() account: any) {
     return {
       success: true,
-      data: await this.watchListService.findAllWatchList(Number(account.id)),
+      data: await this.watchListService.findAllWatchList(account.id),
     };
   }
 }

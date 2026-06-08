@@ -20,5 +20,5 @@ export class GetListedProductByOhterUserDTO {
 
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  userId: number;
+  userId: string;
 }

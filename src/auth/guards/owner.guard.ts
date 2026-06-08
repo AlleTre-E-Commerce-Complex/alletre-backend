@@ -22,7 +22,7 @@ export class OwnerGuard implements CanActivate {
       item = await this.findAuctionByIdOr404(Number(auctionId));
     }
 
-    if (item.userId !== Number(userId))
+    if (item.userId !== userId)
       throw new ForbiddenResponse({
         ar: 'ليس لديك صلاحيات لهذا الاعلان',
         en: 'You have no authorization for accessing this resource',

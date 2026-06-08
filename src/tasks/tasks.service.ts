@@ -157,7 +157,7 @@ export class TasksService {
         );
         await this.emailBatchService.sendBulkEmails(
           updatedAuction,
-          updatedAuction.userId.toString(),
+          updatedAuction.userId,
         );
         const usersId = await this.notificationService.getAllRegisteredUsers(
           updatedAuction.userId,

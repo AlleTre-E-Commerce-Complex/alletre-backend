@@ -11,9 +11,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class AuctionsHelper {
   constructor(private prismaService: PrismaService) {}
 
-  async _userHasCompleteProfile(userId: number) {
+  async _userHasCompleteProfile(userId: string) {
     const user = await this.prismaService.user.findUnique({
-      where: { id: Number(userId) },
+      where: { id: userId },
     });
 
     if (!user.hasCompletedProfile)
@@ -235,10 +235,10 @@ export class AuctionsHelper {
     return productFilterOrSearch;
   }
 
-  async _injectIsSavedKeyToAuctionsList(userId: number, auctions: any[]) {
+  async _injectIsSavedKeyToAuctionsList(userId: string, auctions: any[]) {
     // Get saved items for this user
     const watchList = await this.prismaService.watchList.findMany({
-      where: { userId: Number(userId) },
+      where: { userId: userId },
     });
 
     const savedAuctionsIds = watchList
@@ -253,12 +253,12 @@ export class AuctionsHelper {
   }
 
   async _injectIsSavedKeyToListedProductsList(
-    userId: number,
+    userId: string,
     listedProducts: any[],
   ) {
     // Get saved items for this user
     const watchList = await this.prismaService.watchList.findMany({
-      where: { userId: Number(userId) },
+      where: { userId: userId },
     });
 
     const savedProductsIds = watchList
@@ -272,24 +272,24 @@ export class AuctionsHelper {
     });
   }
 
-  async _injectIsSavedKeyToAuction(userId: number, auction: any) {
+  async _injectIsSavedKeyToAuction(userId: string, auction: any) {
     const watchList = await this.prismaService.watchList.findFirst({
-      where: { userId: Number(userId), auctionId: auction.id },
+      where: { userId: userId, auctionId: auction.id },
     });
     auction['isSaved'] = !!watchList;
     return auction;
   }
 
-  async _injectIsSavedKeyToListedProduct(userId: number, listedProduct: any) {
+  async _injectIsSavedKeyToListedProduct(userId: string, listedProduct: any) {
     const watchList = await this.prismaService.watchList.findFirst({
-      where: { userId: Number(userId), productId: listedProduct.productId },
+      where: { userId: userId, productId: listedProduct.productId },
     });
     listedProduct['isSaved'] = !!watchList;
     return listedProduct;
   }
-  _injectIsMyAuctionKeyToAuctionsList(userId: number, auctions: Auction[]) {
+  _injectIsMyAuctionKeyToAuctionsList(userId: string, auctions: Auction[]) {
     const formatedAuction = auctions.map((auction) => {
-      if (Number(auction.userId) === Number(userId)) {
+      if (auction.userId === userId) {
         auction['isMyAuction'] = true;
       } else {
         auction['isMyAuction'] = false;
@@ -376,9 +376,9 @@ export class AuctionsHelper {
     return auction?.product?.category;
   }
 
-  async _isAuctionOwner(userId: number, auctionId: number) {
+  async _isAuctionOwner(userId: string, auctionId: number) {
     const auction = await this.prismaService.auction.findFirst({
-      where: { id: Number(auctionId), userId: Number(userId) },
+      where: { id: Number(auctionId), userId },
     });
 
     if (!auction)

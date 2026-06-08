@@ -10,7 +10,7 @@ export class CommentsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async getCommentsByProduct(productId: number, userId?: number) {
+  async getCommentsByProduct(productId: number, userId?: string) {
     const comments = await (this.prisma as any).comment.findMany({
       where: { productId, parentId: null }, // Only top-level comments
       include: {
@@ -25,7 +25,7 @@ export class CommentsService {
           select: { likes: true },
         },
         likes: userId ? {
-          where: { userId: Number(userId) },
+          where: { userId: userId },
           select: { id: true },
         } : undefined,
         replies: {
@@ -41,7 +41,7 @@ export class CommentsService {
               select: { likes: true },
             },
             likes: userId ? {
-              where: { userId: Number(userId) },
+              where: { userId: userId },
               select: { id: true },
             } : undefined,
           },
@@ -67,7 +67,7 @@ export class CommentsService {
     }));
   }
 
-  async addComment(userId: number, productId: number, content: string, roles: string[] = [], parentId?: number) {
+  async addComment(userId: string, productId: number, content: string, roles: string[] = [], parentId?: number) {
     // Verify product exists first
     const productData = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -89,7 +89,7 @@ export class CommentsService {
 
     const newComment = await (this.prisma as any).comment.create({
       data: {
-        userId: Number(userId),
+        userId: userId,
         productId: Number(productId),
         content,
         parentId: parentId ? Number(parentId) : null,
@@ -129,7 +129,7 @@ export class CommentsService {
           : `${replierName} replied to your comment: "${newComment.content.substring(0, 50)}${newComment.content.length > 50 ? '...' : ''}"`;
 
         await this.notificationsService.sendNotifications(
-          [parentComment.userId.toString()],
+          [parentComment.userId],
           messageEn,
           productData.images[0]?.imageLink || '',
           productData.title || '',
@@ -143,7 +143,7 @@ export class CommentsService {
     }
   }
 
-  async updateComment(userId: number, commentId: number, content: string) {
+  async updateComment(userId: string, commentId: number, content: string) {
     const comment = await (this.prisma as any).comment.findUnique({
       where: { id: commentId },
     });
@@ -171,7 +171,7 @@ export class CommentsService {
     });
   }
 
-  async deleteComment(userId: number, commentId: number) {
+  async deleteComment(userId: string, commentId: number) {
     const comment = await (this.prisma as any).comment.findUnique({
       where: { id: commentId },
     });
@@ -218,7 +218,7 @@ export class CommentsService {
     });
   }
 
-  async toggleLike(userId: number, commentId: number) {
+  async toggleLike(userId: string, commentId: number) {
     const existingLike = await (this.prisma as any).commentLike.findUnique({
       where: {
         commentId_userId: {

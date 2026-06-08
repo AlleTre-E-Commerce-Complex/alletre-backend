@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class WatchListService {
   constructor(private prismaService: PrismaService) {}
 
-  async addToWatchList(userId: number, auctionId?: number, productId?: number) {
+  async addToWatchList(userId: string, auctionId?: number, productId?: number) {
     // Check if already added
     const isAlreadySaved = await this._isAlreadySavedOrNull(
       userId,
@@ -38,7 +38,7 @@ export class WatchListService {
   }
 
   async removeFromWatchList(
-    userId: number,
+    userId: string,
     auctionId?: number,
     productId?: number,
   ) {
@@ -60,7 +60,7 @@ export class WatchListService {
     });
   }
 
-  async findAllWatchList(userId: number) {
+  async findAllWatchList(userId: string) {
     return await this.prismaService.watchList.findMany({
       where: { userId },
       include: {
@@ -132,7 +132,7 @@ export class WatchListService {
   }
 
   private async _isAlreadySavedOrNull(
-    userId: number,
+    userId: string,
     auctionId?: number,
     productId?: number,
   ) {

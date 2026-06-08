@@ -302,7 +302,7 @@ export class StripeService {
   /**
    * Check if KYC requirements for the connected account are completed.
    */
-  async checkKYCStatus(userId: number) {
+  async checkKYCStatus(userId: string) {
     try {
       console.log('checkKYCStatus test 1');
       const user = await this.fetchUserFromDatabase(userId);
@@ -356,7 +356,7 @@ export class StripeService {
   /**
    * Create an onboarding link for KYC completion.
    */
-  async sendOnboardingLink(userId: number) {
+  async sendOnboardingLink(userId: string) {
     console.log('sendOnboardingLink 1');
     const user = await this.fetchUserFromDatabase(userId);
     console.log('sendOnboardingLink 2 :', user);
@@ -381,7 +381,7 @@ export class StripeService {
   /**
    * Withdraw funds to a connected account after KYC verification check.
    */
-  async withdrawFunds(userId: number, amount: number) {
+  async withdrawFunds(userId: string, amount: number) {
     const connectedAccount = await this.getOrCreateConnectedAccount(userId);
     const kycStatus = await this.checkKYCStatus(userId);
 
@@ -409,7 +409,7 @@ export class StripeService {
   }
 
   // Helper function to retrieve or create a Stripe connected account for the user
-  private async getOrCreateConnectedAccount(userId: number) {
+  private async getOrCreateConnectedAccount(userId: string) {
     const user = await this.fetchUserFromDatabase(userId);
 
     if (user.stripeConnectedAccountId) {
@@ -430,7 +430,7 @@ export class StripeService {
     }
   }
 
-  private async fetchUserFromDatabase(userId: number) {
+  private async fetchUserFromDatabase(userId: string) {
     return await this.prismaService.user.findUnique({
       where: {
         id: userId,
@@ -439,7 +439,7 @@ export class StripeService {
   }
 
   private async saveConnectedAccountIdToDatabase(
-    userId: number,
+    userId: string,
     stripeConnectedAccountId: string,
   ) {
     await this.prismaService.user.update({

@@ -72,7 +72,7 @@ export class WalletController {
   @Get('get_balance')
   @UseGuards(AuthGuard)
   async findOne(@Account() account: any) {
-    return await this.walletService.findLastTransaction(+account.id);
+    return await this.walletService.findLastTransaction(account.id);
   }
 
   @Get('get-admin-wallet-details')

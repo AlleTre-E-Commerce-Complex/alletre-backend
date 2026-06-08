@@ -4040,7 +4040,7 @@ export class PaymentsService {
   }
 
   async getAuctionPaymentTransaction(
-    userId: number,
+    userId: string,
     auctionId: number,
     type: PaymentType,
   ) {

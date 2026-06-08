@@ -444,7 +444,7 @@ export class WhatsAppService {
         },
       });
       const currentUserData = await this.prismaService.user.findFirst({
-        where: { id: Number(currentUserId) },
+        where: { id: currentUserId },
       });
       try {
         const templateName = 'send_inpection_details';

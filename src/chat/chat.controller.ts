@@ -98,10 +98,10 @@ export class ChatController {
     });
 
     try {
-      const sellerId = Number(body.sellerId);
+      const sellerId = String(body.sellerId);
       const productId = body.productId ? Number(body.productId) : undefined;
 
-      if (isNaN(sellerId)) {
+      if (!sellerId) {
         throw new Error(`Invalid sellerId: ${body.sellerId}`);
       }
 

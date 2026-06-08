@@ -36,7 +36,7 @@ export class BugReportController {
     @Body() createBugReportDto: CreateBugReportDTO,
     @UploadedFiles() images: Array<Express.Multer.File>,
   ) {
-    const userId = account?.id ? Number(account.id) : null;
+    const userId = account?.id ? account.id : null;
     const bugReport = await this.bugReportService.createBugReport(
       userId,
       createBugReportDto,
@@ -80,7 +80,7 @@ export class BugReportController {
   @UseGuards(AuthGuard)
   async getMyBugReports(@Account() account: any) {
     const bugReports = await this.bugReportService.getUserBugReports(
-      Number(account.id),
+      account.id,
     );
     return {
       success: true,
@@ -97,7 +97,7 @@ export class BugReportController {
     const isAdmin = account.roles?.includes(Role.Admin);
     const bugReport = await this.bugReportService.getBugReportById(
       id,
-      Number(account.id),
+      account.id,
       isAdmin,
     );
     return {
@@ -114,10 +114,10 @@ export class BugReportController {
     @Body() addMessageDto: AddBugReportMessageDTO,
   ) {
     const userId = account.roles?.includes(Role.User)
-      ? Number(account.id)
+      ? account.id
       : undefined;
     const adminId = account.roles?.includes(Role.Admin)
-      ? Number(account.id)
+      ? account.id
       : undefined;
 
     const message = await this.bugReportService.addBugReportMessage(

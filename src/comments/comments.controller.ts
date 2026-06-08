@@ -27,7 +27,7 @@ export class CommentsController {
       console.log('--- ADMIN REQUEST: Fetching comments for product:', productId);
       return {
         success: true,
-        data: await this.commentsService.getCommentsByProduct(+productId, userId ? +userId : undefined),
+        data: await this.commentsService.getCommentsByProduct(+productId, userId || undefined),
       };
     } catch (error) {
       console.error('getComments error:', error);
@@ -45,7 +45,7 @@ export class CommentsController {
       return {
         success: true,
         data: await this.commentsService.addComment(
-          Number(account.id), 
+          account.id, 
           Number(body.productId), 
           body.content,
           account.roles,
@@ -68,7 +68,7 @@ export class CommentsController {
     try {
       return {
         success: true,
-        data: await this.commentsService.updateComment(Number(account.id), +id, body.content),
+        data: await this.commentsService.updateComment(account.id, +id, body.content),
       };
     } catch (error) {
       console.error('updateComment error:', error);
@@ -82,7 +82,7 @@ export class CommentsController {
     try {
       return {
         success: true,
-        data: await this.commentsService.deleteComment(Number(account.id), +id),
+        data: await this.commentsService.deleteComment(account.id, +id),
       };
     } catch (error) {
       console.error('deleteComment error:', error);
@@ -96,7 +96,7 @@ export class CommentsController {
     try {
       return {
         success: true,
-        data: await this.commentsService.toggleLike(Number(account.id), +id),
+        data: await this.commentsService.toggleLike(account.id, +id),
       };
     } catch (error) {
       console.error('toggleLike error:', error);

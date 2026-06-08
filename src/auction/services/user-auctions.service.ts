@@ -79,7 +79,7 @@ export class UserAuctionsService {
 
   // TODO: Add price field in product table and when user select isallowedPayment set price =acceptedAmount
   async createPendingAuction(
-    userId: number,
+    userId: string,
     auctionCreationBody: AuctionCreationDTO,
     files?: Express.Multer.File[],
     isConvertProductToAuction?: boolean,
@@ -229,7 +229,7 @@ export class UserAuctionsService {
   }
 
   async updateAuctionDetails(
-    userId: number,
+    userId: string,
     auctionId: number,
     auctionUpdateBody: AuctionUpdateDTO,
     files?: Express.Multer.File[],
@@ -263,7 +263,7 @@ export class UserAuctionsService {
   }
 
   async createDraftAuction(
-    userId: number,
+    userId: string,
     productDTO: ProductDTO,
     images: Express.Multer.File[],
   ) {
@@ -692,7 +692,7 @@ export class UserAuctionsService {
       });
     }
   }
-  async updateAuctionForCancellation(auctionId: number, userId: number) {
+  async updateAuctionForCancellation(auctionId: number, userId: string) {
     try {
       const auction = await this.prismaService.auction.findUnique({
         where: { id: auctionId },
@@ -1533,7 +1533,7 @@ export class UserAuctionsService {
   async updateAuction(
     auctionId: number,
     auctionCreationDTO: AuctionCreationDTO,
-    userId: number,
+    userId: string,
     files?: Express.Multer.File[],
   ) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
@@ -1621,7 +1621,7 @@ export class UserAuctionsService {
     }
   }
 
-  async deleteDraftedAuction(userId: number, auctionId: number) {
+  async deleteDraftedAuction(userId: string, auctionId: number) {
     const auction = await this.checkAuctionExistanceAndReturn(auctionId);
 
     this.auctionStatusValidator.isActionValidForAuction(
@@ -1649,7 +1649,7 @@ export class UserAuctionsService {
     ]);
   }
 
-  async deleteListedProduct(userId: number, productId: number) {
+  async deleteListedProduct(userId: string, productId: number) {
     const listedProduct = await this.prismaService.listedProducts.findUnique({
       where: { productId: productId },
     });
@@ -1699,7 +1699,7 @@ export class UserAuctionsService {
 
   // TODO: Add status as a filter for ownes auctions
   async findUserOwnesAuctions(
-    userId: number,
+    userId: string,
     getAuctionsByOwnerDTO: GetAuctionsByOwnerDTO,
   ) {
     const { page = 1, perPage = 10, status, type } = getAuctionsByOwnerDTO;
@@ -1770,7 +1770,7 @@ export class UserAuctionsService {
     return { userAuctions, pagination };
   }
   async findOtherUserAuctions(
-    userId: number,
+    userId: string,
     GetAuctionsByOtherUserdto: GetAuctionsByOtherUserDTO,
   ) {
     console.log('getAuctionsByOwnerDTO :', GetAuctionsByOtherUserdto);
@@ -1830,7 +1830,7 @@ export class UserAuctionsService {
     return { userAuctions, pagination };
   }
 
-  async findAuctionsAnalyticsForOwner(userId: number) {
+  async findAuctionsAnalyticsForOwner(userId: string) {
     const count = await this.prismaService.auction.count({
       where: { userId, product: { isAuctionProduct: true } },
     });
@@ -1901,7 +1901,7 @@ export class UserAuctionsService {
   async findAuctionsForUser(
     roles: Role[],
     getAuctionsDTO: GetAuctionsDTO,
-    userId?: number,
+    userId?: string,
   ) {
     console.log('qqqq', getAuctionsDTO);
     const {
@@ -2086,7 +2086,7 @@ export class UserAuctionsService {
   async findLiveAuctionsForUser(
     roles: Role[],
     paginationDTO: PaginationDTO,
-    userId?: number,
+    userId?: string,
   ) {
     const { page = 1, perPage = 4 } = paginationDTO;
 
@@ -2212,7 +2212,7 @@ export class UserAuctionsService {
   async findBuyNowAuctionsForUser(
     roles: Role[],
     paginationDTO: PaginationDTO,
-    userId?: number,
+    userId?: string,
   ) {
     const { page = 1, perPage = 4 } = paginationDTO;
 
@@ -2311,7 +2311,7 @@ export class UserAuctionsService {
   async findExpiredAuctions(
     roles: Role[],
     paginationDTO: PaginationDTO,
-    userId?: number,
+    userId?: string,
   ) {
     const { page = 1, perPage = 4 } = paginationDTO;
 
@@ -2424,7 +2424,7 @@ export class UserAuctionsService {
     };
   }
 
-  async findSimilarAuctions(auctionId: number, roles: Role[], userId?: number) {
+  async findSimilarAuctions(auctionId: number, roles: Role[], userId?: string) {
     const auction = await this.checkAuctionExistanceAndReturn(
       Number(auctionId),
     );
@@ -2515,7 +2515,7 @@ export class UserAuctionsService {
       count: similarAuctions.length,
     };
   }
-  async findSimilarProducts(productId: number, userId?: number) {
+  async findSimilarProducts(productId: number, userId?: string) {
     const product = await this.prismaService.product.findUnique({
       where: { id: productId },
       select: { categoryId: true },
@@ -2578,7 +2578,7 @@ export class UserAuctionsService {
   async findUpCommingAuctionsForUser(
     roles: Role[],
     getAuctionsDTO: GetAuctionsDTO,
-    userId?: number,
+    userId?: string,
   ) {
     console.log('rrrr', getAuctionsDTO);
     const {
@@ -2752,7 +2752,7 @@ export class UserAuctionsService {
     };
   }
 
-  async findSponseredAuctions(roles: Role[], userId?: number) {
+  async findSponseredAuctions(roles: Role[], userId?: string) {
     console.log('auctions ====> account1', roles, userId);
 
     const auctions = await this.prismaService.auction.findMany({
@@ -2916,7 +2916,7 @@ export class UserAuctionsService {
   async findAuctionByIdOr404(
     auctionId: number,
     roles: Role[],
-    userId?: number,
+    userId?: string,
   ) {
     const auction = await this.prismaService.auction.findUnique({
       where: { id: auctionId },
@@ -2960,7 +2960,7 @@ export class UserAuctionsService {
     });
 
     if (roles.includes(Role.User)) {
-      if (Number(formatedAuction.userId) === Number(userId)) {
+      if (formatedAuction.userId === userId) {
         formatedAuction['isMyAuction'] = true;
       } else {
         formatedAuction['isMyAuction'] = false;
@@ -3022,7 +3022,7 @@ export class UserAuctionsService {
   async getPendingPayments(
     aucitonId: string,
     paymentType: PaymentType,
-    userId: number,
+    userId: string,
   ) {
     try {
       const data = await this.prismaService.payment.findMany({
@@ -3046,7 +3046,7 @@ export class UserAuctionsService {
     }
   }
 
-  async getAccountData(userId: number) {
+  async getAccountData(userId: string) {
     try {
       const accountData = await this.prismaService.bankAccount.findMany({
         where: { userId },
@@ -3073,10 +3073,10 @@ export class UserAuctionsService {
       };
     }
   }
-  async addBankAccount(bankAccountData: addNewBankAccountDto, userId: number) {
+  async addBankAccount(bankAccountData: addNewBankAccountDto, userId: string) {
     try {
       const accountData = await this.prismaService.bankAccount.create({
-        data: { ...bankAccountData, userId: Number(userId) },
+        data: { ...bankAccountData, userId: userId },
       });
 
       if (accountData) {
@@ -3101,7 +3101,7 @@ export class UserAuctionsService {
   async withdrawalRequest(
     amount: number,
     selectedBankAccountId: number,
-    userId: number,
+    userId: string,
   ) {
     try {
       console.log('test withdrawal request : ', selectedBankAccountId);
@@ -3133,7 +3133,7 @@ export class UserAuctionsService {
     }
   }
   async payToPublish(
-    userId: number,
+    userId: string,
     auctionId: number,
     amount?: number,
     isWalletPayment?: boolean,
@@ -3250,7 +3250,7 @@ export class UserAuctionsService {
 
   async uploadBankStatement(
     statement: Express.Multer.File,
-    userId: number,
+    userId: string,
     auctionId: number,
     amount: number,
   ) {
@@ -3668,7 +3668,7 @@ export class UserAuctionsService {
   }
 
   // async payDepositByBidder(
-  //   userId: number,
+  //   userId: string,
   //   auctionId: number,
   //   bidAmount: number,
   //   isWalletPayment?: boolean,
@@ -3806,7 +3806,7 @@ export class UserAuctionsService {
   // }
 
   async payDepositByBidder(
-    userId: number,
+    userId: string,
     auctionId: number,
     bidAmount: number,
     isWalletPayment?: boolean,
@@ -4014,7 +4014,7 @@ export class UserAuctionsService {
       where: { id: auctionId },
       data: {
         isLocked: true,
-        lockedByUserId: Number(userId),
+        lockedByUserId: userId,
         lockedAt: new Date(),
       },
     });
@@ -4023,7 +4023,7 @@ export class UserAuctionsService {
   }
 
   async submitBidForAuction(
-    userId: number,
+    userId: string,
     auctionId: number,
     bidAmount: number,
   ) {
@@ -4435,7 +4435,7 @@ export class UserAuctionsService {
   }
 
   async getBidderJoindAuctions(
-    userId: number,
+    userId: string,
     joinAuctionsDTO: GetJoinAuctionsDTO,
   ) {
     const { page = 1, perPage = 10, status } = joinAuctionsDTO;
@@ -4509,7 +4509,7 @@ export class UserAuctionsService {
     };
   }
 
-  async findJoinedAuctionsAnalytics(userId: number) {
+  async findJoinedAuctionsAnalytics(userId: string) {
     const count = await this.prismaService.joinedAuction.count({
       where: { userId },
     });
@@ -4532,7 +4532,7 @@ export class UserAuctionsService {
     };
   }
 
-  async notifyAuctionWinner(userId: number) {
+  async notifyAuctionWinner(userId: string) {
     const auctionWinner = await this.prismaService.user.findFirst({
       where: { id: userId },
     });
@@ -4544,7 +4544,7 @@ export class UserAuctionsService {
   }
 
   async payAuctionByBidder(
-    userId: number,
+    userId: string,
     auctionId: number,
     isWalletPayment?: boolean,
   ) {
@@ -4638,7 +4638,7 @@ export class UserAuctionsService {
   }
 
   async buyNowAuction(
-    userId: number,
+    userId: string,
     auctionId: number,
     isWalletPayment?: boolean,
   ) {
@@ -4707,7 +4707,7 @@ export class UserAuctionsService {
     }
   }
 
-  async getAllPurchasedAuctions(userId: number, paginationDTO: PaginationDTO) {
+  async getAllPurchasedAuctions(userId: string, paginationDTO: PaginationDTO) {
     const { page = 1, perPage = 4 } = paginationDTO;
 
     const { limit, skip } = this.paginationService.getSkipAndLimit(
@@ -4790,7 +4790,7 @@ export class UserAuctionsService {
       auctions: convertedAuctions,
     };
   }
-  async confirmDelivery(winnerId: number, auctionId: number) {
+  async confirmDelivery(winnerId: string, auctionId: number) {
     try {
       console.log('confirm delevery has called : auctionId :', auctionId);
       const auction = await this.checkAuctionExistanceAndReturn(auctionId);
@@ -5290,7 +5290,7 @@ export class UserAuctionsService {
   }
 
   async IsSendItemForDelivery(
-    accountId: number,
+    accountId: string,
     auctionId: number,
     message: string,
   ) {
@@ -5440,7 +5440,7 @@ export class UserAuctionsService {
   }
 
   async uploadAuctionComplaints(
-    userId: number,
+    userId: string,
     AuctionComplaintsData: AuctionComplaintsDTO,
     images: Express.Multer.File[],
   ) {
@@ -5504,7 +5504,7 @@ export class UserAuctionsService {
   }
 
   private async _createOnTimeDailyAuction(
-    userId: number,
+    userId: string,
     productId: number,
     auctionDto: AuctionCreationDTO,
   ) {
@@ -5568,7 +5568,7 @@ export class UserAuctionsService {
 
   private async _updateOnTimeDailyAuction(
     auctionId: number,
-    userId: number,
+    userId: string,
     productId: number,
     auctionCreationDTO: AuctionCreationDTO,
   ) {
@@ -5629,7 +5629,7 @@ export class UserAuctionsService {
     return auction;
   }
 
-  async findAuctionBidsHistoryForUser(auctionId: number, userId: number) {
+  async findAuctionBidsHistoryForUser(auctionId: number, userId: string) {
     const bidderInfo = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -5648,7 +5648,7 @@ export class UserAuctionsService {
   async listOnlyProduct(
     productData: ProductDTO,
     images: Express.Multer.File[],
-    userId: number,
+    userId: string,
     auctionId?: number,
   ) {
     try {
@@ -5823,8 +5823,8 @@ export class UserAuctionsService {
   async fetchAllListedOnlyProduct(
     roles: Role[],
     getListedProductDTO: GetListedProductDTO,
-    userId?: number, // This is the filter user ID (owner)
-    viewerUserId?: number, // This is the viewer user ID (for isSaved injection)
+    userId?: string, // This is the filter user ID (owner)
+    viewerUserId?: string, // This is the viewer user ID (for isSaved injection)
   ) {
     try {
       console.log('fetchAllListedOnlyProduct', getListedProductDTO);
@@ -5844,7 +5844,6 @@ export class UserAuctionsService {
         : {
             in: ['IN_PROGRESS', 'OUT_OF_STOCK'] as ListedProductsStatus[],
           };
-      // const { page = 1, perPage = 4, status = 'IN_PROGRESS' } = getListedProductDTO;
       const { limit, skip } = this.paginationService.getSkipAndLimit(
         Number(page),
         Number(perPage),
@@ -5971,8 +5970,8 @@ export class UserAuctionsService {
   async fetchListedProductByOthers(
     roles: Role[],
     getListedProductByOtherDTO: GetListedProductByOhterUserDTO,
-    userId?: number, // This is the filter user ID (owner)
-    viewerUserId?: number, // This is the viewer user ID (for isSaved injection)
+    userId?: string, // This is the filter user ID (owner)
+    viewerUserId?: string, // This is the viewer user ID (for isSaved injection)
   ) {
     try {
       const {
@@ -6046,7 +6045,7 @@ export class UserAuctionsService {
   async findProductByIdOr404(
     productId: number,
     roles: Role[],
-    userId?: number,
+    userId?: string,
   ) {
     try {
       console.log('product id:', productId, userId);
@@ -6122,7 +6121,7 @@ export class UserAuctionsService {
 
     return listedProduct;
   }
-  async findListedProductsAnalytics(userId: number) {
+  async findListedProductsAnalytics(userId: string) {
     try {
       const count = await this.prismaService.listedProducts.count({
         where: {
@@ -6319,7 +6318,7 @@ export class UserAuctionsService {
   }
 
   async updateListedProductDetails(
-    userId: number,
+    userId: string,
     productId: number,
     productUpdateDTO: ProductUpdateDTO,
     files: Array<Express.Multer.File>,
@@ -6553,7 +6552,7 @@ export class UserAuctionsService {
   }
 
   private async _createOnTimeHoursAuction(
-    userId: number,
+    userId: string,
     productId: number,
     auctionDto: AuctionCreationDTO,
   ) {
@@ -6619,7 +6618,7 @@ export class UserAuctionsService {
 
   private async _updateOnTimeHoursAuction(
     auctionId: number,
-    userId: number,
+    userId: string,
     productId: number,
     auctionCreationDTO: AuctionCreationDTO,
   ) {
@@ -6813,7 +6812,7 @@ export class UserAuctionsService {
   }
 
   private async _createScheduleDailyAuction(
-    userId: number,
+    userId: string,
     productId: number,
     auctionDto: AuctionCreationDTO,
   ) {
@@ -6880,7 +6879,7 @@ export class UserAuctionsService {
 
   private async _updateScheduleDailyAuction(
     auctionId: number,
-    userId: number,
+    userId: string,
     productId: number,
     auctionCreationDTO: AuctionCreationDTO,
   ) {
@@ -6945,7 +6944,7 @@ export class UserAuctionsService {
   }
 
   private async _createScheduleHoursAuction(
-    userId: number,
+    userId: string,
     productId: number,
     auctionDto: AuctionCreationDTO,
   ) {
@@ -7013,7 +7012,7 @@ export class UserAuctionsService {
 
   private async _updateScheduleHoursAuction(
     auctionId: number,
-    userId: number,
+    userId: string,
     productId: number,
     auctionCreationDTO: AuctionCreationDTO,
   ) {
@@ -7082,7 +7081,7 @@ export class UserAuctionsService {
     productBody: ProductDTO,
     images?: Express.Multer.File[],
     createProductStatus?: 'LISTING' | 'AUCTION',
-    userId?: number,
+    userId?: string,
   ) {
     const {
       title,
@@ -7210,7 +7209,7 @@ export class UserAuctionsService {
       title,
       categoryId: Number(categoryId),
       description,
-      ...(userId ? { userId: Number(userId) } : {}),
+      ...(userId ? { userId: userId } : {}),
       ...(age ? { age: Number(age) } : {}),
       ...(subCategoryId
         ? { subCategoryId: Number(subCategoryId) }

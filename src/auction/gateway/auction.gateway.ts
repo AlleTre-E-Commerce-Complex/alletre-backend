@@ -47,7 +47,7 @@ export class AuctionWebSocketGateway
     const { userId } = socket.handshake.query;
     // console.log(`auction connected: ${socket.id} with auctionId: ${auctionId}`);
 
-    socket.join(String(userId));
+    socket.join(userId);
 
     if (socket.handshake.headers['authorization']) {
       const userPayload = this.authService.authenticateSocketUser(socket);

@@ -30,10 +30,10 @@ export class NotificationsService {
   async saveFCMToken(userId: string, fcmToken: string) {
     try {
       await this.prismaService.pushSubscription.upsert({
-        where: { userId: Number(userId) },
+        where: { userId: userId },
         update: { fcmToken },
         create: {
-          userId: Number(userId),
+          userId: userId,
           fcmToken,
         },
       });
@@ -99,7 +99,7 @@ export class NotificationsService {
     }
   }
 
-  async getAllNotifications(userId: number) {
+  async getAllNotifications(userId: string) {
     try {
       const notifications = await this.prismaService.notification.findMany({
         where: {
@@ -275,7 +275,7 @@ export class NotificationsService {
           const notifications =
             await this.prismaService.notification.createMany({
               data: batch.map((userId) => ({
-                userId: Number(userId),
+                userId: userId,
                 message,
                 imageLink,
                 productTitle,
@@ -289,7 +289,7 @@ export class NotificationsService {
             {
               where: {
                 userId: {
-                  in: batch.map(Number),
+                  in: batch,
                 },
                 fcmToken: {
                   not: null,
@@ -373,7 +373,7 @@ export class NotificationsService {
     }
   }
 
-  async markNotificationsAsRead(userId: number, notificationIds: number[]) {
+  async markNotificationsAsRead(userId: string, notificationIds: number[]) {
     // console.log('notificationIds : ', notificationIds);
     return await this.prismaService.notification.updateMany({
       where: {
@@ -386,7 +386,7 @@ export class NotificationsService {
     });
   }
 
-  async getUnreadNotificationCount(userId: number) {
+  async getUnreadNotificationCount(userId: string) {
     return await this.prismaService.notification.count({
       where: {
         userId,
@@ -403,7 +403,7 @@ export class NotificationsService {
     return result;
   }
 
-  async getAllRegisteredUsers(currentUserId: number, batchSize = 1000) {
+  async getAllRegisteredUsers(currentUserId: string, batchSize = 1000) {
     const usersId = [];
     let skip = 0;
     let batch: any;
@@ -425,7 +425,7 @@ export class NotificationsService {
         });
 
         // Add fetched emails to the list
-        usersId.push(...batch.map((user: any) => user.id.toString()));
+        usersId.push(...batch.map((user: any) => user.id));
 
         // Increment the skip counter for the next batch
         skip += batchSize;
@@ -440,7 +440,7 @@ export class NotificationsService {
     }
   }
 
-  async getAllJoinedAuctionUsers(auctionId: number, currentUserId: number) {
+  async getAllJoinedAuctionUsers(auctionId: number, currentUserId: string) {
     try {
       const allJoinedUserIds = await this.prismaService.joinedAuction.findMany({
         where: {
@@ -453,7 +453,7 @@ export class NotificationsService {
           userId: true, // Only select userId
         },
       });
-      return allJoinedUserIds.map((user) => user.userId.toString());
+      return allJoinedUserIds.map((user) => user.userId);
     } catch (error) {
       console.error('getAllJoinedAuctionUsers error:', error);
       throw error; // Optionally rethrow the error
@@ -461,7 +461,7 @@ export class NotificationsService {
   }
 
   async sendPushNotification(
-    userId: number | string,
+    userId: string | string,
     payload: {
       title: string;
       body: string;
@@ -476,7 +476,7 @@ export class NotificationsService {
     error?: any;
   }> {
     try {
-      const uid = Number(userId);
+      const uid = userId;
       if (!uid) return { success: false, message: 'Invalid userId' };
 
       // 1) Find stored FCM token for the user
